@@ -9,7 +9,7 @@ import { createClient } from '@/lib/supabase/client';
 import type { Artwork, User } from '@/types/database';
 
 export default function ArtworkDetailPage() {
-  const { id } = useParams();
+  const { id } = useParams() as { id: string };
   const [selectedImage, setSelectedImage] = useState(0);
   const [artwork, setArtwork] = useState<(Artwork & { artist: User }) | null>(null);
   const [loading, setLoading] = useState(true);
@@ -132,7 +132,7 @@ export default function ArtworkDetailPage() {
             >
               <div className="w-12 h-12 rounded-full bg-gray-300 flex-shrink-0 overflow-hidden">
                 {artwork.artist.avatar_url && (
-                  <img src={artwork.artist.avatar_url} alt={artwork.artist.full_name} className="w-full h-full object-cover" />
+                  <img src={artwork.artist.avatar_url} alt={artwork.artist.full_name ?? ''} className="w-full h-full object-cover" />
                 )}
               </div>
               <div className="flex-1 min-w-0">

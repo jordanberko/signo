@@ -43,7 +43,7 @@ export default function AdminUsersPage() {
   const filteredUsers = users.filter((u) => {
     if (!searchQuery) return true;
     const q = searchQuery.toLowerCase();
-    return u.full_name.toLowerCase().includes(q) || u.email.toLowerCase().includes(q);
+    return (u.full_name ?? '').toLowerCase().includes(q) || (u.email ?? '').toLowerCase().includes(q);
   });
 
   const roleBadge: Record<string, { bg: string; icon: typeof Users }> = {

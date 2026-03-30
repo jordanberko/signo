@@ -6,11 +6,11 @@ import { Plus, Edit, Pause, Play, Trash2 } from 'lucide-react';
 import { formatPrice } from '@/lib/utils';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { createClient } from '@/lib/supabase/client';
-import type { Artwork } from '@/types/database';
+import type { Artwork, ArtworkStatus } from '@/types/database';
 
 const STATUS_TABS = ['All', 'Draft', 'Pending Review', 'Approved', 'Sold', 'Paused'];
 
-const statusMap: Record<string, string> = {
+const statusMap: Record<string, ArtworkStatus | ''> = {
   'All': '',
   'Draft': 'draft',
   'Pending Review': 'pending_review',

@@ -1,5 +1,5 @@
 import { createClient } from './client';
-import type { User } from '@/types/database';
+import type { Profile } from '@/lib/types/database';
 
 export async function signUp(email: string, password: string, fullName: string, role: 'buyer' | 'artist') {
   const supabase = createClient();
@@ -28,7 +28,7 @@ export async function signOut() {
   return { error };
 }
 
-export async function getCurrentUser(): Promise<User | null> {
+export async function getCurrentUser(): Promise<Profile | null> {
   const supabase = createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return null;
@@ -42,7 +42,7 @@ export async function getCurrentUser(): Promise<User | null> {
   return profile;
 }
 
-export function onAuthStateChange(callback: (user: User | null) => void) {
+export function onAuthStateChange(callback: (user: Profile | null) => void) {
   const supabase = createClient();
   return supabase.auth.onAuthStateChange(async (event, session) => {
     if (session?.user) {

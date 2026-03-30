@@ -9,7 +9,7 @@ import { createClient } from '@/lib/supabase/client';
 import type { User, Artwork } from '@/types/database';
 
 export default function ArtistProfilePage() {
-  const { id } = useParams();
+  const { id } = useParams() as { id: string };
   const [activeTab, setActiveTab] = useState<'artworks' | 'reviews'>('artworks');
   const [artist, setArtist] = useState<User | null>(null);
   const [artworks, setArtworks] = useState<Artwork[]>([]);
@@ -71,7 +71,7 @@ export default function ArtistProfilePage() {
       <div className="flex flex-col md:flex-row gap-6 items-start mb-10">
         <div className="w-24 h-24 rounded-full bg-gray-300 flex-shrink-0 overflow-hidden">
           {artist.avatar_url && (
-            <img src={artist.avatar_url} alt={artist.full_name} className="w-full h-full object-cover" />
+            <img src={artist.avatar_url} alt={artist.full_name ?? ''} className="w-full h-full object-cover" />
           )}
         </div>
         <div className="flex-1 space-y-3">
@@ -141,12 +141,12 @@ export default function ArtistProfilePage() {
                 key={artwork.id}
                 id={artwork.id}
                 title={artwork.title}
-                artistName={artist.full_name}
+                artistName={artist.full_name ?? 'Unknown'}
                 artistId={artist.id}
                 price={artwork.price_aud}
                 imageUrl={(artwork.images as string[])?.[0] || ''}
-                medium={artwork.medium}
-                category={artwork.category}
+                medium={artwork.medium ?? ''}
+                category={artwork.category as 'original' | 'print' | 'digital'}
               />
             ))}
           </div>

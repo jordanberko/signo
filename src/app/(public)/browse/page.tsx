@@ -5,6 +5,7 @@ import { useSearchParams } from 'next/navigation';
 import { Search, X, SlidersHorizontal } from 'lucide-react';
 import ArtworkCard from '@/components/ui/ArtworkCard';
 import { createClient } from '@/lib/supabase/client';
+import type { ArtworkCategory } from '@/lib/types/database';
 import { Suspense } from 'react';
 
 const CATEGORIES = ['All', 'Originals', 'Prints', 'Digital'];
@@ -49,7 +50,7 @@ function BrowseContent() {
       .eq('status', 'approved');
 
     if (selectedCategory !== 'All') {
-      const categoryMap: Record<string, string> = {
+      const categoryMap: Record<string, ArtworkCategory> = {
         Originals: 'original',
         Prints: 'print',
         Digital: 'digital',

@@ -104,7 +104,7 @@ export default function Header() {
                     onClick={() => setUserMenuOpen(!userMenuOpen)}
                     className="w-9 h-9 rounded-full bg-primary text-white text-xs font-semibold flex items-center justify-center hover:bg-accent transition-colors duration-300 ring-2 ring-transparent hover:ring-accent/20"
                   >
-                    {getInitials(user.full_name)}
+                    {getInitials(user.full_name ?? '')}
                   </button>
 
                   {userMenuOpen && (
