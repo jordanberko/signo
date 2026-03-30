@@ -71,14 +71,30 @@ export async function updateSession(request: NextRequest) {
 
     // Authenticated → check role
     const allowedRoles = ROLE_ACCESS[matchedRoute];
-    const { data: profile } = await supabase
+
+    // First try selecting role + onboarding_completed.
+    // If onboarding_completed column doesn't exist yet, fall back to just role.
+    let userRole = 'buyer';
+    let onboardingCompleted = true; // default: skip gate if unknown
+
+    const { data: profile, error: profileError } = await supabase
       .from('profiles')
       .select('role, onboarding_completed')
       .eq('id', user.id)
       .single();
 
-    // If the query fails (e.g. column doesn't exist yet), fall back gracefully
-    const userRole = profile?.role ?? 'buyer';
+    if (profileError && (profileError.message?.includes('onboarding_completed') || profileError.message?.includes('column'))) {
+      // Column doesn't exist — retry with just role
+      const { data: fallback } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', user.id)
+        .single();
+      userRole = fallback?.role ?? 'buyer';
+    } else if (profile) {
+      userRole = profile.role ?? 'buyer';
+      onboardingCompleted = profile.onboarding_completed ?? true;
+    }
 
     if (!allowedRoles.includes(userRole)) {
       // Wrong role → redirect to their dashboard with an error
@@ -91,12 +107,6 @@ export async function updateSession(request: NextRequest) {
     // ── Artist onboarding gate ──
     // Artists who haven't completed onboarding get redirected,
     // unless they're already on the onboarding page.
-    // Skip the gate if onboarding_completed is not in the query result
-    // (means the column hasn't been added yet).
-    const onboardingCompleted = profile
-      ? ('onboarding_completed' in profile ? profile.onboarding_completed : true)
-      : true;
-
     if (
       pathname.startsWith('/artist') &&
       !pathname.startsWith('/artist/onboarding') &&

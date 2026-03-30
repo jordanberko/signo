@@ -92,7 +92,10 @@ export default function ArtistOnboardingPage() {
   );
 
   async function saveProfile() {
-    if (!user) return;
+    if (!user) {
+      setError('You appear to be signed out. Please refresh the page and sign in again.');
+      return;
+    }
     setSaving(true);
     setError('');
 
