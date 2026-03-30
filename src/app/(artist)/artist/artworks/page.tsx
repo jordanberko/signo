@@ -212,6 +212,7 @@ export default function ArtistArtworksPage() {
   const [allArtworks, setAllArtworks] = useState<Artwork[]>([]);
   const [loading, setLoading] = useState(true);
   const [deleteTarget, setDeleteTarget] = useState<Artwork | null>(null);
+  const [actionError, setActionError] = useState('');
 
   const fetchArtworks = useCallback(async () => {
     if (!user) return;
@@ -242,26 +243,59 @@ export default function ArtistArtworksPage() {
     ? allArtworks.filter((a) => a.status === activeStatus)
     : allArtworks;
 
-  // Actions
+  // Actions — use API routes for server-side validation & image cleanup
   async function submitForReview(id: string) {
-    const supabase = createClient();
-    await supabase.from('artworks').update({ status: 'pending_review' as ArtworkStatus }).eq('id', id);
-    fetchArtworks();
+    setActionError('');
+    try {
+      const res = await fetch(`/api/artworks/${id}/status`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'pending_review' }),
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.error || 'Failed to submit for review');
+      }
+      fetchArtworks();
+    } catch (err) {
+      setActionError(err instanceof Error ? err.message : 'Something went wrong');
+    }
   }
 
   async function togglePause(artwork: Artwork) {
-    const supabase = createClient();
-    const newStatus: ArtworkStatus = artwork.status === 'paused' ? 'approved' : 'paused';
-    await supabase.from('artworks').update({ status: newStatus }).eq('id', artwork.id);
-    fetchArtworks();
+    setActionError('');
+    try {
+      const newStatus: ArtworkStatus = artwork.status === 'paused' ? 'approved' : 'paused';
+      const res = await fetch(`/api/artworks/${artwork.id}/status`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: newStatus }),
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.error || 'Failed to update status');
+      }
+      fetchArtworks();
+    } catch (err) {
+      setActionError(err instanceof Error ? err.message : 'Something went wrong');
+    }
   }
 
   async function confirmDelete() {
     if (!deleteTarget) return;
-    const supabase = createClient();
-    await supabase.from('artworks').delete().eq('id', deleteTarget.id);
-    setDeleteTarget(null);
-    fetchArtworks();
+    setActionError('');
+    try {
+      const res = await fetch(`/api/artworks/${deleteTarget.id}`, { method: 'DELETE' });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.error || 'Failed to delete artwork');
+      }
+      setDeleteTarget(null);
+      fetchArtworks();
+    } catch (err) {
+      setDeleteTarget(null);
+      setActionError(err instanceof Error ? err.message : 'Something went wrong');
+    }
   }
 
   return (
@@ -275,6 +309,24 @@ export default function ArtistArtworksPage() {
           onConfirm={confirmDelete}
           onCancel={() => setDeleteTarget(null)}
         />
+      )}
+
+      {/* Error banner */}
+      {actionError && (
+        <div className="mb-4 p-3.5 bg-error/5 border border-error/20 rounded-xl flex items-center justify-between animate-fade-in">
+          <div className="flex items-center gap-2 text-sm text-error">
+            <AlertCircle className="h-4 w-4 flex-shrink-0" />
+            {actionError}
+          </div>
+          <button
+            type="button"
+            onClick={() => setActionError('')}
+            className="text-error/60 hover:text-error transition-colors ml-3"
+          >
+            <span className="sr-only">Dismiss</span>
+            &times;
+          </button>
+        </div>
       )}
 
       {/* Header */}

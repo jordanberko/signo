@@ -32,7 +32,6 @@ function InstagramIcon({ className }: { className?: string }) {
 import { useAuth } from '@/components/providers/AuthProvider';
 import AvatarUpload from '@/components/AvatarUpload';
 import { uploadAvatar } from '@/lib/supabase/storage';
-import { createClient } from '@/lib/supabase/client';
 
 const TOTAL_STEPS = 4;
 
@@ -97,34 +96,65 @@ export default function ArtistOnboardingPage() {
     setSaving(true);
     setError('');
 
-    const supabase = createClient();
+    try {
+      const socialLinks: Record<string, string> = {};
+      if (instagram.trim()) socialLinks.instagram = instagram.trim();
+      if (website.trim()) socialLinks.website = website.trim();
+      if (otherLink.trim()) socialLinks.other = otherLink.trim();
 
-    const socialLinks: Record<string, string> = {};
-    if (instagram.trim()) socialLinks.instagram = instagram.trim();
-    if (website.trim()) socialLinks.website = website.trim();
-    if (otherLink.trim()) socialLinks.other = otherLink.trim();
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 10000);
 
-    const { error: updateError } = await supabase
-      .from('profiles')
-      .update({
-        full_name: fullName.trim(),
-        bio: bio.trim(),
-        location: location.trim() || null,
-        avatar_url: avatarUrl,
-        social_links: socialLinks,
-        onboarding_completed: true,
-      })
-      .eq('id', user.id);
+      let res: Response;
+      try {
+        res = await fetch('/api/profile', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            full_name: fullName.trim(),
+            bio: bio.trim(),
+            location: location.trim() || null,
+            avatar_url: avatarUrl,
+            social_links: socialLinks,
+            onboarding_completed: true,
+          }),
+          signal: controller.signal,
+        });
+      } finally {
+        clearTimeout(timeout);
+      }
 
-    if (updateError) {
-      setError(updateError.message);
+      if (!res.ok) {
+        let message = 'Failed to save profile';
+        try {
+          const body = await res.json();
+          if (body.error) message = body.error;
+        } catch {
+          // response wasn't JSON — use default message
+        }
+        setError(message);
+        return;
+      }
+
+      // The API may return a warning if onboarding_completed column is missing
+      // but the rest of the profile was saved successfully — still proceed.
+      const responseBody = await res.json().catch(() => ({}));
+      if (responseBody.warning) {
+        console.warn('[Onboarding]', responseBody.warning);
+      }
+
+      await refreshUser();
+      setStep(4);
+    } catch (err) {
+      if (err instanceof DOMException && err.name === 'AbortError') {
+        setError('Save timed out — please check your connection and try again.');
+      } else {
+        const message = err instanceof Error ? err.message : 'Something went wrong. Please try again.';
+        setError(message);
+      }
+    } finally {
       setSaving(false);
-      return;
     }
-
-    await refreshUser();
-    setSaving(false);
-    setStep(4);
   }
 
   function nextStep() {

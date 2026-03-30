@@ -21,15 +21,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   async function refreshUser() {
-    const profile = await getCurrentUser();
-    setUser(profile);
+    try {
+      const profile = await getCurrentUser();
+      setUser(profile);
+    } catch {
+      // Auth may not be ready yet — ignore
+    }
   }
 
   useEffect(() => {
-    getCurrentUser().then((profile) => {
-      setUser(profile);
-      setLoading(false);
-    });
+    getCurrentUser()
+      .then((profile) => {
+        setUser(profile);
+      })
+      .catch(() => {
+        // Ignore — user simply isn't logged in
+      })
+      .finally(() => {
+        setLoading(false);
+      });
 
     const { data: { subscription } } = onAuthStateChange((profile) => {
       setUser(profile);

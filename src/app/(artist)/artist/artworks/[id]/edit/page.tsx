@@ -214,19 +214,12 @@ export default function EditArtworkPage() {
     setError('');
 
     try {
-      const supabase = createClient();
       const medium = form.medium === 'Other' ? form.customMedium : form.medium;
 
-      // If was rejected, saving auto-resubmits
-      const newStatus = status
-        ? status
-        : artwork.status === 'rejected'
-        ? 'pending_review' as ArtworkStatus
-        : artwork.status;
-
-      const { error: updateError } = await supabase
-        .from('artworks')
-        .update({
+      const res = await fetch(`/api/artworks/${artworkId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
           title: form.title.trim(),
           description: form.description.trim(),
           category: form.category,
@@ -240,12 +233,14 @@ export default function EditArtworkPage() {
           shipping_weight_kg: form.shipping_weight_kg ? parseFloat(form.shipping_weight_kg) : null,
           images: form.images,
           tags: form.tags,
-          status: newStatus,
-          review_notes: newStatus === 'pending_review' ? null : undefined,
-        })
-        .eq('id', artworkId);
+          status: status ?? undefined,
+        }),
+      });
 
-      if (updateError) throw updateError;
+      if (!res.ok) {
+        const { error: apiError } = await res.json();
+        throw new Error(apiError || 'Failed to update artwork');
+      }
 
       router.push('/artist/artworks');
       router.refresh();

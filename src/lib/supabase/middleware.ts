@@ -77,6 +77,7 @@ export async function updateSession(request: NextRequest) {
       .eq('id', user.id)
       .single();
 
+    // If the query fails (e.g. column doesn't exist yet), fall back gracefully
     const userRole = profile?.role ?? 'buyer';
 
     if (!allowedRoles.includes(userRole)) {
@@ -90,11 +91,17 @@ export async function updateSession(request: NextRequest) {
     // ── Artist onboarding gate ──
     // Artists who haven't completed onboarding get redirected,
     // unless they're already on the onboarding page.
+    // Skip the gate if onboarding_completed is not in the query result
+    // (means the column hasn't been added yet).
+    const onboardingCompleted = profile
+      ? ('onboarding_completed' in profile ? profile.onboarding_completed : true)
+      : true;
+
     if (
       pathname.startsWith('/artist') &&
       !pathname.startsWith('/artist/onboarding') &&
       (userRole === 'artist') &&
-      !profile?.onboarding_completed
+      !onboardingCompleted
     ) {
       const url = request.nextUrl.clone();
       url.pathname = '/artist/onboarding';

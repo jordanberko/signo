@@ -221,30 +221,34 @@ export default function NewArtworkPage() {
     setError('');
 
     try {
-      const supabase = createClient();
-
       const medium = form.medium === 'Other' ? form.customMedium : form.medium;
 
-      const { error: insertError } = await supabase.from('artworks').insert({
-        id: form.artworkId,
-        artist_id: user.id,
-        title: form.title.trim(),
-        description: form.description.trim(),
-        category: form.category,
-        medium: medium || null,
-        style: form.style || null,
-        width_cm: form.width_cm ? parseFloat(form.width_cm) : null,
-        height_cm: form.height_cm ? parseFloat(form.height_cm) : null,
-        depth_cm: form.depth_cm ? parseFloat(form.depth_cm) : null,
-        price_aud: price,
-        is_framed: form.is_framed,
-        shipping_weight_kg: form.shipping_weight_kg ? parseFloat(form.shipping_weight_kg) : null,
-        images: form.images,
-        tags: form.tags,
-        status,
+      const res = await fetch('/api/artworks', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: form.artworkId,
+          title: form.title.trim(),
+          description: form.description.trim(),
+          category: form.category,
+          medium: medium || null,
+          style: form.style || null,
+          width_cm: form.width_cm ? parseFloat(form.width_cm) : null,
+          height_cm: form.height_cm ? parseFloat(form.height_cm) : null,
+          depth_cm: form.depth_cm ? parseFloat(form.depth_cm) : null,
+          price_aud: price,
+          is_framed: form.is_framed,
+          shipping_weight_kg: form.shipping_weight_kg ? parseFloat(form.shipping_weight_kg) : null,
+          images: form.images,
+          tags: form.tags,
+          status,
+        }),
       });
 
-      if (insertError) throw insertError;
+      if (!res.ok) {
+        const { error: apiError } = await res.json();
+        throw new Error(apiError || 'Failed to create artwork');
+      }
 
       clearDraft();
 

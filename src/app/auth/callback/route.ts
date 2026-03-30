@@ -12,18 +12,27 @@ export async function GET(request: Request) {
 
     if (!error) {
       // After OAuth, check if the user has a profile row.
-      // The handle_new_user trigger should have created one,
-      // but for Google sign-in the role defaults to 'buyer'.
-      // Fetch profile to decide redirect.
+      // The handle_new_user trigger creates one, but there may be a brief
+      // delay — retry a few times if the profile isn't found yet.
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('role')
-          .eq('id', user.id)
-          .single();
+        let role: string | null = null;
+        for (let attempt = 0; attempt < 3; attempt++) {
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('role')
+            .eq('id', user.id)
+            .single();
 
-        const redirectPath = profile?.role === 'artist' ? '/artist/dashboard' : next;
+          if (profile) {
+            role = profile.role;
+            break;
+          }
+          // Short delay before retry
+          await new Promise((resolve) => setTimeout(resolve, 300));
+        }
+
+        const redirectPath = role === 'artist' ? '/artist/dashboard' : next;
         return NextResponse.redirect(`${origin}${redirectPath}`);
       }
 

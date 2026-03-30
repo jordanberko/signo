@@ -49,6 +49,7 @@ function RegisterForm() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
+  const [confirmationSent, setConfirmationSent] = useState(false);
   const { refreshUser } = useAuth();
 
   const passwordStrength = useMemo(() => {
@@ -80,21 +81,49 @@ function RegisterForm() {
 
     setLoading(true);
 
-    const { error } = await signUp(email, password, fullName, role);
+    try {
+      const { data, error: signUpError } = await signUp(email, password, fullName, role);
 
-    if (error) {
-      if (error.message.includes('already registered')) {
-        setError('An account with this email already exists. Try signing in instead.');
-      } else {
-        setError(error.message);
+      if (signUpError) {
+        if (signUpError.message.includes('already registered')) {
+          setError('An account with this email already exists. Try signing in instead.');
+        } else {
+          setError(signUpError.message);
+        }
+        setLoading(false);
+        return;
       }
-      setLoading(false);
-      return;
-    }
 
-    await refreshUser();
-    router.push(role === 'artist' ? '/artist/dashboard' : '/dashboard');
-    router.refresh();
+      // Supabase returns a user but no session when email confirmation is required.
+      // Also detect fake "success" for existing emails (empty identities array).
+      const needsConfirmation = data?.user && !data.session;
+      const isExistingEmail =
+        data?.user?.identities && data.user.identities.length === 0;
+
+      if (isExistingEmail) {
+        setError('An account with this email already exists. Try signing in instead.');
+        setLoading(false);
+        return;
+      }
+
+      if (needsConfirmation) {
+        // User created but they need to verify their email first
+        setConfirmationSent(true);
+        setLoading(false);
+        return;
+      }
+
+      // Session exists — user is signed in immediately (email confirmation disabled)
+      // Small delay to let the profile trigger complete in the database
+      await new Promise((resolve) => setTimeout(resolve, 500));
+      await refreshUser();
+      router.push(role === 'artist' ? '/artist/onboarding' : '/dashboard');
+      router.refresh();
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Something went wrong. Please try again.';
+      setError(message);
+      setLoading(false);
+    }
   }
 
   async function handleGoogleSignIn() {
@@ -105,6 +134,52 @@ function RegisterForm() {
       setError(error.message);
       setGoogleLoading(false);
     }
+  }
+
+  // ── Email confirmation screen ──
+  if (confirmationSent) {
+    return (
+      <div className="min-h-[80vh] flex items-center justify-center px-4 py-12">
+        <div className="w-full max-w-md text-center">
+          <Link href="/" className="font-editorial text-3xl font-medium text-primary hover:text-accent transition-colors">
+            SIGNO
+          </Link>
+
+          <div className="mt-10 mb-6">
+            <div className="w-16 h-16 bg-accent-subtle rounded-full flex items-center justify-center mx-auto mb-6">
+              <svg className="h-7 w-7 text-accent" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 0 1-2.25 2.25h-15a2.25 2.25 0 0 1-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0 0 19.5 4.5h-15a2.25 2.25 0 0 0-2.25 2.25m19.5 0v.243a2.25 2.25 0 0 1-1.07 1.916l-7.5 4.615a2.25 2.25 0 0 1-2.36 0L3.32 8.91a2.25 2.25 0 0 1-1.07-1.916V6.75" />
+              </svg>
+            </div>
+            <h1 className="font-editorial text-2xl font-medium">Check your email</h1>
+            <p className="mt-3 text-sm text-muted leading-relaxed max-w-sm mx-auto">
+              We&apos;ve sent a confirmation link to <span className="font-medium text-foreground">{email}</span>.
+              Click the link in the email to activate your account.
+            </p>
+          </div>
+
+          <div className="space-y-3 text-sm text-muted">
+            <p>Didn&apos;t receive the email? Check your spam folder.</p>
+            <button
+              type="button"
+              onClick={() => setConfirmationSent(false)}
+              className="text-accent font-medium link-underline"
+            >
+              Try a different email
+            </button>
+          </div>
+
+          <div className="mt-8 pt-6 border-t border-border">
+            <p className="text-sm text-muted">
+              Already confirmed?{' '}
+              <Link href="/login" className="text-accent font-medium link-underline">
+                Sign in
+              </Link>
+            </p>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   return (
