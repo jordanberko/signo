@@ -25,7 +25,7 @@ export default function HomePage() {
       const supabase = createClient();
       const { data } = await supabase
         .from('artworks')
-        .select('id, title, price_aud, images, medium, category, artist_id, users!artworks_artist_id_fkey(id, full_name)')
+        .select('id, title, price_aud, images, medium, category, artist_id, profiles!artworks_artist_id_fkey(id, full_name)')
         .eq('status', 'approved')
         .order('created_at', { ascending: false })
         .limit(8);
@@ -34,7 +34,7 @@ export default function HomePage() {
         setArtworks(data.map((a: Record<string, unknown>) => ({
           id: a.id as string,
           title: a.title as string,
-          artistName: (a.users as Record<string, string>)?.full_name || 'Unknown',
+          artistName: (a.profiles as Record<string, string>)?.full_name || 'Unknown',
           artistId: a.artist_id as string,
           price: a.price_aud as number,
           imageUrl: ((a.images as string[]) || [])[0] || '',

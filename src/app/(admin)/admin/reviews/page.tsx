@@ -27,14 +27,14 @@ export default function AdminReviewsPage() {
     const supabase = createClient();
     const { data } = await supabase
       .from('artworks')
-      .select('*, users!artworks_artist_id_fkey(*)')
+      .select('*, profiles!artworks_artist_id_fkey(*)')
       .eq('status', filter)
       .order('created_at', { ascending: true });
 
     if (data) {
       setArtworks(data.map((a: Record<string, unknown>) => ({
         ...a,
-        artist: a.users,
+        artist: a.profiles,
       })) as unknown as ReviewArtwork[]);
     }
     setLoading(false);

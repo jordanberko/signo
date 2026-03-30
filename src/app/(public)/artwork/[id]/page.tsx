@@ -19,14 +19,14 @@ export default function ArtworkDetailPage() {
       const supabase = createClient();
       const { data, error } = await supabase
         .from('artworks')
-        .select('*, users!artworks_artist_id_fkey(*)')
+        .select('*, profiles!artworks_artist_id_fkey(*)')
         .eq('id', id)
         .single();
 
       if (!error && data) {
         setArtwork({
           ...data,
-          artist: data.users,
+          artist: data.profiles,
         } as unknown as Artwork & { artist: User });
       }
       setLoading(false);

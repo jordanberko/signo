@@ -41,7 +41,7 @@ export default function ArtistDashboardPage() {
       // Get orders
       const { data: orders } = await supabase
         .from('orders')
-        .select('*, artworks(title), users!orders_buyer_id_fkey(full_name)')
+        .select('*, artworks(title), profiles!orders_buyer_id_fkey(full_name)')
         .eq('artist_id', user!.id)
         .order('created_at', { ascending: false })
         .limit(5);
@@ -59,7 +59,7 @@ export default function ArtistDashboardPage() {
         setRecentOrders(orders.map((o: Record<string, unknown>) => ({
           id: o.id as string,
           title: (o.artworks as Record<string, string>)?.title || 'Unknown',
-          buyer: (o.users as Record<string, string>)?.full_name || 'Unknown',
+          buyer: (o.profiles as Record<string, string>)?.full_name || 'Unknown',
           amount: o.artist_payout_aud as number,
           status: o.status as string,
           date: new Date(o.created_at as string).toLocaleDateString('en-AU'),

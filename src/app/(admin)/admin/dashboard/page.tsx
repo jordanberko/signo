@@ -31,9 +31,9 @@ export default function AdminDashboardPage() {
       const supabase = createClient();
 
       const [users, artists, buyers, artworks, pending, approved, orders, disputes] = await Promise.all([
-        supabase.from('users').select('*', { count: 'exact', head: true }),
-        supabase.from('users').select('*', { count: 'exact', head: true }).eq('role', 'artist'),
-        supabase.from('users').select('*', { count: 'exact', head: true }).eq('role', 'buyer'),
+        supabase.from('profiles').select('*', { count: 'exact', head: true }),
+        supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('role', 'artist'),
+        supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('role', 'buyer'),
         supabase.from('artworks').select('*', { count: 'exact', head: true }),
         supabase.from('artworks').select('*', { count: 'exact', head: true }).eq('status', 'pending_review'),
         supabase.from('artworks').select('*', { count: 'exact', head: true }).eq('status', 'approved'),

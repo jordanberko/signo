@@ -21,7 +21,7 @@ export default function AdminUsersPage() {
     const supabase = createClient();
 
     let query = supabase
-      .from('users')
+      .from('profiles')
       .select('*')
       .order('created_at', { ascending: false });
 
@@ -36,7 +36,7 @@ export default function AdminUsersPage() {
 
   async function updateRole(userId: string, newRole: 'buyer' | 'artist' | 'admin') {
     const supabase = createClient();
-    await supabase.from('users').update({ role: newRole }).eq('id', userId);
+    await supabase.from('profiles').update({ role: newRole }).eq('id', userId);
     fetchUsers();
   }
 

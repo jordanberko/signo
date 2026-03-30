@@ -21,7 +21,7 @@ export default function ArtistProfilePage() {
 
       // Fetch artist profile
       const { data: artistData } = await supabase
-        .from('users')
+        .from('profiles')
         .select('*')
         .eq('id', id)
         .single();

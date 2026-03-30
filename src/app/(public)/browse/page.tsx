@@ -22,7 +22,7 @@ interface ArtworkRow {
   medium: string;
   category: 'original' | 'print' | 'digital';
   artist_id: string;
-  users: { id: string; full_name: string } | null;
+  profiles: { id: string; full_name: string } | null;
 }
 
 function BrowseContent() {
@@ -45,7 +45,7 @@ function BrowseContent() {
 
     let query = supabase
       .from('artworks')
-      .select('id, title, price_aud, images, medium, category, artist_id, users!artworks_artist_id_fkey(id, full_name)')
+      .select('id, title, price_aud, images, medium, category, artist_id, profiles!artworks_artist_id_fkey(id, full_name)')
       .eq('status', 'approved');
 
     if (selectedCategory !== 'All') {
@@ -167,7 +167,7 @@ function BrowseContent() {
                   key={artwork.id}
                   id={artwork.id}
                   title={artwork.title}
-                  artistName={artwork.users?.full_name || 'Unknown Artist'}
+                  artistName={artwork.profiles?.full_name || 'Unknown Artist'}
                   artistId={artwork.artist_id}
                   price={artwork.price_aud}
                   imageUrl={artwork.images?.[0] || ''}
