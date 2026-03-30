@@ -1,11 +1,22 @@
 'use client';
 
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import { Heart, ShoppingBag, MessageCircle, Settings, ArrowRight, Palette } from 'lucide-react';
+import { Suspense } from 'react';
 
-export default function BuyerDashboardPage() {
+function DashboardContent() {
+  const searchParams = useSearchParams();
+  const error = searchParams.get('error');
+
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+      {error === 'unauthorized' && (
+        <div className="mb-6 p-4 bg-error/5 border border-error/20 text-error text-sm rounded-xl animate-fade-in">
+          You don&apos;t have permission to access that page. If you believe this is an error, please contact support.
+        </div>
+      )}
+
       <div className="mb-10">
         <h1 className="font-editorial text-3xl md:text-4xl font-medium">My Dashboard</h1>
         <p className="text-muted mt-2">Manage your orders, favourites, and messages.</p>
@@ -72,5 +83,13 @@ export default function BuyerDashboardPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function BuyerDashboardPage() {
+  return (
+    <Suspense>
+      <DashboardContent />
+    </Suspense>
   );
 }
