@@ -105,11 +105,9 @@ export default function Header() {
                         <LayoutDashboard className="h-4 w-4 text-muted" /> Dashboard
                       </Link>
 
-                      {(user.role === 'artist' || user.role === 'admin') && (
-                        <Link href="/artist/dashboard" onClick={() => setUserMenuOpen(false)} className="flex items-center gap-3 px-4 py-2.5 text-sm hover:bg-muted-bg transition-colors">
-                          <Palette className="h-4 w-4 text-muted" /> Artist Studio
-                        </Link>
-                      )}
+                      <Link href="/artist/dashboard" onClick={() => setUserMenuOpen(false)} className="flex items-center gap-3 px-4 py-2.5 text-sm hover:bg-muted-bg transition-colors">
+                        <Palette className="h-4 w-4 text-muted" /> Sell Art
+                      </Link>
 
                       {user.role === 'admin' && (
                         <Link href="/admin/dashboard" onClick={() => setUserMenuOpen(false)} className="flex items-center gap-3 px-4 py-2.5 text-sm hover:bg-muted-bg transition-colors">
@@ -179,11 +177,9 @@ export default function Header() {
                 <Link href="/dashboard" onClick={() => setMobileMenuOpen(false)} className="block py-2 text-sm font-medium text-foreground hover:text-accent">
                   Dashboard
                 </Link>
-                {(user.role === 'artist' || user.role === 'admin') && (
-                  <Link href="/artist/dashboard" onClick={() => setMobileMenuOpen(false)} className="block py-2 text-sm font-medium text-foreground hover:text-accent">
-                    Artist Studio
-                  </Link>
-                )}
+                <Link href="/artist/dashboard" onClick={() => setMobileMenuOpen(false)} className="block py-2 text-sm font-medium text-foreground hover:text-accent">
+                  Sell Art
+                </Link>
                 {user.role === 'admin' && (
                   <Link href="/admin/dashboard" onClick={() => setMobileMenuOpen(false)} className="block py-2 text-sm font-medium text-foreground hover:text-accent">
                     Admin Panel

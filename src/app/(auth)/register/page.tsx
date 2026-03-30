@@ -34,7 +34,7 @@ function RegisterForm() {
     }
 
     await refreshUser();
-    router.push(role === 'artist' ? '/artist/dashboard' : '/dashboard');
+    router.push('/dashboard');
     router.refresh();
   }
 
@@ -54,31 +54,35 @@ function RegisterForm() {
           )}
 
           {/* Role Selection */}
-          <div className="grid grid-cols-2 gap-3">
-            <button
-              type="button"
-              onClick={() => setRole('buyer')}
-              className={`p-4 border-2 rounded-lg text-center transition-colors ${
-                role === 'buyer'
-                  ? 'border-accent bg-accent/5'
-                  : 'border-border hover:border-gray-300'
-              }`}
-            >
-              <p className="font-semibold">Buyer</p>
-              <p className="text-xs text-muted mt-1">Discover & buy art</p>
-            </button>
-            <button
-              type="button"
-              onClick={() => setRole('artist')}
-              className={`p-4 border-2 rounded-lg text-center transition-colors ${
-                role === 'artist'
-                  ? 'border-accent bg-accent/5'
-                  : 'border-border hover:border-gray-300'
-              }`}
-            >
-              <p className="font-semibold">Artist</p>
-              <p className="text-xs text-muted mt-1">Sell your artwork</p>
-            </button>
+          <div>
+            <p className="text-sm font-medium mb-2">What best describes you?</p>
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                type="button"
+                onClick={() => setRole('buyer')}
+                className={`p-4 border-2 rounded-lg text-center transition-colors ${
+                  role === 'buyer'
+                    ? 'border-accent bg-accent/5'
+                    : 'border-border hover:border-gray-300'
+                }`}
+              >
+                <p className="font-semibold">Art Lover</p>
+                <p className="text-xs text-muted mt-1">Primarily looking to buy</p>
+              </button>
+              <button
+                type="button"
+                onClick={() => setRole('artist')}
+                className={`p-4 border-2 rounded-lg text-center transition-colors ${
+                  role === 'artist'
+                    ? 'border-accent bg-accent/5'
+                    : 'border-border hover:border-gray-300'
+                }`}
+              >
+                <p className="font-semibold">Artist</p>
+                <p className="text-xs text-muted mt-1">Primarily looking to sell</p>
+              </button>
+            </div>
+            <p className="text-xs text-muted mt-2 text-center">Everyone on Signo can both buy and sell artwork</p>
           </div>
 
           <div>
@@ -132,7 +136,7 @@ function RegisterForm() {
             disabled={loading}
             className="w-full py-3 bg-primary text-white font-semibold rounded-lg hover:bg-primary-light transition-colors disabled:opacity-50"
           >
-            {loading ? 'Creating account...' : `Create ${role === 'artist' ? 'Artist' : 'Buyer'} Account`}
+            {loading ? 'Creating account...' : 'Create Account'}
           </button>
         </form>
 

@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { Heart, ShoppingBag, MessageCircle, Settings, ArrowRight } from 'lucide-react';
+import { Heart, ShoppingBag, MessageCircle, Settings, ArrowRight, Palette } from 'lucide-react';
 
 export default function BuyerDashboardPage() {
   return (
@@ -48,6 +48,25 @@ export default function BuyerDashboardPage() {
             <p className="font-semibold">Settings</p>
             <p className="text-xs text-muted">Account & preferences</p>
           </div>
+        </Link>
+      </div>
+
+      {/* Sell Art CTA */}
+      <div className="mb-10 p-6 bg-gradient-to-r from-accent/10 to-primary/10 border border-accent/20 rounded-lg flex flex-col sm:flex-row items-center justify-between gap-4">
+        <div className="flex items-center gap-4">
+          <div className="w-12 h-12 bg-accent/20 rounded-full flex items-center justify-center">
+            <Palette className="h-6 w-6 text-accent" />
+          </div>
+          <div>
+            <p className="font-semibold text-lg">Want to sell your artwork?</p>
+            <p className="text-sm text-muted">Every Signo member can list artwork for sale. Upload your first piece today.</p>
+          </div>
+        </div>
+        <Link
+          href="/artist/dashboard"
+          className="inline-flex items-center gap-2 px-5 py-2.5 bg-primary text-white text-sm font-medium rounded-lg hover:bg-primary-light transition-colors whitespace-nowrap"
+        >
+          Start Selling <ArrowRight className="h-4 w-4" />
         </Link>
       </div>
 

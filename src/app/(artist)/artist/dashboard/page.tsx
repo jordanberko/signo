@@ -80,8 +80,8 @@ export default function ArtistDashboardPage() {
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <div className="flex items-center justify-between mb-8">
         <div>
-          <h1 className="text-3xl font-bold">Artist Dashboard</h1>
-          <p className="text-muted mt-1">Welcome back{user ? `, ${user.full_name}` : ''}!</p>
+          <h1 className="text-3xl font-bold">Seller Dashboard</h1>
+          <p className="text-muted mt-1">Manage your listings and sales{user ? `, ${user.full_name}` : ''}</p>
         </div>
         <Link
           href="/artist/artworks/new"
