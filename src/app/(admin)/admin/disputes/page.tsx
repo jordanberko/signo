@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { AlertTriangle, CheckCircle, Clock, MessageSquare } from 'lucide-react';
+import { AlertTriangle, CheckCircle, Clock } from 'lucide-react';
 import { formatPrice } from '@/lib/utils';
 import { createClient } from '@/lib/supabase/client';
 
@@ -28,15 +28,12 @@ export default function AdminDisputesPage() {
   const [resolutionNotes, setResolutionNotes] = useState('');
   const [actionLoading, setActionLoading] = useState(false);
   const [filter, setFilter] = useState<'open' | 'under_review' | 'all'>('open');
+  const [refreshKey, setRefreshKey] = useState(0);
 
   useEffect(() => {
-    fetchDisputes();
-  }, [filter]);
+    let cancelled = false;
 
-  async function fetchDisputes() {
-    setLoading(true);
     const supabase = createClient();
-
     let query = supabase
       .from('disputes')
       .select('*, orders(id, total_amount_aud, artworks(title), profiles!orders_buyer_id_fkey(full_name, email), profiles!orders_artist_id_fkey(full_name, email))')
@@ -46,22 +43,26 @@ export default function AdminDisputesPage() {
       query = query.eq('status', filter);
     }
 
-    const { data } = await query;
-    if (data) {
-      setDisputes(data.map((d: Record<string, unknown>) => {
-        const order = d.orders as Record<string, unknown>;
-        return {
-          ...d,
-          orders: {
-            ...order,
-            buyer: (order as Record<string, unknown[]>).profiles?.[0] || { full_name: 'Unknown', email: '' },
-            artist: (order as Record<string, unknown[]>).profiles?.[1] || { full_name: 'Unknown', email: '' },
-          },
-        };
-      }) as unknown as DisputeRow[]);
-    }
-    setLoading(false);
-  }
+    query.then(({ data }) => {
+      if (cancelled) return;
+      if (data) {
+        setDisputes(data.map((d: Record<string, unknown>) => {
+          const order = d.orders as Record<string, unknown>;
+          return {
+            ...d,
+            orders: {
+              ...order,
+              buyer: (order as Record<string, unknown[]>).profiles?.[0] || { full_name: 'Unknown', email: '' },
+              artist: (order as Record<string, unknown[]>).profiles?.[1] || { full_name: 'Unknown', email: '' },
+            },
+          };
+        }) as unknown as DisputeRow[]);
+      }
+      setLoading(false);
+    });
+
+    return () => { cancelled = true; };
+  }, [filter, refreshKey]);
 
   async function resolveDispute(disputeId: string, resolution: 'resolved_refund' | 'resolved_no_refund' | 'resolved_return') {
     setActionLoading(true);
@@ -79,7 +80,7 @@ export default function AdminDisputesPage() {
     setSelected(null);
     setResolutionNotes('');
     setActionLoading(false);
-    fetchDisputes();
+    setRefreshKey((k) => k + 1);
   }
 
   const statusBadge: Record<string, { color: string; icon: typeof Clock }> = {

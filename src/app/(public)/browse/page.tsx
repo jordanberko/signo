@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { Search, X, SlidersHorizontal } from 'lucide-react';
+import { Search, X } from 'lucide-react';
 import ArtworkCard from '@/components/ui/ArtworkCard';
 import { createClient } from '@/lib/supabase/client';
 import type { ArtworkCategory } from '@/lib/types/database';
@@ -37,13 +37,9 @@ function BrowseContent() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetchArtworks();
-  }, [selectedCategory, sortBy, searchQuery]);
+    let cancelled = false;
 
-  async function fetchArtworks() {
-    setLoading(true);
     const supabase = createClient();
-
     let query = supabase
       .from('artworks')
       .select('id, title, price_aud, images, medium, category, artist_id, profiles!artworks_artist_id_fkey(id, full_name)')
@@ -72,13 +68,16 @@ function BrowseContent() {
 
     query = query.limit(48);
 
-    const { data, error } = await query;
+    query.then(({ data, error }) => {
+      if (cancelled) return;
+      if (!error && data) {
+        setArtworks(data as unknown as ArtworkRow[]);
+      }
+      setLoading(false);
+    });
 
-    if (!error && data) {
-      setArtworks(data as unknown as ArtworkRow[]);
-    }
-    setLoading(false);
-  }
+    return () => { cancelled = true; };
+  }, [selectedCategory, sortBy, searchQuery]);
 
   return (
     <div>

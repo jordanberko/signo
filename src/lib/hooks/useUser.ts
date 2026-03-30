@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { signOut as authSignOut } from '@/lib/supabase/auth';
@@ -30,7 +30,6 @@ export function useUser(): UseUserReturn {
   const [user, setUser] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const fetched = useRef(false);
 
   const fetchProfile = useCallback(async () => {
     const supabase = createClient();
@@ -60,30 +59,45 @@ export function useUser(): UseUserReturn {
 
   // Initial fetch + subscribe to auth changes
   useEffect(() => {
-    if (!fetched.current) {
-      fetched.current = true;
-      fetchProfile();
-    }
-
     const supabase = createClient();
+
+    const handleAuthChange = async (session: { user: { id: string } } | null) => {
+      if (session?.user) {
+        const { data: profile, error: profileError } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', session.user.id)
+          .single();
+        if (profileError) {
+          setError(profileError.message);
+        } else {
+          setUser(profile);
+          setError(null);
+        }
+      } else {
+        setUser(null);
+      }
+      setLoading(false);
+    };
+
+    // Initial fetch
+    supabase.auth.getUser().then(({ data: { user: authUser } }) => {
+      if (authUser) {
+        handleAuthChange({ user: { id: authUser.id } });
+      } else {
+        setUser(null);
+        setLoading(false);
+      }
+    });
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (_event, session) => {
-        if (session?.user) {
-          const { data: profile } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('id', session.user.id)
-            .single();
-          setUser(profile);
-        } else {
-          setUser(null);
-        }
-        setLoading(false);
+        await handleAuthChange(session);
       }
     );
 
     return () => subscription.unsubscribe();
-  }, [fetchProfile]);
+  }, []);
 
   const handleSignOut = useCallback(async () => {
     await authSignOut();

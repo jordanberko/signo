@@ -146,8 +146,10 @@ export default function ArtistOnboardingPage() {
         console.warn('[Onboarding]', responseBody.warning);
       }
 
-      await refreshUser();
+      // Move to the success screen immediately — don't block on refreshUser().
+      // refreshUser() can hang if Supabase is slow or the session needs refreshing.
       setStep(4);
+      refreshUser().catch(() => {});
     } catch (err) {
       if (err instanceof DOMException && err.name === 'AbortError') {
         setError('Save timed out — please check your connection and try again.');

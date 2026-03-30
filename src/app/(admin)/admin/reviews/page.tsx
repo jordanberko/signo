@@ -17,28 +17,30 @@ export default function AdminReviewsPage() {
   const [actionLoading, setActionLoading] = useState(false);
   const [selectedImage, setSelectedImage] = useState(0);
   const [filter, setFilter] = useState<'pending_review' | 'approved' | 'rejected'>('pending_review');
+  const [refreshKey, setRefreshKey] = useState(0);
 
   useEffect(() => {
-    fetchArtworks();
-  }, [filter]);
+    let cancelled = false;
 
-  async function fetchArtworks() {
-    setLoading(true);
     const supabase = createClient();
-    const { data } = await supabase
+    supabase
       .from('artworks')
       .select('*, profiles!artworks_artist_id_fkey(*)')
       .eq('status', filter)
-      .order('created_at', { ascending: true });
+      .order('created_at', { ascending: true })
+      .then(({ data }) => {
+        if (cancelled) return;
+        if (data) {
+          setArtworks(data.map((a: Record<string, unknown>) => ({
+            ...a,
+            artist: a.profiles,
+          })) as unknown as ReviewArtwork[]);
+        }
+        setLoading(false);
+      });
 
-    if (data) {
-      setArtworks(data.map((a: Record<string, unknown>) => ({
-        ...a,
-        artist: a.profiles,
-      })) as unknown as ReviewArtwork[]);
-    }
-    setLoading(false);
-  }
+    return () => { cancelled = true; };
+  }, [filter, refreshKey]);
 
   async function handleAction(artworkId: string, action: 'approved' | 'rejected') {
     setActionLoading(true);
@@ -56,7 +58,7 @@ export default function AdminReviewsPage() {
     setReviewNotes('');
     setSelectedImage(0);
     setActionLoading(false);
-    fetchArtworks();
+    setRefreshKey((k) => k + 1);
   }
 
   function openReview(artwork: ReviewArtwork) {

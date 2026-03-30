@@ -1,7 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import Link from 'next/link';
+import { useEffect, useCallback, useState } from 'react';
 import { Users, Search, ShieldCheck, Palette, ShoppingBag } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import type { User } from '@/types/database';
@@ -12,11 +11,7 @@ export default function AdminUsersPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [roleFilter, setRoleFilter] = useState<'all' | 'artist' | 'buyer' | 'admin'>('all');
 
-  useEffect(() => {
-    fetchUsers();
-  }, [roleFilter]);
-
-  async function fetchUsers() {
+  const fetchUsers = useCallback(async () => {
     setLoading(true);
     const supabase = createClient();
 
@@ -32,7 +27,29 @@ export default function AdminUsersPage() {
     const { data } = await query;
     if (data) setUsers(data as User[]);
     setLoading(false);
-  }
+  }, [roleFilter]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const supabase = createClient();
+    let query = supabase
+      .from('profiles')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (roleFilter !== 'all') {
+      query = query.eq('role', roleFilter);
+    }
+
+    query.then(({ data }) => {
+      if (cancelled) return;
+      if (data) setUsers(data as User[]);
+      setLoading(false);
+    });
+
+    return () => { cancelled = true; };
+  }, [roleFilter]);
 
   async function updateRole(userId: string, newRole: 'buyer' | 'artist' | 'admin') {
     const supabase = createClient();
