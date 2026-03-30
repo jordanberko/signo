@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Geist, Geist_Mono, Playfair_Display } from "next/font/google";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import { AuthProvider } from "@/components/providers/AuthProvider";
@@ -15,10 +15,17 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+const playfair = Playfair_Display({
+  variable: "--font-playfair",
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700", "800"],
+  style: ["normal", "italic"],
+});
+
 export const metadata: Metadata = {
-  title: "Signo — Australian Art Marketplace",
+  title: "Signo — Curated Australian Art",
   description:
-    "A curated Australian art marketplace where artists keep 83.5% of every sale. Discover originals, prints, and digital art from Australian artists.",
+    "Discover extraordinary art from Australian creators. A curated marketplace where artists keep 83.5% of every sale.",
 };
 
 export default function RootLayout({
@@ -29,7 +36,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${geistSans.variable} ${geistMono.variable} ${playfair.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
         <AuthProvider>

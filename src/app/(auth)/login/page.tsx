@@ -35,21 +35,24 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-[80vh] flex items-center justify-center px-4">
-      <div className="w-full max-w-md space-y-8">
-        <div className="text-center">
-          <h1 className="text-3xl font-bold">Welcome Back</h1>
-          <p className="mt-2 text-muted">Sign in to your Signo account</p>
+      <div className="w-full max-w-md">
+        <div className="text-center mb-10">
+          <Link href="/" className="font-editorial text-3xl font-medium text-primary hover:text-accent transition-colors">
+            SIGNO
+          </Link>
+          <h1 className="font-editorial text-2xl font-medium mt-6">Welcome back</h1>
+          <p className="mt-2 text-sm text-muted">Sign in to your account</p>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-5">
           {error && (
-            <div className="p-3 bg-error/10 text-error text-sm rounded-lg">
+            <div className="p-3.5 bg-error/5 border border-error/20 text-error text-sm rounded-xl">
               {error}
             </div>
           )}
 
           <div>
-            <label htmlFor="email" className="block text-sm font-medium mb-1">
+            <label htmlFor="email" className="block text-xs font-medium tracking-wide uppercase text-muted mb-2">
               Email
             </label>
             <input
@@ -58,13 +61,13 @@ export default function LoginPage() {
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full px-4 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-accent"
+              className="w-full px-4 py-3 bg-white border border-border rounded-xl text-sm placeholder:text-warm-gray"
               placeholder="you@example.com"
             />
           </div>
 
           <div>
-            <label htmlFor="password" className="block text-sm font-medium mb-1">
+            <label htmlFor="password" className="block text-xs font-medium tracking-wide uppercase text-muted mb-2">
               Password
             </label>
             <input
@@ -73,7 +76,7 @@ export default function LoginPage() {
               required
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-4 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-accent"
+              className="w-full px-4 py-3 bg-white border border-border rounded-xl text-sm placeholder:text-warm-gray"
               placeholder="Your password"
             />
           </div>
@@ -81,15 +84,15 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-3 bg-primary text-white font-semibold rounded-lg hover:bg-primary-light transition-colors disabled:opacity-50"
+            className="w-full py-3.5 bg-primary text-white font-semibold rounded-full hover:bg-accent transition-colors duration-300 disabled:opacity-50"
           >
             {loading ? 'Signing in...' : 'Sign In'}
           </button>
         </form>
 
-        <p className="text-center text-sm text-muted">
+        <p className="text-center text-sm text-muted mt-8">
           Don&apos;t have an account?{' '}
-          <Link href="/register" className="text-accent font-medium hover:underline">
+          <Link href="/register" className="text-accent font-medium link-underline">
             Create one
           </Link>
         </p>

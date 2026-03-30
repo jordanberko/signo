@@ -39,54 +39,57 @@ function RegisterForm() {
   }
 
   return (
-    <div className="min-h-[80vh] flex items-center justify-center px-4">
-      <div className="w-full max-w-md space-y-8">
-        <div className="text-center">
-          <h1 className="text-3xl font-bold">Join Signo</h1>
-          <p className="mt-2 text-muted">Create your account to get started</p>
+    <div className="min-h-[80vh] flex items-center justify-center px-4 py-12">
+      <div className="w-full max-w-md">
+        <div className="text-center mb-10">
+          <Link href="/" className="font-editorial text-3xl font-medium text-primary hover:text-accent transition-colors">
+            SIGNO
+          </Link>
+          <h1 className="font-editorial text-2xl font-medium mt-6">Join the community</h1>
+          <p className="mt-2 text-sm text-muted">Create your account to start buying and selling</p>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-5">
           {error && (
-            <div className="p-3 bg-error/10 text-error text-sm rounded-lg">
+            <div className="p-3.5 bg-error/5 border border-error/20 text-error text-sm rounded-xl">
               {error}
             </div>
           )}
 
           {/* Role Selection */}
           <div>
-            <p className="text-sm font-medium mb-2">What best describes you?</p>
+            <p className="text-xs font-medium tracking-wide uppercase text-muted mb-3">I&apos;m primarily interested in</p>
             <div className="grid grid-cols-2 gap-3">
               <button
                 type="button"
                 onClick={() => setRole('buyer')}
-                className={`p-4 border-2 rounded-lg text-center transition-colors ${
+                className={`p-4 border-2 rounded-xl text-center transition-all duration-300 ${
                   role === 'buyer'
-                    ? 'border-accent bg-accent/5'
-                    : 'border-border hover:border-gray-300'
+                    ? 'border-accent bg-accent-subtle'
+                    : 'border-border hover:border-warm-gray bg-white'
                 }`}
               >
-                <p className="font-semibold">Art Lover</p>
-                <p className="text-xs text-muted mt-1">Primarily looking to buy</p>
+                <p className="font-medium text-sm">Collecting Art</p>
+                <p className="text-xs text-muted mt-1">Browse & buy</p>
               </button>
               <button
                 type="button"
                 onClick={() => setRole('artist')}
-                className={`p-4 border-2 rounded-lg text-center transition-colors ${
+                className={`p-4 border-2 rounded-xl text-center transition-all duration-300 ${
                   role === 'artist'
-                    ? 'border-accent bg-accent/5'
-                    : 'border-border hover:border-gray-300'
+                    ? 'border-accent bg-accent-subtle'
+                    : 'border-border hover:border-warm-gray bg-white'
                 }`}
               >
-                <p className="font-semibold">Artist</p>
-                <p className="text-xs text-muted mt-1">Primarily looking to sell</p>
+                <p className="font-medium text-sm">Selling Art</p>
+                <p className="text-xs text-muted mt-1">Upload & sell</p>
               </button>
             </div>
-            <p className="text-xs text-muted mt-2 text-center">Everyone on Signo can both buy and sell artwork</p>
+            <p className="text-xs text-warm-gray mt-2 text-center">You can always do both on Signo</p>
           </div>
 
           <div>
-            <label htmlFor="fullName" className="block text-sm font-medium mb-1">
+            <label htmlFor="fullName" className="block text-xs font-medium tracking-wide uppercase text-muted mb-2">
               Full Name
             </label>
             <input
@@ -95,13 +98,13 @@ function RegisterForm() {
               required
               value={fullName}
               onChange={(e) => setFullName(e.target.value)}
-              className="w-full px-4 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-accent"
+              className="w-full px-4 py-3 bg-white border border-border rounded-xl text-sm placeholder:text-warm-gray"
               placeholder="Your name"
             />
           </div>
 
           <div>
-            <label htmlFor="email" className="block text-sm font-medium mb-1">
+            <label htmlFor="email" className="block text-xs font-medium tracking-wide uppercase text-muted mb-2">
               Email
             </label>
             <input
@@ -110,13 +113,13 @@ function RegisterForm() {
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full px-4 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-accent"
+              className="w-full px-4 py-3 bg-white border border-border rounded-xl text-sm placeholder:text-warm-gray"
               placeholder="you@example.com"
             />
           </div>
 
           <div>
-            <label htmlFor="password" className="block text-sm font-medium mb-1">
+            <label htmlFor="password" className="block text-xs font-medium tracking-wide uppercase text-muted mb-2">
               Password
             </label>
             <input
@@ -126,7 +129,7 @@ function RegisterForm() {
               minLength={8}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-4 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-accent"
+              className="w-full px-4 py-3 bg-white border border-border rounded-xl text-sm placeholder:text-warm-gray"
               placeholder="At least 8 characters"
             />
           </div>
@@ -134,15 +137,15 @@ function RegisterForm() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-3 bg-primary text-white font-semibold rounded-lg hover:bg-primary-light transition-colors disabled:opacity-50"
+            className="w-full py-3.5 bg-primary text-white font-semibold rounded-full hover:bg-accent transition-colors duration-300 disabled:opacity-50"
           >
             {loading ? 'Creating account...' : 'Create Account'}
           </button>
         </form>
 
-        <p className="text-center text-sm text-muted">
+        <p className="text-center text-sm text-muted mt-8">
           Already have an account?{' '}
-          <Link href="/login" className="text-accent font-medium hover:underline">
+          <Link href="/login" className="text-accent font-medium link-underline">
             Sign in
           </Link>
         </p>
