@@ -57,6 +57,7 @@ export interface Database {
           social_links: Record<string, string>;
           stripe_account_id: string | null;
           is_verified: boolean;
+          onboarding_completed: boolean;
           created_at: string;
           updated_at: string;
         };
@@ -71,6 +72,7 @@ export interface Database {
           social_links?: Record<string, string>;
           stripe_account_id?: string | null;
           is_verified?: boolean;
+          onboarding_completed?: boolean;
           created_at?: string;
           updated_at?: string;
         };
@@ -85,6 +87,7 @@ export interface Database {
           social_links?: Record<string, string>;
           stripe_account_id?: string | null;
           is_verified?: boolean;
+          onboarding_completed?: boolean;
           created_at?: string;
           updated_at?: string;
         };

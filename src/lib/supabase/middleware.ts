@@ -73,7 +73,7 @@ export async function updateSession(request: NextRequest) {
     const allowedRoles = ROLE_ACCESS[matchedRoute];
     const { data: profile } = await supabase
       .from('profiles')
-      .select('role')
+      .select('role, onboarding_completed')
       .eq('id', user.id)
       .single();
 
@@ -84,6 +84,20 @@ export async function updateSession(request: NextRequest) {
       const url = request.nextUrl.clone();
       url.pathname = '/dashboard';
       url.searchParams.set('error', 'unauthorized');
+      return NextResponse.redirect(url);
+    }
+
+    // ── Artist onboarding gate ──
+    // Artists who haven't completed onboarding get redirected,
+    // unless they're already on the onboarding page.
+    if (
+      pathname.startsWith('/artist') &&
+      !pathname.startsWith('/artist/onboarding') &&
+      (userRole === 'artist') &&
+      !profile?.onboarding_completed
+    ) {
+      const url = request.nextUrl.clone();
+      url.pathname = '/artist/onboarding';
       return NextResponse.redirect(url);
     }
   }
