@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Search, Menu, X, Heart, MessageCircle, User, LogOut, Palette, LayoutDashboard } from 'lucide-react';
+import { Search, Menu, X, Heart, MessageCircle, User, LogOut, Palette, LayoutDashboard, Shield } from 'lucide-react';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { signOut } from '@/lib/supabase/auth';
 import { getInitials } from '@/lib/utils';
@@ -105,9 +105,15 @@ export default function Header() {
                         <LayoutDashboard className="h-4 w-4 text-muted" /> Dashboard
                       </Link>
 
-                      {user.role === 'artist' && (
+                      {(user.role === 'artist' || user.role === 'admin') && (
                         <Link href="/artist/dashboard" onClick={() => setUserMenuOpen(false)} className="flex items-center gap-3 px-4 py-2.5 text-sm hover:bg-muted-bg transition-colors">
                           <Palette className="h-4 w-4 text-muted" /> Artist Studio
+                        </Link>
+                      )}
+
+                      {user.role === 'admin' && (
+                        <Link href="/admin/dashboard" onClick={() => setUserMenuOpen(false)} className="flex items-center gap-3 px-4 py-2.5 text-sm hover:bg-muted-bg transition-colors">
+                          <Shield className="h-4 w-4 text-muted" /> Admin Panel
                         </Link>
                       )}
 
@@ -173,9 +179,14 @@ export default function Header() {
                 <Link href="/dashboard" onClick={() => setMobileMenuOpen(false)} className="block py-2 text-sm font-medium text-foreground hover:text-accent">
                   Dashboard
                 </Link>
-                {user.role === 'artist' && (
+                {(user.role === 'artist' || user.role === 'admin') && (
                   <Link href="/artist/dashboard" onClick={() => setMobileMenuOpen(false)} className="block py-2 text-sm font-medium text-foreground hover:text-accent">
                     Artist Studio
+                  </Link>
+                )}
+                {user.role === 'admin' && (
+                  <Link href="/admin/dashboard" onClick={() => setMobileMenuOpen(false)} className="block py-2 text-sm font-medium text-foreground hover:text-accent">
+                    Admin Panel
                   </Link>
                 )}
                 <Link href="/messages" onClick={() => setMobileMenuOpen(false)} className="block py-2 text-sm font-medium text-foreground hover:text-accent">
