@@ -33,13 +33,17 @@ export default function ArtworkCard({
     <div className="group relative bg-white rounded-lg overflow-hidden border border-border hover:shadow-lg transition-shadow duration-300">
       {/* Image */}
       <Link href={`/artwork/${id}`} className="block aspect-[3/4] overflow-hidden bg-muted-bg">
-        <div
-          className="w-full h-full bg-cover bg-center group-hover:scale-105 transition-transform duration-500"
-          style={{
-            backgroundImage: imageUrl ? `url(${imageUrl})` : undefined,
-            backgroundColor: imageUrl ? undefined : '#e5e7eb',
-          }}
-        />
+        {imageUrl ? (
+          <img
+            src={imageUrl}
+            alt={title}
+            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+          />
+        ) : (
+          <div className="w-full h-full bg-gray-200 flex items-center justify-center">
+            <span className="text-gray-400 text-xs">No image</span>
+          </div>
+        )}
       </Link>
 
       {/* Favourite Button */}

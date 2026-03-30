@@ -1,25 +1,87 @@
 'use client';
 
 import Link from 'next/link';
+import { useEffect, useState } from 'react';
 import { DollarSign, Package, Eye, TrendingUp, Plus, ArrowRight } from 'lucide-react';
 import { formatPrice } from '@/lib/utils';
+import { useAuth } from '@/components/providers/AuthProvider';
+import { createClient } from '@/lib/supabase/client';
 
-const STATS = [
-  { label: 'Total Sales', value: '$0.00', icon: DollarSign, change: null },
-  { label: 'Active Listings', value: '0', icon: Package, change: null },
-  { label: 'Profile Views', value: '0', icon: Eye, change: null },
-  { label: 'Conversion Rate', value: '0%', icon: TrendingUp, change: null },
-];
-
-const RECENT_ORDERS: { id: string; title: string; buyer: string; amount: number; status: string; date: string }[] = [];
+interface Stats {
+  totalSales: number;
+  activeListings: number;
+  pendingReview: number;
+  totalEarnings: number;
+}
 
 export default function ArtistDashboardPage() {
+  const { user } = useAuth();
+  const [stats, setStats] = useState<Stats>({ totalSales: 0, activeListings: 0, pendingReview: 0, totalEarnings: 0 });
+  const [recentOrders, setRecentOrders] = useState<{ id: string; title: string; buyer: string; amount: number; status: string; date: string }[]>([]);
+
+  useEffect(() => {
+    if (!user) return;
+    async function fetchStats() {
+      const supabase = createClient();
+
+      // Count active listings
+      const { count: activeCount } = await supabase
+        .from('artworks')
+        .select('*', { count: 'exact', head: true })
+        .eq('artist_id', user!.id)
+        .eq('status', 'approved');
+
+      // Count pending review
+      const { count: pendingCount } = await supabase
+        .from('artworks')
+        .select('*', { count: 'exact', head: true })
+        .eq('artist_id', user!.id)
+        .eq('status', 'pending_review');
+
+      // Get orders
+      const { data: orders } = await supabase
+        .from('orders')
+        .select('*, artworks(title), users!orders_buyer_id_fkey(full_name)')
+        .eq('artist_id', user!.id)
+        .order('created_at', { ascending: false })
+        .limit(5);
+
+      const totalEarnings = orders?.reduce((sum, o) => sum + (o.artist_payout_aud || 0), 0) || 0;
+
+      setStats({
+        totalSales: orders?.length || 0,
+        activeListings: activeCount || 0,
+        pendingReview: pendingCount || 0,
+        totalEarnings,
+      });
+
+      if (orders) {
+        setRecentOrders(orders.map((o: Record<string, unknown>) => ({
+          id: o.id as string,
+          title: (o.artworks as Record<string, string>)?.title || 'Unknown',
+          buyer: (o.users as Record<string, string>)?.full_name || 'Unknown',
+          amount: o.artist_payout_aud as number,
+          status: o.status as string,
+          date: new Date(o.created_at as string).toLocaleDateString('en-AU'),
+        })));
+      }
+    }
+    fetchStats();
+  }, [user]);
+
+  const STATS = [
+    { label: 'Total Earnings', value: formatPrice(stats.totalEarnings), icon: DollarSign },
+    { label: 'Active Listings', value: String(stats.activeListings), icon: Package },
+    { label: 'Pending Review', value: String(stats.pendingReview), icon: Eye },
+    { label: 'Total Sales', value: String(stats.totalSales), icon: TrendingUp },
+  ];
+
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <div className="flex items-center justify-between mb-8">
         <div>
           <h1 className="text-3xl font-bold">Artist Dashboard</h1>
-          <p className="text-muted mt-1">Manage your artwork and track your sales</p>
+          <p className="text-muted mt-1">Welcome back{user ? `, ${user.full_name}` : ''}!</p>
         </div>
         <Link
           href="/artist/artworks/new"
@@ -82,9 +144,9 @@ export default function ArtistDashboardPage() {
             View All <ArrowRight className="h-3 w-3" />
           </Link>
         </div>
-        {RECENT_ORDERS.length === 0 ? (
+        {recentOrders.length === 0 ? (
           <div className="p-10 text-center">
-            <p className="text-muted">No orders yet. Once your artwork is listed, orders will appear here.</p>
+            <p className="text-muted">No orders yet. Once your artwork is listed and approved, orders will appear here.</p>
             <Link href="/artist/artworks/new" className="inline-flex items-center gap-2 mt-4 text-accent font-medium hover:underline">
               Upload your first artwork <ArrowRight className="h-4 w-4" />
             </Link>
@@ -95,18 +157,18 @@ export default function ArtistDashboardPage() {
               <tr className="text-left text-xs text-muted border-b border-border">
                 <th className="p-4">Artwork</th>
                 <th className="p-4">Buyer</th>
-                <th className="p-4">Amount</th>
+                <th className="p-4">Your Payout</th>
                 <th className="p-4">Status</th>
                 <th className="p-4">Date</th>
               </tr>
             </thead>
             <tbody>
-              {RECENT_ORDERS.map((order) => (
+              {recentOrders.map((order) => (
                 <tr key={order.id} className="border-b border-border last:border-0">
                   <td className="p-4 font-medium text-sm">{order.title}</td>
                   <td className="p-4 text-sm text-muted">{order.buyer}</td>
                   <td className="p-4 text-sm font-medium">{formatPrice(order.amount)}</td>
-                  <td className="p-4"><span className="text-xs px-2 py-1 bg-muted-bg rounded">{order.status}</span></td>
+                  <td className="p-4"><span className="text-xs px-2 py-1 bg-muted-bg rounded capitalize">{order.status.replace('_', ' ')}</span></td>
                   <td className="p-4 text-sm text-muted">{order.date}</td>
                 </tr>
               ))}

@@ -3,7 +3,8 @@
 import Link from 'next/link';
 import { useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { createClient } from '@/lib/supabase/client';
+import { signUp } from '@/lib/supabase/auth';
+import { useAuth } from '@/components/providers/AuthProvider';
 import { Suspense } from 'react';
 
 function RegisterForm() {
@@ -17,23 +18,14 @@ function RegisterForm() {
   const [role, setRole] = useState<'buyer' | 'artist'>(defaultRole);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const { refreshUser } = useAuth();
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError('');
     setLoading(true);
 
-    const supabase = createClient();
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: {
-          full_name: fullName,
-          role,
-        },
-      },
-    });
+    const { error } = await signUp(email, password, fullName, role);
 
     if (error) {
       setError(error.message);
@@ -41,7 +33,8 @@ function RegisterForm() {
       return;
     }
 
-    router.push('/dashboard');
+    await refreshUser();
+    router.push(role === 'artist' ? '/artist/dashboard' : '/dashboard');
     router.refresh();
   }
 

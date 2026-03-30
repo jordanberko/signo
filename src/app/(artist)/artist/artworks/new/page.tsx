@@ -3,12 +3,15 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Upload, X, Plus, Image as ImageIcon } from 'lucide-react';
+import { createClient } from '@/lib/supabase/client';
+import { useAuth } from '@/components/providers/AuthProvider';
 
 const MEDIUMS = ['Oil on Canvas', 'Acrylic on Canvas', 'Acrylic on Board', 'Watercolour', 'Mixed Media', 'Photography', 'Digital Illustration', 'Digital Art', 'Sculpture', 'Print', 'Other'];
 const STYLES = ['Abstract', 'Realism', 'Impressionism', 'Contemporary', 'Landscape', 'Portrait', 'Still Life', 'Minimalism', 'Pop Art', 'Street Art', 'Other'];
 
 export default function NewArtworkPage() {
   const router = useRouter();
+  const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [images, setImages] = useState<File[]>([]);
   const [previews, setPreviews] = useState<string[]>([]);
@@ -55,15 +58,60 @@ export default function NewArtworkPage() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (!user) return;
     setLoading(true);
 
-    // TODO: Upload images to Supabase Storage
-    // TODO: Create artwork record in Supabase
-    // For now, just simulate
-    await new Promise((resolve) => setTimeout(resolve, 1500));
+    try {
+      const supabase = createClient();
 
-    alert('Artwork submitted for review! You will be notified within 24-48 hours.');
-    router.push('/artist/dashboard');
+      // Upload images to Supabase Storage
+      const imageUrls: string[] = [];
+      for (const image of images) {
+        const ext = image.name.split('.').pop();
+        const fileName = `${user.id}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+        const { error: uploadError } = await supabase.storage
+          .from('artwork-images')
+          .upload(fileName, image);
+
+        if (uploadError) throw uploadError;
+
+        const { data: { publicUrl } } = supabase.storage
+          .from('artwork-images')
+          .getPublicUrl(fileName);
+
+        imageUrls.push(publicUrl);
+      }
+
+      // Create artwork record
+      const tags = form.tags.split(',').map((t) => t.trim()).filter(Boolean);
+      const { error: insertError } = await supabase.from('artworks').insert({
+        artist_id: user.id,
+        title: form.title,
+        description: form.description,
+        category: form.category,
+        medium: form.medium,
+        style: form.style,
+        width_cm: form.width_cm ? parseFloat(form.width_cm) : null,
+        height_cm: form.height_cm ? parseFloat(form.height_cm) : null,
+        depth_cm: form.depth_cm ? parseFloat(form.depth_cm) : null,
+        price_aud: parseFloat(form.price_aud),
+        is_framed: form.is_framed,
+        shipping_weight_kg: form.shipping_weight_kg ? parseFloat(form.shipping_weight_kg) : null,
+        images: imageUrls,
+        tags,
+        status: 'pending_review',
+      });
+
+      if (insertError) throw insertError;
+
+      router.push('/artist/artworks');
+      router.refresh();
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Something went wrong';
+      alert(`Error: ${message}`);
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (

@@ -1,20 +1,51 @@
+'use client';
+
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { ArrowRight, Palette, ShieldCheck, DollarSign, Truck } from 'lucide-react';
 import ArtworkCard from '@/components/ui/ArtworkCard';
+import { createClient } from '@/lib/supabase/client';
 
-// Placeholder data until Supabase is connected
-const FEATURED_ARTWORKS = [
-  { id: '1', title: 'Golden Hour Over Sydney', artistName: 'Sarah Mitchell', artistId: 'a1', price: 450, imageUrl: '', medium: 'Oil on Canvas', category: 'original' as const },
-  { id: '2', title: 'Coastal Abstractions', artistName: 'James Wong', artistId: 'a2', price: 280, imageUrl: '', medium: 'Acrylic on Board', category: 'original' as const },
-  { id: '3', title: 'Eucalyptus Dreams', artistName: 'Maya Patel', artistId: 'a3', price: 65, imageUrl: '', medium: 'Giclée Print', category: 'print' as const },
-  { id: '4', title: 'Digital Reef Series #4', artistName: 'Tom Nguyen', artistId: 'a4', price: 35, imageUrl: '', medium: 'Digital Illustration', category: 'digital' as const },
-  { id: '5', title: 'Melbourne Laneways', artistName: 'Lisa Chen', artistId: 'a5', price: 520, imageUrl: '', medium: 'Watercolour', category: 'original' as const },
-  { id: '6', title: 'Outback Sunset', artistName: 'Dan Roberts', artistId: 'a6', price: 75, imageUrl: '', medium: 'Photography Print', category: 'print' as const },
-  { id: '7', title: 'Blue Mountains Mist', artistName: 'Emily Hart', artistId: 'a7', price: 380, imageUrl: '', medium: 'Mixed Media', category: 'original' as const },
-  { id: '8', title: 'Abstract Flora', artistName: 'Kai Tanaka', artistId: 'a8', price: 25, imageUrl: '', medium: 'Digital Art', category: 'digital' as const },
-];
+interface FeaturedArtwork {
+  id: string;
+  title: string;
+  artistName: string;
+  artistId: string;
+  price: number;
+  imageUrl: string;
+  medium: string;
+  category: 'original' | 'print' | 'digital';
+}
 
 export default function HomePage() {
+  const [artworks, setArtworks] = useState<FeaturedArtwork[]>([]);
+
+  useEffect(() => {
+    async function fetchFeatured() {
+      const supabase = createClient();
+      const { data } = await supabase
+        .from('artworks')
+        .select('id, title, price_aud, images, medium, category, artist_id, users!artworks_artist_id_fkey(id, full_name)')
+        .eq('status', 'approved')
+        .order('created_at', { ascending: false })
+        .limit(8);
+
+      if (data && data.length > 0) {
+        setArtworks(data.map((a: Record<string, unknown>) => ({
+          id: a.id as string,
+          title: a.title as string,
+          artistName: (a.users as Record<string, string>)?.full_name || 'Unknown',
+          artistId: a.artist_id as string,
+          price: a.price_aud as number,
+          imageUrl: ((a.images as string[]) || [])[0] || '',
+          medium: a.medium as string,
+          category: a.category as 'original' | 'print' | 'digital',
+        })));
+      }
+    }
+    fetchFeatured();
+  }, []);
+
   return (
     <div>
       {/* Hero Section */}
@@ -90,24 +121,26 @@ export default function HomePage() {
       </section>
 
       {/* Featured Artwork */}
-      <section className="py-16">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between mb-8">
-            <h2 className="text-2xl md:text-3xl font-bold">Featured Artwork</h2>
-            <Link
-              href="/browse"
-              className="text-sm font-medium text-accent hover:text-accent-light transition-colors inline-flex items-center gap-1"
-            >
-              View All <ArrowRight className="h-4 w-4" />
-            </Link>
+      {artworks.length > 0 && (
+        <section className="py-16">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex items-center justify-between mb-8">
+              <h2 className="text-2xl md:text-3xl font-bold">Featured Artwork</h2>
+              <Link
+                href="/browse"
+                className="text-sm font-medium text-accent hover:text-accent-light transition-colors inline-flex items-center gap-1"
+              >
+                View All <ArrowRight className="h-4 w-4" />
+              </Link>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+              {artworks.map((artwork) => (
+                <ArtworkCard key={artwork.id} {...artwork} />
+              ))}
+            </div>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-            {FEATURED_ARTWORKS.map((artwork) => (
-              <ArtworkCard key={artwork.id} {...artwork} />
-            ))}
-          </div>
-        </div>
-      </section>
+        </section>
+      )}
 
       {/* CTA for Artists */}
       <section className="py-16 bg-primary text-white">
