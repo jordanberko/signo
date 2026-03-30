@@ -1,375 +1,899 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { Upload, X, Plus, Image as ImageIcon } from 'lucide-react';
+import Image from 'next/image';
+import Link from 'next/link';
+import {
+  ArrowRight,
+  ArrowLeft,
+  Check,
+  Loader2,
+  Camera,
+  FileText,
+  Ruler,
+  DollarSign,
+  Eye,
+  X,
+  Save,
+  Upload,
+  Lightbulb,
+  MapPin,
+} from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { useAuth } from '@/components/providers/AuthProvider';
+import { uploadArtworkImage } from '@/lib/supabase/storage';
+import { formatPrice, calculateCommission } from '@/lib/utils';
+import ImageUpload from '@/components/ImageUpload';
 
-const MEDIUMS = ['Oil on Canvas', 'Acrylic on Canvas', 'Acrylic on Board', 'Watercolour', 'Mixed Media', 'Photography', 'Digital Illustration', 'Digital Art', 'Sculpture', 'Print', 'Other'];
-const STYLES = ['Abstract', 'Realism', 'Impressionism', 'Contemporary', 'Landscape', 'Portrait', 'Still Life', 'Minimalism', 'Pop Art', 'Street Art', 'Other'];
+// ── Constants ──
+
+const TOTAL_STEPS = 5;
+
+const MEDIUMS = [
+  'Oil',
+  'Acrylic',
+  'Watercolour',
+  'Ink',
+  'Pencil/Graphite',
+  'Charcoal',
+  'Pastel',
+  'Mixed Media',
+  'Photography',
+  'Digital Art',
+  'Sculpture',
+  'Ceramics',
+  'Textile',
+  'Printmaking',
+  'Other',
+];
+
+const STYLES = [
+  'Abstract',
+  'Contemporary',
+  'Realism',
+  'Impressionism',
+  'Minimalist',
+  'Pop Art',
+  'Surrealism',
+  'Landscape',
+  'Portrait',
+  'Still Life',
+  'Figurative',
+  'Botanical',
+  'Geometric',
+  'Other',
+];
+
+const STEP_META = [
+  { label: 'Photos', icon: Camera },
+  { label: 'Details', icon: FileText },
+  { label: 'Specs', icon: Ruler },
+  { label: 'Price', icon: DollarSign },
+  { label: 'Review', icon: Eye },
+];
+
+const STORAGE_KEY = 'signo_artwork_draft';
+
+// ── Types ──
+
+interface FormState {
+  artworkId: string;
+  images: string[];
+  title: string;
+  description: string;
+  category: 'original' | 'print' | 'digital';
+  medium: string;
+  customMedium: string;
+  style: string;
+  tags: string[];
+  tagInput: string;
+  width_cm: string;
+  height_cm: string;
+  depth_cm: string;
+  is_framed: boolean;
+  shipping_weight_kg: string;
+  price_aud: string;
+  shipping_cost: string;
+  includeShipping: boolean;
+}
+
+function getDefaultForm(): FormState {
+  return {
+    artworkId: crypto.randomUUID(),
+    images: [],
+    title: '',
+    description: '',
+    category: 'original',
+    medium: '',
+    customMedium: '',
+    style: '',
+    tags: [],
+    tagInput: '',
+    width_cm: '',
+    height_cm: '',
+    depth_cm: '',
+    is_framed: false,
+    shipping_weight_kg: '',
+    price_aud: '',
+    shipping_cost: '',
+    includeShipping: true,
+  };
+}
+
+// ── Component ──
 
 export default function NewArtworkPage() {
   const router = useRouter();
   const { user } = useAuth();
-  const [loading, setLoading] = useState(false);
-  const [images, setImages] = useState<File[]>([]);
-  const [previews, setPreviews] = useState<string[]>([]);
 
-  const [form, setForm] = useState({
-    title: '',
-    description: '',
-    category: 'original' as 'original' | 'print' | 'digital',
-    medium: '',
-    style: '',
-    width_cm: '',
-    height_cm: '',
-    depth_cm: '',
-    price_aud: '',
-    is_framed: false,
-    shipping_weight_kg: '',
-    tags: '',
+  const [step, setStep] = useState(1);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+
+  // Initialize form from localStorage or defaults
+  const [form, setForm] = useState<FormState>(() => {
+    if (typeof window === 'undefined') return getDefaultForm();
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        return { ...getDefaultForm(), ...parsed };
+      }
+    } catch {
+      // ignore
+    }
+    return getDefaultForm();
   });
 
-  function updateForm(field: string, value: string | boolean) {
-    setForm((prev) => ({ ...prev, [field]: value }));
-  }
-
-  function handleImageAdd(e: React.ChangeEvent<HTMLInputElement>) {
-    const files = Array.from(e.target.files || []);
-    if (images.length + files.length > 8) {
-      alert('Maximum 8 images allowed');
-      return;
+  // Persist to localStorage on changes
+  useEffect(() => {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(form));
+    } catch {
+      // ignore
     }
-    setImages((prev) => [...prev, ...files]);
-    files.forEach((file) => {
-      const reader = new FileReader();
-      reader.onload = (ev) => {
-        setPreviews((prev) => [...prev, ev.target?.result as string]);
-      };
-      reader.readAsDataURL(file);
-    });
+  }, [form]);
+
+  function clearDraft() {
+    try {
+      localStorage.removeItem(STORAGE_KEY);
+    } catch {
+      // ignore
+    }
   }
 
-  function removeImage(index: number) {
-    setImages((prev) => prev.filter((_, i) => i !== index));
-    setPreviews((prev) => prev.filter((_, i) => i !== index));
+  function updateForm<K extends keyof FormState>(key: K, value: FormState[K]) {
+    setForm((prev) => ({ ...prev, [key]: value }));
   }
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
+  // Image upload handler — uses the artwork's pre-generated ID
+  const handleImageUpload = useCallback(
+    async (file: File, onProgress: (p: number) => void) => {
+      if (!user) throw new Error('Not authenticated');
+      return uploadArtworkImage(file, user.id, form.artworkId, onProgress);
+    },
+    [user, form.artworkId]
+  );
+
+  // Tags
+  function addTag(tag: string) {
+    const cleaned = tag.trim().toLowerCase();
+    if (cleaned && form.tags.length < 10 && !form.tags.includes(cleaned)) {
+      updateForm('tags', [...form.tags, cleaned]);
+    }
+    updateForm('tagInput', '');
+  }
+
+  function removeTag(tag: string) {
+    updateForm('tags', form.tags.filter((t) => t !== tag));
+  }
+
+  function handleTagKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
+    if (e.key === 'Enter' || e.key === ',') {
+      e.preventDefault();
+      addTag(form.tagInput);
+    } else if (e.key === 'Backspace' && !form.tagInput && form.tags.length > 0) {
+      updateForm('tags', form.tags.slice(0, -1));
+    }
+  }
+
+  // Commission calculator
+  const price = parseFloat(form.price_aud) || 0;
+  const commission = useMemo(() => calculateCommission(price), [price]);
+
+  // Validation per step
+  const canProceed: Record<number, boolean> = {
+    1: form.images.length >= 1,
+    2: form.title.trim().length > 0 &&
+       form.description.trim().length > 0 &&
+       (form.medium !== '' || form.customMedium !== '') &&
+       form.style !== '',
+    3: true, // dimensions are optional for originals/prints, digital just needs to pass
+    4: price >= 1,
+    5: true,
+  };
+
+  // Submit
+  async function handleSubmit(status: 'draft' | 'pending_review') {
     if (!user) return;
-    setLoading(true);
+    setSaving(true);
+    setError('');
 
     try {
       const supabase = createClient();
 
-      // Upload images to Supabase Storage
-      const imageUrls: string[] = [];
-      for (const image of images) {
-        const ext = image.name.split('.').pop();
-        const fileName = `${user.id}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
-        const { error: uploadError } = await supabase.storage
-          .from('artwork-images')
-          .upload(fileName, image);
+      const medium = form.medium === 'Other' ? form.customMedium : form.medium;
 
-        if (uploadError) throw uploadError;
-
-        const { data: { publicUrl } } = supabase.storage
-          .from('artwork-images')
-          .getPublicUrl(fileName);
-
-        imageUrls.push(publicUrl);
-      }
-
-      // Create artwork record
-      const tags = form.tags.split(',').map((t) => t.trim()).filter(Boolean);
       const { error: insertError } = await supabase.from('artworks').insert({
+        id: form.artworkId,
         artist_id: user.id,
-        title: form.title,
-        description: form.description,
+        title: form.title.trim(),
+        description: form.description.trim(),
         category: form.category,
-        medium: form.medium,
-        style: form.style,
+        medium: medium || null,
+        style: form.style || null,
         width_cm: form.width_cm ? parseFloat(form.width_cm) : null,
         height_cm: form.height_cm ? parseFloat(form.height_cm) : null,
         depth_cm: form.depth_cm ? parseFloat(form.depth_cm) : null,
-        price_aud: parseFloat(form.price_aud),
+        price_aud: price,
         is_framed: form.is_framed,
         shipping_weight_kg: form.shipping_weight_kg ? parseFloat(form.shipping_weight_kg) : null,
-        images: imageUrls,
-        tags,
-        status: 'pending_review',
+        images: form.images,
+        tags: form.tags,
+        status,
       });
 
       if (insertError) throw insertError;
 
-      router.push('/artist/artworks');
+      clearDraft();
+
+      if (status === 'draft') {
+        router.push('/artist/artworks');
+      } else {
+        router.push('/artist/artworks?submitted=true');
+      }
       router.refresh();
-    } catch (err: unknown) {
+    } catch (err) {
       const message = err instanceof Error ? err.message : 'Something went wrong';
-      alert(`Error: ${message}`);
-    } finally {
-      setLoading(false);
+      setError(message);
+      setSaving(false);
     }
   }
 
+  function nextStep() {
+    setStep((s) => Math.min(s + 1, TOTAL_STEPS));
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  function prevStep() {
+    setStep((s) => Math.max(s - 1, 1));
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
   return (
-    <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div className="max-w-2xl mx-auto px-4 sm:px-6 py-8 pb-20">
+      {/* ── Header ── */}
       <div className="mb-8">
-        <h1 className="text-3xl font-bold">Upload Artwork</h1>
-        <p className="text-muted mt-1">Add your artwork to Signo. It will be reviewed within 24-48 hours.</p>
+        <h1 className="font-editorial text-2xl md:text-3xl font-medium">Upload Artwork</h1>
+        <p className="text-sm text-muted mt-1">
+          Add your work to Signo. It&apos;ll be reviewed within 24–48 hours.
+        </p>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-8">
-        {/* Image Upload */}
-        <section className="space-y-3">
-          <label className="block font-semibold">
-            Photos <span className="text-error">*</span>
-          </label>
-          <p className="text-xs text-muted">Upload up to 8 high-quality images. The first image will be your listing cover.</p>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            {previews.map((preview, index) => (
-              <div key={index} className="relative aspect-square rounded-lg overflow-hidden bg-muted-bg border border-border">
-                <img src={preview} alt={`Upload ${index + 1}`} className="w-full h-full object-cover" />
+      {/* ── Progress bar ── */}
+      <div className="mb-10">
+        <div className="flex items-center justify-between mb-3">
+          {STEP_META.map((s, i) => {
+            const num = i + 1;
+            return (
+              <div key={num} className="flex items-center">
                 <button
                   type="button"
-                  onClick={() => removeImage(index)}
-                  className="absolute top-2 right-2 p-1 bg-white/90 rounded-full hover:bg-white"
-                >
-                  <X className="h-3 w-3" />
-                </button>
-                {index === 0 && (
-                  <span className="absolute bottom-2 left-2 px-2 py-0.5 bg-primary text-white text-xs rounded">Cover</span>
-                )}
-              </div>
-            ))}
-            {images.length < 8 && (
-              <label className="aspect-square rounded-lg border-2 border-dashed border-border hover:border-accent cursor-pointer flex flex-col items-center justify-center gap-2 transition-colors">
-                <Plus className="h-6 w-6 text-muted" />
-                <span className="text-xs text-muted">Add Photo</span>
-                <input type="file" accept="image/*" multiple onChange={handleImageAdd} className="hidden" />
-              </label>
-            )}
-          </div>
-        </section>
-
-        {/* Basic Info */}
-        <section className="space-y-4">
-          <h2 className="font-semibold text-lg border-b border-border pb-2">Basic Information</h2>
-
-          <div>
-            <label htmlFor="title" className="block text-sm font-medium mb-1">Title <span className="text-error">*</span></label>
-            <input
-              id="title"
-              type="text"
-              required
-              value={form.title}
-              onChange={(e) => updateForm('title', e.target.value)}
-              className="w-full px-4 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-accent"
-              placeholder="e.g. Golden Hour Over Sydney"
-            />
-          </div>
-
-          <div>
-            <label htmlFor="description" className="block text-sm font-medium mb-1">Description <span className="text-error">*</span></label>
-            <textarea
-              id="description"
-              required
-              rows={5}
-              value={form.description}
-              onChange={(e) => updateForm('description', e.target.value)}
-              className="w-full px-4 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-accent resize-none"
-              placeholder="Describe your artwork — inspiration, technique, materials used..."
-            />
-          </div>
-
-          {/* Category */}
-          <div>
-            <label className="block text-sm font-medium mb-2">Category <span className="text-error">*</span></label>
-            <div className="grid grid-cols-3 gap-3">
-              {[
-                { value: 'original', label: 'Original', desc: 'One-of-a-kind physical artwork' },
-                { value: 'print', label: 'Print', desc: 'Reproduction or limited edition' },
-                { value: 'digital', label: 'Digital', desc: 'Digital download file' },
-              ].map((cat) => (
-                <button
-                  key={cat.value}
-                  type="button"
-                  onClick={() => updateForm('category', cat.value)}
-                  className={`p-3 border-2 rounded-lg text-left transition-colors ${
-                    form.category === cat.value
-                      ? 'border-accent bg-accent/5'
-                      : 'border-border hover:border-gray-300'
+                  onClick={() => num < step && setStep(num)}
+                  disabled={num >= step}
+                  className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-medium transition-all duration-300 ${
+                    num < step
+                      ? 'bg-accent text-white cursor-pointer hover:bg-accent-light'
+                      : num === step
+                      ? 'bg-primary text-white'
+                      : 'bg-muted-bg text-muted cursor-default'
                   }`}
                 >
-                  <p className="font-medium text-sm">{cat.label}</p>
-                  <p className="text-xs text-muted mt-0.5">{cat.desc}</p>
+                  {num < step ? <Check className="h-4 w-4" /> : num}
                 </button>
-              ))}
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label htmlFor="medium" className="block text-sm font-medium mb-1">Medium <span className="text-error">*</span></label>
-              <select
-                id="medium"
-                required
-                value={form.medium}
-                onChange={(e) => updateForm('medium', e.target.value)}
-                className="w-full px-4 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-accent bg-white"
-              >
-                <option value="">Select medium</option>
-                {MEDIUMS.map((m) => <option key={m} value={m}>{m}</option>)}
-              </select>
-            </div>
-            <div>
-              <label htmlFor="style" className="block text-sm font-medium mb-1">Style <span className="text-error">*</span></label>
-              <select
-                id="style"
-                required
-                value={form.style}
-                onChange={(e) => updateForm('style', e.target.value)}
-                className="w-full px-4 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-accent bg-white"
-              >
-                <option value="">Select style</option>
-                {STYLES.map((s) => <option key={s} value={s}>{s}</option>)}
-              </select>
-            </div>
-          </div>
-        </section>
-
-        {/* Dimensions & Pricing */}
-        <section className="space-y-4">
-          <h2 className="font-semibold text-lg border-b border-border pb-2">Dimensions & Pricing</h2>
-
-          {form.category !== 'digital' && (
-            <>
-              <div className="grid grid-cols-3 gap-4">
-                <div>
-                  <label htmlFor="width" className="block text-sm font-medium mb-1">Width (cm)</label>
-                  <input
-                    id="width"
-                    type="number"
-                    step="0.1"
-                    value={form.width_cm}
-                    onChange={(e) => updateForm('width_cm', e.target.value)}
-                    className="w-full px-4 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-accent"
+                {i < STEP_META.length - 1 && (
+                  <div
+                    className={`hidden sm:block w-10 md:w-16 lg:w-20 h-0.5 mx-1.5 transition-colors duration-300 ${
+                      num < step ? 'bg-accent' : 'bg-border'
+                    }`}
                   />
-                </div>
-                <div>
-                  <label htmlFor="height" className="block text-sm font-medium mb-1">Height (cm)</label>
-                  <input
-                    id="height"
-                    type="number"
-                    step="0.1"
-                    value={form.height_cm}
-                    onChange={(e) => updateForm('height_cm', e.target.value)}
-                    className="w-full px-4 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-accent"
-                  />
-                </div>
-                <div>
-                  <label htmlFor="depth" className="block text-sm font-medium mb-1">Depth (cm)</label>
-                  <input
-                    id="depth"
-                    type="number"
-                    step="0.1"
-                    value={form.depth_cm}
-                    onChange={(e) => updateForm('depth_cm', e.target.value)}
-                    className="w-full px-4 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-accent"
-                  />
-                </div>
+                )}
               </div>
+            );
+          })}
+        </div>
+        <div className="flex justify-between text-[10px] text-muted tracking-wide uppercase">
+          {STEP_META.map((s) => (
+            <span key={s.label}>{s.label}</span>
+          ))}
+        </div>
+      </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div className="flex items-center gap-3">
+      {/* ── Step content ── */}
+      <div className="animate-fade-in">
+        {/* ═══════════ STEP 1: Photos ═══════════ */}
+        {step === 1 && (
+          <div className="space-y-6">
+            <div>
+              <h2 className="font-editorial text-xl font-medium">Add photos</h2>
+              <p className="text-sm text-muted mt-1">
+                Great photos are the #1 driver of sales. Show your work at its best.
+              </p>
+            </div>
+
+            <ImageUpload
+              maxFiles={6}
+              maxSizeMB={10}
+              initialImages={form.images}
+              onImagesChange={(urls) => updateForm('images', urls)}
+              uploadFile={handleImageUpload}
+            />
+
+            {/* Tips */}
+            <div className="flex gap-3 p-4 bg-accent-subtle/50 border border-accent/10 rounded-xl">
+              <Lightbulb className="h-5 w-5 text-accent flex-shrink-0 mt-0.5" />
+              <div className="text-sm text-muted space-y-1">
+                <p className="font-medium text-foreground">Photo tips</p>
+                <p>Use natural lighting. Show the full piece, a detail shot, and a scale reference (e.g. next to a book or on a wall).</p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ═══════════ STEP 2: Details ═══════════ */}
+        {step === 2 && (
+          <div className="space-y-6">
+            <div>
+              <h2 className="font-editorial text-xl font-medium">Describe your work</h2>
+              <p className="text-sm text-muted mt-1">
+                Help buyers connect with the story behind the piece.
+              </p>
+            </div>
+
+            {/* Title */}
+            <div>
+              <label htmlFor="title" className="block text-xs font-medium tracking-wide uppercase text-muted mb-2">
+                Title <span className="text-error">*</span>
+              </label>
+              <input
+                id="title"
+                type="text"
+                value={form.title}
+                onChange={(e) => updateForm('title', e.target.value.slice(0, 100))}
+                className="w-full px-4 py-3 bg-white border border-border rounded-xl text-sm placeholder:text-warm-gray transition-colors"
+                placeholder="e.g. Golden Hour Over Sydney Harbour"
+              />
+              <p className="text-xs text-warm-gray text-right mt-1">{form.title.length}/100</p>
+            </div>
+
+            {/* Description */}
+            <div>
+              <label htmlFor="description" className="block text-xs font-medium tracking-wide uppercase text-muted mb-2">
+                Description <span className="text-error">*</span>
+              </label>
+              <textarea
+                id="description"
+                value={form.description}
+                onChange={(e) => updateForm('description', e.target.value.slice(0, 2000))}
+                rows={5}
+                className="w-full px-4 py-3 bg-white border border-border rounded-xl text-sm placeholder:text-warm-gray transition-colors resize-none"
+                placeholder="Tell the story behind this piece — what inspired it, your process, the emotions you want to evoke..."
+              />
+              <p className={`text-xs text-right mt-1 ${form.description.length >= 1900 ? 'text-error' : 'text-warm-gray'}`}>
+                {form.description.length}/2000
+              </p>
+            </div>
+
+            {/* Category */}
+            <div>
+              <p className="text-xs font-medium tracking-wide uppercase text-muted mb-3">
+                Category <span className="text-error">*</span>
+              </p>
+              <div className="grid grid-cols-3 gap-3">
+                {[
+                  { value: 'original' as const, label: 'Original', desc: 'One-of-a-kind piece' },
+                  { value: 'print' as const, label: 'Print', desc: 'Reproduction or limited ed.' },
+                  { value: 'digital' as const, label: 'Digital', desc: 'Digital download' },
+                ].map((cat) => (
+                  <button
+                    key={cat.value}
+                    type="button"
+                    onClick={() => updateForm('category', cat.value)}
+                    className={`relative p-4 border-2 rounded-xl text-left transition-all duration-200 ${
+                      form.category === cat.value
+                        ? 'border-accent bg-accent-subtle'
+                        : 'border-border hover:border-warm-gray bg-white'
+                    }`}
+                  >
+                    {form.category === cat.value && (
+                      <div className="absolute top-2 right-2 w-5 h-5 bg-accent rounded-full flex items-center justify-center">
+                        <Check className="h-3 w-3 text-white" />
+                      </div>
+                    )}
+                    <p className="font-medium text-sm">{cat.label}</p>
+                    <p className="text-xs text-muted mt-0.5">{cat.desc}</p>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Medium & Style */}
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label htmlFor="medium" className="block text-xs font-medium tracking-wide uppercase text-muted mb-2">
+                  Medium <span className="text-error">*</span>
+                </label>
+                <select
+                  id="medium"
+                  value={form.medium}
+                  onChange={(e) => updateForm('medium', e.target.value)}
+                  className="w-full px-4 py-3 bg-white border border-border rounded-xl text-sm transition-colors appearance-none"
+                >
+                  <option value="">Select medium</option>
+                  {MEDIUMS.map((m) => (
+                    <option key={m} value={m}>{m}</option>
+                  ))}
+                </select>
+                {form.medium === 'Other' && (
                   <input
-                    id="framed"
-                    type="checkbox"
-                    checked={form.is_framed}
-                    onChange={(e) => updateForm('is_framed', e.target.checked)}
-                    className="h-4 w-4 rounded border-border text-accent focus:ring-accent"
+                    type="text"
+                    value={form.customMedium}
+                    onChange={(e) => updateForm('customMedium', e.target.value)}
+                    className="w-full mt-2 px-4 py-3 bg-white border border-border rounded-xl text-sm placeholder:text-warm-gray transition-colors"
+                    placeholder="Describe your medium"
                   />
-                  <label htmlFor="framed" className="text-sm font-medium">Framed</label>
+                )}
+              </div>
+              <div>
+                <label htmlFor="style" className="block text-xs font-medium tracking-wide uppercase text-muted mb-2">
+                  Style <span className="text-error">*</span>
+                </label>
+                <select
+                  id="style"
+                  value={form.style}
+                  onChange={(e) => updateForm('style', e.target.value)}
+                  className="w-full px-4 py-3 bg-white border border-border rounded-xl text-sm transition-colors appearance-none"
+                >
+                  <option value="">Select style</option>
+                  {STYLES.map((s) => (
+                    <option key={s} value={s}>{s}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            {/* Tags */}
+            <div>
+              <label htmlFor="tags" className="block text-xs font-medium tracking-wide uppercase text-muted mb-2">
+                Tags <span className="text-warm-gray font-normal">(up to 10)</span>
+              </label>
+              <div className="flex flex-wrap gap-2 mb-2">
+                {form.tags.map((tag) => (
+                  <span
+                    key={tag}
+                    className="inline-flex items-center gap-1 px-3 py-1 bg-muted-bg text-sm rounded-full"
+                  >
+                    {tag}
+                    <button
+                      type="button"
+                      onClick={() => removeTag(tag)}
+                      className="text-muted hover:text-error transition-colors"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </span>
+                ))}
+              </div>
+              {form.tags.length < 10 && (
+                <input
+                  id="tags"
+                  type="text"
+                  value={form.tagInput}
+                  onChange={(e) => updateForm('tagInput', e.target.value)}
+                  onKeyDown={handleTagKeyDown}
+                  onBlur={() => { if (form.tagInput.trim()) addTag(form.tagInput); }}
+                  className="w-full px-4 py-3 bg-white border border-border rounded-xl text-sm placeholder:text-warm-gray transition-colors"
+                  placeholder="Type a tag and press Enter"
+                />
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* ═══════════ STEP 3: Dimensions ═══════════ */}
+        {step === 3 && (
+          <div className="space-y-6">
+            <div>
+              <h2 className="font-editorial text-xl font-medium">
+                {form.category === 'digital' ? 'Digital file details' : 'Dimensions & details'}
+              </h2>
+              <p className="text-sm text-muted mt-1">
+                {form.category === 'digital'
+                  ? 'Tell buyers about the file they\'ll receive.'
+                  : 'Help buyers understand the size and shipping requirements.'}
+              </p>
+            </div>
+
+            {form.category !== 'digital' ? (
+              <>
+                {/* Physical dimensions */}
+                <div className="grid grid-cols-3 gap-4">
+                  <div>
+                    <label htmlFor="width" className="block text-xs font-medium tracking-wide uppercase text-muted mb-2">
+                      Width (cm)
+                    </label>
+                    <input
+                      id="width"
+                      type="number"
+                      step="0.1"
+                      min="0"
+                      value={form.width_cm}
+                      onChange={(e) => updateForm('width_cm', e.target.value)}
+                      className="w-full px-4 py-3 bg-white border border-border rounded-xl text-sm placeholder:text-warm-gray transition-colors"
+                      placeholder="0"
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="height" className="block text-xs font-medium tracking-wide uppercase text-muted mb-2">
+                      Height (cm)
+                    </label>
+                    <input
+                      id="height"
+                      type="number"
+                      step="0.1"
+                      min="0"
+                      value={form.height_cm}
+                      onChange={(e) => updateForm('height_cm', e.target.value)}
+                      className="w-full px-4 py-3 bg-white border border-border rounded-xl text-sm placeholder:text-warm-gray transition-colors"
+                      placeholder="0"
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="depth" className="block text-xs font-medium tracking-wide uppercase text-muted mb-2">
+                      Depth (cm)
+                    </label>
+                    <input
+                      id="depth"
+                      type="number"
+                      step="0.1"
+                      min="0"
+                      value={form.depth_cm}
+                      onChange={(e) => updateForm('depth_cm', e.target.value)}
+                      className="w-full px-4 py-3 bg-white border border-border rounded-xl text-sm placeholder:text-warm-gray transition-colors"
+                      placeholder="Optional"
+                    />
+                  </div>
                 </div>
+
+                {/* Framed toggle */}
+                <label className="flex items-center justify-between p-4 bg-white border border-border rounded-xl cursor-pointer group">
+                  <div>
+                    <p className="font-medium text-sm">Is this piece framed?</p>
+                    <p className="text-xs text-muted mt-0.5">Let buyers know if it&apos;s ready to hang</p>
+                  </div>
+                  <div className="relative">
+                    <input
+                      type="checkbox"
+                      checked={form.is_framed}
+                      onChange={(e) => updateForm('is_framed', e.target.checked)}
+                      className="sr-only peer"
+                    />
+                    <div className="w-11 h-6 bg-border rounded-full peer-checked:bg-accent transition-colors" />
+                    <div className="absolute left-0.5 top-0.5 w-5 h-5 bg-white rounded-full shadow-sm transition-transform peer-checked:translate-x-5" />
+                  </div>
+                </label>
+
+                {/* Shipping weight */}
                 <div>
-                  <label htmlFor="weight" className="block text-sm font-medium mb-1">Shipping Weight (kg)</label>
+                  <label htmlFor="weight" className="block text-xs font-medium tracking-wide uppercase text-muted mb-2">
+                    Shipping weight (kg)
+                  </label>
                   <input
                     id="weight"
                     type="number"
                     step="0.1"
+                    min="0"
                     value={form.shipping_weight_kg}
                     onChange={(e) => updateForm('shipping_weight_kg', e.target.value)}
-                    className="w-full px-4 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-accent"
+                    className="w-full px-4 py-3 bg-white border border-border rounded-xl text-sm placeholder:text-warm-gray transition-colors"
+                    placeholder="Approximate packaged weight"
                   />
                 </div>
-              </div>
-            </>
-          )}
-
-          <div>
-            <label htmlFor="price" className="block text-sm font-medium mb-1">Price (AUD) <span className="text-error">*</span></label>
-            <div className="relative">
-              <span className="absolute left-4 top-1/2 -translate-y-1/2 text-muted">$</span>
-              <input
-                id="price"
-                type="number"
-                step="0.01"
-                min="1"
-                required
-                value={form.price_aud}
-                onChange={(e) => updateForm('price_aud', e.target.value)}
-                className="w-full pl-8 pr-4 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-accent"
-                placeholder="0.00"
-              />
-            </div>
-            {form.price_aud && (
-              <p className="text-xs text-muted mt-1">
-                You&apos;ll receive <span className="font-medium text-accent">${(parseFloat(form.price_aud) * 0.835).toFixed(2)}</span> after
-                Signo&apos;s 16.5% commission
-              </p>
-            )}
-          </div>
-
-          <div>
-            <label htmlFor="tags" className="block text-sm font-medium mb-1">Tags</label>
-            <input
-              id="tags"
-              type="text"
-              value={form.tags}
-              onChange={(e) => updateForm('tags', e.target.value)}
-              className="w-full px-4 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-accent"
-              placeholder="e.g. landscape, sydney, coastal (comma separated)"
-            />
-          </div>
-        </section>
-
-        {/* Submit */}
-        <div className="flex gap-4 pt-4 border-t border-border">
-          <button
-            type="button"
-            onClick={() => router.back()}
-            className="px-6 py-3 border border-border rounded-lg text-sm font-medium hover:bg-muted-bg transition-colors"
-          >
-            Cancel
-          </button>
-          <button
-            type="submit"
-            disabled={loading}
-            className="flex-1 py-3 bg-primary text-white font-semibold rounded-lg hover:bg-primary-light transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
-          >
-            {loading ? (
-              'Submitting...'
+              </>
             ) : (
               <>
-                <Upload className="h-4 w-4" />
-                Submit for Review
+                {/* Digital format info */}
+                <div className="p-5 bg-cream border border-border rounded-xl">
+                  <p className="text-sm text-muted leading-relaxed">
+                    After a buyer purchases your digital artwork, they&apos;ll receive the high-resolution
+                    files you uploaded as preview images. Make sure your preview images are the
+                    full-resolution versions you want to deliver.
+                  </p>
+                </div>
               </>
             )}
-          </button>
-        </div>
-      </form>
+          </div>
+        )}
+
+        {/* ═══════════ STEP 4: Price ═══════════ */}
+        {step === 4 && (
+          <div className="space-y-6">
+            <div>
+              <h2 className="font-editorial text-xl font-medium">Set your price</h2>
+              <p className="text-sm text-muted mt-1">
+                Price your work fairly — buyers appreciate transparency.
+              </p>
+            </div>
+
+            {/* Price input */}
+            <div>
+              <label htmlFor="price" className="block text-xs font-medium tracking-wide uppercase text-muted mb-2">
+                Price (AUD) <span className="text-error">*</span>
+              </label>
+              <div className="relative">
+                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-lg font-medium text-muted">$</span>
+                <input
+                  id="price"
+                  type="number"
+                  step="0.01"
+                  min="1"
+                  value={form.price_aud}
+                  onChange={(e) => updateForm('price_aud', e.target.value)}
+                  className="w-full pl-10 pr-4 py-4 bg-white border border-border rounded-xl text-2xl font-medium placeholder:text-warm-gray transition-colors"
+                  placeholder="0.00"
+                />
+              </div>
+            </div>
+
+            {/* Commission breakdown */}
+            {price >= 1 && (
+              <div className="bg-white border border-border rounded-2xl overflow-hidden animate-fade-in">
+                <div className="p-5 space-y-4">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-muted">Listing price</span>
+                    <span className="font-medium">{formatPrice(price)}</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-muted">Signo commission (16.5%)</span>
+                    <span className="text-sm text-muted">−{formatPrice(commission.platformFee)}</span>
+                  </div>
+                  <div className="h-px bg-border" />
+                  <div className="flex items-center justify-between">
+                    <span className="font-medium">You receive (83.5%)</span>
+                    <span className="text-xl font-bold text-accent">{formatPrice(commission.artistPayout)}</span>
+                  </div>
+                </div>
+                <div className="px-5 py-3 bg-accent-subtle/50 border-t border-accent/10">
+                  <p className="text-xs text-muted text-center">
+                    One of the lowest commissions in the industry — more money in your pocket.
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {/* Shipping cost (physical only) */}
+            {form.category !== 'digital' && (
+              <div className="space-y-3">
+                <label className="flex items-center justify-between p-4 bg-white border border-border rounded-xl cursor-pointer group">
+                  <div>
+                    <p className="font-medium text-sm">Include shipping in the price</p>
+                    <p className="text-xs text-muted mt-0.5">Buyers love free shipping — it&apos;s already in your listing price</p>
+                  </div>
+                  <div className="relative">
+                    <input
+                      type="checkbox"
+                      checked={form.includeShipping}
+                      onChange={(e) => updateForm('includeShipping', e.target.checked)}
+                      className="sr-only peer"
+                    />
+                    <div className="w-11 h-6 bg-border rounded-full peer-checked:bg-accent transition-colors" />
+                    <div className="absolute left-0.5 top-0.5 w-5 h-5 bg-white rounded-full shadow-sm transition-transform peer-checked:translate-x-5" />
+                  </div>
+                </label>
+
+                {!form.includeShipping && (
+                  <div className="animate-fade-in">
+                    <label htmlFor="shipping" className="block text-xs font-medium tracking-wide uppercase text-muted mb-2">
+                      Shipping cost (AUD)
+                    </label>
+                    <div className="relative">
+                      <span className="absolute left-4 top-1/2 -translate-y-1/2 text-muted">$</span>
+                      <input
+                        id="shipping"
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        value={form.shipping_cost}
+                        onChange={(e) => updateForm('shipping_cost', e.target.value)}
+                        className="w-full pl-9 pr-4 py-3 bg-white border border-border rounded-xl text-sm placeholder:text-warm-gray transition-colors"
+                        placeholder="0.00"
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ═══════════ STEP 5: Review ═══════════ */}
+        {step === 5 && (
+          <div className="space-y-6">
+            <div>
+              <h2 className="font-editorial text-xl font-medium">Review your listing</h2>
+              <p className="text-sm text-muted mt-1">
+                Here&apos;s how buyers will see your artwork. Double-check everything before submitting.
+              </p>
+            </div>
+
+            {error && (
+              <div className="p-3.5 bg-error/5 border border-error/20 text-error text-sm rounded-xl animate-fade-in">
+                {error}
+              </div>
+            )}
+
+            {/* Preview card */}
+            <div className="bg-white border border-border rounded-2xl overflow-hidden">
+              {/* Main image */}
+              {form.images.length > 0 && (
+                <div className="relative aspect-[4/3] bg-muted-bg">
+                  <Image
+                    src={form.images[0]}
+                    alt={form.title || 'Artwork'}
+                    fill
+                    className="object-contain"
+                    sizes="(max-width: 640px) 100vw, 640px"
+                  />
+                </div>
+              )}
+
+              {/* Thumbnail strip */}
+              {form.images.length > 1 && (
+                <div className="flex gap-2 p-3 overflow-x-auto border-b border-border">
+                  {form.images.map((url, i) => (
+                    <div key={i} className="relative w-16 h-16 rounded-lg overflow-hidden flex-shrink-0 border border-border">
+                      <Image src={url} alt={`Photo ${i + 1}`} fill className="object-cover" sizes="64px" />
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Info */}
+              <div className="p-5 space-y-4">
+                <div>
+                  <h3 className="font-editorial text-xl font-medium">{form.title || 'Untitled'}</h3>
+                  {user?.full_name && (
+                    <p className="text-sm text-muted mt-0.5">by {user.full_name}</p>
+                  )}
+                </div>
+
+                <p className="text-2xl font-bold">{price >= 1 ? formatPrice(price) : '$—'}</p>
+
+                {form.description && (
+                  <p className="text-sm text-muted leading-relaxed line-clamp-4">{form.description}</p>
+                )}
+
+                {/* Meta row */}
+                <div className="flex flex-wrap gap-2 text-xs text-muted">
+                  {form.category && (
+                    <span className="px-2.5 py-1 bg-muted-bg rounded-full capitalize">{form.category}</span>
+                  )}
+                  {(form.medium === 'Other' ? form.customMedium : form.medium) && (
+                    <span className="px-2.5 py-1 bg-muted-bg rounded-full">
+                      {form.medium === 'Other' ? form.customMedium : form.medium}
+                    </span>
+                  )}
+                  {form.style && (
+                    <span className="px-2.5 py-1 bg-muted-bg rounded-full">{form.style}</span>
+                  )}
+                  {form.is_framed && (
+                    <span className="px-2.5 py-1 bg-muted-bg rounded-full">Framed</span>
+                  )}
+                </div>
+
+                {/* Dimensions */}
+                {(form.width_cm || form.height_cm) && (
+                  <div className="flex items-center gap-1.5 text-xs text-muted">
+                    <Ruler className="h-3 w-3" />
+                    <span>
+                      {form.width_cm && `${form.width_cm}W`}
+                      {form.width_cm && form.height_cm && ' × '}
+                      {form.height_cm && `${form.height_cm}H`}
+                      {form.depth_cm && ` × ${form.depth_cm}D`}
+                      {' cm'}
+                    </span>
+                  </div>
+                )}
+
+                {/* Tags */}
+                {form.tags.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5">
+                    {form.tags.map((tag) => (
+                      <span key={tag} className="px-2 py-0.5 bg-cream border border-border text-xs rounded-full text-muted">
+                        #{tag}
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Submit buttons */}
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={() => handleSubmit('draft')}
+                disabled={saving}
+                className="flex-1 py-3.5 border-2 border-border rounded-full font-semibold text-sm hover:border-warm-gray transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+              >
+                <Save className="h-4 w-4" />
+                Save as Draft
+              </button>
+              <button
+                type="button"
+                onClick={() => handleSubmit('pending_review')}
+                disabled={saving}
+                className="flex-[2] py-3.5 bg-primary text-white font-semibold rounded-full hover:bg-accent transition-colors duration-300 flex items-center justify-center gap-2 disabled:opacity-50"
+              >
+                {saving ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Submitting...
+                  </>
+                ) : (
+                  <>
+                    <Upload className="h-4 w-4" />
+                    Submit for Review
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* ── Navigation ── */}
+        {step < 5 && (
+          <div className="flex items-center justify-between mt-10 pt-6 border-t border-border">
+            {step > 1 ? (
+              <button
+                type="button"
+                onClick={prevStep}
+                className="flex items-center gap-2 text-sm text-muted hover:text-foreground transition-colors"
+              >
+                <ArrowLeft className="h-4 w-4" /> Back
+              </button>
+            ) : (
+              <Link
+                href="/artist/artworks"
+                className="flex items-center gap-2 text-sm text-muted hover:text-foreground transition-colors"
+              >
+                <ArrowLeft className="h-4 w-4" /> Cancel
+              </Link>
+            )}
+
+            <button
+              type="button"
+              onClick={nextStep}
+              disabled={!canProceed[step]}
+              className="px-8 py-3 bg-primary text-white font-semibold rounded-full hover:bg-accent transition-colors duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+            >
+              Continue
+              <ArrowRight className="h-4 w-4" />
+            </button>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

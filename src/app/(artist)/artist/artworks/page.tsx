@@ -2,11 +2,13 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Plus, Edit, Pause, Play, Trash2 } from 'lucide-react';
+import { useSearchParams } from 'next/navigation';
+import { Plus, Edit, Pause, Play, Trash2, CheckCircle } from 'lucide-react';
 import { formatPrice } from '@/lib/utils';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { createClient } from '@/lib/supabase/client';
 import type { Artwork, ArtworkStatus } from '@/types/database';
+import { Suspense } from 'react';
 
 const STATUS_TABS = ['All', 'Draft', 'Pending Review', 'Approved', 'Sold', 'Paused'];
 
@@ -18,6 +20,21 @@ const statusMap: Record<string, ArtworkStatus | ''> = {
   'Sold': 'sold',
   'Paused': 'paused',
 };
+
+function SubmittedBanner() {
+  const searchParams = useSearchParams();
+  const submitted = searchParams.get('submitted');
+  if (submitted !== 'true') return null;
+  return (
+    <div className="mb-6 p-4 bg-success/5 border border-success/20 text-success text-sm rounded-xl animate-fade-in flex items-start gap-3">
+      <CheckCircle className="h-5 w-5 flex-shrink-0 mt-0.5" />
+      <div>
+        <p className="font-medium">Your artwork has been submitted!</p>
+        <p className="text-success/80 mt-0.5">We&apos;ll review it within 24–48 hours. You&apos;ll receive an email when it&apos;s approved.</p>
+      </div>
+    </div>
+  );
+}
 
 export default function ArtistArtworksPage() {
   const { user } = useAuth();
@@ -75,6 +92,7 @@ export default function ArtistArtworksPage() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <Suspense><SubmittedBanner /></Suspense>
       <div className="flex items-center justify-between mb-8">
         <div>
           <h1 className="text-3xl font-bold">My Artworks</h1>
