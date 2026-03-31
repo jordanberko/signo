@@ -69,9 +69,133 @@ function validateFile(file: File, maxSizeMB: number): string | null {
   return null;
 }
 
+// ── Client-side image compression via Canvas API ──
+
+/**
+ * Load a File into an HTMLImageElement.
+ */
+function loadImage(file: File): Promise<HTMLImageElement> {
+  return new Promise((resolve, reject) => {
+    const img = new window.Image();
+    img.onload = () => resolve(img);
+    img.onerror = () => reject(new Error('Failed to load image'));
+    img.src = URL.createObjectURL(file);
+  });
+}
+
+/**
+ * Check if a PNG has transparency by sampling its pixels.
+ * Returns true if any pixel has alpha < 255.
+ */
+function hasTransparency(img: HTMLImageElement): boolean {
+  const canvas = document.createElement('canvas');
+  // Sample at a smaller size for performance
+  const sampleSize = Math.min(img.width, img.height, 256);
+  const scale = sampleSize / Math.max(img.width, img.height);
+  canvas.width = Math.round(img.width * scale);
+  canvas.height = Math.round(img.height * scale);
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return false;
+  ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+  const data = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
+  for (let i = 3; i < data.length; i += 4) {
+    if (data[i] < 255) return true;
+  }
+  return false;
+}
+
+/**
+ * Resize an image using the Canvas API and return a compressed Blob.
+ *
+ * - Scales down to fit within maxWidth × maxHeight (maintains aspect ratio).
+ * - Converts to JPEG at the given quality unless the source is a transparent PNG.
+ * - Skips processing if the image is already smaller than the target dimensions.
+ */
+function resizeImage(
+  img: HTMLImageElement,
+  maxWidth: number,
+  maxHeight: number,
+  quality: number,
+  outputType: 'image/jpeg' | 'image/png',
+): Promise<Blob> {
+  return new Promise((resolve, reject) => {
+    let { width, height } = img;
+
+    // Scale down if needed, maintaining aspect ratio
+    if (width > maxWidth || height > maxHeight) {
+      const ratio = Math.min(maxWidth / width, maxHeight / height);
+      width = Math.round(width * ratio);
+      height = Math.round(height * ratio);
+    }
+
+    const canvas = document.createElement('canvas');
+    canvas.width = width;
+    canvas.height = height;
+
+    const ctx = canvas.getContext('2d');
+    if (!ctx) {
+      reject(new Error('Canvas context not available'));
+      return;
+    }
+
+    // Use high-quality interpolation
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = 'high';
+    ctx.drawImage(img, 0, 0, width, height);
+
+    canvas.toBlob(
+      (blob) => {
+        if (blob) {
+          resolve(blob);
+        } else {
+          reject(new Error('Failed to compress image'));
+        }
+      },
+      outputType,
+      outputType === 'image/jpeg' ? quality : undefined,
+    );
+  });
+}
+
+/**
+ * Compress and resize an image file before upload.
+ * Returns { full, thumbnail } blobs.
+ *
+ * Full: max 2000×2000, JPEG 80% quality (PNG with transparency stays PNG)
+ * Thumbnail: max 400×400, JPEG 75% quality
+ */
+async function compressImage(file: File): Promise<{
+  full: Blob;
+  thumbnail: Blob;
+  outputExt: string;
+}> {
+  const img = await loadImage(file);
+
+  // Determine output format: keep PNG only if it has transparency
+  const isPngTransparent = file.type === 'image/png' && hasTransparency(img);
+  const outputType: 'image/jpeg' | 'image/png' = isPngTransparent ? 'image/png' : 'image/jpeg';
+  const outputExt = isPngTransparent ? 'png' : 'jpg';
+
+  // Generate full-size compressed image (max 2000px)
+  const full = await resizeImage(img, 2000, 2000, 0.8, outputType);
+
+  // Generate thumbnail (max 400px wide)
+  const thumbnail = await resizeImage(img, 400, 400, 0.75, 'image/jpeg');
+
+  // Revoke the object URL from loadImage
+  URL.revokeObjectURL(img.src);
+
+  return { full, thumbnail, outputExt };
+}
+
 /**
  * Upload an artwork image to the `artwork-images` bucket.
  * Images are stored under `{userId}/{artworkId}/{uuid}.{ext}`.
+ *
+ * Before uploading, the image is compressed client-side:
+ * - Full image: resized to max 2000×2000, JPEG @ 80% quality
+ * - Thumbnail: resized to max 400×400, JPEG @ 75% quality
+ * - Transparent PNGs are preserved as PNG for the full image
  */
 export async function uploadArtworkImage(
   file: File,
@@ -83,30 +207,49 @@ export async function uploadArtworkImage(
   if (error) throw new Error(error);
 
   const supabase = createClient();
-  const ext = getFileExtension(file);
-  const fileName = `${crypto.randomUUID()}.${ext}`;
-  const path = `${userId}/${artworkId}/${fileName}`;
+  const fileId = crypto.randomUUID();
 
-  // Start upload — Supabase JS v2 doesn't support progress natively,
-  // so we simulate it for UX purposes.
-  onProgress?.(10);
+  // Step 1: Compress (0% → 30%)
+  onProgress?.(5);
+  const { full, thumbnail, outputExt } = await compressImage(file);
+  onProgress?.(30);
 
-  const { error: uploadError } = await supabase.storage
+  // Step 2: Upload full image (30% → 80%)
+  const fullPath = `${userId}/${artworkId}/${fileId}.${outputExt}`;
+  onProgress?.(35);
+
+  const { error: fullUploadError } = await supabase.storage
     .from('artwork-images')
-    .upload(path, file, {
-      cacheControl: '3600',
+    .upload(fullPath, full, {
+      cacheControl: '31536000',
       upsert: false,
+      contentType: outputExt === 'png' ? 'image/png' : 'image/jpeg',
     });
 
-  onProgress?.(90);
-
-  if (uploadError) {
-    throw new Error(`Upload failed: ${uploadError.message}`);
+  if (fullUploadError) {
+    throw new Error(`Upload failed: ${fullUploadError.message}`);
   }
+  onProgress?.(80);
+
+  // Step 3: Upload thumbnail (80% → 95%)
+  const thumbPath = `${userId}/${artworkId}/${fileId}_thumb.jpg`;
+  const { error: thumbUploadError } = await supabase.storage
+    .from('artwork-images')
+    .upload(thumbPath, thumbnail, {
+      cacheControl: '31536000',
+      upsert: false,
+      contentType: 'image/jpeg',
+    });
+
+  // Thumbnail upload failure is non-critical — log but don't throw
+  if (thumbUploadError) {
+    console.warn(`Thumbnail upload failed: ${thumbUploadError.message}`);
+  }
+  onProgress?.(95);
 
   onProgress?.(100);
 
-  return getPublicUrl(path, 'artwork-images');
+  return getPublicUrl(fullPath, 'artwork-images');
 }
 
 /**
