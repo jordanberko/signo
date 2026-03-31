@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useContext, useEffect, useState } from 'react';
+import { createContext, useContext, useEffect, useRef, useState } from 'react';
 import type { User } from '@/types/database';
 import { getCurrentUser, onAuthStateChange } from '@/lib/supabase/auth';
 
@@ -21,13 +21,21 @@ const AuthContext = createContext<AuthContextType>({
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const resolved = useRef(false);
+
+  function markResolved() {
+    if (!resolved.current) {
+      resolved.current = true;
+      setLoading(false);
+    }
+  }
 
   async function refreshUser() {
     try {
       const profile = await getCurrentUser();
       setUser(profile);
     } catch {
-      // Auth may not be ready yet — ignore
+      setUser(null);
     }
   }
 
@@ -36,23 +44,35 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   useEffect(() => {
+    // Fetch current user profile
     getCurrentUser()
       .then((profile) => {
         setUser(profile);
       })
       .catch(() => {
-        // Ignore — user simply isn't logged in
+        // Session expired or user not logged in — clear state
+        setUser(null);
       })
       .finally(() => {
-        setLoading(false);
+        markResolved();
       });
 
+    // Listen for auth state changes (sign in, sign out, token refresh)
     const { data: { subscription } } = onAuthStateChange((profile) => {
       setUser(profile);
-      setLoading(false);
+      markResolved();
     });
 
-    return () => subscription.unsubscribe();
+    // Safety timeout: if auth takes longer than 3 seconds, stop loading
+    // so the header always renders sign-in buttons rather than nothing
+    const timeout = setTimeout(() => {
+      markResolved();
+    }, 3000);
+
+    return () => {
+      subscription.unsubscribe();
+      clearTimeout(timeout);
+    };
   }, []);
 
   return (
