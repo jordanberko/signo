@@ -129,6 +129,7 @@ export async function updateSession(request: NextRequest) {
       '/artist/earnings',
       '/artist/subscribe',
       '/artist/onboarding',
+      '/artist/settings',
     ];
 
     if (

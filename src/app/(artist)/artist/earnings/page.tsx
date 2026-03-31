@@ -173,6 +173,26 @@ export default function EarningsPage() {
         </div>
       </div>
 
+      {/* Payout setup CTA */}
+      <div className="flex flex-col sm:flex-row gap-4 sm:items-center justify-between p-5 bg-white border border-border rounded-2xl mb-6">
+        <div className="flex items-center gap-4">
+          <div className="w-10 h-10 bg-accent-subtle rounded-full flex items-center justify-center flex-shrink-0">
+            <CreditCard className="h-5 w-5 text-accent-dark" />
+          </div>
+          <div>
+            <p className="font-medium text-sm">Payout settings</p>
+            <p className="text-xs text-muted">Connect or manage your bank account for receiving payouts.</p>
+          </div>
+        </div>
+        <Link
+          href="/artist/settings/payouts"
+          className="inline-flex items-center gap-2 px-5 py-2.5 border border-border text-sm font-medium rounded-full hover:bg-cream transition-colors whitespace-nowrap"
+        >
+          Manage Payouts
+          <ArrowRight className="h-3.5 w-3.5" />
+        </Link>
+      </div>
+
       {/* Payout explainer */}
       <div className="flex gap-3 p-4 bg-accent-subtle/50 border border-accent/10 rounded-xl mb-10">
         <Info className="h-5 w-5 text-accent-dark flex-shrink-0 mt-0.5" />

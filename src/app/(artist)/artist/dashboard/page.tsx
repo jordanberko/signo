@@ -12,6 +12,7 @@ import {
   CreditCard,
   Sparkles,
   Loader2,
+  Banknote,
 } from 'lucide-react';
 import { formatPrice } from '@/lib/utils';
 import { useAuth } from '@/components/providers/AuthProvider';
@@ -245,7 +246,7 @@ export default function ArtistDashboardPage() {
       </div>
 
       {/* Quick Actions */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-10">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 mb-10">
         <Link
           href="/artist/artworks/new"
           className="flex items-center gap-4 p-5 border border-border rounded-lg hover:border-accent hover:bg-accent/5 transition-colors"
@@ -254,9 +255,9 @@ export default function ArtistDashboardPage() {
             <Plus className="h-5 w-5 text-accent-dark" />
           </div>
           <div>
-            <p className="font-semibold">Upload New Artwork</p>
+            <p className="font-semibold text-sm">Upload Artwork</p>
             <p className="text-xs text-muted">
-              Add a new listing to your storefront
+              Add a new listing
             </p>
           </div>
         </Link>
@@ -268,9 +269,9 @@ export default function ArtistDashboardPage() {
             <Package className="h-5 w-5 text-accent-dark" />
           </div>
           <div>
-            <p className="font-semibold">Manage Listings</p>
+            <p className="font-semibold text-sm">Manage Listings</p>
             <p className="text-xs text-muted">
-              Edit, pause, or update your artwork
+              Edit or update artwork
             </p>
           </div>
         </Link>
@@ -282,9 +283,23 @@ export default function ArtistDashboardPage() {
             <DollarSign className="h-5 w-5 text-accent-dark" />
           </div>
           <div>
-            <p className="font-semibold">View Earnings</p>
+            <p className="font-semibold text-sm">View Earnings</p>
             <p className="text-xs text-muted">
-              Track payouts and sales history
+              Sales &amp; payout history
+            </p>
+          </div>
+        </Link>
+        <Link
+          href="/artist/settings/payouts"
+          className="flex items-center gap-4 p-5 border border-border rounded-lg hover:border-accent hover:bg-accent/5 transition-colors"
+        >
+          <div className="w-10 h-10 bg-accent/10 rounded-full flex items-center justify-center">
+            <Banknote className="h-5 w-5 text-accent-dark" />
+          </div>
+          <div>
+            <p className="font-semibold text-sm">Payout Settings</p>
+            <p className="text-xs text-muted">
+              Bank &amp; Stripe Connect
             </p>
           </div>
         </Link>
