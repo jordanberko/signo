@@ -174,7 +174,7 @@ export default function EarningsPage() {
         </div>
       </div>
 
-      {/* Commission explainer */}
+      {/* Payout explainer */}
       <div className="flex gap-3 p-4 bg-accent-subtle/50 border border-accent/10 rounded-xl mb-10">
         <Info className="h-5 w-5 text-accent flex-shrink-0 mt-0.5" />
         <div className="text-sm text-muted">
@@ -225,8 +225,8 @@ export default function EarningsPage() {
                 <tr className="text-left text-xs font-medium tracking-wide uppercase text-muted border-b border-border bg-cream">
                   <th className="px-5 py-3.5">Artwork</th>
                   <th className="px-5 py-3.5">Sale Price</th>
-                  <th className="px-5 py-3.5">Commission</th>
-                  <th className="px-5 py-3.5">Your Earnings</th>
+                  <th className="px-5 py-3.5">Stripe Fee</th>
+                  <th className="px-5 py-3.5">You Receive</th>
                   <th className="px-5 py-3.5">Date</th>
                   <th className="px-5 py-3.5">Status</th>
                 </tr>
@@ -265,9 +265,9 @@ export default function EarningsPage() {
                         {formatPrice(order.total_amount_aud ?? 0)}
                       </td>
                       <td className="px-5 py-4 text-sm text-muted">
-                        −{formatPrice(order.platform_fee_aud ?? 0)}
+                        −{formatPrice((order.total_amount_aud ?? 0) - (order.artist_payout_aud ?? 0))}
                       </td>
-                      <td className="px-5 py-4 text-sm font-medium text-accent">
+                      <td className="px-5 py-4 text-sm font-semibold text-green-700">
                         {formatPrice(order.artist_payout_aud ?? 0)}
                       </td>
                       <td className="px-5 py-4 text-sm text-muted">
@@ -337,8 +337,8 @@ export default function EarningsPage() {
                       <p className="text-sm font-medium">{formatPrice(order.total_amount_aud ?? 0)}</p>
                     </div>
                     <div>
-                      <p className="text-[10px] text-muted uppercase tracking-wide">Commission</p>
-                      <p className="text-sm text-muted">−{formatPrice(order.platform_fee_aud ?? 0)}</p>
+                      <p className="text-[10px] text-muted uppercase tracking-wide">Stripe Fee</p>
+                      <p className="text-sm text-muted">−{formatPrice((order.total_amount_aud ?? 0) - (order.artist_payout_aud ?? 0))}</p>
                     </div>
                     <div>
                       <p className="text-[10px] text-muted uppercase tracking-wide">Yours</p>
