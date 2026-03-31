@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { ArrowRight, Search, ShieldCheck, Palette, DollarSign } from 'lucide-react';
 import ArtworkCard from '@/components/ui/ArtworkCard';
+import HeroRibbons from '@/components/ui/HeroRibbons';
 import { createClient } from '@/lib/supabase/client';
 
 interface FeaturedArtwork {
@@ -69,14 +70,17 @@ export default function HomePage() {
   return (
     <div>
       {/* ==================== HERO — MINIMAL ==================== */}
-      <section className="bg-background pt-12 pb-8 md:pt-20 md:pb-12">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <section className="bg-background pt-12 pb-8 md:pt-20 md:pb-12 relative overflow-hidden">
+        {/* Ribbon animation layer */}
+        <HeroRibbons />
+
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
           <div className="max-w-2xl mx-auto text-center animate-fade-up">
             <h1 className="font-editorial text-4xl md:text-5xl lg:text-6xl font-medium leading-[1.1] tracking-tight text-primary">
-              Discover Australian Art
+              Where Art Finds <span className="italic">Its People</span>
             </h1>
             <p className="mt-4 text-lg text-muted max-w-md mx-auto leading-relaxed">
-              Originals, prints, and digital works from Australia&apos;s most exciting artists.
+              A curated marketplace for Australian artists. Zero commission. You keep everything you earn.
             </p>
 
             {/* Search Bar */}

@@ -193,6 +193,18 @@ body {
   scrollbar-width: none;
 }
 
+/* Ribbon text styles for hero SVG */
+.ribbon-serif {
+  font-family: var(--font-serif), Georgia, 'Times New Roman', serif;
+  font-style: italic;
+  font-weight: 400;
+}
+.ribbon-sans {
+  font-family: var(--font-sans), Arial, Helvetica, sans-serif;
+  font-weight: 500;
+  letter-spacing: 1px;
+}
+
 /* Focus styles */
 input:focus, select:focus, textarea:focus {
   outline: none;
