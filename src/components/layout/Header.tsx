@@ -9,7 +9,7 @@ import { signOut } from '@/lib/supabase/auth';
 import { getInitials } from '@/lib/utils';
 
 export default function Header() {
-  const { user, loading } = useAuth();
+  const { user, loading, clearUser } = useAuth();
   const router = useRouter();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -36,8 +36,13 @@ export default function Header() {
   }, []);
 
   async function handleSignOut() {
-    await signOut();
     setUserMenuOpen(false);
+    setMobileMenuOpen(false);
+    // Clear local state immediately so UI updates
+    clearUser();
+    // Sign out from Supabase
+    await signOut();
+    // Navigate home and refresh server components
     router.push('/');
     router.refresh();
   }
@@ -119,8 +124,8 @@ export default function Header() {
                           <LayoutDashboard className="h-4 w-4 text-muted" /> Dashboard
                         </Link>
 
-                        <Link href="/artist/dashboard" onClick={() => setUserMenuOpen(false)} className="flex items-center gap-3 px-4 py-2.5 text-sm hover:bg-cream transition-colors">
-                          <Palette className="h-4 w-4 text-muted" /> Sell Art
+                        <Link href={user.role === 'artist' || user.role === 'admin' ? '/artist/dashboard' : '/artist/onboarding'} onClick={() => setUserMenuOpen(false)} className="flex items-center gap-3 px-4 py-2.5 text-sm hover:bg-cream transition-colors">
+                          <Palette className="h-4 w-4 text-muted" /> {user.role === 'artist' || user.role === 'admin' ? 'Artist Dashboard' : 'Start Selling'}
                         </Link>
 
                         {user.role === 'admin' && (
@@ -200,8 +205,8 @@ export default function Header() {
                 <Link href="/dashboard" onClick={() => setMobileMenuOpen(false)} className="block py-2.5 px-3 text-sm font-medium text-foreground hover:text-accent-dark hover:bg-cream rounded-lg transition-colors">
                   Dashboard
                 </Link>
-                <Link href="/artist/dashboard" onClick={() => setMobileMenuOpen(false)} className="block py-2.5 px-3 text-sm font-medium text-foreground hover:text-accent-dark hover:bg-cream rounded-lg transition-colors">
-                  Sell Art
+                <Link href={user.role === 'artist' || user.role === 'admin' ? '/artist/dashboard' : '/artist/onboarding'} onClick={() => setMobileMenuOpen(false)} className="block py-2.5 px-3 text-sm font-medium text-foreground hover:text-accent-dark hover:bg-cream rounded-lg transition-colors">
+                  {user.role === 'artist' || user.role === 'admin' ? 'Artist Dashboard' : 'Start Selling'}
                 </Link>
                 {user.role === 'admin' && (
                   <Link href="/admin/dashboard" onClick={() => setMobileMenuOpen(false)} className="block py-2.5 px-3 text-sm font-medium text-foreground hover:text-accent-dark hover:bg-cream rounded-lg transition-colors">

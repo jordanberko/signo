@@ -230,7 +230,7 @@ function DashboardContent() {
             </div>
           </div>
           <Link
-            href="/artist/dashboard"
+            href={isArtist ? '/artist/dashboard' : '/artist/onboarding'}
             className="group inline-flex items-center gap-2 px-6 py-3 bg-accent text-primary text-sm font-semibold rounded-full hover:bg-accent-light transition-colors whitespace-nowrap"
           >
             {isArtist ? 'Go to Artist Dashboard' : 'Start Selling'}

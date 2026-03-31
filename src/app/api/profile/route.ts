@@ -21,6 +21,7 @@ export async function PUT(request: Request) {
       avatar_url,
       social_links,
       onboarding_completed,
+      role,
     } = body;
 
     // Validate full_name if provided
@@ -41,6 +42,21 @@ export async function PUT(request: Request) {
     if (avatar_url !== undefined) updateData.avatar_url = avatar_url || null;
     if (social_links !== undefined) updateData.social_links = social_links;
     if (onboarding_completed !== undefined) updateData.onboarding_completed = !!onboarding_completed;
+
+    // Role upgrade: only allow buyer → artist (never downgrade or escalate to admin)
+    if (role === 'artist') {
+      // Verify current role is 'buyer' before allowing upgrade
+      const { data: currentProfile } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', user.id)
+        .single();
+
+      if (currentProfile?.role === 'buyer') {
+        updateData.role = 'artist';
+      }
+      // If already artist, silently ignore. If admin, don't downgrade.
+    }
 
     if (Object.keys(updateData).length === 0) {
       return NextResponse.json({ error: 'No fields to update' }, { status: 400 });

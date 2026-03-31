@@ -5,6 +5,7 @@ import type { Database } from '@/lib/types/database';
 /** Role hierarchy for route protection. */
 const ROLE_ACCESS: Record<string, string[]> = {
   '/admin': ['admin'],
+  '/artist/onboarding': ['buyer', 'artist', 'admin'], // buyers can access onboarding to upgrade
   '/artist': ['artist', 'admin'],
   '/dashboard': ['buyer', 'artist', 'admin'],
   '/checkout': ['buyer', 'artist', 'admin'],
