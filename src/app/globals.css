@@ -18,7 +18,8 @@
   --color-cream: #FAF8F4;
   --color-warm-gray: #a8a29e;
   --color-sand: #E8E2D9;
-  --font-sans: var(--font-geist-sans);
+  --color-off-white: #FAFAF7;
+  --font-sans: var(--font-outfit);
   --font-serif: var(--font-playfair);
   --font-mono: var(--font-geist-mono);
 }
@@ -200,9 +201,20 @@ body {
   font-weight: 400;
 }
 .ribbon-sans {
-  font-family: var(--font-sans), Arial, Helvetica, sans-serif;
+  font-family: var(--font-outfit), var(--font-sans), Arial, Helvetica, sans-serif;
   font-weight: 500;
   letter-spacing: 1px;
+}
+
+/* Scroll-reveal animation */
+.scroll-reveal {
+  opacity: 0;
+  transform: translateY(30px);
+  transition: opacity 0.5s ease-out, transform 0.5s ease-out;
+}
+.scroll-reveal.revealed {
+  opacity: 1;
+  transform: translateY(0);
 }
 
 /* Focus styles */
