@@ -161,7 +161,7 @@ function ArtworkActions({
                 onClick={() => { onSubmitForReview(); setOpen(false); }}
                 className="flex items-center gap-2.5 px-4 py-2.5 text-sm hover:bg-muted-bg transition-colors w-full text-left"
               >
-                <Send className="h-4 w-4 text-accent" />
+                <Send className="h-4 w-4 text-accent-dark" />
                 Submit for Review
               </button>
             )}

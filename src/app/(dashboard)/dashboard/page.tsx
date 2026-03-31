@@ -149,7 +149,7 @@ function DashboardContent() {
           className="flex items-center gap-4 p-5 bg-white border border-border rounded-xl hover:border-accent/40 hover:shadow-sm transition-all duration-300 group"
         >
           <div className="w-10 h-10 bg-muted-bg rounded-full flex items-center justify-center group-hover:bg-accent-subtle transition-colors duration-300">
-            <Search className="h-5 w-5 text-muted group-hover:text-accent transition-colors duration-300" />
+            <Search className="h-5 w-5 text-muted group-hover:text-accent-dark transition-colors duration-300" />
           </div>
           <div>
             <p className="font-medium text-sm">Browse Artwork</p>
@@ -162,7 +162,7 @@ function DashboardContent() {
           className="flex items-center gap-4 p-5 bg-white border border-border rounded-xl hover:border-accent/40 hover:shadow-sm transition-all duration-300 group"
         >
           <div className="w-10 h-10 bg-muted-bg rounded-full flex items-center justify-center group-hover:bg-accent-subtle transition-colors duration-300">
-            <ShoppingBag className="h-5 w-5 text-muted group-hover:text-accent transition-colors duration-300" />
+            <ShoppingBag className="h-5 w-5 text-muted group-hover:text-accent-dark transition-colors duration-300" />
           </div>
           <div>
             <p className="font-medium text-sm">Orders</p>
@@ -177,7 +177,7 @@ function DashboardContent() {
           className="flex items-center gap-4 p-5 bg-white border border-border rounded-xl hover:border-accent/40 hover:shadow-sm transition-all duration-300 group"
         >
           <div className="w-10 h-10 bg-muted-bg rounded-full flex items-center justify-center group-hover:bg-accent-subtle transition-colors duration-300">
-            <Heart className="h-5 w-5 text-muted group-hover:text-accent transition-colors duration-300" />
+            <Heart className="h-5 w-5 text-muted group-hover:text-accent-dark transition-colors duration-300" />
           </div>
           <div>
             <p className="font-medium text-sm">Favourites</p>
@@ -190,7 +190,7 @@ function DashboardContent() {
           className="flex items-center gap-4 p-5 bg-white border border-border rounded-xl hover:border-accent/40 hover:shadow-sm transition-all duration-300 group"
         >
           <div className="w-10 h-10 bg-muted-bg rounded-full flex items-center justify-center group-hover:bg-accent-subtle transition-colors duration-300">
-            <Settings className="h-5 w-5 text-muted group-hover:text-accent transition-colors duration-300" />
+            <Settings className="h-5 w-5 text-muted group-hover:text-accent-dark transition-colors duration-300" />
           </div>
           <div>
             <p className="font-medium text-sm">Settings</p>
@@ -204,7 +204,7 @@ function DashboardContent() {
         <div className="relative z-10 flex flex-col sm:flex-row items-center justify-between gap-6">
           <div className="flex items-center gap-5">
             <div className="w-14 h-14 bg-accent/20 rounded-full flex items-center justify-center flex-shrink-0">
-              <Palette className="h-7 w-7 text-accent" />
+              <Palette className="h-7 w-7 text-accent-dark" />
             </div>
             <div>
               {isArtist ? (
@@ -248,7 +248,7 @@ function DashboardContent() {
           {totalOrders > 5 && (
             <Link
               href="/orders"
-              className="text-sm text-accent font-medium hover:underline flex items-center gap-1"
+              className="text-sm text-accent-dark font-medium hover:underline flex items-center gap-1"
             >
               View all orders <ArrowRight className="h-3.5 w-3.5" />
             </Link>
@@ -338,7 +338,7 @@ function DashboardContent() {
                       <td className="px-5 py-4 text-right">
                         <Link
                           href={`/orders/${order.id}`}
-                          className="text-xs text-accent font-medium hover:underline"
+                          className="text-xs text-accent-dark font-medium hover:underline"
                         >
                           View
                         </Link>
@@ -411,7 +411,7 @@ function DashboardContent() {
           </p>
           <Link
             href="/browse"
-            className="group inline-flex items-center gap-2 text-accent font-medium text-sm hover:underline"
+            className="group inline-flex items-center gap-2 text-accent-dark font-medium text-sm hover:underline"
           >
             Browse Artwork
             <ArrowRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" />

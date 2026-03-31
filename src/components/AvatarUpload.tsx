@@ -102,7 +102,7 @@ export default function AvatarUpload({
           ) : (
             <div className="w-full h-full flex items-center justify-center bg-accent-subtle">
               <span
-                className="font-editorial font-medium text-accent"
+                className="font-editorial font-medium text-accent-dark"
                 style={{ fontSize: size * 0.3 }}
               >
                 {userName ? getInitials(userName) : '?'}
@@ -162,7 +162,7 @@ export default function AvatarUpload({
         type="button"
         onClick={() => fileInputRef.current?.click()}
         disabled={uploading}
-        className="text-xs text-accent font-medium hover:text-accent-light transition-colors disabled:opacity-50"
+        className="text-xs text-accent-dark font-medium hover:text-accent-light transition-colors disabled:opacity-50"
       >
         {avatarUrl ? 'Change photo' : 'Upload photo'}
       </button>

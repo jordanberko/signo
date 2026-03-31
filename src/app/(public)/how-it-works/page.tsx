@@ -7,7 +7,7 @@ export default function HowItWorksPage() {
       {/* Hero */}
       <section className="bg-cream border-b border-border">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-16 md:py-24 text-center">
-          <p className="text-accent text-sm font-medium tracking-[0.2em] uppercase mb-4">The Process</p>
+          <p className="text-accent-dark text-sm font-medium tracking-[0.2em] uppercase mb-4">The Process</p>
           <h1 className="font-editorial text-4xl md:text-5xl lg:text-6xl font-medium leading-tight">
             How Signo Works
           </h1>
@@ -23,7 +23,7 @@ export default function HowItWorksPage() {
           <div className="mb-16">
             <div className="flex items-center gap-3 mb-4">
               <div className="divider-accent" />
-              <p className="text-accent text-sm font-medium tracking-[0.15em] uppercase">For Sellers</p>
+              <p className="text-accent-dark text-sm font-medium tracking-[0.15em] uppercase">For Sellers</p>
             </div>
             <h2 className="font-editorial text-3xl md:text-4xl font-medium">Start selling in minutes</h2>
           </div>
@@ -53,7 +53,7 @@ export default function HowItWorksPage() {
             ].map((item) => (
               <div key={item.step} className="group">
                 <span className="text-accent/40 font-mono text-sm tracking-wider">{item.step}</span>
-                <h3 className="font-editorial text-xl font-medium mt-2 mb-3 group-hover:text-accent transition-colors duration-300">{item.title}</h3>
+                <h3 className="font-editorial text-xl font-medium mt-2 mb-3 group-hover:text-accent-dark transition-colors duration-300">{item.title}</h3>
                 <p className="text-muted text-sm leading-relaxed">{item.desc}</p>
               </div>
             ))}
@@ -78,7 +78,7 @@ export default function HowItWorksPage() {
               <div className="h-px bg-border" />
               <div className="flex justify-between items-center">
                 <span className="font-semibold text-base">You receive</span>
-                <span className="font-editorial text-2xl font-semibold text-accent">$490.95</span>
+                <span className="font-editorial text-2xl font-semibold text-accent-dark">$490.95</span>
               </div>
               <p className="text-xs text-warm-gray text-center pt-3">
                 Signo charges a flat $30/month subscription with zero commission. The only deduction from your sales is Stripe&apos;s payment processing fee.
@@ -94,7 +94,7 @@ export default function HowItWorksPage() {
           <div className="mb-16">
             <div className="flex items-center gap-3 mb-4">
               <div className="divider-accent" />
-              <p className="text-accent text-sm font-medium tracking-[0.15em] uppercase">For Buyers</p>
+              <p className="text-accent-dark text-sm font-medium tracking-[0.15em] uppercase">For Buyers</p>
             </div>
             <h2 className="font-editorial text-3xl md:text-4xl font-medium">Find art you love</h2>
           </div>
@@ -124,7 +124,7 @@ export default function HowItWorksPage() {
             ].map((item) => (
               <div key={item.step} className="group">
                 <span className="text-accent/40 font-mono text-sm tracking-wider">{item.step}</span>
-                <h3 className="font-editorial text-xl font-medium mt-2 mb-3 group-hover:text-accent transition-colors duration-300">{item.title}</h3>
+                <h3 className="font-editorial text-xl font-medium mt-2 mb-3 group-hover:text-accent-dark transition-colors duration-300">{item.title}</h3>
                 <p className="text-muted text-sm leading-relaxed">{item.desc}</p>
               </div>
             ))}
@@ -136,7 +136,7 @@ export default function HowItWorksPage() {
       <section className="py-20 md:py-28">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
-            <p className="text-accent text-sm font-medium tracking-[0.15em] uppercase mb-3">Peace of Mind</p>
+            <p className="text-accent-dark text-sm font-medium tracking-[0.15em] uppercase mb-3">Peace of Mind</p>
             <h2 className="font-editorial text-3xl md:text-4xl font-medium">Buyer Protection Guarantee</h2>
           </div>
 
@@ -170,7 +170,7 @@ export default function HowItWorksPage() {
         <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 text-center relative z-10">
           <h2 className="font-editorial text-3xl md:text-4xl font-medium leading-snug">
             Ready to join the{' '}
-            <span className="italic text-accent">community?</span>
+            <span className="italic text-accent-dark">community?</span>
           </h2>
           <p className="text-gray-400 mt-6 max-w-md mx-auto">
             Whether you&apos;re looking to sell your work or discover your next favourite piece.

@@ -182,13 +182,13 @@ export default function ArtworkDetailClient({
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Breadcrumb */}
         <nav className="mb-6 text-sm text-muted">
-          <Link href="/browse" className="hover:text-accent transition-colors">
+          <Link href="/browse" className="hover:text-accent-dark transition-colors">
             Browse
           </Link>
           <span className="mx-2">/</span>
           <Link
             href={`/browse?category=${artwork.category}`}
-            className="hover:text-accent transition-colors capitalize"
+            className="hover:text-accent-dark transition-colors capitalize"
           >
             {categoryLabel}s
           </Link>
@@ -302,7 +302,7 @@ export default function ArtworkDetailClient({
                   {categoryLabel}
                 </span>
                 {artwork.is_framed && (
-                  <span className="px-2.5 py-1 bg-accent-subtle text-[11px] font-medium tracking-wide uppercase rounded-full text-accent flex items-center gap-1">
+                  <span className="px-2.5 py-1 bg-accent-subtle text-[11px] font-medium tracking-wide uppercase rounded-full text-accent-dark flex items-center gap-1">
                     <Frame className="h-3 w-3" />
                     Framed
                   </span>
@@ -337,7 +337,7 @@ export default function ArtworkDetailClient({
                 )}
               </div>
               <div className="flex-1 min-w-0">
-                <p className="font-medium text-sm group-hover:text-accent transition-colors">
+                <p className="font-medium text-sm group-hover:text-accent-dark transition-colors">
                   {artist.full_name}
                 </p>
                 {artist.location && (
@@ -363,7 +363,7 @@ export default function ArtworkDetailClient({
                 Buy Now
               </Link>
               <div className="flex gap-3">
-                <button className="flex-1 py-2.5 border-2 border-border rounded-full flex items-center justify-center gap-2 hover:border-accent hover:text-accent transition-colors text-sm font-medium">
+                <button className="flex-1 py-2.5 border-2 border-border rounded-full flex items-center justify-center gap-2 hover:border-accent hover:text-accent-dark transition-colors text-sm font-medium">
                   <MessageCircle className="h-4 w-4" />
                   Message Artist
                 </button>
@@ -374,7 +374,7 @@ export default function ArtworkDetailClient({
                   <Heart className="h-4 w-4" />
                 </button>
                 <button
-                  className="py-2.5 px-4 border-2 border-border rounded-full flex items-center justify-center gap-2 hover:border-accent hover:text-accent transition-colors text-sm font-medium"
+                  className="py-2.5 px-4 border-2 border-border rounded-full flex items-center justify-center gap-2 hover:border-accent hover:text-accent-dark transition-colors text-sm font-medium"
                   aria-label="Share"
                 >
                   <Share2 className="h-4 w-4" />
@@ -414,7 +414,7 @@ export default function ArtworkDetailClient({
                 {artwork.is_framed && (
                   <>
                     <span className="text-muted">Framed</span>
-                    <span className="font-medium text-accent">Yes — ready to hang</span>
+                    <span className="font-medium text-accent-dark">Yes — ready to hang</span>
                   </>
                 )}
                 {artwork.shipping_weight_kg && (
@@ -447,7 +447,7 @@ export default function ArtworkDetailClient({
                   <Link
                     key={tag}
                     href={`/browse?q=${encodeURIComponent(tag)}`}
-                    className="px-3 py-1 bg-cream border border-border text-xs rounded-full text-muted hover:border-accent hover:text-accent transition-colors"
+                    className="px-3 py-1 bg-cream border border-border text-xs rounded-full text-muted hover:border-accent hover:text-accent-dark transition-colors"
                   >
                     #{tag}
                   </Link>
@@ -462,7 +462,7 @@ export default function ArtworkDetailClient({
               </h2>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="flex items-start gap-3 p-3.5 bg-cream rounded-xl">
-                  <Truck className="h-5 w-5 text-accent flex-shrink-0 mt-0.5" />
+                  <Truck className="h-5 w-5 text-accent-dark flex-shrink-0 mt-0.5" />
                   <div>
                     <p className="text-xs font-medium">Tracked Shipping</p>
                     <p className="text-xs text-muted mt-0.5">
@@ -510,7 +510,7 @@ export default function ArtworkDetailClient({
             </h2>
             <Link
               href={`/artists/${artist.id}`}
-              className="text-sm text-accent font-medium hover:underline flex items-center gap-1"
+              className="text-sm text-accent-dark font-medium hover:underline flex items-center gap-1"
             >
               View storefront <ArrowRight className="h-3.5 w-3.5" />
             </Link>
@@ -540,7 +540,7 @@ export default function ArtworkDetailClient({
             <div className="flex-1 min-w-0">
               <Link
                 href={`/artists/${artist.id}`}
-                className="font-editorial text-lg font-medium hover:text-accent transition-colors"
+                className="font-editorial text-lg font-medium hover:text-accent-dark transition-colors"
               >
                 {artist.full_name}
               </Link>
@@ -571,7 +571,7 @@ export default function ArtworkDetailClient({
               </h2>
               <Link
                 href={`/artists/${artist.id}`}
-                className="text-sm text-accent font-medium hover:underline flex items-center gap-1"
+                className="text-sm text-accent-dark font-medium hover:underline flex items-center gap-1"
               >
                 View all <ArrowRight className="h-3.5 w-3.5" />
               </Link>

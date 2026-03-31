@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { ArrowRight, Minus } from 'lucide-react';
+import { ArrowRight, Search, ShieldCheck, Palette, DollarSign } from 'lucide-react';
 import ArtworkCard from '@/components/ui/ArtworkCard';
 import { createClient } from '@/lib/supabase/client';
 
@@ -17,21 +17,38 @@ interface FeaturedArtwork {
   category: 'original' | 'print' | 'digital';
 }
 
+// Placeholder cards shown while artwork loads or when DB is empty
+const PLACEHOLDER_CARDS = [
+  { id: 'p1', ratio: 'aspect-[3/4]', color: 'from-stone-200 to-stone-300' },
+  { id: 'p2', ratio: 'aspect-[4/5]', color: 'from-amber-100 to-stone-200' },
+  { id: 'p3', ratio: 'aspect-[3/4]', color: 'from-stone-100 to-amber-100' },
+  { id: 'p4', ratio: 'aspect-[2/3]', color: 'from-stone-300 to-stone-200' },
+  { id: 'p5', ratio: 'aspect-[4/5]', color: 'from-amber-50 to-stone-200' },
+  { id: 'p6', ratio: 'aspect-[3/4]', color: 'from-stone-200 to-amber-100' },
+  { id: 'p7', ratio: 'aspect-[2/3]', color: 'from-stone-100 to-stone-300' },
+  { id: 'p8', ratio: 'aspect-[4/5]', color: 'from-amber-100 to-stone-100' },
+];
+
 export default function HomePage() {
   const [artworks, setArtworks] = useState<FeaturedArtwork[]>([]);
+  const [newArrivals, setNewArrivals] = useState<FeaturedArtwork[]>([]);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
-    async function fetchFeatured() {
+    async function fetchArt() {
       const supabase = createClient();
+
+      // Featured artwork (approved, newest first)
       const { data } = await supabase
         .from('artworks')
         .select('id, title, price_aud, images, medium, category, artist_id, profiles!artworks_artist_id_fkey(id, full_name)')
         .eq('status', 'approved')
         .order('created_at', { ascending: false })
-        .limit(8);
+        .limit(12);
 
       if (data && data.length > 0) {
-        setArtworks(data.map((a: Record<string, unknown>) => ({
+        const mapped = data.map((a: Record<string, unknown>) => ({
           id: a.id as string,
           title: a.title as string,
           artistName: (a.profiles as Record<string, string>)?.full_name || 'Unknown',
@@ -40,285 +57,320 @@ export default function HomePage() {
           imageUrl: ((a.images as string[]) || [])[0] || '',
           medium: a.medium as string,
           category: a.category as 'original' | 'print' | 'digital',
-        })));
+        }));
+        setArtworks(mapped.slice(0, 8));
+        setNewArrivals(mapped.slice(0, 6));
       }
+      setLoaded(true);
     }
-    fetchFeatured();
+    fetchArt();
   }, []);
 
   return (
     <div>
-      {/* ==================== HERO ==================== */}
-      <section className="relative bg-primary text-white overflow-hidden texture-grain">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-28 md:py-40 relative z-10">
-          <div className="max-w-3xl animate-fade-up">
-            <p className="text-accent text-sm font-medium tracking-[0.2em] uppercase mb-6">
-              Australian Art Marketplace
-            </p>
-            <h1 className="font-editorial text-5xl md:text-6xl lg:text-7xl font-medium leading-[1.1] tracking-tight">
-              Where Art Finds{' '}
-              <span className="italic text-accent">Its People</span>
-            </h1>
-            <p className="mt-8 text-lg md:text-xl text-gray-400 max-w-xl leading-relaxed">
-              A curated collection of originals, prints, and digital works from
-              Australia&apos;s most exciting artists. Fair for creators, inspiring for collectors.
-            </p>
-            <div className="flex flex-col sm:flex-row gap-4 mt-10">
-              <Link
-                href="/browse"
-                className="group inline-flex items-center justify-center gap-3 px-7 py-3.5 bg-accent text-primary font-semibold rounded-full hover:bg-accent-light transition-all duration-300"
-              >
-                Explore the Collection
-                <ArrowRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
-              </Link>
-              <Link
-                href="/register"
-                className="inline-flex items-center justify-center gap-2 px-7 py-3.5 border border-white/30 text-white font-medium rounded-full hover:bg-white hover:text-primary transition-all duration-300"
-              >
-                Start Selling
-              </Link>
-            </div>
-          </div>
-        </div>
-
-        {/* Decorative element */}
-        <div className="absolute top-0 right-0 w-1/3 h-full opacity-[0.03]">
-          <div className="w-full h-full" style={{ background: 'radial-gradient(circle at 70% 30%, white 0%, transparent 70%)' }} />
-        </div>
-      </section>
-
-      {/* ==================== MARQUEE STATS ==================== */}
-      <section className="border-b border-border bg-cream">
+      {/* ==================== HERO — MINIMAL ==================== */}
+      <section className="bg-background pt-12 pb-8 md:pt-20 md:pb-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-2 md:grid-cols-4 divide-x divide-border">
-            {[
-              { value: '100%', label: 'Goes to artists' },
-              { value: '$30/mo', label: 'Flat subscription' },
-              { value: '24-48h', label: 'Review turnaround' },
-              { value: '100%', label: 'Buyer protection' },
-            ].map((stat) => (
-              <div key={stat.label} className="py-8 md:py-10 text-center">
-                <p className="font-editorial text-2xl md:text-3xl font-semibold text-primary">{stat.value}</p>
-                <p className="text-xs md:text-sm text-muted mt-1 tracking-wide">{stat.label}</p>
+          <div className="max-w-2xl mx-auto text-center animate-fade-up">
+            <h1 className="font-editorial text-4xl md:text-5xl lg:text-6xl font-medium leading-[1.1] tracking-tight text-primary">
+              Discover Australian Art
+            </h1>
+            <p className="mt-4 text-lg text-muted max-w-md mx-auto leading-relaxed">
+              Originals, prints, and digital works from Australia&apos;s most exciting artists.
+            </p>
+
+            {/* Search Bar */}
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                if (searchQuery.trim()) {
+                  window.location.href = `/browse?q=${encodeURIComponent(searchQuery.trim())}`;
+                }
+              }}
+              className="mt-8 max-w-lg mx-auto"
+            >
+              <div className="relative">
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-warm-gray" />
+                <input
+                  type="text"
+                  placeholder="Search artwork, artists, styles..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full pl-12 pr-4 py-3.5 bg-cream border border-border rounded-full text-sm placeholder:text-warm-gray focus:bg-white focus:border-accent transition-all shadow-sm"
+                />
               </div>
-            ))}
+            </form>
           </div>
         </div>
       </section>
 
-      {/* ==================== FEATURED ARTWORK ==================== */}
-      {artworks.length > 0 && (
-        <section className="py-20 md:py-28">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="flex items-end justify-between mb-12">
-              <div>
-                <p className="text-accent text-sm font-medium tracking-[0.15em] uppercase mb-3">Curated Selection</p>
-                <h2 className="font-editorial text-3xl md:text-4xl font-medium">Recently Added</h2>
-              </div>
-              <Link
-                href="/browse"
-                className="hidden sm:inline-flex items-center gap-2 text-sm font-medium text-foreground hover:text-accent transition-colors group"
-              >
-                View all artwork
-                <ArrowRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
-              </Link>
+      {/* ==================== FEATURED ARTWORK GRID ==================== */}
+      <section className="pb-16 md:pb-24 pt-4">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-end justify-between mb-8">
+            <div>
+              <h2 className="font-editorial text-2xl md:text-3xl font-medium text-primary">Featured</h2>
             </div>
+            <Link
+              href="/browse"
+              className="hidden sm:inline-flex items-center gap-2 text-sm font-medium text-primary hover:text-accent-dark transition-colors group"
+            >
+              View all
+              <ArrowRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
+            </Link>
+          </div>
+
+          {/* Real artwork or placeholder grid */}
+          {artworks.length > 0 ? (
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-x-5 gap-y-10 stagger-children">
               {artworks.map((artwork) => (
                 <ArtworkCard key={artwork.id} {...artwork} />
               ))}
             </div>
-            <div className="sm:hidden text-center mt-10">
+          ) : (
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-x-5 gap-y-6 stagger-children">
+              {PLACEHOLDER_CARDS.map((card) => (
+                <div key={card.id} className="group">
+                  <div className={`${card.ratio} rounded-lg bg-gradient-to-br ${card.color} overflow-hidden relative`}>
+                    {loaded && (
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        <span className="text-warm-gray/60 text-xs tracking-widest uppercase">Coming Soon</span>
+                      </div>
+                    )}
+                  </div>
+                  <div className="pt-3 space-y-1.5">
+                    <div className="h-4 bg-sand rounded w-3/4" />
+                    <div className="h-3 bg-sand/60 rounded w-1/2" />
+                    <div className="h-4 bg-sand rounded w-1/3 mt-1" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          <div className="sm:hidden text-center mt-8">
+            <Link
+              href="/browse"
+              className="inline-flex items-center gap-2 text-sm font-semibold text-primary hover:text-accent-dark transition-colors"
+            >
+              View all artwork <ArrowRight className="h-4 w-4" />
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* ==================== NEW ARRIVALS — HORIZONTAL SCROLL ==================== */}
+      {newArrivals.length > 0 && (
+        <section className="py-16 md:py-20 bg-cream">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex items-end justify-between mb-8">
+              <div>
+                <p className="text-accent-dark text-xs font-semibold tracking-[0.2em] uppercase mb-2">Just Listed</p>
+                <h2 className="font-editorial text-2xl md:text-3xl font-medium text-primary">New Arrivals</h2>
+              </div>
               <Link
-                href="/browse"
-                className="inline-flex items-center gap-2 text-sm font-medium text-accent"
+                href="/browse?sort=newest"
+                className="hidden sm:inline-flex items-center gap-2 text-sm font-medium text-primary hover:text-accent-dark transition-colors group"
               >
-                View all artwork <ArrowRight className="h-4 w-4" />
+                See all new
+                <ArrowRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
               </Link>
+            </div>
+            <div className="flex gap-5 overflow-x-auto pb-4 -mx-4 px-4 sm:mx-0 sm:px-0 snap-x snap-mandatory scrollbar-hide">
+              {newArrivals.map((artwork) => (
+                <div key={artwork.id} className="flex-shrink-0 w-[260px] sm:w-[280px] snap-start">
+                  <ArtworkCard {...artwork} />
+                </div>
+              ))}
             </div>
           </div>
         </section>
       )}
 
-      {/* ==================== WHY SIGNO ==================== */}
-      <section className="py-20 md:py-28 bg-primary text-white relative texture-grain overflow-hidden">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-          <div className="max-w-xl mb-16">
-            <p className="text-accent text-sm font-medium tracking-[0.15em] uppercase mb-3">Why Signo</p>
-            <h2 className="font-editorial text-3xl md:text-4xl font-medium leading-snug">
-              Built for artists,{' '}
-              <span className="italic text-accent">loved by collectors</span>
+      {/* ==================== ARTIST SPOTLIGHT ==================== */}
+      <section className="py-16 md:py-24">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-12 md:gap-16 items-center">
+            {/* Visual */}
+            <div className="relative">
+              <div className="aspect-[4/3] rounded-2xl bg-gradient-to-br from-stone-200 to-sand overflow-hidden">
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="text-center">
+                    <Palette className="h-12 w-12 text-warm-gray/40 mx-auto mb-3" />
+                    <span className="text-warm-gray/60 text-sm tracking-wide">Artist Spotlight</span>
+                  </div>
+                </div>
+              </div>
+              {/* Accent block */}
+              <div className="absolute -bottom-4 -right-4 w-24 h-24 bg-accent rounded-xl -z-10" />
+            </div>
+
+            {/* Content */}
+            <div>
+              <p className="text-accent-dark text-xs font-semibold tracking-[0.2em] uppercase mb-3">For Artists</p>
+              <h2 className="font-editorial text-3xl md:text-4xl font-medium text-primary leading-snug">
+                Your art, your earnings.{' '}
+                <span className="italic">No commission.</span>
+              </h2>
+              <p className="mt-5 text-muted leading-relaxed">
+                Signo charges a flat $30/month subscription. You keep 100% of every sale —
+                the only deduction is Stripe&apos;s payment processing fee (~1.75% + 30c).
+              </p>
+              <div className="flex flex-col sm:flex-row gap-4 mt-8">
+                <Link
+                  href="/register"
+                  className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-accent text-primary font-semibold rounded-full hover:bg-accent-light transition-all duration-300"
+                >
+                  Start Selling
+                  <ArrowRight className="h-4 w-4" />
+                </Link>
+                <Link
+                  href="/how-it-works"
+                  className="inline-flex items-center justify-center px-6 py-3 border border-border text-primary font-medium rounded-full hover:bg-cream transition-all duration-300"
+                >
+                  How It Works
+                </Link>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ==================== WHY SIGNO — 3 CARDS ==================== */}
+      <section className="py-16 md:py-20 bg-cream">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-12">
+            <p className="text-accent-dark text-xs font-semibold tracking-[0.2em] uppercase mb-3">Why Signo</p>
+            <h2 className="font-editorial text-3xl md:text-4xl font-medium text-primary">
+              Built for artists, loved by collectors
             </h2>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-px bg-white/10 rounded-2xl overflow-hidden">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {[
               {
-                number: '01',
+                icon: DollarSign,
                 title: 'Zero Commission',
-                description: 'Artists keep 100% of every sale. Just $30/month to sell on the platform.',
+                description: 'Artists keep 100% of every sale. Just a flat $30/month subscription to list on the platform.',
               },
               {
-                number: '02',
+                icon: ShieldCheck,
+                title: 'Buyer Protection',
+                description: 'Payments held in escrow until delivery is confirmed. 48-hour inspection window on every order.',
+              },
+              {
+                icon: Palette,
                 title: 'Curated Quality',
-                description: 'Every piece is reviewed before listing. AI-assisted quality checks with 24-48 hour turnaround.',
-              },
-              {
-                number: '03',
-                title: 'Escrow Protection',
-                description: 'Payments held securely until delivery is confirmed. Peace of mind for both sides.',
-              },
-              {
-                number: '04',
-                title: 'Three Art Types',
-                description: 'Sell originals, limited-edition prints, and digital downloads — all from one storefront.',
-              },
-              {
-                number: '05',
-                title: 'Guaranteed Payouts',
-                description: 'After the buyer inspection window closes, the full sale price (minus Stripe processing fees) is released automatically.',
-              },
-              {
-                number: '06',
-                title: 'Dual Marketplace',
-                description: 'Every member can both buy and sell. List your art one day, collect someone else\'s the next.',
+                description: 'Every piece is reviewed before listing. Sell originals, prints, and digital downloads from one storefront.',
               },
             ].map((item) => (
-              <div key={item.number} className="bg-primary p-8 md:p-10 group hover:bg-white/5 transition-colors duration-500">
-                <span className="text-accent/60 text-sm font-mono tracking-wider">{item.number}</span>
-                <h3 className="font-editorial text-xl font-medium mt-3 mb-3 group-hover:text-accent transition-colors duration-300">{item.title}</h3>
-                <p className="text-gray-400 text-sm leading-relaxed">{item.description}</p>
+              <div
+                key={item.title}
+                className="bg-white rounded-2xl p-8 border border-border hover:border-accent/40 hover:shadow-md transition-all duration-300 group"
+              >
+                <div className="w-12 h-12 rounded-xl bg-accent/10 flex items-center justify-center mb-5 group-hover:bg-accent/20 transition-colors">
+                  <item.icon className="h-6 w-6 text-accent-dark" />
+                </div>
+                <h3 className="font-editorial text-xl font-medium text-primary mb-2">{item.title}</h3>
+                <p className="text-muted text-sm leading-relaxed">{item.description}</p>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* ==================== HOW IT WORKS (SIMPLE) ==================== */}
-      <section className="py-20 md:py-28">
+      {/* ==================== HOW IT WORKS — CONDENSED ==================== */}
+      <section className="py-16 md:py-24">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-14">
+            <p className="text-accent-dark text-xs font-semibold tracking-[0.2em] uppercase mb-3">How It Works</p>
+            <h2 className="font-editorial text-3xl md:text-4xl font-medium text-primary">Simple for everyone</h2>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-12 md:gap-16">
+            {/* Selling */}
+            <div className="space-y-6">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="h-0.5 w-10 bg-accent" />
+                <h3 className="font-editorial text-lg font-medium text-primary">Selling</h3>
+              </div>
+              {[
+                { step: 'Upload', desc: 'Add photos, set your price, describe your work.' },
+                { step: 'Review', desc: 'Our team reviews quality within 24-48 hours.' },
+                { step: 'Sell', desc: 'Your art goes live. When it sells, you keep 100%.' },
+                { step: 'Get paid', desc: 'Funds released after buyer confirms delivery.' },
+              ].map((item, i) => (
+                <div key={i} className="flex gap-4 group">
+                  <div className="flex-shrink-0 w-8 h-8 rounded-full border border-border flex items-center justify-center text-xs font-medium text-muted group-hover:border-accent group-hover:text-accent-dark group-hover:bg-accent/5 transition-all">
+                    {i + 1}
+                  </div>
+                  <div>
+                    <p className="font-medium text-sm text-primary">{item.step}</p>
+                    <p className="text-sm text-muted mt-0.5">{item.desc}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Buying */}
+            <div className="space-y-6">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="h-0.5 w-10 bg-accent" />
+                <h3 className="font-editorial text-lg font-medium text-primary">Buying</h3>
+              </div>
+              {[
+                { step: 'Discover', desc: 'Browse by style, medium, price, or artist.' },
+                { step: 'Purchase', desc: 'Secure checkout. Payment held in escrow.' },
+                { step: 'Receive', desc: 'Tracked shipping within 5 business days.' },
+                { step: 'Enjoy', desc: '48-hour inspection window. Full buyer protection.' },
+              ].map((item, i) => (
+                <div key={i} className="flex gap-4 group">
+                  <div className="flex-shrink-0 w-8 h-8 rounded-full border border-border flex items-center justify-center text-xs font-medium text-muted group-hover:border-accent group-hover:text-accent-dark group-hover:bg-accent/5 transition-all">
+                    {i + 1}
+                  </div>
+                  <div>
+                    <p className="font-medium text-sm text-primary">{item.step}</p>
+                    <p className="text-sm text-muted mt-0.5">{item.desc}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ==================== CTA BANNER ==================== */}
+      <section className="py-16 md:py-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
-            <p className="text-accent text-sm font-medium tracking-[0.15em] uppercase mb-3">How It Works</p>
-            <h2 className="font-editorial text-3xl md:text-4xl font-medium">Simple for everyone</h2>
-          </div>
+          <div className="bg-primary rounded-3xl px-8 py-16 md:px-16 md:py-20 text-center relative overflow-hidden">
+            {/* Accent glow */}
+            <div className="absolute top-0 right-0 w-64 h-64 bg-accent/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
+            <div className="absolute bottom-0 left-0 w-48 h-48 bg-accent/5 rounded-full blur-3xl translate-y-1/2 -translate-x-1/2" />
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-16 md:gap-20 max-w-4xl mx-auto">
-            {/* For Sellers */}
-            <div className="space-y-8">
-              <div className="flex items-center gap-3">
-                <div className="divider-accent" />
-                <h3 className="font-editorial text-xl font-medium">Selling</h3>
-              </div>
-              <div className="space-y-6">
-                {[
-                  { step: 'Upload', desc: 'Add photos, set your price, describe your work.' },
-                  { step: 'Review', desc: 'Our team reviews quality within 24-48 hours.' },
-                  { step: 'Sell', desc: 'Your art goes live. When it sells, you keep 100%.' },
-                  { step: 'Get paid', desc: 'Full amount minus Stripe processing fees released after buyer confirms delivery.' },
-                ].map((item, i) => (
-                  <div key={i} className="flex gap-5 group">
-                    <div className="flex-shrink-0 w-8 h-8 rounded-full border border-border flex items-center justify-center text-xs font-medium text-muted group-hover:border-accent group-hover:text-accent transition-colors">
-                      {i + 1}
-                    </div>
-                    <div>
-                      <p className="font-medium text-sm">{item.step}</p>
-                      <p className="text-sm text-muted mt-0.5">{item.desc}</p>
-                    </div>
-                  </div>
-                ))}
+            <div className="relative z-10">
+              <h2 className="font-editorial text-3xl md:text-5xl font-medium text-white leading-tight max-w-2xl mx-auto">
+                Ready to discover your next{' '}
+                <span className="italic text-accent">favourite piece?</span>
+              </h2>
+              <p className="text-gray-400 mt-5 text-lg max-w-lg mx-auto">
+                Join a community that values artists and celebrates creativity.
+              </p>
+              <div className="flex flex-col sm:flex-row gap-4 justify-center mt-10">
+                <Link
+                  href="/browse"
+                  className="group inline-flex items-center justify-center gap-3 px-8 py-4 bg-accent text-primary font-semibold rounded-full hover:bg-accent-light transition-all duration-300 text-lg"
+                >
+                  Browse Artwork
+                  <ArrowRight className="h-5 w-5 group-hover:translate-x-1 transition-transform" />
+                </Link>
+                <Link
+                  href="/register"
+                  className="inline-flex items-center justify-center gap-2 px-8 py-4 border border-white/30 text-white font-semibold rounded-full hover:bg-white hover:text-primary transition-all duration-300 text-lg"
+                >
+                  Join Signo
+                </Link>
               </div>
             </div>
-
-            {/* For Buyers */}
-            <div className="space-y-8">
-              <div className="flex items-center gap-3">
-                <div className="divider-accent" />
-                <h3 className="font-editorial text-xl font-medium">Buying</h3>
-              </div>
-              <div className="space-y-6">
-                {[
-                  { step: 'Discover', desc: 'Browse by style, medium, price, or artist.' },
-                  { step: 'Purchase', desc: 'Secure checkout. Payment held in escrow.' },
-                  { step: 'Receive', desc: 'Tracked shipping within 5 business days.' },
-                  { step: 'Enjoy', desc: '48-hour inspection window. Full buyer protection.' },
-                ].map((item, i) => (
-                  <div key={i} className="flex gap-5 group">
-                    <div className="flex-shrink-0 w-8 h-8 rounded-full border border-border flex items-center justify-center text-xs font-medium text-muted group-hover:border-accent group-hover:text-accent transition-colors">
-                      {i + 1}
-                    </div>
-                    <div>
-                      <p className="font-medium text-sm">{item.step}</p>
-                      <p className="text-sm text-muted mt-0.5">{item.desc}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* ==================== COMMISSION COMPARISON ==================== */}
-      <section className="py-16 md:py-20 bg-muted-bg">
-        <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <p className="text-accent text-sm font-medium tracking-[0.15em] uppercase mb-3">The Signo Difference</p>
-          <h2 className="font-editorial text-3xl md:text-4xl font-medium mb-4">
-            Keep more of what you earn
-          </h2>
-          <p className="text-muted mb-12 max-w-lg mx-auto">
-            On a $500 sale, here&apos;s what artists actually take home:
-          </p>
-
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div className="bg-white rounded-xl p-6 border border-border">
-              <p className="text-xs text-muted tracking-wider uppercase mb-3">Traditional Galleries</p>
-              <p className="font-editorial text-3xl font-semibold text-error/80">$200</p>
-              <p className="text-xs text-muted mt-2">60% commission</p>
-            </div>
-            <div className="bg-white rounded-xl p-6 border border-border">
-              <p className="text-xs text-muted tracking-wider uppercase mb-3">Other Platforms</p>
-              <p className="font-editorial text-3xl font-semibold text-warm-gray">$325</p>
-              <p className="text-xs text-muted mt-2">35% commission</p>
-            </div>
-            <div className="bg-white rounded-xl p-6 border-2 border-accent relative">
-              <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-0.5 bg-accent text-white text-[10px] font-semibold tracking-wider uppercase rounded-full">
-                Signo
-              </div>
-              <p className="text-xs text-muted tracking-wider uppercase mb-3">With Signo</p>
-              <p className="font-editorial text-3xl font-semibold text-accent">$500</p>
-              <p className="text-xs text-muted mt-2">0% commission ($30/mo subscription)</p>
-            </div>
-          </div>
-          <p className="text-sm text-muted mt-6 max-w-md mx-auto">
-            On a $500 sale, you keep $500. Your only cost is $30/month to be on the platform.
-          </p>
-        </div>
-      </section>
-
-      {/* ==================== FINAL CTA ==================== */}
-      <section className="py-24 md:py-32">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h2 className="font-editorial text-4xl md:text-5xl font-medium leading-tight max-w-2xl mx-auto">
-            Ready to discover your next{' '}
-            <span className="italic text-accent">favourite piece?</span>
-          </h2>
-          <p className="text-muted mt-6 text-lg max-w-lg mx-auto">
-            Join a community that values artists and celebrates creativity.
-          </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center mt-10">
-            <Link
-              href="/browse"
-              className="group inline-flex items-center justify-center gap-3 px-8 py-4 bg-primary text-white font-semibold rounded-full hover:bg-accent transition-all duration-300 text-lg"
-            >
-              Browse Artwork
-              <ArrowRight className="h-5 w-5 group-hover:translate-x-1 transition-transform" />
-            </Link>
-            <Link
-              href="/register"
-              className="inline-flex items-center justify-center gap-2 px-8 py-4 border-2 border-primary text-primary font-semibold rounded-full hover:bg-primary hover:text-white transition-all duration-300 text-lg"
-            >
-              Join Signo
-            </Link>
           </div>
         </div>
       </section>

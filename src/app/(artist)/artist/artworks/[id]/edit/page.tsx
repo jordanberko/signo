@@ -278,7 +278,7 @@ export default function EditArtworkPage() {
         <p className="text-sm text-muted mb-6">This artwork doesn&apos;t exist or doesn&apos;t belong to you.</p>
         <Link
           href="/artist/artworks"
-          className="inline-flex items-center gap-2 text-accent font-medium text-sm link-underline"
+          className="inline-flex items-center gap-2 text-accent-dark font-medium text-sm link-underline"
         >
           <ArrowLeft className="h-4 w-4" /> Back to my artworks
         </Link>
@@ -373,7 +373,7 @@ export default function EditArtworkPage() {
             />
 
             <div className="flex gap-3 p-4 bg-accent-subtle/50 border border-accent/10 rounded-xl">
-              <Lightbulb className="h-5 w-5 text-accent flex-shrink-0 mt-0.5" />
+              <Lightbulb className="h-5 w-5 text-accent-dark flex-shrink-0 mt-0.5" />
               <div className="text-sm text-muted space-y-1">
                 <p className="font-medium text-foreground">Photo tips</p>
                 <p>Use natural lighting. Show the full piece, a detail shot, and a scale reference.</p>
@@ -636,7 +636,7 @@ export default function EditArtworkPage() {
                   <div className="h-px bg-border" />
                   <div className="flex items-center justify-between">
                     <span className="font-semibold">You&apos;ll receive</span>
-                    <span className="text-xl font-bold text-accent">{formatPrice(commission.artistPayout)}</span>
+                    <span className="text-xl font-bold text-accent-dark">{formatPrice(commission.artistPayout)}</span>
                   </div>
                 </div>
                 <div className="px-5 py-3 bg-green-50/80 border-t border-green-100">

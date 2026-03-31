@@ -355,8 +355,8 @@ export default function ImageUpload({
               className="aspect-square rounded-xl border-2 border-dashed border-border hover:border-accent/50 hover:bg-cream flex items-center justify-center transition-all duration-200 group"
             >
               <div className="flex flex-col items-center gap-1.5">
-                <ImagePlus className="h-5 w-5 text-muted group-hover:text-accent transition-colors" />
-                <span className="text-xs text-muted group-hover:text-accent transition-colors">Add more</span>
+                <ImagePlus className="h-5 w-5 text-muted group-hover:text-accent-dark transition-colors" />
+                <span className="text-xs text-muted group-hover:text-accent-dark transition-colors">Add more</span>
               </div>
             </button>
           )}

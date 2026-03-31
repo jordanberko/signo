@@ -102,7 +102,7 @@ function LoginForm() {
       <div className="w-full max-w-md">
         {/* Header */}
         <div className="text-center mb-10">
-          <Link href="/" className="font-editorial text-3xl font-medium text-primary hover:text-accent transition-colors">
+          <Link href="/" className="font-editorial text-3xl font-medium text-primary hover:text-accent-dark transition-colors">
             SIGNO
           </Link>
           <h1 className="font-editorial text-2xl font-medium mt-6">Welcome back</h1>
@@ -184,7 +184,7 @@ function LoginForm() {
           <button
             type="submit"
             disabled={loading || googleLoading}
-            className="w-full py-3.5 bg-primary text-white font-semibold rounded-full hover:bg-accent transition-colors duration-300 disabled:opacity-50 flex items-center justify-center gap-2"
+            className="w-full py-3.5 bg-primary text-white font-semibold rounded-full hover:bg-accent-light transition-colors duration-300 disabled:opacity-50 flex items-center justify-center gap-2"
           >
             {loading ? (
               <>
@@ -200,7 +200,7 @@ function LoginForm() {
         {/* Footer link */}
         <p className="text-center text-sm text-muted mt-8">
           Don&apos;t have an account?{' '}
-          <Link href="/register" className="text-accent font-medium link-underline">
+          <Link href="/register" className="text-accent-dark font-medium link-underline">
             Create one
           </Link>
         </p>

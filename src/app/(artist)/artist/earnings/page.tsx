@@ -149,7 +149,7 @@ export default function EarningsPage() {
           <div className="flex items-center justify-between mb-3">
             <span className="text-xs font-medium tracking-wide uppercase text-muted">This Month</span>
             <div className="w-9 h-9 bg-accent-subtle rounded-full flex items-center justify-center">
-              <TrendingUp className="h-4 w-4 text-accent" />
+              <TrendingUp className="h-4 w-4 text-accent-dark" />
             </div>
           </div>
           <p className="text-2xl font-bold">{formatPrice(thisMonth)}</p>
@@ -175,7 +175,7 @@ export default function EarningsPage() {
 
       {/* Payout explainer */}
       <div className="flex gap-3 p-4 bg-accent-subtle/50 border border-accent/10 rounded-xl mb-10">
-        <Info className="h-5 w-5 text-accent flex-shrink-0 mt-0.5" />
+        <Info className="h-5 w-5 text-accent-dark flex-shrink-0 mt-0.5" />
         <div className="text-sm text-muted space-y-1.5">
           <p>
             <span className="font-medium text-foreground">Signo charges $0 commission.</span>{' '}
@@ -344,7 +344,7 @@ export default function EarningsPage() {
                     </div>
                     <div>
                       <p className="text-[10px] text-muted uppercase tracking-wide">Yours</p>
-                      <p className="text-sm font-bold text-accent">{formatPrice(order.artist_payout_aud ?? 0)}</p>
+                      <p className="text-sm font-bold text-accent-dark">{formatPrice(order.artist_payout_aud ?? 0)}</p>
                     </div>
                   </div>
                 </div>

@@ -684,7 +684,7 @@ export default function SettingsPage() {
                 className="flex items-center justify-between p-5 bg-accent-subtle border border-accent/10 rounded-2xl hover:border-accent/30 transition-colors"
               >
                 <div className="flex items-center gap-3">
-                  <Palette className="h-5 w-5 text-accent" />
+                  <Palette className="h-5 w-5 text-accent-dark" />
                   <div>
                     <p className="font-medium text-sm">Artist Settings</p>
                     <p className="text-xs text-muted">
@@ -692,7 +692,7 @@ export default function SettingsPage() {
                     </p>
                   </div>
                 </div>
-                <ArrowRight className="h-4 w-4 text-accent" />
+                <ArrowRight className="h-4 w-4 text-accent-dark" />
               </Link>
             </div>
           )}

@@ -53,14 +53,14 @@ export default function Header() {
   return (
     <header className={`sticky top-0 z-50 transition-all duration-300 ${
       scrolled
-        ? 'bg-white/95 backdrop-blur-md shadow-sm border-b border-border/50'
-        : 'bg-white border-b border-border'
+        ? 'bg-background/95 backdrop-blur-md shadow-sm border-b border-border/50'
+        : 'bg-background border-b border-border'
     }`}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
           <Link href="/" className="flex items-center gap-2 group">
-            <span className="font-editorial text-2xl font-bold tracking-wide text-primary group-hover:text-accent transition-colors duration-300">
+            <span className="font-editorial text-2xl font-bold tracking-wide text-primary group-hover:text-accent-dark transition-colors duration-300">
               SIGNO
             </span>
           </Link>
@@ -74,27 +74,27 @@ export default function Header() {
                 placeholder="Search artwork, artists, styles..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 bg-muted-bg border-0 rounded-full text-sm placeholder:text-warm-gray focus:bg-white focus:ring-1 focus:ring-accent/30 transition-all"
+                className="w-full pl-10 pr-4 py-2 bg-cream border border-border rounded-full text-sm placeholder:text-warm-gray focus:bg-white focus:border-accent transition-all"
               />
             </div>
           </form>
 
           {/* Nav Links - Desktop */}
           <nav className="hidden md:flex items-center gap-1">
-            <Link href="/browse" className="px-3 py-2 text-sm font-medium text-foreground hover:text-accent transition-colors rounded-lg hover:bg-muted-bg">
+            <Link href="/browse" className="px-3 py-2 text-sm font-medium text-foreground hover:text-accent-dark transition-colors rounded-lg hover:bg-cream">
               Browse
             </Link>
-            <Link href="/how-it-works" className="px-3 py-2 text-sm font-medium text-foreground hover:text-accent transition-colors rounded-lg hover:bg-muted-bg">
+            <Link href="/how-it-works" className="px-3 py-2 text-sm font-medium text-foreground hover:text-accent-dark transition-colors rounded-lg hover:bg-cream">
               How It Works
             </Link>
 
             {!loading && user ? (
               <>
                 <div className="w-px h-5 bg-border mx-2" />
-                <Link href="/dashboard" className="p-2 text-muted hover:text-accent transition-colors rounded-lg hover:bg-muted-bg" aria-label="Favourites">
+                <Link href="/dashboard" className="p-2 text-muted hover:text-accent-dark transition-colors rounded-lg hover:bg-cream" aria-label="Favourites">
                   <Heart className="h-[18px] w-[18px]" />
                 </Link>
-                <Link href="/messages" className="p-2 text-muted hover:text-accent transition-colors rounded-lg hover:bg-muted-bg" aria-label="Messages">
+                <Link href="/messages" className="p-2 text-muted hover:text-accent-dark transition-colors rounded-lg hover:bg-cream" aria-label="Messages">
                   <MessageCircle className="h-[18px] w-[18px]" />
                 </Link>
 
@@ -102,7 +102,7 @@ export default function Header() {
                 <div className="relative ml-1" ref={menuRef}>
                   <button
                     onClick={() => setUserMenuOpen(!userMenuOpen)}
-                    className="w-9 h-9 rounded-full bg-primary text-white text-xs font-semibold flex items-center justify-center hover:bg-accent transition-colors duration-300 ring-2 ring-transparent hover:ring-accent/20"
+                    className="w-9 h-9 rounded-full bg-primary text-white text-xs font-semibold flex items-center justify-center hover:bg-accent hover:text-primary transition-colors duration-300 ring-2 ring-transparent hover:ring-accent/30"
                   >
                     {getInitials(user.full_name ?? '')}
                   </button>
@@ -115,21 +115,21 @@ export default function Header() {
                       </div>
 
                       <div className="py-1">
-                        <Link href="/dashboard" onClick={() => setUserMenuOpen(false)} className="flex items-center gap-3 px-4 py-2.5 text-sm hover:bg-muted-bg transition-colors">
+                        <Link href="/dashboard" onClick={() => setUserMenuOpen(false)} className="flex items-center gap-3 px-4 py-2.5 text-sm hover:bg-cream transition-colors">
                           <LayoutDashboard className="h-4 w-4 text-muted" /> Dashboard
                         </Link>
 
-                        <Link href="/artist/dashboard" onClick={() => setUserMenuOpen(false)} className="flex items-center gap-3 px-4 py-2.5 text-sm hover:bg-muted-bg transition-colors">
+                        <Link href="/artist/dashboard" onClick={() => setUserMenuOpen(false)} className="flex items-center gap-3 px-4 py-2.5 text-sm hover:bg-cream transition-colors">
                           <Palette className="h-4 w-4 text-muted" /> Sell Art
                         </Link>
 
                         {user.role === 'admin' && (
-                          <Link href="/admin/dashboard" onClick={() => setUserMenuOpen(false)} className="flex items-center gap-3 px-4 py-2.5 text-sm hover:bg-muted-bg transition-colors">
+                          <Link href="/admin/dashboard" onClick={() => setUserMenuOpen(false)} className="flex items-center gap-3 px-4 py-2.5 text-sm hover:bg-cream transition-colors">
                             <Shield className="h-4 w-4 text-muted" /> Admin Panel
                           </Link>
                         )}
 
-                        <Link href="/settings" onClick={() => setUserMenuOpen(false)} className="flex items-center gap-3 px-4 py-2.5 text-sm hover:bg-muted-bg transition-colors">
+                        <Link href="/settings" onClick={() => setUserMenuOpen(false)} className="flex items-center gap-3 px-4 py-2.5 text-sm hover:bg-cream transition-colors">
                           <User className="h-4 w-4 text-muted" /> Settings
                         </Link>
                       </div>
@@ -147,13 +147,13 @@ export default function Header() {
               <div className="flex items-center gap-2 ml-2">
                 <Link
                   href="/login"
-                  className="px-4 py-2 text-sm font-medium text-foreground hover:text-accent transition-colors"
+                  className="px-4 py-2 text-sm font-medium text-foreground hover:text-accent-dark transition-colors"
                 >
                   Sign In
                 </Link>
                 <Link
                   href="/register"
-                  className="px-4 py-2 bg-primary text-white text-sm font-medium rounded-full hover:bg-accent transition-colors duration-300"
+                  className="px-4 py-2 bg-accent text-primary text-sm font-semibold rounded-full hover:bg-accent-light transition-colors duration-300"
                 >
                   Join Signo
                 </Link>
@@ -164,7 +164,7 @@ export default function Header() {
           {/* Mobile Menu Button */}
           <button
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="md:hidden p-2 text-foreground hover:text-accent transition-colors"
+            className="md:hidden p-2 text-foreground hover:text-accent-dark transition-colors"
             aria-label="Toggle menu"
           >
             {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
@@ -174,7 +174,7 @@ export default function Header() {
 
       {/* Mobile Menu */}
       {mobileMenuOpen && (
-        <div className="md:hidden border-t border-border bg-white animate-fade-in">
+        <div className="md:hidden border-t border-border bg-background animate-fade-in">
           <form onSubmit={handleSearch} className="px-4 py-3">
             <div className="relative">
               <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-warm-gray" />
@@ -183,32 +183,32 @@ export default function Header() {
                 placeholder="Search artwork..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-10 pr-4 py-2.5 bg-muted-bg border-0 rounded-full text-sm"
+                className="w-full pl-10 pr-4 py-2.5 bg-cream border border-border rounded-full text-sm"
               />
             </div>
           </form>
           <nav className="px-4 pb-5 space-y-1">
-            <Link href="/browse" onClick={() => setMobileMenuOpen(false)} className="block py-2.5 px-3 text-sm font-medium text-foreground hover:text-accent hover:bg-muted-bg rounded-lg transition-colors">
+            <Link href="/browse" onClick={() => setMobileMenuOpen(false)} className="block py-2.5 px-3 text-sm font-medium text-foreground hover:text-accent-dark hover:bg-cream rounded-lg transition-colors">
               Browse Art
             </Link>
-            <Link href="/how-it-works" onClick={() => setMobileMenuOpen(false)} className="block py-2.5 px-3 text-sm font-medium text-foreground hover:text-accent hover:bg-muted-bg rounded-lg transition-colors">
+            <Link href="/how-it-works" onClick={() => setMobileMenuOpen(false)} className="block py-2.5 px-3 text-sm font-medium text-foreground hover:text-accent-dark hover:bg-cream rounded-lg transition-colors">
               How It Works
             </Link>
             {user ? (
               <>
                 <div className="h-px bg-border my-2" />
-                <Link href="/dashboard" onClick={() => setMobileMenuOpen(false)} className="block py-2.5 px-3 text-sm font-medium text-foreground hover:text-accent hover:bg-muted-bg rounded-lg transition-colors">
+                <Link href="/dashboard" onClick={() => setMobileMenuOpen(false)} className="block py-2.5 px-3 text-sm font-medium text-foreground hover:text-accent-dark hover:bg-cream rounded-lg transition-colors">
                   Dashboard
                 </Link>
-                <Link href="/artist/dashboard" onClick={() => setMobileMenuOpen(false)} className="block py-2.5 px-3 text-sm font-medium text-foreground hover:text-accent hover:bg-muted-bg rounded-lg transition-colors">
+                <Link href="/artist/dashboard" onClick={() => setMobileMenuOpen(false)} className="block py-2.5 px-3 text-sm font-medium text-foreground hover:text-accent-dark hover:bg-cream rounded-lg transition-colors">
                   Sell Art
                 </Link>
                 {user.role === 'admin' && (
-                  <Link href="/admin/dashboard" onClick={() => setMobileMenuOpen(false)} className="block py-2.5 px-3 text-sm font-medium text-foreground hover:text-accent hover:bg-muted-bg rounded-lg transition-colors">
+                  <Link href="/admin/dashboard" onClick={() => setMobileMenuOpen(false)} className="block py-2.5 px-3 text-sm font-medium text-foreground hover:text-accent-dark hover:bg-cream rounded-lg transition-colors">
                     Admin Panel
                   </Link>
                 )}
-                <Link href="/messages" onClick={() => setMobileMenuOpen(false)} className="block py-2.5 px-3 text-sm font-medium text-foreground hover:text-accent hover:bg-muted-bg rounded-lg transition-colors">
+                <Link href="/messages" onClick={() => setMobileMenuOpen(false)} className="block py-2.5 px-3 text-sm font-medium text-foreground hover:text-accent-dark hover:bg-cream rounded-lg transition-colors">
                   Messages
                 </Link>
                 <div className="h-px bg-border my-2" />
@@ -223,14 +223,14 @@ export default function Header() {
                   <Link
                     href="/login"
                     onClick={() => setMobileMenuOpen(false)}
-                    className="flex-1 text-center py-2.5 border border-border text-sm font-medium rounded-full hover:bg-muted-bg transition-colors"
+                    className="flex-1 text-center py-2.5 border border-border text-sm font-medium rounded-full hover:bg-cream transition-colors"
                   >
                     Sign In
                   </Link>
                   <Link
                     href="/register"
                     onClick={() => setMobileMenuOpen(false)}
-                    className="flex-1 text-center py-2.5 bg-primary text-white text-sm font-medium rounded-full hover:bg-accent transition-colors"
+                    className="flex-1 text-center py-2.5 bg-accent text-primary text-sm font-semibold rounded-full hover:bg-accent-light transition-colors"
                   >
                     Join Signo
                   </Link>

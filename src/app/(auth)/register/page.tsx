@@ -141,13 +141,13 @@ function RegisterForm() {
     return (
       <div className="min-h-[80vh] flex items-center justify-center px-4 py-12">
         <div className="w-full max-w-md text-center">
-          <Link href="/" className="font-editorial text-3xl font-medium text-primary hover:text-accent transition-colors">
+          <Link href="/" className="font-editorial text-3xl font-medium text-primary hover:text-accent-dark transition-colors">
             SIGNO
           </Link>
 
           <div className="mt-10 mb-6">
             <div className="w-16 h-16 bg-accent-subtle rounded-full flex items-center justify-center mx-auto mb-6">
-              <svg className="h-7 w-7 text-accent" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor">
+              <svg className="h-7 w-7 text-accent-dark" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 0 1-2.25 2.25h-15a2.25 2.25 0 0 1-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0 0 19.5 4.5h-15a2.25 2.25 0 0 0-2.25 2.25m19.5 0v.243a2.25 2.25 0 0 1-1.07 1.916l-7.5 4.615a2.25 2.25 0 0 1-2.36 0L3.32 8.91a2.25 2.25 0 0 1-1.07-1.916V6.75" />
               </svg>
             </div>
@@ -163,7 +163,7 @@ function RegisterForm() {
             <button
               type="button"
               onClick={() => setConfirmationSent(false)}
-              className="text-accent font-medium link-underline"
+              className="text-accent-dark font-medium link-underline"
             >
               Try a different email
             </button>
@@ -172,7 +172,7 @@ function RegisterForm() {
           <div className="mt-8 pt-6 border-t border-border">
             <p className="text-sm text-muted">
               Already confirmed?{' '}
-              <Link href="/login" className="text-accent font-medium link-underline">
+              <Link href="/login" className="text-accent-dark font-medium link-underline">
                 Sign in
               </Link>
             </p>
@@ -187,7 +187,7 @@ function RegisterForm() {
       <div className="w-full max-w-md">
         {/* Header */}
         <div className="text-center mb-10">
-          <Link href="/" className="font-editorial text-3xl font-medium text-primary hover:text-accent transition-colors">
+          <Link href="/" className="font-editorial text-3xl font-medium text-primary hover:text-accent-dark transition-colors">
             SIGNO
           </Link>
           <h1 className="font-editorial text-2xl font-medium mt-6">Join the community</h1>
@@ -385,9 +385,9 @@ function RegisterForm() {
             </div>
             <span className="text-sm text-muted leading-tight">
               I agree to the{' '}
-              <Link href="/about" className="text-accent link-underline">Terms of Service</Link>
+              <Link href="/about" className="text-accent-dark link-underline">Terms of Service</Link>
               {' '}and{' '}
-              <Link href="/about" className="text-accent link-underline">Privacy Policy</Link>
+              <Link href="/about" className="text-accent-dark link-underline">Privacy Policy</Link>
             </span>
           </label>
 
@@ -395,7 +395,7 @@ function RegisterForm() {
           <button
             type="submit"
             disabled={loading || googleLoading || !agreedToTerms}
-            className="w-full py-3.5 bg-primary text-white font-semibold rounded-full hover:bg-accent transition-colors duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            className="w-full py-3.5 bg-primary text-white font-semibold rounded-full hover:bg-accent-light transition-colors duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
           >
             {loading ? (
               <>
@@ -411,7 +411,7 @@ function RegisterForm() {
         {/* Footer link */}
         <p className="text-center text-sm text-muted mt-8">
           Already have an account?{' '}
-          <Link href="/login" className="text-accent font-medium link-underline">
+          <Link href="/login" className="text-accent-dark font-medium link-underline">
             Sign in
           </Link>
         </p>

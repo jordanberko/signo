@@ -125,7 +125,7 @@ export default function ArtistProfileClient({
                 />
               ) : (
                 <div className="w-28 h-28 md:w-36 md:h-36 rounded-full bg-accent-subtle border-4 border-white shadow-lg flex items-center justify-center">
-                  <span className="font-editorial text-3xl md:text-4xl font-medium text-accent">
+                  <span className="font-editorial text-3xl md:text-4xl font-medium text-accent-dark">
                     {getInitials(artist.full_name ?? '?')}
                   </span>
                 </div>
@@ -173,7 +173,7 @@ export default function ArtistProfileClient({
                       }
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="flex items-center gap-1.5 text-sm text-muted hover:text-accent transition-colors"
+                      className="flex items-center gap-1.5 text-sm text-muted hover:text-accent-dark transition-colors"
                     >
                       <InstagramIcon className="h-4 w-4" />
                       <span className="link-underline">{instagram.startsWith('@') ? instagram : `@${instagram}`}</span>
@@ -184,7 +184,7 @@ export default function ArtistProfileClient({
                       href={website.startsWith('http') ? website : `https://${website}`}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="flex items-center gap-1.5 text-sm text-muted hover:text-accent transition-colors"
+                      className="flex items-center gap-1.5 text-sm text-muted hover:text-accent-dark transition-colors"
                     >
                       <Globe className="h-4 w-4" />
                       <span className="link-underline">Website</span>
@@ -210,7 +210,7 @@ export default function ArtistProfileClient({
                     <div className="text-center md:text-left">
                       <div className="flex items-center gap-1.5">
                         <p className="text-xl font-bold">{avgRating.toFixed(1)}</p>
-                        <Star className="h-4 w-4 text-accent fill-accent" />
+                        <Star className="h-4 w-4 text-accent-dark fill-accent" />
                       </div>
                       <p className="text-xs text-muted uppercase tracking-wide">
                         {reviews.length} review{reviews.length !== 1 ? 's' : ''}
@@ -360,7 +360,7 @@ export default function ArtistProfileClient({
                         />
                       ) : (
                         <div className="w-10 h-10 rounded-full bg-accent-subtle flex items-center justify-center flex-shrink-0">
-                          <span className="text-sm font-medium text-accent">
+                          <span className="text-sm font-medium text-accent-dark">
                             {getInitials(reviewerName)}
                           </span>
                         </div>
@@ -383,7 +383,7 @@ export default function ArtistProfileClient({
                         {/* Artist response */}
                         {review.artist_response && (
                           <div className="mt-4 pl-4 border-l-2 border-accent/30">
-                            <p className="text-xs font-medium text-accent mb-1">
+                            <p className="text-xs font-medium text-accent-dark mb-1">
                               Response from {artist.full_name}
                             </p>
                             <p className="text-sm text-muted leading-relaxed">

@@ -221,7 +221,7 @@ export default function ArtistDashboardPage() {
       <div className="bg-gradient-to-r from-accent/5 to-accent/10 border border-accent/20 rounded-lg p-5 mb-10 flex items-center justify-between">
         <div className="flex items-center gap-4">
           <div className="w-10 h-10 bg-accent/15 rounded-full flex items-center justify-center">
-            <CreditCard className="h-5 w-5 text-accent" />
+            <CreditCard className="h-5 w-5 text-accent-dark" />
           </div>
           <div>
             <div className="flex items-center gap-2">
@@ -239,7 +239,7 @@ export default function ArtistDashboardPage() {
         </div>
         <div className="hidden sm:block text-right">
           <p className="text-xs text-muted">Your plan</p>
-          <p className="text-sm font-semibold text-accent">$30/mo</p>
+          <p className="text-sm font-semibold text-accent-dark">$30/mo</p>
           <p className="text-xs text-green-600 font-medium">Free now</p>
         </div>
       </div>
@@ -251,7 +251,7 @@ export default function ArtistDashboardPage() {
           className="flex items-center gap-4 p-5 border border-border rounded-lg hover:border-accent hover:bg-accent/5 transition-colors"
         >
           <div className="w-10 h-10 bg-accent/10 rounded-full flex items-center justify-center">
-            <Plus className="h-5 w-5 text-accent" />
+            <Plus className="h-5 w-5 text-accent-dark" />
           </div>
           <div>
             <p className="font-semibold">Upload New Artwork</p>
@@ -265,7 +265,7 @@ export default function ArtistDashboardPage() {
           className="flex items-center gap-4 p-5 border border-border rounded-lg hover:border-accent hover:bg-accent/5 transition-colors"
         >
           <div className="w-10 h-10 bg-accent/10 rounded-full flex items-center justify-center">
-            <Package className="h-5 w-5 text-accent" />
+            <Package className="h-5 w-5 text-accent-dark" />
           </div>
           <div>
             <p className="font-semibold">Manage Listings</p>
@@ -279,7 +279,7 @@ export default function ArtistDashboardPage() {
           className="flex items-center gap-4 p-5 border border-border rounded-lg hover:border-accent hover:bg-accent/5 transition-colors"
         >
           <div className="w-10 h-10 bg-accent/10 rounded-full flex items-center justify-center">
-            <DollarSign className="h-5 w-5 text-accent" />
+            <DollarSign className="h-5 w-5 text-accent-dark" />
           </div>
           <div>
             <p className="font-semibold">View Earnings</p>
@@ -296,7 +296,7 @@ export default function ArtistDashboardPage() {
           <h2 className="font-semibold text-lg">Recent Orders</h2>
           <Link
             href="/artist/orders"
-            className="text-sm text-accent hover:underline flex items-center gap-1"
+            className="text-sm text-accent-dark hover:underline flex items-center gap-1"
           >
             View All <ArrowRight className="h-3 w-3" />
           </Link>
@@ -315,7 +315,7 @@ export default function ArtistDashboardPage() {
             </p>
             <Link
               href="/artist/artworks/new"
-              className="inline-flex items-center gap-2 text-accent font-medium hover:underline"
+              className="inline-flex items-center gap-2 text-accent-dark font-medium hover:underline"
             >
               Upload your first artwork <ArrowRight className="h-4 w-4" />
             </Link>

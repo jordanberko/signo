@@ -346,7 +346,7 @@ export default function NewArtworkPage() {
 
             {/* Tips */}
             <div className="flex gap-3 p-4 bg-accent-subtle/50 border border-accent/10 rounded-xl">
-              <Lightbulb className="h-5 w-5 text-accent flex-shrink-0 mt-0.5" />
+              <Lightbulb className="h-5 w-5 text-accent-dark flex-shrink-0 mt-0.5" />
               <div className="text-sm text-muted space-y-1">
                 <p className="font-medium text-foreground">Photo tips</p>
                 <p>Use natural lighting. Show the full piece, a detail shot, and a scale reference (e.g. next to a book or on a wall).</p>
@@ -682,7 +682,7 @@ export default function NewArtworkPage() {
                   <div className="h-px bg-border" />
                   <div className="flex items-center justify-between">
                     <span className="font-semibold">You&apos;ll receive</span>
-                    <span className="text-xl font-bold text-accent">{formatPrice(commission.artistPayout)}</span>
+                    <span className="text-xl font-bold text-accent-dark">{formatPrice(commission.artistPayout)}</span>
                   </div>
                 </div>
                 <div className="px-5 py-3 bg-green-50/80 border-t border-green-100">

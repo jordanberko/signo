@@ -80,13 +80,13 @@ export default function ArtworkCard({
       {/* Details */}
       <div className="pt-3.5 space-y-1">
         <Link href={`/artwork/${id}`} className="block">
-          <h3 className="font-editorial font-medium text-foreground truncate hover:text-accent transition-colors duration-300">
+          <h3 className="font-editorial font-medium text-foreground truncate hover:text-accent-dark transition-colors duration-300">
             {title}
           </h3>
         </Link>
         <Link
           href={`/artists/${artistId}`}
-          className="block text-sm text-muted link-underline hover:text-accent transition-colors duration-300"
+          className="block text-sm text-muted link-underline hover:text-accent-dark transition-colors duration-300"
         >
           {artistName}
         </Link>

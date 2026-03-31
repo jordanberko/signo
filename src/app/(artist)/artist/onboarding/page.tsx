@@ -399,7 +399,7 @@ export default function ArtistOnboardingPage() {
                   className="flex items-start gap-4 p-4 bg-white border border-border rounded-xl"
                 >
                   <div className="w-9 h-9 bg-accent-subtle rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
-                    <c.icon className="h-4 w-4 text-accent" />
+                    <c.icon className="h-4 w-4 text-accent-dark" />
                   </div>
                   <p className="text-sm leading-relaxed">{c.text}</p>
                 </div>
@@ -421,7 +421,7 @@ export default function ArtistOnboardingPage() {
               </div>
               <span className="text-sm leading-tight">
                 I agree to Signo&apos;s{' '}
-                <Link href="/about" className="text-accent link-underline">
+                <Link href="/about" className="text-accent-dark link-underline">
                   artist terms
                 </Link>{' '}
                 and shipping standards outlined above.
@@ -450,7 +450,7 @@ export default function ArtistOnboardingPage() {
 
             <div className="bg-white border-2 border-accent rounded-2xl p-6 space-y-5">
               <div className="text-center">
-                <p className="font-editorial text-3xl font-semibold text-accent">$30<span className="text-lg text-muted font-normal">/month</span></p>
+                <p className="font-editorial text-3xl font-semibold text-accent-dark">$30<span className="text-lg text-muted font-normal">/month</span></p>
                 <p className="text-sm text-muted mt-1">Unlimited listings, zero commission</p>
               </div>
 
@@ -469,7 +469,7 @@ export default function ArtistOnboardingPage() {
                 ].map((item, i) => (
                   <div key={i} className="flex items-center gap-3">
                     <div className="w-8 h-8 bg-accent-subtle rounded-full flex items-center justify-center flex-shrink-0">
-                      <item.icon className="h-4 w-4 text-accent" />
+                      <item.icon className="h-4 w-4 text-accent-dark" />
                     </div>
                     <p className="text-sm">{item.text}</p>
                   </div>
@@ -508,7 +508,7 @@ export default function ArtistOnboardingPage() {
           <div className="space-y-8 text-center">
             <div className="flex justify-center">
               <div className="w-20 h-20 bg-accent-subtle rounded-full flex items-center justify-center animate-scale-in">
-                <Sparkles className="h-9 w-9 text-accent" />
+                <Sparkles className="h-9 w-9 text-accent-dark" />
               </div>
             </div>
 
@@ -534,7 +534,7 @@ export default function ArtistOnboardingPage() {
                   />
                 ) : (
                   <div className="w-14 h-14 rounded-full bg-accent-subtle flex items-center justify-center">
-                    <span className="font-editorial text-lg font-medium text-accent">
+                    <span className="font-editorial text-lg font-medium text-accent-dark">
                       {fullName
                         .split(' ')
                         .map((n) => n[0])

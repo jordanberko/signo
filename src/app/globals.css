@@ -1,21 +1,23 @@
 @import "tailwindcss";
 
 @theme inline {
-  --color-background: #faf9f6;
+  --color-background: #F5F2ED;
   --color-background-pure: #ffffff;
-  --color-foreground: #1c1917;
-  --color-primary: #0f0f0f;
+  --color-foreground: #1a1a1a;
+  --color-primary: #111111;
   --color-primary-light: #2a2a2a;
-  --color-accent: #b8860b;
-  --color-accent-light: #d4a017;
-  --color-accent-subtle: #f5edd6;
+  --color-accent: #C8E600;
+  --color-accent-light: #D4E510;
+  --color-accent-subtle: #f3f9d0;
+  --color-accent-dark: #a8c200;
   --color-muted: #78716c;
-  --color-muted-bg: #f5f3ef;
-  --color-border: #e7e2db;
+  --color-muted-bg: #eee9e2;
+  --color-border: #ddd7ce;
   --color-success: #16a34a;
   --color-error: #dc2626;
-  --color-cream: #fdfcfa;
+  --color-cream: #FAF8F4;
   --color-warm-gray: #a8a29e;
+  --color-sand: #E8E2D9;
   --font-sans: var(--font-geist-sans);
   --font-serif: var(--font-playfair);
   --font-mono: var(--font-geist-mono);
@@ -42,7 +44,7 @@ body {
 /* Refined selection color */
 ::selection {
   background: var(--color-accent);
-  color: white;
+  color: var(--color-primary);
 }
 
 /* Custom scrollbar */
@@ -182,9 +184,18 @@ body {
   background: var(--color-accent);
 }
 
+/* Hide scrollbar for horizontal scroll sections */
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
 /* Focus styles */
 input:focus, select:focus, textarea:focus {
   outline: none;
   border-color: var(--color-accent) !important;
-  box-shadow: 0 0 0 3px rgba(184, 134, 11, 0.1);
+  box-shadow: 0 0 0 3px rgba(200, 230, 0, 0.15);
 }

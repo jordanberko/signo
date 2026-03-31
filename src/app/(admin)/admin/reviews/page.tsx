@@ -189,7 +189,7 @@ export default function AdminReviewsPage() {
             {/* Details */}
             <div>
               <h2 className="text-xl font-bold">{selectedArtwork.title}</h2>
-              <Link href={`/artists/${selectedArtwork.artist_id}`} className="text-sm text-accent hover:underline">
+              <Link href={`/artists/${selectedArtwork.artist_id}`} className="text-sm text-accent-dark hover:underline">
                 by {selectedArtwork.artist?.full_name}
               </Link>
               <p className="text-lg font-semibold mt-2">{formatPrice(selectedArtwork.price_aud)}</p>

@@ -30,7 +30,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         <Shield className="h-12 w-12 text-muted mx-auto mb-4" />
         <h1 className="text-2xl font-bold mb-2">Access Denied</h1>
         <p className="text-muted">You need admin privileges to access this area.</p>
-        <Link href="/" className="inline-block mt-4 text-accent font-medium hover:underline">
+        <Link href="/" className="inline-block mt-4 text-accent-dark font-medium hover:underline">
           Go Home
         </Link>
       </div>

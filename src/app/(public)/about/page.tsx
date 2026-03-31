@@ -7,10 +7,10 @@ export default function AboutPage() {
       {/* Hero */}
       <section className="bg-cream border-b border-border">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-16 md:py-24 text-center">
-          <p className="text-accent text-sm font-medium tracking-[0.2em] uppercase mb-4">Our Story</p>
+          <p className="text-accent-dark text-sm font-medium tracking-[0.2em] uppercase mb-4">Our Story</p>
           <h1 className="font-editorial text-4xl md:text-5xl lg:text-6xl font-medium leading-tight">
             Art deserves a{' '}
-            <span className="italic text-accent">fairer deal</span>
+            <span className="italic text-accent-dark">fairer deal</span>
           </h1>
           <p className="mt-6 text-lg text-muted max-w-2xl mx-auto leading-relaxed">
             We believe Australian artists deserve a platform that respects their work.
@@ -24,7 +24,7 @@ export default function AboutPage() {
         <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
           <div className="flex items-center gap-3 mb-2">
             <div className="divider-accent" />
-            <p className="text-accent text-sm font-medium tracking-[0.15em] uppercase">Our Mission</p>
+            <p className="text-accent-dark text-sm font-medium tracking-[0.15em] uppercase">Our Mission</p>
           </div>
           <p className="font-editorial text-2xl md:text-3xl font-medium leading-relaxed">
             The Australian art market is thriving, but artists are losing too much of their income to platform fees.
@@ -45,7 +45,7 @@ export default function AboutPage() {
       <section className="py-16 md:py-20 bg-muted-bg border-y border-border">
         <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
-            <p className="text-accent text-sm font-medium tracking-[0.15em] uppercase mb-3">The Numbers</p>
+            <p className="text-accent-dark text-sm font-medium tracking-[0.15em] uppercase mb-3">The Numbers</p>
             <h2 className="font-editorial text-3xl md:text-4xl font-medium">Zero commission, transparent pricing</h2>
           </div>
 
@@ -65,7 +65,7 @@ export default function AboutPage() {
                 Signo
               </div>
               <p className="text-xs text-warm-gray tracking-wider uppercase mb-3">With Signo</p>
-              <p className="font-editorial text-3xl font-semibold text-accent">0%</p>
+              <p className="font-editorial text-3xl font-semibold text-accent-dark">0%</p>
               <p className="text-xs text-muted mt-2">Artists keep $100 per $100 (plus $30/mo subscription)</p>
             </div>
           </div>
@@ -76,7 +76,7 @@ export default function AboutPage() {
       <section className="py-20 md:py-28">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
-            <p className="text-accent text-sm font-medium tracking-[0.15em] uppercase mb-3">Trust & Safety</p>
+            <p className="text-accent-dark text-sm font-medium tracking-[0.15em] uppercase mb-3">Trust & Safety</p>
             <h2 className="font-editorial text-3xl md:text-4xl font-medium">How we protect everyone</h2>
           </div>
 

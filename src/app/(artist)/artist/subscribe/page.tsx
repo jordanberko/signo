@@ -134,7 +134,7 @@ function SubscribeContent() {
         <div className="bg-white border-2 border-accent rounded-2xl overflow-hidden">
           {/* Price header */}
           <div className="p-6 text-center border-b border-border">
-            <p className="font-editorial text-4xl font-semibold text-accent">
+            <p className="font-editorial text-4xl font-semibold text-accent-dark">
               $30
               <span className="text-lg text-muted font-normal">/month</span>
             </p>
@@ -151,7 +151,7 @@ function SubscribeContent() {
             {FEATURES.map((item, i) => (
               <div key={i} className="flex items-center gap-3">
                 <div className="w-8 h-8 bg-accent-subtle rounded-full flex items-center justify-center flex-shrink-0">
-                  <item.icon className="h-4 w-4 text-accent" />
+                  <item.icon className="h-4 w-4 text-accent-dark" />
                 </div>
                 <span className="text-sm">{item.text}</span>
               </div>

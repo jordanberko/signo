@@ -470,7 +470,7 @@ function BrowseContent() {
       {hasActiveFilters && (
         <button
           onClick={clearAllFilters}
-          className="w-full py-2.5 text-sm font-medium text-accent hover:underline"
+          className="w-full py-2.5 text-sm font-medium text-accent-dark hover:underline"
         >
           Clear all filters
         </button>
@@ -483,7 +483,7 @@ function BrowseContent() {
       {/* Page Header */}
       <div className="bg-cream border-b border-border">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 md:py-16">
-          <p className="text-accent text-sm font-medium tracking-[0.15em] uppercase mb-3">
+          <p className="text-accent-dark text-sm font-medium tracking-[0.15em] uppercase mb-3">
             Collection
           </p>
           <h1 className="font-editorial text-4xl md:text-5xl font-medium">
@@ -651,7 +651,7 @@ function BrowseContent() {
                     <button
                       onClick={loadMore}
                       disabled={loadingMore}
-                      className="px-8 py-3 border-2 border-border text-sm font-semibold rounded-full hover:border-accent hover:text-accent transition-colors disabled:opacity-50 inline-flex items-center gap-2"
+                      className="px-8 py-3 border-2 border-border text-sm font-semibold rounded-full hover:border-accent hover:text-accent-dark transition-colors disabled:opacity-50 inline-flex items-center gap-2"
                     >
                       {loadingMore ? (
                         <>
