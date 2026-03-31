@@ -6,13 +6,14 @@ import Image from 'next/image';
 import {
   DollarSign,
   Clock,
-  Wallet,
+  CreditCard,
   TrendingUp,
   ArrowRight,
   Plus,
   Share2,
   Info,
   ImageIcon,
+  Sparkles,
 } from 'lucide-react';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { createClient } from '@/lib/supabase/client';
@@ -23,7 +24,6 @@ import { formatPrice } from '@/lib/utils';
 interface OrderRow {
   id: string;
   total_amount_aud: number | null;
-  platform_fee_aud: number | null;
   artist_payout_aud: number | null;
   status: string;
   payout_released_at: string | null;
@@ -68,7 +68,7 @@ export default function EarningsPage() {
       const supabase = createClient();
       const { data } = await supabase
         .from('orders')
-        .select('id, total_amount_aud, platform_fee_aud, artist_payout_aud, status, payout_released_at, inspection_deadline, created_at, artworks(title, images)')
+        .select('id, total_amount_aud, artist_payout_aud, status, payout_released_at, inspection_deadline, created_at, artworks(title, images)')
         .eq('artist_id', user!.id)
         .in('status', ['paid', 'shipped', 'delivered', 'completed', 'disputed', 'refunded'])
         .order('created_at', { ascending: false });
@@ -87,10 +87,6 @@ export default function EarningsPage() {
 
   const pendingPayout = orders
     .filter((o) => ['delivered'].includes(o.status) && !o.payout_released_at)
-    .reduce((sum, o) => sum + (o.artist_payout_aud ?? 0), 0);
-
-  const inEscrow = orders
-    .filter((o) => ['paid', 'shipped'].includes(o.status))
     .reduce((sum, o) => sum + (o.artist_payout_aud ?? 0), 0);
 
   // This month
@@ -151,17 +147,6 @@ export default function EarningsPage() {
 
         <div className="bg-white border border-border rounded-2xl p-5">
           <div className="flex items-center justify-between mb-3">
-            <span className="text-xs font-medium tracking-wide uppercase text-muted">In Escrow</span>
-            <div className="w-9 h-9 bg-amber-50 rounded-full flex items-center justify-center">
-              <Wallet className="h-4 w-4 text-amber-600" />
-            </div>
-          </div>
-          <p className="text-2xl font-bold">{formatPrice(inEscrow)}</p>
-          <p className="text-xs text-muted mt-1">In transit / inspection</p>
-        </div>
-
-        <div className="bg-white border border-border rounded-2xl p-5">
-          <div className="flex items-center justify-between mb-3">
             <span className="text-xs font-medium tracking-wide uppercase text-muted">This Month</span>
             <div className="w-9 h-9 bg-accent-subtle rounded-full flex items-center justify-center">
               <TrendingUp className="h-4 w-4 text-accent" />
@@ -172,16 +157,33 @@ export default function EarningsPage() {
             {now.toLocaleDateString('en-AU', { month: 'long', year: 'numeric' })}
           </p>
         </div>
+
+        <div className="bg-white border border-border rounded-2xl p-5">
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-xs font-medium tracking-wide uppercase text-muted">Subscription</span>
+            <div className="w-9 h-9 bg-green-50 rounded-full flex items-center justify-center">
+              <CreditCard className="h-4 w-4 text-green-600" />
+            </div>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <Sparkles className="h-4 w-4 text-green-600" />
+            <p className="text-sm font-semibold text-green-700">Free — Launch period</p>
+          </div>
+          <p className="text-xs text-muted mt-1">$30/mo after launch</p>
+        </div>
       </div>
 
       {/* Payout explainer */}
       <div className="flex gap-3 p-4 bg-accent-subtle/50 border border-accent/10 rounded-xl mb-10">
         <Info className="h-5 w-5 text-accent flex-shrink-0 mt-0.5" />
-        <div className="text-sm text-muted">
+        <div className="text-sm text-muted space-y-1.5">
           <p>
-            <span className="font-medium text-foreground">How payouts work:</span>{' '}
-            Signo charges zero commission. You receive 100% of the sale price (minus Stripe processing fees) automatically after the buyer&apos;s
-            48-hour inspection window closes. Payouts are transferred to your connected bank account via Stripe. Your only cost is the $30/month subscription.
+            <span className="font-medium text-foreground">Signo charges $0 commission.</span>{' '}
+            The only deduction from your sales is Stripe&apos;s payment processing fee (~1.75% + 30c per transaction).
+            Your $30/month subscription covers unlimited listings and all platform features.
+          </p>
+          <p>
+            Payouts are released automatically after the buyer&apos;s 48-hour inspection window closes and transferred to your connected bank account via Stripe.
           </p>
         </div>
       </div>

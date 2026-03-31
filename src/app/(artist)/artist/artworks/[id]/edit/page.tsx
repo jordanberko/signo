@@ -617,23 +617,30 @@ export default function EditArtworkPage() {
 
             {price >= 1 && (
               <div className="bg-white border border-border rounded-2xl overflow-hidden animate-fade-in">
-                <div className="p-5 space-y-4">
+                <div className="p-5 space-y-3">
                   <div className="flex items-center justify-between">
-                    <span className="text-sm text-muted">Listing price</span>
+                    <span className="text-sm text-muted">Sale price</span>
                     <span className="font-medium">{formatPrice(price)}</span>
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="text-sm text-muted">Stripe processing fee (~1.75% + 30c)</span>
                     <span className="text-sm text-muted">−{formatPrice(commission.stripeFee)}</span>
                   </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-green-600 flex items-center gap-1.5">
+                      <Check className="h-3.5 w-3.5" />
+                      Signo commission
+                    </span>
+                    <span className="text-sm font-semibold text-green-600">$0.00</span>
+                  </div>
                   <div className="h-px bg-border" />
                   <div className="flex items-center justify-between">
-                    <span className="font-medium">You receive</span>
+                    <span className="font-semibold">You&apos;ll receive</span>
                     <span className="text-xl font-bold text-accent">{formatPrice(commission.artistPayout)}</span>
                   </div>
                 </div>
-                <div className="px-5 py-3 bg-accent-subtle/50 border-t border-accent/10">
-                  <p className="text-xs text-muted text-center">
+                <div className="px-5 py-3 bg-green-50/80 border-t border-green-100">
+                  <p className="text-xs text-green-700 text-center font-medium">
                     Zero commission — $30/mo subscription. You keep everything you earn.
                   </p>
                 </div>
