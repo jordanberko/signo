@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, Suspense } from 'react';
+import { useState, useEffect, useCallback, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -17,6 +17,9 @@ import {
   Copy,
   Check,
   AlertCircle,
+  Star,
+  CircleDot,
+  Circle,
 } from 'lucide-react';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { createClient } from '@/lib/supabase/client';
@@ -120,11 +123,13 @@ function OrderContent({
   const [order, setOrder] = useState<OrderDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState(false);
+  const [completing, setCompleting] = useState(false);
+  const [countdown, setCountdown] = useState<{ hours: number; minutes: number } | null>(null);
 
-  useEffect(() => {
+  const fetchOrder = useCallback(async () => {
     if (!user) return;
 
-    async function fetchOrder() {
+    async function doFetch() {
       const supabase = createClient();
 
       // If orderId looks like a Stripe checkout session ID (cs_*), find by that
@@ -243,8 +248,50 @@ function OrderContent({
       setLoading(false);
     }
 
-    fetchOrder();
+    doFetch();
   }, [user, orderId]);
+
+  useEffect(() => {
+    fetchOrder();
+  }, [fetchOrder]);
+
+  // Countdown timer for inspection window
+  useEffect(() => {
+    if (!order || order.status !== 'delivered' || !order.inspection_deadline) return;
+
+    function updateCountdown() {
+      const deadline = new Date(order!.inspection_deadline!).getTime();
+      const now = Date.now();
+      const diff = deadline - now;
+
+      if (diff <= 0) {
+        setCountdown(null);
+        return;
+      }
+
+      setCountdown({
+        hours: Math.floor(diff / (1000 * 60 * 60)),
+        minutes: Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60)),
+      });
+    }
+
+    updateCountdown();
+    const interval = setInterval(updateCountdown, 60_000);
+    return () => clearInterval(interval);
+  }, [order]);
+
+  async function handleComplete() {
+    if (!order) return;
+    setCompleting(true);
+    try {
+      const res = await fetch(`/api/orders/${order.id}/complete`, { method: 'PUT' });
+      if (res.ok) {
+        await fetchOrder();
+      }
+    } finally {
+      setCompleting(false);
+    }
+  }
 
   function copyOrderId() {
     if (!order) return;
@@ -502,6 +549,191 @@ function OrderContent({
         </div>
       )}
 
+      {/* Status Timeline */}
+      <div className="bg-white border border-border rounded-2xl p-5 mb-6">
+        <h3 className="font-medium text-sm mb-5">Order Timeline</h3>
+        <div className="space-y-0">
+          {(() => {
+            const fmtDate = (d: string | null) =>
+              d
+                ? new Date(d).toLocaleDateString('en-AU', {
+                    day: 'numeric',
+                    month: 'short',
+                    year: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                  })
+                : null;
+
+            const statusOrder = ['paid', 'shipped', 'delivered', 'completed'];
+            const currentIdx = statusOrder.indexOf(order.status);
+
+            const steps = [
+              {
+                label: 'Order placed',
+                detail: fmtDate(order.created_at),
+                done: true,
+              },
+              {
+                label: 'Payment confirmed',
+                detail: fmtDate(order.created_at),
+                done: currentIdx >= 0,
+              },
+              {
+                label: 'Shipped',
+                detail: order.shipped_at
+                  ? fmtDate(order.shipped_at)
+                  : 'Awaiting shipment',
+                done: currentIdx >= 1,
+                current: currentIdx === 0,
+                extra:
+                  order.shipped_at && order.shipping_tracking_number
+                    ? `${order.shipping_carrier ? order.shipping_carrier + ': ' : ''}${order.shipping_tracking_number}`
+                    : null,
+              },
+              {
+                label: 'Delivered',
+                detail: order.delivered_at
+                  ? fmtDate(order.delivered_at)
+                  : null,
+                done: currentIdx >= 2,
+                current: currentIdx === 1,
+              },
+              {
+                label: 'Completed',
+                detail: order.payout_released_at
+                  ? fmtDate(order.payout_released_at)
+                  : null,
+                done: currentIdx >= 3,
+                current: currentIdx === 2,
+              },
+            ];
+
+            return steps.map((step, i) => (
+              <div key={step.label} className="flex gap-3">
+                {/* Vertical line + dot */}
+                <div className="flex flex-col items-center">
+                  {step.done ? (
+                    <div className="w-6 h-6 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0">
+                      <Check className="h-3.5 w-3.5 text-green-600" />
+                    </div>
+                  ) : step.current ? (
+                    <div className="w-6 h-6 rounded-full bg-accent/20 flex items-center justify-center flex-shrink-0">
+                      <CircleDot className="h-3.5 w-3.5 text-accent-dark" />
+                    </div>
+                  ) : (
+                    <div className="w-6 h-6 rounded-full border-2 border-gray-200 flex items-center justify-center flex-shrink-0">
+                      <Circle className="h-3 w-3 text-gray-300" />
+                    </div>
+                  )}
+                  {i < steps.length - 1 && (
+                    <div
+                      className={`w-0.5 flex-1 min-h-[24px] ${
+                        step.done ? 'bg-green-200' : 'bg-gray-200'
+                      }`}
+                    />
+                  )}
+                </div>
+                {/* Content */}
+                <div className="pb-5">
+                  <p
+                    className={`text-sm ${
+                      step.current
+                        ? 'font-semibold text-foreground'
+                        : step.done
+                          ? 'text-muted'
+                          : 'text-muted/60'
+                    }`}
+                  >
+                    {step.label}
+                  </p>
+                  {step.detail && (
+                    <p
+                      className={`text-xs mt-0.5 ${
+                        step.done ? 'text-muted' : 'text-muted/50'
+                      }`}
+                    >
+                      {step.detail}
+                    </p>
+                  )}
+                  {step.extra && (
+                    <p className="text-xs font-mono text-muted mt-1">
+                      {step.extra}
+                    </p>
+                  )}
+                </div>
+              </div>
+            ));
+          })()}
+        </div>
+      </div>
+
+      {/* Inspection Window — only for delivered orders */}
+      {order.status === 'delivered' && order.inspection_deadline && (
+        <div className="bg-white border border-blue-200 rounded-2xl p-5 mb-6">
+          {(() => {
+            const deadlinePassed =
+              new Date(order.inspection_deadline).getTime() < Date.now();
+
+            if (deadlinePassed) {
+              return (
+                <div className="text-center">
+                  <Clock className="h-6 w-6 text-muted mx-auto mb-2" />
+                  <p className="text-sm font-medium text-muted">
+                    Inspection window has closed
+                  </p>
+                </div>
+              );
+            }
+
+            return (
+              <>
+                <div className="text-center mb-4">
+                  <h3 className="font-medium text-sm mb-1">
+                    You have 48 hours to inspect your artwork
+                  </h3>
+                  {countdown && (
+                    <div className="flex items-center justify-center gap-1 text-lg font-mono font-semibold text-blue-700">
+                      <Clock className="h-4 w-4" />
+                      {countdown.hours}h {countdown.minutes}m remaining
+                    </div>
+                  )}
+                </div>
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <button
+                    onClick={handleComplete}
+                    disabled={completing}
+                    className="flex-1 py-2.5 bg-green-600 text-white font-semibold rounded-full hover:bg-green-700 transition-colors text-center text-sm disabled:opacity-50"
+                  >
+                    {completing ? (
+                      <Loader2 className="h-4 w-4 animate-spin mx-auto" />
+                    ) : (
+                      'Everything looks great'
+                    )}
+                  </button>
+                  <Link
+                    href={`/orders/${order.id}/dispute`}
+                    className="flex-1 py-2.5 border border-red-200 text-red-600 font-medium rounded-full hover:bg-red-50 transition-colors text-center text-sm"
+                  >
+                    Report an issue
+                  </Link>
+                </div>
+              </>
+            );
+          })()}
+        </div>
+      )}
+
+      {/* Dispute banner */}
+      {order.status === 'disputed' && (
+        <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-2xl flex items-start gap-3">
+          <AlertCircle className="h-5 w-5 text-red-600 flex-shrink-0 mt-0.5" />
+          <p className="text-sm text-red-800">
+            A dispute has been opened for this order. We&apos;re reviewing it.
+          </p>
+        </div>
+      )}
+
       {/* Buyer protection */}
       <div className="bg-accent-subtle/50 border border-accent/10 rounded-2xl p-5 mb-6">
         <div className="flex items-start gap-3">
@@ -531,6 +763,15 @@ function OrderContent({
         >
           Continue Browsing
         </Link>
+        {order.status === 'completed' && (
+          <Link
+            href="#"
+            className="flex-1 py-3 border border-border font-medium rounded-full hover:bg-cream transition-colors text-center flex items-center justify-center gap-2"
+          >
+            <Star className="h-4 w-4" />
+            Leave a Review
+          </Link>
+        )}
       </div>
     </div>
   );

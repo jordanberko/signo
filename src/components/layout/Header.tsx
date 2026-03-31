@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Search, Menu, X, Heart, MessageCircle, User, LogOut, Palette, LayoutDashboard, Shield } from 'lucide-react';
+import { Search, Menu, X, Heart, MessageCircle, User, LogOut, Palette, LayoutDashboard, Shield, ShoppingBag } from 'lucide-react';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { signOut } from '@/lib/supabase/auth';
 import { getInitials } from '@/lib/utils';
@@ -65,7 +65,7 @@ export default function Header() {
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
           <Link href="/" className="flex items-center gap-2 group">
-            <span className="font-editorial text-2xl font-bold tracking-wide text-primary group-hover:text-accent-dark transition-colors duration-300">
+            <span className="text-2xl font-semibold tracking-wide text-primary group-hover:text-accent-dark transition-colors duration-300">
               SIGNO
             </span>
           </Link>
@@ -122,6 +122,10 @@ export default function Header() {
                       <div className="py-1">
                         <Link href="/dashboard" onClick={() => setUserMenuOpen(false)} className="flex items-center gap-3 px-4 py-2.5 text-sm hover:bg-cream transition-colors">
                           <LayoutDashboard className="h-4 w-4 text-muted" /> Dashboard
+                        </Link>
+
+                        <Link href="/dashboard" onClick={() => setUserMenuOpen(false)} className="flex items-center gap-3 px-4 py-2.5 text-sm hover:bg-cream transition-colors">
+                          <ShoppingBag className="h-4 w-4 text-muted" /> My Orders
                         </Link>
 
                         <Link href={user.role === 'artist' || user.role === 'admin' ? '/artist/dashboard' : '/artist/onboarding'} onClick={() => setUserMenuOpen(false)} className="flex items-center gap-3 px-4 py-2.5 text-sm hover:bg-cream transition-colors">
