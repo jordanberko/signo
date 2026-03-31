@@ -20,6 +20,10 @@ import {
   Loader2,
   CreditCard,
   Store,
+  MessageCircle,
+  BarChart3,
+  Search,
+  Shield,
 } from 'lucide-react';
 
 function InstagramIcon({ className }: { className?: string }) {
@@ -108,7 +112,7 @@ export default function ArtistOnboardingPage() {
       if (otherLink.trim()) socialLinks.other = otherLink.trim();
 
       const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 10000);
+      const timeoutId = setTimeout(() => controller.abort(), 10000);
 
       let res: Response;
       try {
@@ -126,7 +130,7 @@ export default function ArtistOnboardingPage() {
           signal: controller.signal,
         });
       } finally {
-        clearTimeout(timeout);
+        clearTimeout(timeoutId);
       }
 
       if (!res.ok) {
@@ -137,20 +141,32 @@ export default function ArtistOnboardingPage() {
         } catch {
           // response wasn't JSON — use default message
         }
+        console.error('[Onboarding] Save failed:', message);
         setError(message);
         return;
       }
 
-      // The API may return a warning if onboarding_completed column is missing
-      // but the rest of the profile was saved successfully — still proceed.
       const responseBody = await res.json().catch(() => ({}));
       if (responseBody.warning) {
         console.warn('[Onboarding]', responseBody.warning);
       }
 
-      await refreshUser();
+      // refreshUser can also hang — race it against a timeout
+      try {
+        await Promise.race([
+          refreshUser(),
+          new Promise((_, reject) =>
+            setTimeout(() => reject(new Error('timeout')), 5000)
+          ),
+        ]);
+      } catch (refreshErr) {
+        // Profile was saved successfully — proceed even if refresh fails
+        console.warn('[Onboarding] refreshUser failed, proceeding anyway:', refreshErr);
+      }
+
       setStep(5);
     } catch (err) {
+      console.error('[Onboarding] Save error:', err);
       if (err instanceof DOMException && err.name === 'AbortError') {
         setError('Save timed out — please check your connection and try again.');
       } else {
@@ -435,15 +451,21 @@ export default function ArtistOnboardingPage() {
             <div className="bg-white border-2 border-accent rounded-2xl p-6 space-y-5">
               <div className="text-center">
                 <p className="font-editorial text-3xl font-semibold text-accent">$30<span className="text-lg text-muted font-normal">/month</span></p>
-                <p className="text-sm text-muted mt-1">Zero commission on every sale</p>
+                <p className="text-sm text-muted mt-1">Unlimited listings, zero commission</p>
               </div>
+
               <div className="h-px bg-border" />
-              <div className="space-y-3">
+
+              <div className="space-y-2.5">
+                <p className="text-xs font-medium tracking-wide uppercase text-muted">What&apos;s included</p>
                 {[
-                  { icon: Store, text: 'Your own artist storefront' },
+                  { icon: Store, text: 'Your own public artist storefront' },
                   { icon: CreditCard, text: 'Unlimited listings — no per-item fees' },
-                  { icon: Check, text: '0% commission — keep 100% of your sales' },
-                  { icon: ShieldCheck, text: 'Escrow protection & buyer guarantee' },
+                  { icon: Check, text: '0% commission — keep 100% of every sale' },
+                  { icon: MessageCircle, text: 'Buyer-artist messaging' },
+                  { icon: BarChart3, text: 'Earnings dashboard & payout tracking' },
+                  { icon: Search, text: 'AI-assisted quality review (24-48h)' },
+                  { icon: Shield, text: 'Escrow protection & buyer guarantee' },
                 ].map((item, i) => (
                   <div key={i} className="flex items-center gap-3">
                     <div className="w-8 h-8 bg-accent-subtle rounded-full flex items-center justify-center flex-shrink-0">
@@ -453,16 +475,23 @@ export default function ArtistOnboardingPage() {
                   </div>
                 ))}
               </div>
+
               <div className="h-px bg-border" />
-              <p className="text-xs text-muted text-center">
-                Stripe processing fees (~1.75% + 30c per transaction) are the only deduction from your sales.
-              </p>
+
+              <div className="space-y-1.5 text-center">
+                <p className="text-sm text-muted">
+                  You keep 100% of every sale (minus Stripe payment processing fees of ~1.75% + 30c)
+                </p>
+                <p className="text-xs text-warm-gray">Cancel anytime</p>
+              </div>
             </div>
 
-            <div className="p-4 bg-accent-subtle/50 border border-accent/10 rounded-xl">
-              <p className="text-sm text-muted text-center">
-                <span className="font-medium text-foreground">Early access:</span>{' '}
-                Subscription billing will be activated soon. Early artists get free access during our launch period.
+            <div className="p-4 bg-accent-subtle/50 border border-accent/10 rounded-xl text-center">
+              <p className="text-sm font-medium text-foreground mb-1">
+                Early access: Free during our launch period
+              </p>
+              <p className="text-xs text-muted">
+                We&apos;ll notify you before billing begins. No credit card required right now.
               </p>
             </div>
 
