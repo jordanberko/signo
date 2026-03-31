@@ -1,229 +1,183 @@
-'use client';
+import { notFound } from 'next/navigation';
+import type { Metadata } from 'next';
+import { createClient } from '@/lib/supabase/server';
+import ArtworkDetailClient from './ArtworkDetailClient';
+import type { ArtworkDetail, RelatedArtwork } from './ArtworkDetailClient';
 
-import { useState, useEffect } from 'react';
-import { useParams } from 'next/navigation';
-import Link from 'next/link';
-import { Heart, Share2, MessageCircle, ShieldCheck, Truck, ChevronLeft, ChevronRight, Star } from 'lucide-react';
-import { formatPrice } from '@/lib/utils';
-import { createClient } from '@/lib/supabase/client';
-import type { Artwork, User } from '@/types/database';
+type Props = {
+  params: Promise<{ id: string }>;
+};
 
-export default function ArtworkDetailPage() {
-  const { id } = useParams() as { id: string };
-  const [selectedImage, setSelectedImage] = useState(0);
-  const [artwork, setArtwork] = useState<(Artwork & { artist: User }) | null>(null);
-  const [loading, setLoading] = useState(true);
+// ── Shared data fetcher ──
 
-  useEffect(() => {
-    async function fetchArtwork() {
-      const supabase = createClient();
-      const { data, error } = await supabase
-        .from('artworks')
-        .select('*, profiles!artworks_artist_id_fkey(*)')
-        .eq('id', id)
-        .single();
+async function getArtwork(id: string) {
+  const supabase = await createClient();
 
-      if (!error && data) {
-        setArtwork({
-          ...data,
-          artist: data.profiles,
-        } as unknown as Artwork & { artist: User });
-      }
-      setLoading(false);
+  const { data, error } = await supabase
+    .from('artworks')
+    .select(
+      '*, profiles!artworks_artist_id_fkey(id, full_name, avatar_url, bio, location)'
+    )
+    .eq('id', id)
+    .eq('status', 'approved')
+    .single();
+
+  if (error || !data) return null;
+  return data;
+}
+
+// ── SEO Metadata ──
+
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const { id } = await params;
+  const data = await getArtwork(id);
+
+  if (!data) {
+    return { title: 'Artwork Not Found — Signo' };
+  }
+
+  const artistName =
+    (data.profiles as Record<string, string>)?.full_name || 'Unknown Artist';
+  const title = `${data.title} by ${artistName} — Signo`;
+  const description =
+    data.description?.slice(0, 160) ||
+    `${data.title} — ${data.category} artwork by ${artistName}. Available on Signo.`;
+  const ogImage = (data.images as string[])?.[0];
+
+  return {
+    title,
+    description,
+    openGraph: {
+      title,
+      description,
+      ...(ogImage ? { images: [{ url: ogImage }] } : {}),
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title,
+      description,
+      ...(ogImage ? { images: [ogImage] } : {}),
+    },
+  };
+}
+
+// ── Page Component ──
+
+export default async function ArtworkDetailPage({ params }: Props) {
+  const { id } = await params;
+  const data = await getArtwork(id);
+
+  if (!data) {
+    notFound();
+  }
+
+  const supabase = await createClient();
+  const profile = data.profiles as Record<string, string | null>;
+
+  // Build the artwork detail object
+  const artwork: ArtworkDetail = {
+    id: data.id,
+    title: data.title,
+    description: data.description,
+    category: data.category as ArtworkDetail['category'],
+    medium: data.medium,
+    style: data.style,
+    width_cm: data.width_cm,
+    height_cm: data.height_cm,
+    depth_cm: data.depth_cm,
+    price_aud: data.price_aud,
+    is_framed: data.is_framed,
+    images: (data.images as string[]) || [],
+    tags: (data.tags as string[]) || [],
+    shipping_weight_kg: data.shipping_weight_kg,
+    artist: {
+      id: profile?.id || '',
+      full_name: profile?.full_name || null,
+      avatar_url: profile?.avatar_url || null,
+      bio: profile?.bio || null,
+      location: profile?.location || null,
+    },
+  };
+
+  // Count artist's approved artworks
+  const { count: artistArtworkCount } = await supabase
+    .from('artworks')
+    .select('*', { count: 'exact', head: true })
+    .eq('artist_id', data.artist_id)
+    .eq('status', 'approved');
+
+  // Fetch related artworks: same artist first, then same style/medium
+  const { data: artistWorks } = await supabase
+    .from('artworks')
+    .select(
+      'id, title, price_aud, images, medium, category, artist_id, profiles!artworks_artist_id_fkey(full_name)'
+    )
+    .eq('artist_id', data.artist_id)
+    .eq('status', 'approved')
+    .neq('id', id)
+    .order('created_at', { ascending: false })
+    .limit(4);
+
+  let related: RelatedArtwork[] = (artistWorks || []).map(
+    (a: Record<string, unknown>) => ({
+      id: a.id as string,
+      title: a.title as string,
+      price_aud: a.price_aud as number,
+      images: (a.images as string[]) || [],
+      medium: a.medium as string | null,
+      category: a.category as RelatedArtwork['category'],
+      artist_id: a.artist_id as string,
+      artistName:
+        (a.profiles as Record<string, string>)?.full_name || 'Unknown Artist',
+    })
+  );
+
+  // If artist has fewer than 4 other works, pad with similar style/medium
+  if (related.length < 4 && (data.style || data.medium)) {
+    const existingIds = [id, ...related.map((r) => r.id)];
+
+    let similarQuery = supabase
+      .from('artworks')
+      .select(
+        'id, title, price_aud, images, medium, category, artist_id, profiles!artworks_artist_id_fkey(full_name)'
+      )
+      .eq('status', 'approved')
+      .not('id', 'in', `(${existingIds.join(',')})`)
+      .order('created_at', { ascending: false })
+      .limit(4 - related.length);
+
+    if (data.style) {
+      similarQuery = similarQuery.eq('style', data.style);
+    } else if (data.medium) {
+      similarQuery = similarQuery.eq('medium', data.medium);
     }
-    fetchArtwork();
-  }, [id]);
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="inline-block w-8 h-8 border-2 border-accent border-t-transparent rounded-full animate-spin" />
-      </div>
-    );
+    const { data: similar } = await similarQuery;
+
+    if (similar) {
+      const extraRelated: RelatedArtwork[] = similar.map(
+        (a: Record<string, unknown>) => ({
+          id: a.id as string,
+          title: a.title as string,
+          price_aud: a.price_aud as number,
+          images: (a.images as string[]) || [],
+          medium: a.medium as string | null,
+          category: a.category as RelatedArtwork['category'],
+          artist_id: a.artist_id as string,
+          artistName:
+            (a.profiles as Record<string, string>)?.full_name ||
+            'Unknown Artist',
+        })
+      );
+      related = [...related, ...extraRelated];
+    }
   }
-
-  if (!artwork) {
-    return (
-      <div className="max-w-7xl mx-auto px-4 py-16 text-center">
-        <h1 className="text-2xl font-bold mb-2">Artwork Not Found</h1>
-        <p className="text-muted mb-4">This artwork may have been removed or doesn&apos;t exist.</p>
-        <Link href="/browse" className="text-accent font-medium hover:underline">Browse all artwork</Link>
-      </div>
-    );
-  }
-
-  const images = (artwork.images as string[]) || [];
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      {/* Breadcrumb */}
-      <nav className="mb-6 text-sm text-muted">
-        <Link href="/browse" className="hover:text-accent">Browse</Link>
-        <span className="mx-2">/</span>
-        <span className="capitalize">{artwork.category}s</span>
-        <span className="mx-2">/</span>
-        <span className="text-foreground">{artwork.title}</span>
-      </nav>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
-        {/* Image Gallery */}
-        <div className="space-y-4">
-          <div className="relative aspect-[4/3] bg-muted-bg rounded-lg overflow-hidden">
-            {images[selectedImage] ? (
-              <img
-                src={images[selectedImage]}
-                alt={artwork.title}
-                className="w-full h-full object-contain"
-              />
-            ) : (
-              <div className="w-full h-full flex items-center justify-center text-muted">
-                No image available
-              </div>
-            )}
-            {images.length > 1 && (
-              <>
-                <button
-                  onClick={() => setSelectedImage((prev) => (prev === 0 ? images.length - 1 : prev - 1))}
-                  className="absolute left-3 top-1/2 -translate-y-1/2 p-2 bg-white/80 rounded-full hover:bg-white transition"
-                >
-                  <ChevronLeft className="h-5 w-5" />
-                </button>
-                <button
-                  onClick={() => setSelectedImage((prev) => (prev === images.length - 1 ? 0 : prev + 1))}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 p-2 bg-white/80 rounded-full hover:bg-white transition"
-                >
-                  <ChevronRight className="h-5 w-5" />
-                </button>
-              </>
-            )}
-          </div>
-          {images.length > 1 && (
-            <div className="flex gap-3 overflow-x-auto">
-              {images.map((img, index) => (
-                <button
-                  key={index}
-                  onClick={() => setSelectedImage(index)}
-                  className={`flex-shrink-0 w-20 h-20 rounded-lg overflow-hidden border-2 transition ${
-                    selectedImage === index ? 'border-accent' : 'border-transparent hover:border-gray-300'
-                  }`}
-                >
-                  <img src={img} alt={`${artwork.title} ${index + 1}`} className="w-full h-full object-cover" />
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* Details */}
-        <div className="space-y-6">
-          <div>
-            <span className="inline-block px-2 py-1 bg-muted-bg text-xs font-medium rounded mb-2 capitalize">
-              {artwork.category}
-            </span>
-            <h1 className="text-3xl font-bold">{artwork.title}</h1>
-            <p className="text-2xl font-bold text-accent mt-2">{formatPrice(artwork.price_aud)}</p>
-          </div>
-
-          {/* Artist Info */}
-          {artwork.artist && (
-            <Link
-              href={`/artists/${artwork.artist.id}`}
-              className="flex items-center gap-4 p-4 bg-muted-bg rounded-lg hover:bg-gray-200 transition"
-            >
-              <div className="w-12 h-12 rounded-full bg-gray-300 flex-shrink-0 overflow-hidden">
-                {artwork.artist.avatar_url && (
-                  <img src={artwork.artist.avatar_url} alt={artwork.artist.full_name ?? ''} className="w-full h-full object-cover" />
-                )}
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="font-semibold">{artwork.artist.full_name}</p>
-                {artwork.artist.location && <p className="text-sm text-muted">{artwork.artist.location}</p>}
-              </div>
-            </Link>
-          )}
-
-          {/* Buy Actions */}
-          <div className="space-y-3">
-            <button className="w-full py-3 bg-primary text-white font-semibold rounded-lg hover:bg-primary-light transition-colors text-lg">
-              Buy Now
-            </button>
-            <div className="flex gap-3">
-              <button className="flex-1 py-2.5 border border-border rounded-lg flex items-center justify-center gap-2 hover:bg-muted-bg transition text-sm font-medium">
-                <Heart className="h-4 w-4" /> Save
-              </button>
-              <button className="flex-1 py-2.5 border border-border rounded-lg flex items-center justify-center gap-2 hover:bg-muted-bg transition text-sm font-medium">
-                <MessageCircle className="h-4 w-4" /> Ask Artist
-              </button>
-              <button className="flex-1 py-2.5 border border-border rounded-lg flex items-center justify-center gap-2 hover:bg-muted-bg transition text-sm font-medium">
-                <Share2 className="h-4 w-4" /> Share
-              </button>
-            </div>
-          </div>
-
-          {/* Trust Badges */}
-          <div className="grid grid-cols-2 gap-3">
-            <div className="flex items-center gap-2 p-3 bg-muted-bg rounded-lg">
-              <ShieldCheck className="h-5 w-5 text-success flex-shrink-0" />
-              <div>
-                <p className="text-xs font-medium">Buyer Protection</p>
-                <p className="text-xs text-muted">48-hour inspection</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-2 p-3 bg-muted-bg rounded-lg">
-              <Truck className="h-5 w-5 text-accent flex-shrink-0" />
-              <div>
-                <p className="text-xs font-medium">Tracked Shipping</p>
-                <p className="text-xs text-muted">Ships within 5 days</p>
-              </div>
-            </div>
-          </div>
-
-          {/* Artwork Details */}
-          <div className="border-t border-border pt-6 space-y-4">
-            <h2 className="font-semibold text-lg">Artwork Details</h2>
-            <div className="grid grid-cols-2 gap-y-3 text-sm">
-              {artwork.medium && <><span className="text-muted">Medium</span><span>{artwork.medium}</span></>}
-              {artwork.style && <><span className="text-muted">Style</span><span>{artwork.style}</span></>}
-              {artwork.width_cm && artwork.height_cm && (
-                <>
-                  <span className="text-muted">Dimensions</span>
-                  <span>{artwork.width_cm} x {artwork.height_cm}{artwork.depth_cm ? ` x ${artwork.depth_cm}` : ''} cm</span>
-                </>
-              )}
-              <span className="text-muted">Framed</span>
-              <span>{artwork.is_framed ? 'Yes' : 'No'}</span>
-              {artwork.shipping_weight_kg && (
-                <><span className="text-muted">Weight</span><span>{artwork.shipping_weight_kg} kg</span></>
-              )}
-            </div>
-          </div>
-
-          {/* Description */}
-          {artwork.description && (
-            <div className="border-t border-border pt-6 space-y-3">
-              <h2 className="font-semibold text-lg">About This Piece</h2>
-              <div className="text-sm text-muted leading-relaxed whitespace-pre-line">
-                {artwork.description}
-              </div>
-            </div>
-          )}
-
-          {/* Tags */}
-          {artwork.tags && artwork.tags.length > 0 && (
-            <div className="flex flex-wrap gap-2">
-              {artwork.tags.map((tag) => (
-                <Link
-                  key={tag}
-                  href={`/browse?q=${tag}`}
-                  className="px-3 py-1 bg-muted-bg text-xs rounded-full hover:bg-gray-200 transition"
-                >
-                  {tag}
-                </Link>
-              ))}
-            </div>
-          )}
-        </div>
-      </div>
-    </div>
+    <ArtworkDetailClient
+      artwork={artwork}
+      relatedArtworks={related}
+      artistArtworkCount={artistArtworkCount || 0}
+    />
   );
 }
