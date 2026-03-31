@@ -176,11 +176,11 @@ async function compressImage(file: File): Promise<{
   const outputType: 'image/jpeg' | 'image/png' = isPngTransparent ? 'image/png' : 'image/jpeg';
   const outputExt = isPngTransparent ? 'png' : 'jpg';
 
-  // Generate full-size compressed image (max 2000px)
-  const full = await resizeImage(img, 2000, 2000, 0.8, outputType);
+  // Generate full-size compressed image (max 2000px, 90% quality)
+  const full = await resizeImage(img, 2000, 2000, 0.9, outputType);
 
-  // Generate thumbnail (max 400px wide)
-  const thumbnail = await resizeImage(img, 400, 400, 0.75, 'image/jpeg');
+  // Generate thumbnail (max 400px wide, 80% quality)
+  const thumbnail = await resizeImage(img, 400, 400, 0.8, 'image/jpeg');
 
   // Revoke the object URL from loadImage
   URL.revokeObjectURL(img.src);
@@ -193,8 +193,8 @@ async function compressImage(file: File): Promise<{
  * Images are stored under `{userId}/{artworkId}/{uuid}.{ext}`.
  *
  * Before uploading, the image is compressed client-side:
- * - Full image: resized to max 2000×2000, JPEG @ 80% quality
- * - Thumbnail: resized to max 400×400, JPEG @ 75% quality
+ * - Full image: resized to max 2000×2000, JPEG @ 90% quality
+ * - Thumbnail: resized to max 400×400, JPEG @ 80% quality
  * - Transparent PNGs are preserved as PNG for the full image
  */
 export async function uploadArtworkImage(
