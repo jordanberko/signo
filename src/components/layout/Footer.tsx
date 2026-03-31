@@ -15,7 +15,7 @@ export default function Footer() {
             <h3 className="font-editorial text-3xl font-medium tracking-wide">SIGNO</h3>
             <p className="text-sm text-gray-400 leading-relaxed max-w-xs">
               A curated Australian art marketplace built on fairness.
-              Artists keep 83.5% of every sale.
+              Artists keep 100% of every sale.
             </p>
             <div className="flex gap-5 pt-2">
               <a href="#" className="text-gray-500 hover:text-accent transition-colors text-sm link-underline" aria-label="Instagram">
@@ -57,7 +57,7 @@ export default function Footer() {
                 Seller Guide
               </Link>
               <Link href="/about" className="text-sm text-gray-300 hover:text-white transition-colors">
-                Commission Info
+                Pricing Info
               </Link>
             </nav>
           </div>

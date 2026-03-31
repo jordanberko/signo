@@ -131,7 +131,7 @@ export default function ArtistDashboardPage() {
           </div>
           <div>
             <p className="font-semibold">View Earnings</p>
-            <p className="text-xs text-muted">Track payouts and commission</p>
+            <p className="text-xs text-muted">Track payouts and earnings</p>
           </div>
         </Link>
       </div>

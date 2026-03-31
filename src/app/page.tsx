@@ -92,8 +92,8 @@ export default function HomePage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-2 md:grid-cols-4 divide-x divide-border">
             {[
-              { value: '83.5%', label: 'Goes to artists' },
-              { value: '16.5%', label: 'Platform fee' },
+              { value: '100%', label: 'Goes to artists' },
+              { value: '$30/mo', label: 'Flat subscription' },
               { value: '24-48h', label: 'Review turnaround' },
               { value: '100%', label: 'Buyer protection' },
             ].map((stat) => (
@@ -155,8 +155,8 @@ export default function HomePage() {
             {[
               {
                 number: '01',
-                title: 'Fair Commission',
-                description: 'Just 16.5%. Artists keep 83.5% of every sale — less than half of what other platforms charge.',
+                title: 'Zero Commission',
+                description: 'Artists keep 100% of every sale. Just $30/month to sell on the platform.',
               },
               {
                 number: '02',
@@ -176,7 +176,7 @@ export default function HomePage() {
               {
                 number: '05',
                 title: 'Guaranteed Payouts',
-                description: 'After the buyer inspection window closes, your earnings are released automatically.',
+                description: 'After the buyer inspection window closes, the full sale price (minus Stripe processing fees) is released automatically.',
               },
               {
                 number: '06',
@@ -213,8 +213,8 @@ export default function HomePage() {
                 {[
                   { step: 'Upload', desc: 'Add photos, set your price, describe your work.' },
                   { step: 'Review', desc: 'Our team reviews quality within 24-48 hours.' },
-                  { step: 'Sell', desc: 'Your art goes live. When it sells, you keep 83.5%.' },
-                  { step: 'Get paid', desc: 'Funds released after buyer confirms delivery.' },
+                  { step: 'Sell', desc: 'Your art goes live. When it sells, you keep 100%.' },
+                  { step: 'Get paid', desc: 'Full amount minus Stripe processing fees released after buyer confirms delivery.' },
                 ].map((item, i) => (
                   <div key={i} className="flex gap-5 group">
                     <div className="flex-shrink-0 w-8 h-8 rounded-full border border-border flex items-center justify-center text-xs font-medium text-muted group-hover:border-accent group-hover:text-accent transition-colors">
@@ -285,10 +285,13 @@ export default function HomePage() {
                 Signo
               </div>
               <p className="text-xs text-muted tracking-wider uppercase mb-3">With Signo</p>
-              <p className="font-editorial text-3xl font-semibold text-accent">$417</p>
-              <p className="text-xs text-muted mt-2">Only 16.5% commission</p>
+              <p className="font-editorial text-3xl font-semibold text-accent">$500</p>
+              <p className="text-xs text-muted mt-2">0% commission ($30/mo subscription)</p>
             </div>
           </div>
+          <p className="text-sm text-muted mt-6 max-w-md mx-auto">
+            On a $500 sale, you keep $500. Your only cost is $30/month to be on the platform.
+          </p>
         </div>
       </section>
 

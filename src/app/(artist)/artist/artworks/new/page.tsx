@@ -669,18 +669,18 @@ export default function NewArtworkPage() {
                     <span className="font-medium">{formatPrice(price)}</span>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-sm text-muted">Signo commission (16.5%)</span>
-                    <span className="text-sm text-muted">−{formatPrice(commission.platformFee)}</span>
+                    <span className="text-sm text-muted">Stripe processing fee (~1.75% + 30c)</span>
+                    <span className="text-sm text-muted">−{formatPrice(commission.stripeFee)}</span>
                   </div>
                   <div className="h-px bg-border" />
                   <div className="flex items-center justify-between">
-                    <span className="font-medium">You receive (83.5%)</span>
+                    <span className="font-medium">You receive</span>
                     <span className="text-xl font-bold text-accent">{formatPrice(commission.artistPayout)}</span>
                   </div>
                 </div>
                 <div className="px-5 py-3 bg-accent-subtle/50 border-t border-accent/10">
                   <p className="text-xs text-muted text-center">
-                    One of the lowest commissions in the industry — more money in your pocket.
+                    Zero commission — $30/mo subscription. You keep everything you earn.
                   </p>
                 </div>
               </div>

@@ -14,7 +14,7 @@ export default function AboutPage() {
           </h1>
           <p className="mt-6 text-lg text-muted max-w-2xl mx-auto leading-relaxed">
             We believe Australian artists deserve a platform that respects their work.
-            Signo takes just 16.5% commission — so artists keep more of what they earn.
+            Signo charges zero commission — just a $30/month subscription, so artists keep everything they earn.
           </p>
         </div>
       </section>
@@ -46,7 +46,7 @@ export default function AboutPage() {
         <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
             <p className="text-accent text-sm font-medium tracking-[0.15em] uppercase mb-3">The Numbers</p>
-            <h2 className="font-editorial text-3xl md:text-4xl font-medium">Fair commission, transparent pricing</h2>
+            <h2 className="font-editorial text-3xl md:text-4xl font-medium">Zero commission, transparent pricing</h2>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -65,8 +65,8 @@ export default function AboutPage() {
                 Signo
               </div>
               <p className="text-xs text-warm-gray tracking-wider uppercase mb-3">With Signo</p>
-              <p className="font-editorial text-3xl font-semibold text-accent">16.5%</p>
-              <p className="text-xs text-muted mt-2">Artists keep $83.50 per $100</p>
+              <p className="font-editorial text-3xl font-semibold text-accent">0%</p>
+              <p className="text-xs text-muted mt-2">Artists keep $100 per $100 (plus $30/mo subscription)</p>
             </div>
           </div>
         </div>
@@ -96,7 +96,8 @@ export default function AboutPage() {
               <div className="w-2 h-2 bg-accent rounded-full" />
               <h3 className="font-editorial text-xl font-medium">For Sellers</h3>
               <ul className="text-sm text-muted space-y-2.5 leading-relaxed">
-                <li>Keep 83.5% of every sale</li>
+                <li>Keep 100% of every sale</li>
+                <li>$30/month flat subscription — no hidden fees</li>
                 <li>Set your own prices — no minimums</li>
                 <li>Fast 24-48 hour artwork review</li>
                 <li>Guaranteed payouts after inspection window</li>

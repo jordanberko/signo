@@ -13,11 +13,12 @@ export function formatPrice(priceInDollars: number): string {
 }
 
 export function calculateCommission(price: number) {
-  const platformFee = price * 0.165;
-  const artistPayout = price * 0.835;
+  const stripeFee = Math.round((price * 0.0175 + 0.30) * 100) / 100;
+  const artistPayout = Math.round((price - stripeFee) * 100) / 100;
   return {
-    platformFee: Math.round(platformFee * 100) / 100,
-    artistPayout: Math.round(artistPayout * 100) / 100,
+    platformFee: 0,
+    stripeFee,
+    artistPayout,
   };
 }
 

@@ -18,6 +18,8 @@ import {
   ShieldCheck,
   Palette,
   Loader2,
+  CreditCard,
+  Store,
 } from 'lucide-react';
 
 function InstagramIcon({ className }: { className?: string }) {
@@ -33,7 +35,7 @@ import { useAuth } from '@/components/providers/AuthProvider';
 import AvatarUpload from '@/components/AvatarUpload';
 import { uploadAvatar } from '@/lib/supabase/storage';
 
-const TOTAL_STEPS = 4;
+const TOTAL_STEPS = 5;
 
 const COMMITMENTS = [
   {
@@ -147,7 +149,7 @@ export default function ArtistOnboardingPage() {
       }
 
       await refreshUser();
-      setStep(4);
+      setStep(5);
     } catch (err) {
       if (err instanceof DOMException && err.name === 'AbortError') {
         setError('Save timed out — please check your connection and try again.');
@@ -161,7 +163,7 @@ export default function ArtistOnboardingPage() {
   }
 
   function nextStep() {
-    if (step === 3) {
+    if (step === 4) {
       saveProfile();
     } else {
       setStep((s) => Math.min(s + 1, TOTAL_STEPS));
@@ -177,7 +179,7 @@ export default function ArtistOnboardingPage() {
       {/* Progress bar */}
       <div className="w-full max-w-lg mb-10">
         <div className="flex items-center justify-between mb-3">
-          {[1, 2, 3, 4].map((s) => (
+          {[1, 2, 3, 4, 5].map((s) => (
             <div key={s} className="flex items-center">
               <div
                 className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-medium transition-all duration-300 ${
@@ -190,7 +192,7 @@ export default function ArtistOnboardingPage() {
               >
                 {s < step ? <Check className="h-4 w-4" /> : s}
               </div>
-              {s < 4 && (
+              {s < 5 && (
                 <div
                   className={`hidden sm:block w-16 md:w-24 h-0.5 mx-2 transition-colors duration-300 ${
                     s < step ? 'bg-accent' : 'bg-border'
@@ -204,6 +206,7 @@ export default function ArtistOnboardingPage() {
           <span>Profile</span>
           <span>Socials</span>
           <span>Standards</span>
+          <span>Subscription</span>
           <span>Done</span>
         </div>
       </div>
@@ -417,8 +420,62 @@ export default function ArtistOnboardingPage() {
           </div>
         )}
 
-        {/* ────────────── STEP 4: Done ────────────── */}
+        {/* ────────────── STEP 4: Subscription ────────────── */}
         {step === 4 && (
+          <div className="space-y-8">
+            <div className="text-center">
+              <h1 className="font-editorial text-2xl md:text-3xl font-medium">
+                Your subscription
+              </h1>
+              <p className="text-sm text-muted mt-2">
+                Signo uses a simple flat-rate subscription — no commission on sales.
+              </p>
+            </div>
+
+            <div className="bg-white border-2 border-accent rounded-2xl p-6 space-y-5">
+              <div className="text-center">
+                <p className="font-editorial text-3xl font-semibold text-accent">$30<span className="text-lg text-muted font-normal">/month</span></p>
+                <p className="text-sm text-muted mt-1">Zero commission on every sale</p>
+              </div>
+              <div className="h-px bg-border" />
+              <div className="space-y-3">
+                {[
+                  { icon: Store, text: 'Your own artist storefront' },
+                  { icon: CreditCard, text: 'Unlimited listings — no per-item fees' },
+                  { icon: Check, text: '0% commission — keep 100% of your sales' },
+                  { icon: ShieldCheck, text: 'Escrow protection & buyer guarantee' },
+                ].map((item, i) => (
+                  <div key={i} className="flex items-center gap-3">
+                    <div className="w-8 h-8 bg-accent-subtle rounded-full flex items-center justify-center flex-shrink-0">
+                      <item.icon className="h-4 w-4 text-accent" />
+                    </div>
+                    <p className="text-sm">{item.text}</p>
+                  </div>
+                ))}
+              </div>
+              <div className="h-px bg-border" />
+              <p className="text-xs text-muted text-center">
+                Stripe processing fees (~1.75% + 30c per transaction) are the only deduction from your sales.
+              </p>
+            </div>
+
+            <div className="p-4 bg-accent-subtle/50 border border-accent/10 rounded-xl">
+              <p className="text-sm text-muted text-center">
+                <span className="font-medium text-foreground">Early access:</span>{' '}
+                Subscription billing will be activated soon. Early artists get free access during our launch period.
+              </p>
+            </div>
+
+            {error && (
+              <div className="p-3.5 bg-error/5 border border-error/20 text-error text-sm rounded-xl animate-fade-in">
+                {error}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ────────────── STEP 5: Done ────────────── */}
+        {step === 5 && (
           <div className="space-y-8 text-center">
             <div className="flex justify-center">
               <div className="w-20 h-20 bg-accent-subtle rounded-full flex items-center justify-center animate-scale-in">
@@ -506,7 +563,7 @@ export default function ArtistOnboardingPage() {
         )}
 
         {/* ────────────── Navigation buttons ────────────── */}
-        {step < 4 && (
+        {step < 5 && (
           <div className="flex items-center justify-between mt-10 pt-6 border-t border-border">
             {step > 1 ? (
               <button
@@ -538,6 +595,7 @@ export default function ArtistOnboardingPage() {
                   (step === 3 && !canProceedStep3) ||
                   saving
                 }
+
                 className="px-8 py-3 bg-primary text-white font-semibold rounded-full hover:bg-accent transition-colors duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
               >
                 {saving ? (
@@ -545,7 +603,7 @@ export default function ArtistOnboardingPage() {
                     <Loader2 className="h-4 w-4 animate-spin" />
                     Saving...
                   </>
-                ) : step === 3 ? (
+                ) : step === 4 ? (
                   <>
                     Complete Setup
                     <Check className="h-4 w-4" />

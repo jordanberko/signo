@@ -180,8 +180,8 @@ export default function EarningsPage() {
         <div className="text-sm text-muted">
           <p>
             <span className="font-medium text-foreground">How payouts work:</span>{' '}
-            Signo takes a 16.5% commission on each sale. You receive 83.5% automatically after the buyer&apos;s
-            48-hour inspection window closes. Payouts are transferred to your connected bank account via Stripe.
+            Signo charges zero commission. You receive 100% of the sale price (minus Stripe processing fees) automatically after the buyer&apos;s
+            48-hour inspection window closes. Payouts are transferred to your connected bank account via Stripe. Your only cost is the $30/month subscription.
           </p>
         </div>
       </div>

@@ -25,7 +25,7 @@ const playfair = Playfair_Display({
 export const metadata: Metadata = {
   title: "Signo — Curated Australian Art",
   description:
-    "Discover extraordinary art from Australian creators. A curated marketplace where artists keep 83.5% of every sale.",
+    "Discover extraordinary art from Australian creators. A curated marketplace where artists keep 100% of every sale.",
 };
 
 export default function RootLayout({

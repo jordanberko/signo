@@ -48,7 +48,7 @@ export default function HowItWorksPage() {
               {
                 step: '04',
                 title: 'Get Paid',
-                desc: 'When your artwork sells, you keep 83.5%. Funds are released automatically after the buyer confirms delivery.',
+                desc: 'When your artwork sells, you keep 100%. Funds are released automatically after the buyer confirms delivery.',
               },
             ].map((item) => (
               <div key={item.step} className="group">
@@ -68,16 +68,20 @@ export default function HowItWorksPage() {
                 <span className="font-medium text-lg">$500.00</span>
               </div>
               <div className="flex justify-between items-center">
-                <span className="text-muted">Signo commission (16.5%)</span>
-                <span className="text-muted">-$82.50</span>
+                <span className="text-muted">Stripe processing fee (~1.75% + 30c)</span>
+                <span className="text-muted">-$9.05</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-muted">Signo commission</span>
+                <span className="text-muted">$0</span>
               </div>
               <div className="h-px bg-border" />
               <div className="flex justify-between items-center">
                 <span className="font-semibold text-base">You receive</span>
-                <span className="font-editorial text-2xl font-semibold text-accent">$417.50</span>
+                <span className="font-editorial text-2xl font-semibold text-accent">$490.95</span>
               </div>
               <p className="text-xs text-warm-gray text-center pt-3">
-                On other platforms at 35%, you&apos;d only receive $325.00
+                Signo charges a flat $30/month subscription with zero commission. The only deduction from your sales is Stripe&apos;s payment processing fee.
               </p>
             </div>
           </div>
