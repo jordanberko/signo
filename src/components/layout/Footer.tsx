@@ -48,10 +48,10 @@ export default function Footer() {
               <Link href="/register" className="text-sm text-muted hover:text-primary transition-colors">
                 Start Selling
               </Link>
-              <Link href="/how-it-works" className="text-sm text-muted hover:text-primary transition-colors">
+              <Link href="/seller-guide" className="text-sm text-muted hover:text-primary transition-colors">
                 Seller Guide
               </Link>
-              <Link href="/about" className="text-sm text-muted hover:text-primary transition-colors">
+              <Link href="/pricing" className="text-sm text-muted hover:text-primary transition-colors">
                 Pricing Info
               </Link>
             </nav>
@@ -61,14 +61,17 @@ export default function Footer() {
           <div className="md:col-span-2 space-y-4">
             <h4 className="text-xs font-semibold tracking-[0.2em] uppercase text-warm-gray">Support</h4>
             <nav className="flex flex-col gap-3">
-              <Link href="/about" className="text-sm text-muted hover:text-primary transition-colors">
+              <Link href="/contact" className="text-sm text-muted hover:text-primary transition-colors">
                 Contact Us
               </Link>
-              <Link href="/about" className="text-sm text-muted hover:text-primary transition-colors">
+              <Link href="/returns" className="text-sm text-muted hover:text-primary transition-colors">
                 Returns Policy
               </Link>
-              <Link href="/about" className="text-sm text-muted hover:text-primary transition-colors">
+              <Link href="/privacy" className="text-sm text-muted hover:text-primary transition-colors">
                 Privacy
+              </Link>
+              <Link href="/terms" className="text-sm text-muted hover:text-primary transition-colors">
+                Terms of Service
               </Link>
             </nav>
           </div>
