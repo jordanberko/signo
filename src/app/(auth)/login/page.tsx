@@ -5,7 +5,6 @@ import { useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Eye, EyeOff, Loader2 } from 'lucide-react';
 import { signIn, signInWithGoogle } from '@/lib/supabase/auth';
-import { createClient } from '@/lib/supabase/client';
 import { Suspense } from 'react';
 
 function GoogleIcon() {
@@ -51,40 +50,32 @@ function LoginForm() {
     }
 
     try {
-      // Figure out where to redirect
+      // Make a server round-trip to ensure the session cookies are properly set
+      // on the server side. Without this, the middleware may not see the session.
       const rawRedirect = searchParams.get('redirect');
-      let destination = rawRedirect ? decodeURIComponent(rawRedirect) : null;
+      const redirectPath = rawRedirect ? decodeURIComponent(rawRedirect) : null;
 
+      const res = await fetch('/api/auth/session', {
+        method: 'POST',
+        credentials: 'include',
+      });
+      const session = await res.json().catch(() => ({ authenticated: false, role: 'buyer' }));
+
+      let destination = redirectPath;
       if (!destination) {
-        // Check role to decide default destination
-        const supabase = createClient();
-        const { data: { user } } = await supabase.auth.getUser();
-        if (user) {
-          const { data: profile } = await supabase
-            .from('profiles')
-            .select('role')
-            .eq('id', user.id)
-            .single();
-          destination = profile?.role === 'artist' ? '/artist/dashboard' : '/dashboard';
-        } else {
-          destination = '/dashboard';
-        }
+        destination = session.role === 'artist' ? '/artist/dashboard' : '/dashboard';
       }
 
-      // Use window.location.href for a full page reload — router.push hangs
       window.location.href = destination;
     } catch {
-      // Even if something fails, force redirect after showing error briefly
-      setError('Something went wrong. Redirecting...');
-      setTimeout(() => {
-        window.location.href = '/dashboard';
-      }, 1500);
+      // Even if the session check fails, try to redirect — the cookies might still work
+      window.location.href = '/dashboard';
     }
 
-    // Safety net: if nothing has redirected after 3 seconds, force it
+    // Safety net: if nothing has redirected after 5 seconds, force it
     setTimeout(() => {
       window.location.href = '/dashboard';
-    }, 3000);
+    }, 5000);
   }
 
   async function handleGoogleSignIn() {
