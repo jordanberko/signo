@@ -373,7 +373,11 @@ export default function AuthButton() {
           <div style={{ borderTop: '1px solid #E5E2DB', padding: '4px 0' }}>
             <button
               type="button"
-              onClick={handleSignOut}
+              onMouseDown={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                handleSignOut();
+              }}
               style={{
                 display: 'flex',
                 alignItems: 'center',
