@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useCallback, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
 import {
@@ -65,7 +64,6 @@ const COMMITMENTS = [
 ];
 
 export default function ArtistOnboardingPage() {
-  const router = useRouter();
   const { user, refreshUser } = useAuth();
   const isBuyerUpgrade = user?.role === 'buyer';
 
@@ -76,9 +74,9 @@ export default function ArtistOnboardingPage() {
   // If user is already an artist who completed onboarding, redirect to dashboard
   useEffect(() => {
     if (user && user.role === 'artist' && user.onboarding_completed) {
-      router.replace('/artist/dashboard');
+      window.location.href = '/artist/dashboard';
     }
-  }, [user, router]);
+  }, [user]);
 
   // Step 1 — Profile
   const [fullName, setFullName] = useState(user?.full_name ?? '');

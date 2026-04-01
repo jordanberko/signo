@@ -73,32 +73,21 @@ export async function updateSession(request: NextRequest) {
     // Authenticated → check role
     const allowedRoles = ROLE_ACCESS[matchedRoute];
 
-    // First try selecting role + onboarding_completed.
-    // If onboarding_completed column doesn't exist yet, fall back to just role.
     let userRole = 'buyer';
-    let onboardingCompleted = true; // default: skip gate if unknown
+    let onboardingCompleted = true;
 
-    const { data: profile, error: profileError } = await supabase
+    const { data: profile } = await supabase
       .from('profiles')
       .select('role, onboarding_completed')
       .eq('id', user.id)
       .single();
 
-    if (profileError && (profileError.message?.includes('onboarding_completed') || profileError.message?.includes('column'))) {
-      // Column doesn't exist — retry with just role
-      const { data: fallback } = await supabase
-        .from('profiles')
-        .select('role')
-        .eq('id', user.id)
-        .single();
-      userRole = fallback?.role ?? 'buyer';
-    } else if (profile) {
+    if (profile) {
       userRole = profile.role ?? 'buyer';
       onboardingCompleted = profile.onboarding_completed ?? true;
     }
 
     if (!allowedRoles.includes(userRole)) {
-      // Wrong role → redirect to their dashboard with an error
       const url = request.nextUrl.clone();
       url.pathname = '/dashboard';
       url.searchParams.set('error', 'unauthorized');
@@ -106,57 +95,15 @@ export async function updateSession(request: NextRequest) {
     }
 
     // ── Artist onboarding gate ──
-    // Artists who haven't completed onboarding get redirected,
-    // unless they're already on the onboarding page.
     if (
       pathname.startsWith('/artist') &&
       !pathname.startsWith('/artist/onboarding') &&
-      (userRole === 'artist') &&
+      userRole === 'artist' &&
       !onboardingCompleted
     ) {
       const url = request.nextUrl.clone();
       url.pathname = '/artist/onboarding';
       return NextResponse.redirect(url);
-    }
-
-    // ── Artist subscription gate ──
-    // When STRIPE_ENFORCE_SUBSCRIPTIONS=true, artists without an active
-    // subscription are redirected to /artist/subscribe.
-    // Exempt routes: dashboard, earnings, subscribe, onboarding (so they
-    // can still see their stats and manage the subscription).
-    const SUBSCRIPTION_EXEMPT = [
-      '/artist/dashboard',
-      '/artist/earnings',
-      '/artist/subscribe',
-      '/artist/onboarding',
-      '/artist/settings',
-    ];
-
-    if (
-      process.env.STRIPE_ENFORCE_SUBSCRIPTIONS === 'true' &&
-      pathname.startsWith('/artist') &&
-      userRole === 'artist' &&
-      onboardingCompleted &&
-      !SUBSCRIPTION_EXEMPT.some((exempt) => pathname.startsWith(exempt))
-    ) {
-      // Check subscription status
-      // Note: 'subscriptions' table may not be in the generated Database types yet,
-      // so we use a type assertion to avoid build errors.
-      const { data: sub } = await (supabase as ReturnType<typeof createServerClient>)
-        .from('subscriptions' as 'profiles')
-        .select('status')
-        .eq('artist_id' as 'id', user.id)
-        .single();
-
-      const subRow = sub as { status: string } | null;
-      const isActive =
-        subRow?.status === 'active' || subRow?.status === 'trialing';
-
-      if (!isActive) {
-        const url = request.nextUrl.clone();
-        url.pathname = '/artist/subscribe';
-        return NextResponse.redirect(url);
-      }
     }
   }
 

@@ -2,10 +2,9 @@
 
 import Link from 'next/link';
 import { useState, useMemo } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 import { Eye, EyeOff, Loader2, Check, ShoppingBag, Palette } from 'lucide-react';
 import { signUp, signInWithGoogle } from '@/lib/supabase/auth';
-import { useAuth } from '@/components/providers/AuthProvider';
 import { Suspense } from 'react';
 
 function GoogleIcon() {
@@ -35,7 +34,6 @@ function getPasswordStrength(pw: string): { score: number; label: string; color:
 }
 
 function RegisterForm() {
-  const router = useRouter();
   const searchParams = useSearchParams();
   const defaultRole = searchParams.get('role') === 'artist' ? 'artist' : 'buyer';
 
@@ -50,7 +48,6 @@ function RegisterForm() {
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [confirmationSent, setConfirmationSent] = useState(false);
-  const { refreshUser } = useAuth();
 
   const passwordStrength = useMemo(() => {
     if (!password) return null;
@@ -116,13 +113,16 @@ function RegisterForm() {
       // Session exists — user is signed in immediately (email confirmation disabled)
       // Small delay to let the profile trigger complete in the database
       await new Promise((resolve) => setTimeout(resolve, 500));
-      await refreshUser();
-      router.push(role === 'artist' ? '/artist/onboarding' : '/dashboard');
-      router.refresh();
+      // Use window.location.href for full page reload — clears all cached state
+      window.location.href = role === 'artist' ? '/artist/onboarding' : '/dashboard';
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Something went wrong. Please try again.';
       setError(message);
       setLoading(false);
+      // Safety net: force redirect after 3 seconds
+      setTimeout(() => {
+        window.location.href = '/dashboard';
+      }, 3000);
     }
   }
 
