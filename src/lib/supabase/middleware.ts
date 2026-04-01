@@ -1,18 +1,21 @@
 import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
-import type { Database } from '@/lib/types/database';
 
 /**
  * Middleware: ONLY refreshes the Supabase session.
  *
- * No redirects happen here. All auth-gating is done in page components
- * using client-side checks. This prevents redirect loops caused by
- * getUser() failing intermittently on Vercel edge.
+ * No redirects, no role checks, no auth gating.
+ * Pages handle their own auth via useRequireAuth hook.
+ * This prevents the middleware from breaking sessions.
  */
 export async function updateSession(request: NextRequest) {
-  let supabaseResponse = NextResponse.next({ request });
+  let response = NextResponse.next({
+    request: {
+      headers: request.headers,
+    },
+  });
 
-  const supabase = createServerClient<Database>(
+  const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
@@ -24,22 +27,25 @@ export async function updateSession(request: NextRequest) {
           cookiesToSet.forEach(({ name, value }) =>
             request.cookies.set(name, value)
           );
-          supabaseResponse = NextResponse.next({ request });
+          response = NextResponse.next({
+            request: {
+              headers: request.headers,
+            },
+          });
           cookiesToSet.forEach(({ name, value, options }) =>
-            supabaseResponse.cookies.set(name, value, options)
+            response.cookies.set(name, value, options)
           );
         },
       },
     }
   );
 
-  // Refresh the session token. Wrapped in try-catch because this makes
-  // a network call to Supabase which can fail on cold starts.
+  // Refresh the session token — MUST use getUser() not getSession()
   try {
     await supabase.auth.getUser();
   } catch {
-    // If token refresh fails, just continue — the page component will handle it
+    // If refresh fails, just continue — page components will handle auth
   }
 
-  return supabaseResponse;
+  return response;
 }

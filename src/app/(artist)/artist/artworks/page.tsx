@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import { formatPrice } from '@/lib/utils';
 import { useAuth } from '@/components/providers/AuthProvider';
+import { useRequireAuth } from '@/lib/hooks/useRequireAuth';
 import { createClient } from '@/lib/supabase/client';
 import type { Artwork, ArtworkStatus } from '@/types/database';
 import { Suspense } from 'react';
@@ -207,7 +208,8 @@ function ArtworkActions({
 // ── Main page ──
 
 export default function ArtistArtworksPage() {
-  const { user, loading: authLoading } = useAuth();
+  const { loading: authLoading } = useRequireAuth('artist');
+  const { user } = useAuth();
   const [activeTab, setActiveTab] = useState(0);
   const [allArtworks, setAllArtworks] = useState<Artwork[]>([]);
   const [loading, setLoading] = useState(true);
@@ -308,6 +310,8 @@ export default function ArtistArtworksPage() {
       setActionError(err instanceof Error ? err.message : 'Something went wrong');
     }
   }
+
+  if (authLoading) return <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '60vh' }}><div style={{ width: 32, height: 32, border: '3px solid #E5E2DB', borderTopColor: '#2C2C2A', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} /><style>{'@keyframes spin { to { transform: rotate(360deg) } }'}</style></div>;
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">

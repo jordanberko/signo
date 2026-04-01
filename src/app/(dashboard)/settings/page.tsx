@@ -19,6 +19,7 @@ import {
   ExternalLink,
 } from 'lucide-react';
 import { useAuth } from '@/components/providers/AuthProvider';
+import { useRequireAuth } from '@/lib/hooks/useRequireAuth';
 import { createClient } from '@/lib/supabase/client';
 import { uploadAvatar } from '@/lib/supabase/storage';
 import AvatarUpload from '@/components/AvatarUpload';
@@ -94,6 +95,7 @@ function StatusMessage({
 // ── Main ──
 
 export default function SettingsPage() {
+  const { loading: authLoading } = useRequireAuth();
   const { user, refreshUser } = useAuth();
   const [activeTab, setActiveTab] = useState<TabId>('profile');
 
@@ -331,6 +333,8 @@ export default function SettingsPage() {
       : []),
     { id: 'danger', label: 'Danger Zone', icon: Trash2 },
   ];
+
+  if (authLoading) return <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '60vh' }}><div style={{ width: 32, height: 32, border: '3px solid #E5E2DB', borderTopColor: '#2C2C2A', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} /><style>{'@keyframes spin { to { transform: rotate(360deg) } }'}</style></div>;
 
   return (
     <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-10">

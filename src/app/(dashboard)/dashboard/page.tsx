@@ -16,6 +16,7 @@ import {
   Loader2,
 } from 'lucide-react';
 import { useAuth } from '@/components/providers/AuthProvider';
+import { useRequireAuth } from '@/lib/hooks/useRequireAuth';
 import { createClient } from '@/lib/supabase/client';
 import { formatPrice } from '@/lib/utils';
 
@@ -423,6 +424,9 @@ function DashboardContent() {
 }
 
 export default function BuyerDashboardPage() {
+  const { loading: authLoading } = useRequireAuth();
+  if (authLoading) return <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '60vh' }}><div style={{ width: 32, height: 32, border: '3px solid #E5E2DB', borderTopColor: '#2C2C2A', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} /><style>{'@keyframes spin { to { transform: rotate(360deg) } }'}</style></div>;
+
   return (
     <Suspense>
       <DashboardContent />

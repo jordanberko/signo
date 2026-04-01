@@ -17,6 +17,7 @@ import {
   AlertCircle,
 } from 'lucide-react';
 import { useAuth } from '@/components/providers/AuthProvider';
+import { useRequireAuth } from '@/lib/hooks/useRequireAuth';
 import { createClient } from '@/lib/supabase/client';
 import { formatPrice, calculateCommission } from '@/lib/utils';
 
@@ -62,8 +63,9 @@ export default function CheckoutPage({
 }: {
   params: Promise<{ artworkId: string }>;
 }) {
+  const { loading: authLoading } = useRequireAuth();
   const router = useRouter();
-  const { user, loading: authLoading } = useAuth();
+  const { user } = useAuth();
 
   const [artworkId, setArtworkId] = useState<string | null>(null);
   const [artwork, setArtwork] = useState<ArtworkCheckout | null>(null);
@@ -214,7 +216,9 @@ export default function CheckoutPage({
 
   // ── Loading / error states ──
 
-  if (authLoading || loading) {
+  if (authLoading) return <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '60vh' }}><div style={{ width: 32, height: 32, border: '3px solid #E5E2DB', borderTopColor: '#2C2C2A', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} /><style>{'@keyframes spin { to { transform: rotate(360deg) } }'}</style></div>;
+
+  if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
         <Loader2 className="h-6 w-6 animate-spin text-muted" />

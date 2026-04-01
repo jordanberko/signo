@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { formatPrice } from '@/lib/utils';
 import { useAuth } from '@/components/providers/AuthProvider';
+import { useRequireAuth } from '@/lib/hooks/useRequireAuth';
 import { createClient } from '@/lib/supabase/client';
 
 interface Stats {
@@ -37,6 +38,7 @@ interface RecentOrder {
 }
 
 export default function ArtistDashboardPage() {
+  const { loading: authLoading } = useRequireAuth('artist');
   const { user } = useAuth();
   const [stats, setStats] = useState<Stats>({
     totalSales: 0,
@@ -126,6 +128,8 @@ export default function ArtistDashboardPage() {
 
     fetchStats();
   }, [user]);
+
+  if (authLoading) return <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '60vh' }}><div style={{ width: 32, height: 32, border: '3px solid #E5E2DB', borderTopColor: '#2C2C2A', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} /><style>{'@keyframes spin { to { transform: rotate(360deg) } }'}</style></div>;
 
   const STATS = [
     {

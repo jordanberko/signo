@@ -22,6 +22,7 @@ import {
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { useAuth } from '@/components/providers/AuthProvider';
+import { useRequireAuth } from '@/lib/hooks/useRequireAuth';
 import { uploadArtworkImage } from '@/lib/supabase/storage';
 import { formatPrice, calculateCommission } from '@/lib/utils';
 import ImageUpload from '@/components/ImageUpload';
@@ -76,6 +77,7 @@ interface FormState {
 // ── Component ──
 
 export default function EditArtworkPage() {
+  const { loading: authLoading } = useRequireAuth('artist');
   const router = useRouter();
   const { id: artworkId } = useParams() as { id: string };
   const { user } = useAuth();
@@ -262,6 +264,8 @@ export default function EditArtworkPage() {
   }
 
   // ── Loading / not found states ──
+
+  if (authLoading) return <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '60vh' }}><div style={{ width: 32, height: 32, border: '3px solid #E5E2DB', borderTopColor: '#2C2C2A', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} /><style>{'@keyframes spin { to { transform: rotate(360deg) } }'}</style></div>;
 
   if (loadingArtwork) {
     return (

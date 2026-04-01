@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { AlertTriangle, CheckCircle, Clock, MessageSquare } from 'lucide-react';
 import { formatPrice } from '@/lib/utils';
 import { createClient } from '@/lib/supabase/client';
+import { useRequireAuth } from '@/lib/hooks/useRequireAuth';
 
 interface DisputeRow {
   id: string;
@@ -22,6 +23,7 @@ interface DisputeRow {
 }
 
 export default function AdminDisputesPage() {
+  const { loading: authLoading } = useRequireAuth('admin');
   const [disputes, setDisputes] = useState<DisputeRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<DisputeRow | null>(null);
@@ -89,6 +91,8 @@ export default function AdminDisputesPage() {
     resolved_no_refund: { color: 'bg-gray-100 text-gray-700', icon: CheckCircle },
     resolved_return: { color: 'bg-blue-50 text-blue-700', icon: CheckCircle },
   };
+
+  if (authLoading) return <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '60vh' }}><div style={{ width: 32, height: 32, border: '3px solid #E5E2DB', borderTopColor: '#2C2C2A', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} /><style>{'@keyframes spin { to { transform: rotate(360deg) } }'}</style></div>;
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">

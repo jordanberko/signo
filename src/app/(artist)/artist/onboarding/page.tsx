@@ -35,6 +35,7 @@ function InstagramIcon({ className }: { className?: string }) {
   );
 }
 import { useAuth } from '@/components/providers/AuthProvider';
+import { useRequireAuth } from '@/lib/hooks/useRequireAuth';
 import AvatarUpload from '@/components/AvatarUpload';
 import { uploadAvatar } from '@/lib/supabase/storage';
 
@@ -64,6 +65,7 @@ const COMMITMENTS = [
 ];
 
 export default function ArtistOnboardingPage() {
+  const { loading: authLoading } = useRequireAuth();
   const { user, refreshUser } = useAuth();
   const isBuyerUpgrade = user?.role === 'buyer';
 
@@ -197,6 +199,8 @@ export default function ArtistOnboardingPage() {
   function prevStep() {
     setStep((s) => Math.max(s - 1, 1));
   }
+
+  if (authLoading) return <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '60vh' }}><div style={{ width: 32, height: 32, border: '3px solid #E5E2DB', borderTopColor: '#2C2C2A', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} /><style>{'@keyframes spin { to { transform: rotate(360deg) } }'}</style></div>;
 
   return (
     <div className="min-h-[85vh] flex flex-col items-center px-4 py-10">
