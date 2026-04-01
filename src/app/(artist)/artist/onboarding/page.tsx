@@ -431,7 +431,7 @@ export default function ArtistOnboardingPage() {
               </div>
               <span className="text-sm leading-tight">
                 I agree to Signo&apos;s{' '}
-                <Link href="/about" className="text-accent-dark link-underline">
+                <Link href="/terms" className="text-accent-dark link-underline">
                   artist terms
                 </Link>{' '}
                 and shipping standards outlined above.

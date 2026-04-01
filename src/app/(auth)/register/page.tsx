@@ -385,9 +385,9 @@ function RegisterForm() {
             </div>
             <span className="text-sm text-muted leading-tight">
               I agree to the{' '}
-              <Link href="/about" className="text-accent-dark link-underline">Terms of Service</Link>
+              <Link href="/terms" className="text-accent-dark link-underline">Terms of Service</Link>
               {' '}and{' '}
-              <Link href="/about" className="text-accent-dark link-underline">Privacy Policy</Link>
+              <Link href="/privacy" className="text-accent-dark link-underline">Privacy Policy</Link>
             </span>
           </label>
 
