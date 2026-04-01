@@ -12,6 +12,11 @@ import {
   Check,
   Loader2,
   AlertCircle,
+  CreditCard,
+  Trash2,
+  AtSign,
+  Globe,
+  ExternalLink,
 } from 'lucide-react';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { createClient } from '@/lib/supabase/client';
@@ -20,7 +25,7 @@ import AvatarUpload from '@/components/AvatarUpload';
 
 // ── Types ──
 
-type TabId = 'profile' | 'address' | 'password' | 'notifications';
+type TabId = 'profile' | 'address' | 'password' | 'notifications' | 'artist' | 'subscription' | 'danger';
 
 interface Address {
   street: string;
@@ -131,7 +136,22 @@ export default function SettingsPage() {
     marketing: false,
   });
 
-  const isArtist = user?.role === 'artist';
+  // Artist profile state
+  const [artistBio, setArtistBio] = useState(user?.bio || '');
+  const [artistLocation, setArtistLocation] = useState(user?.location || '');
+  const [instagramUrl, setInstagramUrl] = useState(user?.social_links?.instagram || '');
+  const [websiteUrl, setWebsiteUrl] = useState(user?.social_links?.website || '');
+  const [artistSaving, setArtistSaving] = useState(false);
+  const [artistStatus, setArtistStatus] = useState<{
+    type: 'success' | 'error';
+    message: string;
+  } | null>(null);
+
+  // Danger zone
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleteConfirmText, setDeleteConfirmText] = useState('');
+
+  const isArtist = user?.role === 'artist' || user?.role === 'admin';
 
   // Avatar upload handler
   const handleAvatarUpload = useCallback(
@@ -260,11 +280,56 @@ export default function SettingsPage() {
     }
   }
 
+  // Save artist profile
+  async function saveArtistProfile() {
+    if (!user) return;
+    setArtistSaving(true);
+    setArtistStatus(null);
+
+    try {
+      const supabase = createClient();
+      const socialLinks = { ...(user.social_links || {}) };
+      if (instagramUrl.trim()) socialLinks.instagram = instagramUrl.trim();
+      else delete socialLinks.instagram;
+      if (websiteUrl.trim()) socialLinks.website = websiteUrl.trim();
+      else delete socialLinks.website;
+
+      const { error } = await supabase
+        .from('profiles')
+        .update({
+          bio: artistBio.trim() || null,
+          location: artistLocation.trim() || null,
+          social_links: socialLinks,
+        })
+        .eq('id', user.id);
+
+      if (error) throw error;
+
+      await refreshUser();
+      setArtistStatus({ type: 'success', message: 'Artist profile updated.' });
+    } catch (err) {
+      console.error('[Settings] Artist save error:', err);
+      setArtistStatus({
+        type: 'error',
+        message: 'Failed to update artist profile. Please try again.',
+      });
+    } finally {
+      setArtistSaving(false);
+    }
+  }
+
   const TABS: { id: TabId; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
     { id: 'profile', label: 'Profile', icon: User },
     { id: 'address', label: 'Shipping Address', icon: MapPin },
     { id: 'password', label: 'Password', icon: Lock },
     { id: 'notifications', label: 'Notifications', icon: Bell },
+    ...(isArtist
+      ? [{ id: 'artist' as TabId, label: 'Artist Profile', icon: Palette }]
+      : []),
+    ...(isArtist
+      ? [{ id: 'subscription' as TabId, label: 'Subscription', icon: CreditCard }]
+      : []),
+    { id: 'danger', label: 'Danger Zone', icon: Trash2 },
   ];
 
   return (
@@ -294,15 +359,15 @@ export default function SettingsPage() {
             ))}
           </nav>
 
-          {/* Artist link */}
+          {/* Payout settings link for artists */}
           {isArtist && (
             <div className="mt-6 pt-6 border-t border-border">
               <Link
-                href="/artist/settings"
+                href="/artist/settings/payouts"
                 className="flex items-center gap-2.5 px-4 py-2.5 rounded-lg text-sm font-medium text-muted hover:bg-muted-bg hover:text-foreground transition-colors"
               >
-                <Palette className="h-4 w-4 flex-shrink-0" />
-                Artist Settings
+                <CreditCard className="h-4 w-4 flex-shrink-0" />
+                Payout Settings
                 <ArrowRight className="h-3.5 w-3.5 ml-auto" />
               </Link>
             </div>
@@ -676,24 +741,248 @@ export default function SettingsPage() {
             </div>
           )}
 
-          {/* Artist settings link (mobile — visible below content) */}
-          {isArtist && (
-            <div className="md:hidden mt-6">
-              <Link
-                href="/artist/settings"
-                className="flex items-center justify-between p-5 bg-accent-subtle border border-accent/10 rounded-2xl hover:border-accent/30 transition-colors"
-              >
-                <div className="flex items-center gap-3">
-                  <Palette className="h-5 w-5 text-accent-dark" />
-                  <div>
-                    <p className="font-medium text-sm">Artist Settings</p>
-                    <p className="text-xs text-muted">
-                      Manage your storefront and selling preferences
-                    </p>
-                  </div>
+          {/* ═══════ Artist Profile ═══════ */}
+          {activeTab === 'artist' && isArtist && (
+            <div className="bg-white border border-border rounded-2xl p-6 md:p-8 space-y-6">
+              <div>
+                <h2 className="font-semibold text-lg">Artist Profile</h2>
+                <p className="text-sm text-muted mt-1">
+                  Information displayed on your public artist page.
+                </p>
+              </div>
+
+              {/* Bio */}
+              <div>
+                <label
+                  htmlFor="artistBio"
+                  className="block text-xs font-medium tracking-wide uppercase text-muted mb-2"
+                >
+                  Bio
+                </label>
+                <textarea
+                  id="artistBio"
+                  value={artistBio}
+                  onChange={(e) => setArtistBio(e.target.value)}
+                  rows={5}
+                  maxLength={1000}
+                  className="w-full px-4 py-3 bg-white border border-border rounded-xl text-sm placeholder:text-warm-gray transition-colors focus:border-accent focus:ring-1 focus:ring-accent/20 resize-none"
+                  placeholder="Tell collectors about yourself, your practice, and your inspirations..."
+                />
+                <p className="text-xs text-warm-gray mt-1.5 text-right">
+                  {artistBio.length}/1000
+                </p>
+              </div>
+
+              {/* Location */}
+              <div>
+                <label
+                  htmlFor="artistLocation"
+                  className="block text-xs font-medium tracking-wide uppercase text-muted mb-2"
+                >
+                  Location
+                </label>
+                <input
+                  id="artistLocation"
+                  type="text"
+                  value={artistLocation}
+                  onChange={(e) => setArtistLocation(e.target.value)}
+                  className="w-full px-4 py-3 bg-white border border-border rounded-xl text-sm placeholder:text-warm-gray transition-colors focus:border-accent focus:ring-1 focus:ring-accent/20"
+                  placeholder="Melbourne, VIC"
+                />
+              </div>
+
+              {/* Social Links */}
+              <div className="space-y-4">
+                <p className="text-xs font-medium tracking-wide uppercase text-muted">
+                  Social Links
+                </p>
+                <div>
+                  <label
+                    htmlFor="instagram"
+                    className="flex items-center gap-2 text-sm text-muted mb-2"
+                  >
+                    <AtSign className="h-4 w-4" /> Instagram
+                  </label>
+                  <input
+                    id="instagram"
+                    type="url"
+                    value={instagramUrl}
+                    onChange={(e) => setInstagramUrl(e.target.value)}
+                    className="w-full px-4 py-3 bg-white border border-border rounded-xl text-sm placeholder:text-warm-gray transition-colors focus:border-accent focus:ring-1 focus:ring-accent/20"
+                    placeholder="https://instagram.com/yourhandle"
+                  />
                 </div>
-                <ArrowRight className="h-4 w-4 text-accent-dark" />
-              </Link>
+                <div>
+                  <label
+                    htmlFor="website"
+                    className="flex items-center gap-2 text-sm text-muted mb-2"
+                  >
+                    <Globe className="h-4 w-4" /> Website
+                  </label>
+                  <input
+                    id="website"
+                    type="url"
+                    value={websiteUrl}
+                    onChange={(e) => setWebsiteUrl(e.target.value)}
+                    className="w-full px-4 py-3 bg-white border border-border rounded-xl text-sm placeholder:text-warm-gray transition-colors focus:border-accent focus:ring-1 focus:ring-accent/20"
+                    placeholder="https://yourwebsite.com"
+                  />
+                </div>
+              </div>
+
+              {artistStatus && (
+                <StatusMessage
+                  type={artistStatus.type}
+                  message={artistStatus.message}
+                />
+              )}
+
+              <div className="flex items-center gap-4">
+                <button
+                  type="button"
+                  onClick={saveArtistProfile}
+                  disabled={artistSaving}
+                  className="px-6 py-2.5 bg-primary text-white text-sm font-semibold rounded-full hover:bg-accent transition-colors disabled:opacity-50 inline-flex items-center gap-2"
+                >
+                  {artistSaving ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Saving...
+                    </>
+                  ) : (
+                    'Save Changes'
+                  )}
+                </button>
+
+                <Link
+                  href="/artist/dashboard"
+                  className="text-sm text-muted hover:text-foreground transition-colors inline-flex items-center gap-1.5"
+                >
+                  Manage storefront <ExternalLink className="h-3.5 w-3.5" />
+                </Link>
+              </div>
+            </div>
+          )}
+
+          {/* ═══════ Subscription ═══════ */}
+          {activeTab === 'subscription' && isArtist && (
+            <div className="bg-white border border-border rounded-2xl p-6 md:p-8 space-y-6">
+              <div>
+                <h2 className="font-semibold text-lg">Subscription</h2>
+                <p className="text-sm text-muted mt-1">
+                  Your current plan and billing details.
+                </p>
+              </div>
+
+              <div className="p-5 bg-accent-subtle border border-accent/10 rounded-xl">
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="w-2.5 h-2.5 bg-accent rounded-full" />
+                  <p className="font-semibold text-sm">Free — Launch Period</p>
+                </div>
+                <p className="text-sm text-muted ml-5.5">
+                  You&apos;re on the free launch plan. Zero commission on all sales.
+                  We&apos;ll notify you before any changes to pricing.
+                </p>
+              </div>
+
+              <div className="border border-border rounded-xl divide-y divide-border">
+                <div className="flex items-center justify-between p-4">
+                  <span className="text-sm text-muted">Plan</span>
+                  <span className="text-sm font-medium">Free (Launch)</span>
+                </div>
+                <div className="flex items-center justify-between p-4">
+                  <span className="text-sm text-muted">Commission rate</span>
+                  <span className="text-sm font-medium">0%</span>
+                </div>
+                <div className="flex items-center justify-between p-4">
+                  <span className="text-sm text-muted">Next billing date</span>
+                  <span className="text-sm font-medium text-muted">N/A</span>
+                </div>
+                <div className="flex items-center justify-between p-4">
+                  <span className="text-sm text-muted">Payout setup</span>
+                  <span className="text-sm font-medium">
+                    {user?.stripe_account_id ? (
+                      <span className="text-green-600">Connected</span>
+                    ) : (
+                      <Link href="/artist/settings/payouts" className="text-accent-dark hover:underline">
+                        Set up payouts
+                      </Link>
+                    )}
+                  </span>
+                </div>
+              </div>
+
+              <p className="text-xs text-warm-gray">
+                When paid plans are introduced, you&apos;ll be able to manage your
+                subscription and billing here.
+              </p>
+            </div>
+          )}
+
+          {/* ═══════ Danger Zone ═══════ */}
+          {activeTab === 'danger' && (
+            <div className="bg-white border border-error/20 rounded-2xl p-6 md:p-8 space-y-6">
+              <div>
+                <h2 className="font-semibold text-lg text-error">Danger Zone</h2>
+                <p className="text-sm text-muted mt-1">
+                  Irreversible actions. Please be certain.
+                </p>
+              </div>
+
+              <div className="border border-error/20 rounded-xl p-5">
+                <h3 className="font-medium text-sm">Delete my account</h3>
+                <p className="text-sm text-muted mt-1">
+                  Permanently delete your account and all associated data. This
+                  action cannot be undone. Any active orders must be completed
+                  or cancelled first.
+                </p>
+
+                {!showDeleteConfirm ? (
+                  <button
+                    type="button"
+                    onClick={() => setShowDeleteConfirm(true)}
+                    className="mt-4 px-5 py-2 border border-error/30 text-error text-sm font-medium rounded-full hover:bg-error/5 transition-colors"
+                  >
+                    Delete my account
+                  </button>
+                ) : (
+                  <div className="mt-4 space-y-3">
+                    <p className="text-sm text-error font-medium">
+                      Type <span className="font-mono bg-error/5 px-1.5 py-0.5 rounded">DELETE</span> to confirm:
+                    </p>
+                    <input
+                      type="text"
+                      value={deleteConfirmText}
+                      onChange={(e) => setDeleteConfirmText(e.target.value)}
+                      className="w-full max-w-xs px-4 py-2.5 bg-white border border-error/30 rounded-xl text-sm placeholder:text-warm-gray focus:border-error focus:ring-1 focus:ring-error/20"
+                      placeholder="Type DELETE"
+                    />
+                    <div className="flex items-center gap-3">
+                      <button
+                        type="button"
+                        disabled={deleteConfirmText !== 'DELETE'}
+                        className="px-5 py-2 bg-error text-white text-sm font-semibold rounded-full hover:bg-error/90 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                        onClick={() => {
+                          // Placeholder — actual deletion logic to come
+                          alert('Account deletion is not yet implemented. Contact support@signo.art for assistance.');
+                        }}
+                      >
+                        Permanently delete
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShowDeleteConfirm(false);
+                          setDeleteConfirmText('');
+                        }}
+                        className="px-5 py-2 text-sm text-muted hover:text-foreground transition-colors"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
           )}
         </div>
