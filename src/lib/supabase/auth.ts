@@ -57,7 +57,9 @@ export async function getCurrentUser(): Promise<Profile | null> {
   }
 }
 
-export function onAuthStateChange(callback: (user: Profile | null) => void) {
+export function onAuthStateChange(
+  callback: (user: Profile | null, event: string) => void
+) {
   const supabase = createClient();
   return supabase.auth.onAuthStateChange(async (event, session) => {
     if (session?.user) {
@@ -81,9 +83,9 @@ export function onAuthStateChange(callback: (user: Profile | null) => void) {
           await new Promise((resolve) => setTimeout(resolve, attempt === 0 ? 200 : 500));
         }
       }
-      callback(profile);
+      callback(profile, event);
     } else {
-      callback(null);
+      callback(null, event);
     }
   });
 }

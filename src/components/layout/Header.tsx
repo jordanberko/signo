@@ -93,7 +93,12 @@ export default function Header() {
               How It Works
             </Link>
 
-            {!loading && user ? (
+            {loading ? (
+              /* Skeleton placeholder while auth loads — prevents flash of Sign In buttons */
+              <div className="flex items-center gap-2 ml-2">
+                <div className="w-9 h-9 rounded-full bg-muted-bg animate-pulse" />
+              </div>
+            ) : user ? (
               <>
                 <div className="w-px h-5 bg-border mx-2" />
                 <Link href="/dashboard" className="p-2 text-muted hover:text-accent-dark transition-colors rounded-lg hover:bg-cream" aria-label="Favourites">
@@ -152,7 +157,7 @@ export default function Header() {
                   )}
                 </div>
               </>
-            ) : !loading ? (
+            ) : (
               <div className="flex items-center gap-2 ml-2">
                 <Link
                   href="/login"
@@ -167,7 +172,7 @@ export default function Header() {
                   Join Signo
                 </Link>
               </div>
-            ) : null}
+            )}
           </nav>
 
           {/* Mobile Menu Button */}
