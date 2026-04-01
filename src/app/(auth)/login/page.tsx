@@ -1,10 +1,11 @@
 'use client';
 
 import Link from 'next/link';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Eye, EyeOff, Loader2 } from 'lucide-react';
 import { signIn, signInWithGoogle } from '@/lib/supabase/auth';
+import { createClient } from '@/lib/supabase/client';
 import { Suspense } from 'react';
 
 function GoogleIcon() {
@@ -28,6 +29,17 @@ function LoginForm() {
   const [error, setError] = useState(authError === 'auth' ? 'Something went wrong with sign in. Please try again.' : '');
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
+
+  // If user is already logged in, redirect away from login page
+  useEffect(() => {
+    const supabase = createClient();
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) {
+        const redirect = searchParams.get('redirect');
+        window.location.href = redirect ? decodeURIComponent(redirect) : '/dashboard';
+      }
+    });
+  }, [searchParams]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
