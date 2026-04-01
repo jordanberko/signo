@@ -27,12 +27,11 @@ interface UserProfile {
 }
 
 function getInitials(name: string): string {
-  return name
-    .split(' ')
-    .map((n) => n[0])
-    .join('')
-    .toUpperCase()
-    .slice(0, 2);
+  if (!name || !name.trim()) return '?';
+  const parts = name.trim().split(' ').filter(Boolean);
+  if (parts.length === 0) return '?';
+  if (parts.length === 1) return parts[0][0].toUpperCase();
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
 }
 
 export default function AuthButton() {
@@ -57,6 +56,7 @@ export default function AuthButton() {
         console.error('[AuthButton] Profile fetch error:', error.message);
         return null;
       }
+      console.log('[AuthButton] Fetched profile:', data);
       return data;
     } catch (err) {
       console.error('[AuthButton] Profile fetch exception:', err);
@@ -70,7 +70,6 @@ export default function AuthButton() {
 
     async function init() {
       try {
-        // Get session from Supabase (reads from localStorage first)
         const { data: { session }, error } = await supabase.auth.getSession();
 
         if (error) {
@@ -80,14 +79,14 @@ export default function AuthButton() {
         }
 
         if (session?.user) {
-          console.log('[AuthButton] Auth state: logged in as', session.user.email);
+          console.log('[AuthButton] Session found:', session.user.email);
           const prof = await fetchProfile(session.user.id);
           if (!cancelled) {
             setProfile(prof);
             setLoading(false);
           }
         } else {
-          console.log('[AuthButton] Auth state: not logged in');
+          console.log('[AuthButton] No session — not logged in');
           if (!cancelled) {
             setProfile(null);
             setLoading(false);
@@ -101,7 +100,6 @@ export default function AuthButton() {
 
     init();
 
-    // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         console.log('[AuthButton] onAuthStateChange:', event, session?.user?.email ?? 'no user');
@@ -150,11 +148,21 @@ export default function AuthButton() {
     router.refresh();
   }
 
+  // Debug render state
+  console.log('[AuthButton] render — loading:', loading, 'profile:', profile?.full_name ?? 'null');
+
   // --- Loading state ---
   if (loading) {
     return (
-      <div className="relative z-50 ml-4 flex-shrink-0">
-        <div className="w-10 h-10 rounded-full bg-muted-bg animate-pulse" />
+      <div style={{ marginLeft: 16, flexShrink: 0 }}>
+        <div
+          style={{
+            width: 40,
+            height: 40,
+            borderRadius: '50%',
+            backgroundColor: '#E8E2D9',
+          }}
+        />
       </div>
     );
   }
@@ -162,16 +170,30 @@ export default function AuthButton() {
   // --- Not logged in ---
   if (!profile) {
     return (
-      <div className="flex items-center gap-2 ml-4 flex-shrink-0">
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginLeft: 16, flexShrink: 0 }}>
         <Link
           href="/login"
-          className="px-4 py-2 text-sm font-medium text-foreground hover:text-accent-dark transition-colors"
+          style={{
+            padding: '8px 16px',
+            fontSize: 14,
+            fontWeight: 500,
+            color: '#1a1a1a',
+            textDecoration: 'none',
+          }}
         >
           Sign In
         </Link>
         <Link
           href="/register"
-          className="px-4 py-2 bg-accent text-primary text-sm font-semibold rounded-full hover:bg-accent-light transition-colors duration-300"
+          style={{
+            padding: '8px 16px',
+            fontSize: 14,
+            fontWeight: 600,
+            color: '#1a1a1a',
+            backgroundColor: '#C8E600',
+            borderRadius: 999,
+            textDecoration: 'none',
+          }}
         >
           Join Signo
         </Link>
@@ -183,83 +205,148 @@ export default function AuthButton() {
   const initials = getInitials(profile.full_name ?? '');
 
   return (
-    <div className="relative z-50 ml-4 flex-shrink-0" ref={menuRef}>
-      {/* Avatar button */}
+    <div ref={menuRef} style={{ position: 'relative', marginLeft: 16, flexShrink: 0, zIndex: 50 }}>
+      {/* Avatar button — ALL inline styles */}
       {profile.avatar_url ? (
         <button
           type="button"
-          onClick={() => setMenuOpen(!menuOpen)}
-          className="w-10 h-10 rounded-full overflow-hidden ring-2 ring-border hover:ring-accent/50 transition-all duration-200 cursor-pointer"
+          onClick={() => {
+            console.log('[AuthButton] Avatar clicked, menuOpen will be:', !menuOpen);
+            setMenuOpen(!menuOpen);
+          }}
+          style={{
+            width: 40,
+            height: 40,
+            borderRadius: '50%',
+            overflow: 'hidden',
+            border: '2px solid #ddd7ce',
+            cursor: 'pointer',
+            padding: 0,
+            background: 'none',
+            position: 'relative',
+            zIndex: 50,
+          }}
         >
           <Image
             src={profile.avatar_url}
             alt={profile.full_name ?? 'Avatar'}
             width={40}
             height={40}
-            className="object-cover w-full h-full"
+            style={{ objectFit: 'cover', width: '100%', height: '100%' }}
           />
         </button>
       ) : (
         <button
           type="button"
-          onClick={() => setMenuOpen(!menuOpen)}
-          className="w-10 h-10 rounded-full bg-primary text-white text-sm font-semibold flex items-center justify-center hover:bg-accent hover:text-primary transition-colors duration-200 ring-2 ring-border hover:ring-accent/50 cursor-pointer"
+          onClick={() => {
+            console.log('[AuthButton] Avatar clicked, menuOpen will be:', !menuOpen);
+            setMenuOpen(!menuOpen);
+          }}
+          style={{
+            width: 40,
+            height: 40,
+            borderRadius: '50%',
+            backgroundColor: '#2C2C2A',
+            color: '#FFFFFF',
+            fontSize: 14,
+            fontWeight: 600,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            border: '2px solid #ddd7ce',
+            cursor: 'pointer',
+            position: 'relative',
+            zIndex: 50,
+            padding: 0,
+            lineHeight: 1,
+          }}
         >
-          {initials || <User className="h-4 w-4" />}
+          {initials}
         </button>
       )}
 
-        {/* Dropdown */}
-        {menuOpen && (
-          <div className="absolute right-0 mt-2 w-64 bg-white border border-border rounded-xl shadow-xl py-1 z-[60] animate-scale-in origin-top-right">
-            {/* User info */}
-            <div className="px-4 py-3 border-b border-border">
-              <p className="font-medium text-sm truncate">{profile.full_name || 'User'}</p>
-              <p className="text-xs text-muted truncate mt-0.5">{profile.email}</p>
-            </div>
-
-            {/* Common links */}
-            <div className="py-1">
-              <DropdownLink href="/dashboard" icon={LayoutDashboard} label="Dashboard" onClick={() => setMenuOpen(false)} />
-              <DropdownLink href="/dashboard" icon={ShoppingBag} label="My Orders" onClick={() => setMenuOpen(false)} />
-              <DropdownLink href="/settings" icon={Settings} label="Settings" onClick={() => setMenuOpen(false)} />
-            </div>
-
-            {/* Artist links */}
-            {isArtist && (
-              <div className="py-1 border-t border-border">
-                <DropdownLink href="/artist/dashboard" icon={Palette} label="Artist Dashboard" onClick={() => setMenuOpen(false)} />
-                <DropdownLink href="/artist/artworks" icon={Images} label="My Artworks" onClick={() => setMenuOpen(false)} />
-                <DropdownLink href="/artist/artworks/new" icon={ImagePlus} label="Upload Artwork" onClick={() => setMenuOpen(false)} />
-                <DropdownLink href="/artist/earnings" icon={DollarSign} label="Earnings" onClick={() => setMenuOpen(false)} />
-              </div>
-            )}
-
-            {/* Admin link */}
-            {isAdmin && (
-              <div className="py-1 border-t border-border">
-                <DropdownLink href="/admin/reviews" icon={Shield} label="Admin Panel" onClick={() => setMenuOpen(false)} />
-              </div>
-            )}
-
-            {/* Sign out */}
-            <div className="border-t border-border pt-1">
-              <button
-                type="button"
-                onClick={handleSignOut}
-                className="flex items-center gap-3 px-4 py-2.5 text-sm text-error hover:bg-error/5 transition-colors w-full text-left"
-              >
-                <LogOut className="h-4 w-4" />
-                Sign Out
-              </button>
-            </div>
+      {/* Dropdown menu */}
+      {menuOpen && (
+        <div
+          style={{
+            position: 'absolute',
+            top: '100%',
+            right: 0,
+            marginTop: 8,
+            minWidth: 240,
+            width: 260,
+            backgroundColor: '#FFFFFF',
+            border: '1px solid #E5E2DB',
+            borderRadius: 12,
+            boxShadow: '0 10px 40px rgba(0,0,0,0.12), 0 2px 8px rgba(0,0,0,0.08)',
+            zIndex: 9999,
+            overflow: 'hidden',
+          }}
+        >
+          {/* User info */}
+          <div style={{ padding: '12px 16px', borderBottom: '1px solid #E5E2DB' }}>
+            <p style={{ fontWeight: 600, fontSize: 14, margin: 0, color: '#1a1a1a' }}>
+              {profile.full_name || 'User'}
+            </p>
+            <p style={{ fontSize: 12, color: '#8A8880', margin: '2px 0 0 0' }}>
+              {profile.email}
+            </p>
           </div>
-        )}
+
+          {/* Common links */}
+          <div style={{ padding: '4px 0' }}>
+            <DropdownLink href="/dashboard" icon={LayoutDashboard} label="Dashboard" onClick={() => setMenuOpen(false)} />
+            <DropdownLink href="/dashboard" icon={ShoppingBag} label="My Orders" onClick={() => setMenuOpen(false)} />
+            <DropdownLink href="/settings" icon={Settings} label="Settings" onClick={() => setMenuOpen(false)} />
+          </div>
+
+          {/* Artist links */}
+          {isArtist && (
+            <div style={{ padding: '4px 0', borderTop: '1px solid #E5E2DB' }}>
+              <DropdownLink href="/artist/dashboard" icon={Palette} label="Artist Dashboard" onClick={() => setMenuOpen(false)} />
+              <DropdownLink href="/artist/artworks" icon={Images} label="My Artworks" onClick={() => setMenuOpen(false)} />
+              <DropdownLink href="/artist/artworks/new" icon={ImagePlus} label="Upload Artwork" onClick={() => setMenuOpen(false)} />
+              <DropdownLink href="/artist/earnings" icon={DollarSign} label="Earnings" onClick={() => setMenuOpen(false)} />
+            </div>
+          )}
+
+          {/* Admin link */}
+          {isAdmin && (
+            <div style={{ padding: '4px 0', borderTop: '1px solid #E5E2DB' }}>
+              <DropdownLink href="/admin/reviews" icon={Shield} label="Admin Panel" onClick={() => setMenuOpen(false)} />
+            </div>
+          )}
+
+          {/* Sign out */}
+          <div style={{ borderTop: '1px solid #E5E2DB', padding: '4px 0' }}>
+            <button
+              type="button"
+              onClick={handleSignOut}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 12,
+                padding: '10px 16px',
+                fontSize: 14,
+                color: '#dc2626',
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+                width: '100%',
+                textAlign: 'left',
+              }}
+            >
+              <LogOut style={{ width: 16, height: 16 }} />
+              Sign Out
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
 
-/* ── Dropdown link ── */
+/* ── Dropdown link — inline styles ── */
 function DropdownLink({
   href,
   icon: Icon,
@@ -267,7 +354,7 @@ function DropdownLink({
   onClick,
 }: {
   href: string;
-  icon: React.ComponentType<{ className?: string }>;
+  icon: React.ComponentType<{ style?: React.CSSProperties }>;
   label: string;
   onClick: () => void;
 }) {
@@ -275,9 +362,19 @@ function DropdownLink({
     <Link
       href={href}
       onClick={onClick}
-      className="flex items-center gap-3 px-4 py-2.5 text-sm text-foreground hover:bg-cream transition-colors"
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: 12,
+        padding: '10px 16px',
+        fontSize: 14,
+        color: '#1a1a1a',
+        textDecoration: 'none',
+      }}
+      onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#FAF8F4'; }}
+      onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; }}
     >
-      <Icon className="h-4 w-4 text-muted" />
+      <Icon style={{ width: 16, height: 16, color: '#8A8880' }} />
       {label}
     </Link>
   );
