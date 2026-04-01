@@ -2,10 +2,10 @@ import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
 import type { Database } from '@/lib/types/database';
 
-/** Role hierarchy for route protection. */
+/** Protected routes and their allowed roles. */
 const ROLE_ACCESS: Record<string, string[]> = {
   '/admin': ['admin'],
-  '/artist/onboarding': ['buyer', 'artist', 'admin'], // buyers can access onboarding to upgrade
+  '/artist/onboarding': ['buyer', 'artist', 'admin'],
   '/artist': ['artist', 'admin'],
   '/dashboard': ['buyer', 'artist', 'admin'],
   '/checkout': ['buyer', 'artist', 'admin'],
@@ -14,8 +14,30 @@ const ROLE_ACCESS: Record<string, string[]> = {
   '/settings': ['buyer', 'artist', 'admin'],
 };
 
-/** Routes that authenticated users should NOT see (redirect to dashboard). */
 const AUTH_ROUTES = ['/login', '/register'];
+
+/**
+ * Helper: create a redirect response that preserves the session cookies
+ * from supabaseResponse. Without this, redirects lose the refreshed tokens
+ * and the browser can't maintain the session.
+ */
+function redirectWithCookies(
+  url: URL,
+  supabaseResponse: NextResponse
+): NextResponse {
+  const redirect = NextResponse.redirect(url);
+  // Copy all cookies (especially the refreshed Supabase session tokens)
+  supabaseResponse.cookies.getAll().forEach((cookie) => {
+    redirect.cookies.set(cookie.name, cookie.value, {
+      // Preserve the cookie options that Supabase SSR sets
+      path: '/',
+      sameSite: 'lax',
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+    });
+  });
+  return redirect;
+}
 
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request });
@@ -41,7 +63,8 @@ export async function updateSession(request: NextRequest) {
     }
   );
 
-  // Refresh the session — IMPORTANT: must call getUser() not getSession()
+  // IMPORTANT: getUser() validates the JWT and refreshes the token if needed.
+  // getSession() only reads from cookies without validation — never use it here.
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -53,7 +76,7 @@ export async function updateSession(request: NextRequest) {
     const url = request.nextUrl.clone();
     url.pathname = '/dashboard';
     url.searchParams.delete('redirect');
-    return NextResponse.redirect(url);
+    return redirectWithCookies(url, supabaseResponse);
   }
 
   // ── Check if route is protected ──
@@ -62,15 +85,14 @@ export async function updateSession(request: NextRequest) {
   );
 
   if (matchedRoute) {
-    // Not authenticated → redirect to login with return URL
     if (!user) {
       const url = request.nextUrl.clone();
       url.pathname = '/login';
       url.searchParams.set('redirect', pathname);
-      return NextResponse.redirect(url);
+      return redirectWithCookies(url, supabaseResponse);
     }
 
-    // Authenticated → check role
+    // Check role
     const allowedRoles = ROLE_ACCESS[matchedRoute];
 
     let userRole = 'buyer';
@@ -91,10 +113,10 @@ export async function updateSession(request: NextRequest) {
       const url = request.nextUrl.clone();
       url.pathname = '/dashboard';
       url.searchParams.set('error', 'unauthorized');
-      return NextResponse.redirect(url);
+      return redirectWithCookies(url, supabaseResponse);
     }
 
-    // ── Artist onboarding gate ──
+    // Artist onboarding gate
     if (
       pathname.startsWith('/artist') &&
       !pathname.startsWith('/artist/onboarding') &&
@@ -103,7 +125,7 @@ export async function updateSession(request: NextRequest) {
     ) {
       const url = request.nextUrl.clone();
       url.pathname = '/artist/onboarding';
-      return NextResponse.redirect(url);
+      return redirectWithCookies(url, supabaseResponse);
     }
   }
 
