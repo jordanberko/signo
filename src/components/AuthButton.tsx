@@ -33,6 +33,20 @@ function getInitials(name: string): string {
   return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
 }
 
+/** Clear any stale Supabase cookies from the browser. */
+function clearSupabaseCookies() {
+  try {
+    document.cookie.split(';').forEach((c) => {
+      const name = c.split('=')[0].trim();
+      if (name.startsWith('sb-')) {
+        document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/`;
+      }
+    });
+  } catch {
+    // Ignore cookie clearing errors
+  }
+}
+
 export default function AuthButton() {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
@@ -50,13 +64,9 @@ export default function AuthButton() {
         .select('id, email, full_name, role, avatar_url')
         .eq('id', userId)
         .single();
-      if (error) {
-        console.error('[AuthButton] Profile fetch error:', error.message);
-        return null;
-      }
+      if (error || !data) return null;
       return data;
-    } catch (err) {
-      console.error('[AuthButton] Profile fetch exception:', err);
+    } catch {
       return null;
     }
   }, []);
@@ -65,59 +75,91 @@ export default function AuthButton() {
     let cancelled = false;
     const supabase = createClient();
 
+    // Hard 3-second timeout: if auth check hasn't resolved, assume not logged in
+    const timeout = setTimeout(() => {
+      if (cancelled) return;
+      cancelled = true;
+      setProfile(null);
+      setLoading(false);
+    }, 3000);
+
     async function init() {
       try {
         const { data: { session }, error } = await supabase.auth.getSession();
 
-        if (error) {
-          console.error('[AuthButton] getSession error:', error.message);
-          if (!cancelled) setLoading(false);
+        if (cancelled) return;
+
+        if (error || !session?.user) {
+          // No session or error — not logged in
+          cancelled = true;
+          clearTimeout(timeout);
+          setProfile(null);
+          setLoading(false);
           return;
         }
 
-        if (session?.user) {
-          const prof = await fetchProfile(session.user.id);
-          if (!cancelled) {
-            setProfile(prof);
-            setLoading(false);
-          }
+        // Session exists — try to fetch profile to validate it's not stale
+        const prof = await fetchProfile(session.user.id);
+
+        if (cancelled) return;
+        clearTimeout(timeout);
+        cancelled = true;
+
+        if (prof) {
+          // Valid session + valid profile
+          setProfile(prof);
+          setLoading(false);
         } else {
-          if (!cancelled) {
-            setProfile(null);
-            setLoading(false);
+          // Session exists but profile fetch failed — stale/invalid session
+          // Clear the bad session silently
+          try {
+            await supabase.auth.signOut();
+          } catch {
+            // Ignore signOut errors
           }
+          clearSupabaseCookies();
+          setProfile(null);
+          setLoading(false);
         }
-      } catch (err) {
-        console.error('[AuthButton] init error:', err);
-        if (!cancelled) setLoading(false);
+      } catch {
+        // Any error at all — default to not logged in
+        if (cancelled) return;
+        clearTimeout(timeout);
+        cancelled = true;
+        setProfile(null);
+        setLoading(false);
       }
     }
 
     init();
 
+    // Listen for auth state changes (login, logout, token refresh)
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-
         if (event === 'SIGNED_OUT') {
-          if (!cancelled) {
-            setProfile(null);
-            setLoading(false);
-          }
+          setProfile(null);
+          setLoading(false);
           return;
         }
 
         if (session?.user) {
           const prof = await fetchProfile(session.user.id);
-          if (!cancelled) {
+          if (prof) {
             setProfile(prof);
-            setLoading(false);
+          } else {
+            // Stale session on auth change — clear it
+            try { await supabase.auth.signOut(); } catch { /* ignore */ }
+            clearSupabaseCookies();
+            setProfile(null);
           }
+          setLoading(false);
         }
       }
     );
 
     return () => {
       cancelled = true;
+      clearTimeout(timeout);
       subscription.unsubscribe();
     };
   }, [fetchProfile]);
@@ -139,9 +181,11 @@ export default function AuthButton() {
     try {
       const supabase = createClient();
       await supabase.auth.signOut();
-    } catch (err) {
-      console.error('[AuthButton] Sign out error:', err);
+    } catch {
+      // Ignore signOut errors
     }
+    // Clear any stale Supabase cookies
+    clearSupabaseCookies();
     // Force full page reload to clear all cached React state and session data
     window.location.href = '/';
   }
