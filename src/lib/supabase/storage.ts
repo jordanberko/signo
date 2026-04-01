@@ -8,7 +8,7 @@
  *
  * 1. Create bucket: "artwork-images"
  *    - Public: ON
- *    - File size limit: 10 MB
+ *    - File size limit: 15 MB
  *    - Allowed MIME types: image/jpeg, image/png, image/webp
  *
  * 2. Create bucket: "avatars"
@@ -53,6 +53,9 @@
 import { createClient } from './client';
 
 const ACCEPTED_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
+const MAX_INPUT_SIZE_MB = 15;
+const COMPRESSION_TIMEOUT_MS = 10_000;
+const UPLOAD_TIMEOUT_MS = 30_000;
 
 function getFileExtension(file: File): string {
   const parts = file.name.split('.');
@@ -72,31 +75,24 @@ function validateFile(file: File, maxSizeMB: number): string | null {
 // ── Client-side image compression via Canvas API ──
 
 /**
- * Load a File into an HTMLImageElement.
+ * Load a File into an ImageBitmap (faster than HTMLImageElement, doesn't block main thread).
  */
-function loadImage(file: File): Promise<HTMLImageElement> {
-  return new Promise((resolve, reject) => {
-    const img = new window.Image();
-    img.onload = () => resolve(img);
-    img.onerror = () => reject(new Error('Failed to load image'));
-    img.src = URL.createObjectURL(file);
-  });
+async function loadImageBitmap(file: File): Promise<ImageBitmap> {
+  return createImageBitmap(file);
 }
 
 /**
  * Check if a PNG has transparency by sampling its pixels.
- * Returns true if any pixel has alpha < 255.
  */
-function hasTransparency(img: HTMLImageElement): boolean {
+function hasTransparency(bitmap: ImageBitmap): boolean {
   const canvas = document.createElement('canvas');
-  // Sample at a smaller size for performance
-  const sampleSize = Math.min(img.width, img.height, 256);
-  const scale = sampleSize / Math.max(img.width, img.height);
-  canvas.width = Math.round(img.width * scale);
-  canvas.height = Math.round(img.height * scale);
+  const sampleSize = Math.min(bitmap.width, bitmap.height, 256);
+  const scale = sampleSize / Math.max(bitmap.width, bitmap.height);
+  canvas.width = Math.round(bitmap.width * scale);
+  canvas.height = Math.round(bitmap.height * scale);
   const ctx = canvas.getContext('2d');
   if (!ctx) return false;
-  ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+  ctx.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
   const data = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
   for (let i = 3; i < data.length; i += 4) {
     if (data[i] < 255) return true;
@@ -106,22 +102,17 @@ function hasTransparency(img: HTMLImageElement): boolean {
 
 /**
  * Resize an image using the Canvas API and return a compressed Blob.
- *
- * - Scales down to fit within maxWidth × maxHeight (maintains aspect ratio).
- * - Converts to JPEG at the given quality unless the source is a transparent PNG.
- * - Skips processing if the image is already smaller than the target dimensions.
  */
 function resizeImage(
-  img: HTMLImageElement,
+  bitmap: ImageBitmap,
   maxWidth: number,
   maxHeight: number,
   quality: number,
   outputType: 'image/jpeg' | 'image/png',
 ): Promise<Blob> {
   return new Promise((resolve, reject) => {
-    let { width, height } = img;
+    let { width, height } = bitmap;
 
-    // Scale down if needed, maintaining aspect ratio
     if (width > maxWidth || height > maxHeight) {
       const ratio = Math.min(maxWidth / width, maxHeight / height);
       width = Math.round(width * ratio);
@@ -138,10 +129,9 @@ function resizeImage(
       return;
     }
 
-    // Use high-quality interpolation
     ctx.imageSmoothingEnabled = true;
     ctx.imageSmoothingQuality = 'high';
-    ctx.drawImage(img, 0, 0, width, height);
+    ctx.drawImage(bitmap, 0, 0, width, height);
 
     canvas.toBlob(
       (blob) => {
@@ -158,34 +148,161 @@ function resizeImage(
 }
 
 /**
+ * Run a promise with a timeout. Returns the result or null if it times out.
+ */
+function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => {
+      reject(new Error(`${label} timed out after ${ms / 1000}s`));
+    }, ms);
+
+    promise
+      .then((result) => {
+        clearTimeout(timer);
+        resolve(result);
+      })
+      .catch((err) => {
+        clearTimeout(timer);
+        reject(err);
+      });
+  });
+}
+
+/**
  * Compress and resize an image file before upload.
  * Returns { full, thumbnail } blobs.
  *
- * Full: max 2000×2000, JPEG 80% quality (PNG with transparency stays PNG)
- * Thumbnail: max 400×400, JPEG 75% quality
+ * Full: max 1800×1800, JPEG 85% quality (PNG with transparency stays PNG)
+ * Thumbnail: max 400×400, JPEG 80% quality
+ *
+ * If compression fails or times out (10s), returns the original file as-is.
  */
 async function compressImage(file: File): Promise<{
   full: Blob;
-  thumbnail: Blob;
+  thumbnail: Blob | null;
   outputExt: string;
 }> {
-  const img = await loadImage(file);
+  const sizeMB = (file.size / 1024 / 1024).toFixed(1);
+  console.log(`[Upload] Starting compression for: ${file.name} (${sizeMB}MB)`);
 
-  // Determine output format: keep PNG only if it has transparency
-  const isPngTransparent = file.type === 'image/png' && hasTransparency(img);
-  const outputType: 'image/jpeg' | 'image/png' = isPngTransparent ? 'image/png' : 'image/jpeg';
-  const outputExt = isPngTransparent ? 'png' : 'jpg';
+  try {
+    const bitmap = await withTimeout(
+      loadImageBitmap(file),
+      COMPRESSION_TIMEOUT_MS,
+      'Image loading',
+    );
 
-  // Generate full-size compressed image (max 2000px, 90% quality)
-  const full = await resizeImage(img, 2000, 2000, 0.9, outputType);
+    // Determine output format: keep PNG only if it has transparency
+    const isPngTransparent = file.type === 'image/png' && hasTransparency(bitmap);
+    const outputType: 'image/jpeg' | 'image/png' = isPngTransparent ? 'image/png' : 'image/jpeg';
+    const outputExt = isPngTransparent ? 'png' : 'jpg';
 
-  // Generate thumbnail (max 400px wide, 80% quality)
-  const thumbnail = await resizeImage(img, 400, 400, 0.8, 'image/jpeg');
+    // Generate full-size compressed image (max 1800px, 85% quality)
+    const full = await withTimeout(
+      resizeImage(bitmap, 1800, 1800, 0.85, outputType),
+      COMPRESSION_TIMEOUT_MS,
+      'Full image resize',
+    );
 
-  // Revoke the object URL from loadImage
-  URL.revokeObjectURL(img.src);
+    // Generate thumbnail (max 400px wide, 80% quality)
+    let thumbnail: Blob | null = null;
+    try {
+      thumbnail = await withTimeout(
+        resizeImage(bitmap, 400, 400, 0.8, 'image/jpeg'),
+        5000,
+        'Thumbnail resize',
+      );
+    } catch (thumbErr) {
+      console.warn('[Upload] Thumbnail compression failed, skipping:', thumbErr);
+    }
 
-  return { full, thumbnail, outputExt };
+    bitmap.close();
+
+    const fullSizeMB = (full.size / 1024 / 1024).toFixed(2);
+    console.log(`[Upload] Compression complete: ${sizeMB}MB → ${fullSizeMB}MB`);
+
+    return { full, thumbnail, outputExt };
+  } catch (err) {
+    console.warn('[Upload] Compression failed or timed out, uploading original:', err);
+    const ext = file.type === 'image/png' ? 'png' : file.type === 'image/webp' ? 'webp' : 'jpg';
+    return { full: file, thumbnail: null, outputExt: ext };
+  }
+}
+
+/**
+ * Upload a blob to Supabase storage with a timeout.
+ * Uses XMLHttpRequest for reliable progress tracking.
+ */
+async function uploadToSupabase(
+  bucket: string,
+  path: string,
+  blob: Blob,
+  contentType: string,
+  timeoutMs: number = UPLOAD_TIMEOUT_MS,
+): Promise<void> {
+  const supabase = createClient();
+
+  // Get the Supabase session for the auth header
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) {
+    throw new Error('Not authenticated. Please sign in and try again.');
+  }
+
+  const url = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/${bucket}/${path}`;
+
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    let completed = false;
+
+    const timer = setTimeout(() => {
+      if (!completed) {
+        completed = true;
+        xhr.abort();
+        reject(new Error('Upload timed out. Please try a smaller image or check your connection.'));
+      }
+    }, timeoutMs);
+
+    xhr.open('POST', url, true);
+    xhr.setRequestHeader('Authorization', `Bearer ${session.access_token}`);
+    xhr.setRequestHeader('Content-Type', contentType);
+    xhr.setRequestHeader('Cache-Control', 'max-age=31536000');
+    xhr.setRequestHeader('x-upsert', 'false');
+
+    xhr.onload = () => {
+      if (completed) return;
+      completed = true;
+      clearTimeout(timer);
+      if (xhr.status >= 200 && xhr.status < 300) {
+        resolve();
+      } else {
+        let message = `Upload failed (${xhr.status})`;
+        try {
+          const body = JSON.parse(xhr.responseText);
+          if (body.message) message = body.message;
+          if (body.error) message = body.error;
+        } catch {
+          // ignore parse error
+        }
+        reject(new Error(message));
+      }
+    };
+
+    xhr.onerror = () => {
+      if (completed) return;
+      completed = true;
+      clearTimeout(timer);
+      reject(new Error('Upload failed. Please check your connection and try again.'));
+    };
+
+    xhr.onabort = () => {
+      if (completed) return;
+      completed = true;
+      clearTimeout(timer);
+      reject(new Error('Upload was cancelled.'));
+    };
+
+    xhr.send(blob);
+  });
 }
 
 /**
@@ -193,9 +310,11 @@ async function compressImage(file: File): Promise<{
  * Images are stored under `{userId}/{artworkId}/{uuid}.{ext}`.
  *
  * Before uploading, the image is compressed client-side:
- * - Full image: resized to max 2000×2000, JPEG @ 90% quality
+ * - Full image: resized to max 1800×1800, JPEG @ 85% quality
  * - Thumbnail: resized to max 400×400, JPEG @ 80% quality
  * - Transparent PNGs are preserved as PNG for the full image
+ * - If compression fails/times out (10s), uploads the original
+ * - Upload has a 30s timeout — never hangs indefinitely
  */
 export async function uploadArtworkImage(
   file: File,
@@ -203,53 +322,51 @@ export async function uploadArtworkImage(
   artworkId: string,
   onProgress?: (progress: number) => void
 ): Promise<string> {
-  const error = validateFile(file, 10);
+  // Validate input
+  const error = validateFile(file, MAX_INPUT_SIZE_MB);
   if (error) throw new Error(error);
 
-  const supabase = createClient();
   const fileId = crypto.randomUUID();
 
-  // Step 1: Compress (0% → 30%)
+  // Step 1: Compress (0% → 40%)
   onProgress?.(5);
   const { full, thumbnail, outputExt } = await compressImage(file);
-  onProgress?.(30);
+  onProgress?.(40);
 
-  // Step 2: Upload full image (30% → 80%)
+  // Step 2: Upload full image (40% → 85%)
   const fullPath = `${userId}/${artworkId}/${fileId}.${outputExt}`;
-  onProgress?.(35);
+  const fullContentType = outputExt === 'png' ? 'image/png' : 'image/jpeg';
 
-  const { error: fullUploadError } = await supabase.storage
-    .from('artwork-images')
-    .upload(fullPath, full, {
-      cacheControl: '31536000',
-      upsert: false,
-      contentType: outputExt === 'png' ? 'image/png' : 'image/jpeg',
-    });
+  console.log(`[Upload] Starting upload to Supabase: ${fullPath}`);
+  onProgress?.(45);
 
-  if (fullUploadError) {
-    throw new Error(`Upload failed: ${fullUploadError.message}`);
+  try {
+    await uploadToSupabase('artwork-images', fullPath, full, fullContentType);
+  } catch (err) {
+    console.error('[Upload] Full image upload error:', err);
+    throw err;
   }
-  onProgress?.(80);
 
-  // Step 3: Upload thumbnail (80% → 95%)
-  const thumbPath = `${userId}/${artworkId}/${fileId}_thumb.jpg`;
-  const { error: thumbUploadError } = await supabase.storage
-    .from('artwork-images')
-    .upload(thumbPath, thumbnail, {
-      cacheControl: '31536000',
-      upsert: false,
-      contentType: 'image/jpeg',
-    });
+  onProgress?.(85);
+  console.log('[Upload] Full image upload complete');
 
-  // Thumbnail upload failure is non-critical — log but don't throw
-  if (thumbUploadError) {
-    console.warn(`Thumbnail upload failed: ${thumbUploadError.message}`);
+  // Step 3: Upload thumbnail (85% → 95%) — non-critical
+  if (thumbnail) {
+    const thumbPath = `${userId}/${artworkId}/${fileId}_thumb.jpg`;
+    try {
+      await uploadToSupabase('artwork-images', thumbPath, thumbnail, 'image/jpeg');
+      console.log('[Upload] Thumbnail upload complete');
+    } catch (thumbErr) {
+      console.warn('[Upload] Thumbnail upload failed (non-critical):', thumbErr);
+    }
   }
   onProgress?.(95);
 
+  const publicUrl = getPublicUrl(fullPath, 'artwork-images');
+  console.log('[Upload] Upload complete:', publicUrl);
   onProgress?.(100);
 
-  return getPublicUrl(fullPath, 'artwork-images');
+  return publicUrl;
 }
 
 /**
@@ -284,19 +401,14 @@ export async function uploadAvatar(
 
   onProgress?.(30);
 
-  const { error: uploadError } = await supabase.storage
-    .from('avatars')
-    .upload(path, file, {
-      cacheControl: '3600',
-      upsert: false,
-    });
-
-  onProgress?.(90);
-
-  if (uploadError) {
-    throw new Error(`Upload failed: ${uploadError.message}`);
+  try {
+    await uploadToSupabase('avatars', path, file, file.type || 'image/jpeg');
+  } catch (err) {
+    console.error('[Upload] Avatar upload error:', err);
+    throw err;
   }
 
+  onProgress?.(90);
   onProgress?.(100);
 
   return getPublicUrl(path, 'avatars');
@@ -304,8 +416,6 @@ export async function uploadAvatar(
 
 /**
  * Delete an image from a storage bucket.
- * @param path — the file path within the bucket (e.g. "userId/artworkId/file.jpg")
- * @param bucket — the bucket name ("artwork-images" or "avatars")
  */
 export async function deleteImage(path: string, bucket: string): Promise<void> {
   const supabase = createClient();
@@ -326,7 +436,6 @@ export function getPublicUrl(path: string, bucket: string): string {
 
 /**
  * Extract the storage path from a full public URL.
- * Useful when you need to delete an image and only have the URL.
  */
 export function getPathFromUrl(url: string, bucket: string): string | null {
   const marker = `/storage/v1/object/public/${bucket}/`;

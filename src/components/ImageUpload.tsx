@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useRef, useState } from 'react';
-import { ImagePlus, X, GripVertical, Loader2, AlertCircle } from 'lucide-react';
+import { ImagePlus, X, GripVertical, Loader2, AlertCircle, RotateCw } from 'lucide-react';
 import Image from 'next/image';
 
 interface ImageItem {
@@ -39,7 +39,7 @@ const ACCEPTED_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 
 export default function ImageUpload({
   maxFiles = 6,
-  maxSizeMB = 10,
+  maxSizeMB = 15,
   initialImages = [],
   onImagesChange,
   uploadFile,
@@ -57,6 +57,9 @@ export default function ImageUpload({
   const [dragIndex, setDragIndex] = useState<number | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Are any images currently uploading?
+  const anyUploading = images.some((img) => img.uploading);
+
   // Notify parent of URL changes
   const notifyParent = useCallback(
     (items: ImageItem[]) => {
@@ -66,6 +69,58 @@ export default function ImageUpload({
       onImagesChange(urls);
     },
     [onImagesChange]
+  );
+
+  // Upload a single file for a given image item
+  const uploadSingleFile = useCallback(
+    async (file: File, itemId: string) => {
+      // Mark as uploading
+      setImages((prev) =>
+        prev.map((img) =>
+          img.id === itemId ? { ...img, uploading: true, error: undefined, progress: 0 } : img
+        )
+      );
+
+      try {
+        const url = await uploadFile(file, (progress) => {
+          setImages((prev) =>
+            prev.map((img) => (img.id === itemId ? { ...img, progress } : img))
+          );
+        });
+
+        setImages((prev) => {
+          const updated = prev.map((img) =>
+            img.id === itemId
+              ? { ...img, url, uploading: false, progress: 100, error: undefined }
+              : img
+          );
+          notifyParent(updated);
+          return updated;
+        });
+      } catch (err) {
+        const message = err instanceof Error ? err.message : 'Upload failed';
+        console.error(`[ImageUpload] Upload failed for ${file.name}:`, message);
+        setImages((prev) =>
+          prev.map((img) =>
+            img.id === itemId
+              ? { ...img, uploading: false, error: message }
+              : img
+          )
+        );
+      }
+    },
+    [uploadFile, notifyParent]
+  );
+
+  // Retry a failed upload
+  const retryUpload = useCallback(
+    (id: string) => {
+      const img = images.find((i) => i.id === id);
+      if (img?.file) {
+        uploadSingleFile(img.file, id);
+      }
+    },
+    [images, uploadSingleFile]
   );
 
   // Validate and add files
@@ -106,49 +161,22 @@ export default function ImageUpload({
         validFiles.push({ file, item });
       }
 
-      // Add placeholders immediately
+      // Add placeholders immediately (shows local preview)
       const newItems = validFiles.map((v) => v.item);
-      const updatedImages = [...images, ...newItems];
-      setImages(updatedImages);
+      setImages((prev) => [...prev, ...newItems]);
 
       // Upload each file
       for (const { file, item } of validFiles) {
-        try {
-          const url = await uploadFile(file, (progress) => {
-            setImages((prev) =>
-              prev.map((img) => (img.id === item.id ? { ...img, progress } : img))
-            );
-          });
-
-          setImages((prev) => {
-            const updated = prev.map((img) =>
-              img.id === item.id
-                ? { ...img, url, uploading: false, progress: 100 }
-                : img
-            );
-            notifyParent(updated);
-            return updated;
-          });
-        } catch (err) {
-          const message = err instanceof Error ? err.message : 'Upload failed';
-          setImages((prev) =>
-            prev.map((img) =>
-              img.id === item.id
-                ? { ...img, uploading: false, error: message }
-                : img
-            )
-          );
-        }
+        uploadSingleFile(file, item.id);
       }
     },
-    [images, maxFiles, maxSizeMB, uploadFile, notifyParent]
+    [images, maxFiles, maxSizeMB, uploadSingleFile]
   );
 
   // Remove an image
   const removeImage = useCallback(
     (id: string) => {
       setImages((prev) => {
-        // Revoke blob URL to free memory
         const img = prev.find((i) => i.id === id);
         if (img?.preview) URL.revokeObjectURL(img.preview);
 
@@ -271,13 +299,21 @@ export default function ImageUpload({
         </div>
       )}
 
+      {/* Uploading indicator */}
+      {anyUploading && (
+        <div className="flex items-center gap-2 text-xs text-muted">
+          <Loader2 className="h-3 w-3 animate-spin" />
+          <span>Uploading — please wait...</span>
+        </div>
+      )}
+
       {/* Image grid */}
       {images.length > 0 && (
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
           {images.map((img, index) => (
             <div
               key={img.id}
-              draggable
+              draggable={!img.uploading}
               onDragStart={() => handleReorderDragStart(index)}
               onDragOver={(e) => handleReorderDragOver(e, index)}
               onDragEnd={handleReorderDragEnd}
@@ -287,7 +323,7 @@ export default function ImageUpload({
                   : 'border-border hover:border-accent/40'
               } ${img.error ? 'border-error/40' : ''}`}
             >
-              {/* Thumbnail */}
+              {/* Thumbnail — uses local preview immediately, then Supabase URL */}
               <Image
                 src={img.preview || img.url}
                 alt={`Upload ${index + 1}`}
@@ -296,24 +332,39 @@ export default function ImageUpload({
                 sizes="(max-width: 640px) 50vw, 33vw"
               />
 
-              {/* Upload progress overlay */}
+              {/* Upload progress overlay — spinner, not stuck percentage */}
               {img.uploading && (
                 <div className="absolute inset-0 bg-black/40 flex items-center justify-center backdrop-blur-[2px]">
                   <div className="flex flex-col items-center gap-2">
                     <Loader2 className="h-6 w-6 text-white animate-spin" />
-                    <span className="text-xs text-white font-medium">{img.progress}%</span>
+                    <span className="text-xs text-white/80 font-medium">
+                      {img.progress < 40
+                        ? 'Compressing...'
+                        : img.progress < 90
+                          ? 'Uploading...'
+                          : 'Finishing...'}
+                    </span>
                   </div>
                 </div>
               )}
 
-              {/* Error overlay */}
+              {/* Error overlay — tap to retry */}
               {img.error && (
-                <div className="absolute inset-0 bg-error/20 flex items-center justify-center backdrop-blur-[2px]">
-                  <div className="flex flex-col items-center gap-1 px-3 text-center">
-                    <AlertCircle className="h-5 w-5 text-error" />
-                    <span className="text-xs text-error font-medium leading-tight">{img.error}</span>
+                <button
+                  type="button"
+                  onClick={() => retryUpload(img.id)}
+                  className="absolute inset-0 bg-red-900/60 flex items-center justify-center backdrop-blur-[2px] cursor-pointer"
+                >
+                  <div className="flex flex-col items-center gap-1.5 px-3 text-center">
+                    <RotateCw className="h-5 w-5 text-white" />
+                    <span className="text-xs text-white font-medium leading-tight">
+                      Failed — tap to retry
+                    </span>
+                    <span className="text-[10px] text-white/70 leading-tight max-w-[120px] truncate">
+                      {img.error}
+                    </span>
                   </div>
-                </div>
+                </button>
               )}
 
               {/* Primary badge */}
@@ -324,7 +375,7 @@ export default function ImageUpload({
               )}
 
               {/* Hover controls */}
-              {!img.uploading && (
+              {!img.uploading && !img.error && (
                 <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-200">
                   {/* Drag handle */}
                   <div className="absolute top-2 left-2 p-1.5 bg-white/90 rounded-lg cursor-grab active:cursor-grabbing shadow-sm">
@@ -343,6 +394,20 @@ export default function ImageUpload({
                     <X className="h-3.5 w-3.5" />
                   </button>
                 </div>
+              )}
+
+              {/* Remove button for errored items */}
+              {img.error && (
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    removeImage(img.id);
+                  }}
+                  className="absolute top-2 right-2 p-1.5 bg-white/90 rounded-lg hover:bg-error hover:text-white transition-colors shadow-sm z-10"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
               )}
             </div>
           ))}
