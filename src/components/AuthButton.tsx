@@ -178,15 +178,26 @@ export default function AuthButton() {
   async function handleSignOut() {
     setMenuOpen(false);
     setProfile(null);
+
+    // Force redirect after 2 seconds no matter what — in case signOut() hangs
+    const forceRedirect = setTimeout(() => {
+      clearSupabaseCookies();
+      window.location.href = '/';
+    }, 2000);
+
     try {
       const supabase = createClient();
-      await supabase.auth.signOut();
+      // Race signOut against a 1.5s timeout
+      await Promise.race([
+        supabase.auth.signOut(),
+        new Promise((resolve) => setTimeout(resolve, 1500)),
+      ]);
     } catch {
       // Ignore signOut errors
     }
-    // Clear any stale Supabase cookies
+
+    clearTimeout(forceRedirect);
     clearSupabaseCookies();
-    // Force full page reload to clear all cached React state and session data
     window.location.href = '/';
   }
 
