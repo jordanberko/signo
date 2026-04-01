@@ -54,7 +54,6 @@ export default function AuthButton() {
         console.error('[AuthButton] Profile fetch error:', error.message);
         return null;
       }
-      console.log('[AuthButton] Fetched profile:', data);
       return data;
     } catch (err) {
       console.error('[AuthButton] Profile fetch exception:', err);
@@ -77,14 +76,12 @@ export default function AuthButton() {
         }
 
         if (session?.user) {
-          console.log('[AuthButton] Session found:', session.user.email);
           const prof = await fetchProfile(session.user.id);
           if (!cancelled) {
             setProfile(prof);
             setLoading(false);
           }
         } else {
-          console.log('[AuthButton] No session — not logged in');
           if (!cancelled) {
             setProfile(null);
             setLoading(false);
@@ -100,7 +97,6 @@ export default function AuthButton() {
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        console.log('[AuthButton] onAuthStateChange:', event, session?.user?.email ?? 'no user');
 
         if (event === 'SIGNED_OUT') {
           if (!cancelled) {
@@ -149,9 +145,6 @@ export default function AuthButton() {
     // Force full page reload to clear all cached React state and session data
     window.location.href = '/';
   }
-
-  // Debug render state
-  console.log('[AuthButton] render — loading:', loading, 'profile:', profile?.full_name ?? 'null');
 
   // --- Loading state ---
   if (loading) {
@@ -212,16 +205,16 @@ export default function AuthButton() {
       {profile.avatar_url ? (
         <button
           type="button"
-          onClick={() => {
-            console.log('[AuthButton] Avatar clicked, menuOpen will be:', !menuOpen);
-            setMenuOpen(!menuOpen);
-          }}
+          onClick={() => setMenuOpen(!menuOpen)}
           style={{
             width: 40,
             height: 40,
+            minWidth: 40,
+            minHeight: 40,
             borderRadius: '50%',
             overflow: 'hidden',
             border: 'none',
+            outline: 'none',
             cursor: 'pointer',
             padding: 0,
             background: '#E8E2D9',
@@ -241,13 +234,12 @@ export default function AuthButton() {
       ) : (
         <button
           type="button"
-          onClick={() => {
-            console.log('[AuthButton] Avatar clicked, menuOpen will be:', !menuOpen);
-            setMenuOpen(!menuOpen);
-          }}
+          onClick={() => setMenuOpen(!menuOpen)}
           style={{
             width: 40,
             height: 40,
+            minWidth: 40,
+            minHeight: 40,
             borderRadius: '50%',
             backgroundColor: '#2C2C2A',
             color: '#FFFFFF',
@@ -257,6 +249,7 @@ export default function AuthButton() {
             alignItems: 'center',
             justifyContent: 'center',
             border: 'none',
+            outline: 'none',
             cursor: 'pointer',
             position: 'relative',
             zIndex: 50,
