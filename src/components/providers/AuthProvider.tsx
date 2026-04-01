@@ -1,11 +1,11 @@
 'use client';
 
-import { createContext, useContext, useEffect, useState } from 'react';
-import type { User } from '@/types/database';
-import { getCurrentUser, onAuthStateChange } from '@/lib/supabase/auth';
+import { createContext, useContext, useEffect, useRef, useState } from 'react';
+import type { Profile } from '@/lib/types/database';
+import { createClient } from '@/lib/supabase/client';
 
 interface AuthContextType {
-  user: User | null;
+  user: Profile | null;
   loading: boolean;
   refreshUser: () => Promise<void>;
   clearUser: () => void;
@@ -18,17 +18,38 @@ const AuthContext = createContext<AuthContextType>({
   clearUser: () => {},
 });
 
+/**
+ * Fetch a user's profile row from the profiles table.
+ * Returns null if not found or on error.
+ */
+async function fetchProfile(userId: string): Promise<Profile | null> {
+  try {
+    const supabase = createClient();
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', userId)
+      .single();
+    if (error || !data) return null;
+    return data;
+  } catch {
+    return null;
+  }
+}
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
-  const [initialCheckDone, setInitialCheckDone] = useState(false);
+  const mountedRef = useRef(true);
 
   async function refreshUser() {
-    try {
-      const profile = await getCurrentUser();
-      setUser(profile);
-    } catch {
-      setUser(null);
+    const supabase = createClient();
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session?.user) {
+      const profile = await fetchProfile(session.user.id);
+      if (mountedRef.current) setUser(profile);
+    } else {
+      if (mountedRef.current) setUser(null);
     }
   }
 
@@ -37,69 +58,79 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   useEffect(() => {
-    let mounted = true;
+    mountedRef.current = true;
+    const supabase = createClient();
 
-    // Primary auth check — getCurrentUser is authoritative for initial load
-    getCurrentUser()
-      .then((profile) => {
-        if (mounted) {
-          setUser(profile);
-          setInitialCheckDone(true);
-          setLoading(false);
-        }
-      })
-      .catch(() => {
-        if (mounted) {
-          setUser(null);
-          setInitialCheckDone(true);
-          setLoading(false);
-        }
-      });
+    // 1. Fast initial check using getSession() (reads local storage, no network call).
+    //    This gives us the session immediately if one exists.
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
+      if (!mountedRef.current) return;
 
-    // Listen for auth state changes (sign in, sign out, token refresh)
-    const { data: { subscription } } = onAuthStateChange((profile, event) => {
-      if (!mounted) return;
-
-      // For INITIAL_SESSION: only update if we haven't completed getCurrentUser yet,
-      // AND the session actually has a user. Don't overwrite a valid user with null
-      // from INITIAL_SESSION (which can fire before cookies are fully restored).
-      if (event === 'INITIAL_SESSION') {
-        if (!initialCheckDone && profile) {
+      if (session?.user) {
+        const profile = await fetchProfile(session.user.id);
+        if (mountedRef.current) {
           setUser(profile);
           setLoading(false);
         }
-        return;
-      }
-
-      // For SIGNED_IN and TOKEN_REFRESHED: always update the user
-      if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED') {
-        setUser(profile);
-        setLoading(false);
-        return;
-      }
-
-      // For SIGNED_OUT: clear the user
-      if (event === 'SIGNED_OUT') {
+      } else {
+        // No session in local storage — user is not logged in
         setUser(null);
         setLoading(false);
-        return;
       }
     });
 
-    // Safety timeout: if auth takes longer than 3 seconds, stop loading
-    // so the header always renders something rather than nothing
-    const timeout = setTimeout(() => {
-      if (mounted) {
-        setLoading(false);
+    // 2. Subscribe to all auth state changes.
+    //    This handles: sign in, sign out, token refresh, initial session.
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        if (!mountedRef.current) return;
+
+        if (event === 'SIGNED_OUT') {
+          setUser(null);
+          setLoading(false);
+          return;
+        }
+
+        if (session?.user) {
+          // For SIGNED_IN, fetch profile (with retry for new signups where
+          // the database trigger may not have created the profile row yet)
+          if (event === 'SIGNED_IN') {
+            let profile: Profile | null = null;
+            for (let attempt = 0; attempt < 3; attempt++) {
+              profile = await fetchProfile(session.user.id);
+              if (profile) break;
+              if (attempt < 2) {
+                await new Promise((r) => setTimeout(r, attempt === 0 ? 200 : 500));
+              }
+            }
+            if (mountedRef.current) {
+              setUser(profile);
+              setLoading(false);
+            }
+          } else if (event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED') {
+            const profile = await fetchProfile(session.user.id);
+            if (mountedRef.current) {
+              setUser(profile);
+              setLoading(false);
+            }
+          }
+          // INITIAL_SESSION is handled by getSession() above — skip here to avoid race
+        }
       }
-    }, 3000);
+    );
+
+    // 3. Safety timeout — if nothing resolves within 2s, stop loading
+    //    so the header always renders something.
+    const timeout = setTimeout(() => {
+      if (mountedRef.current) setLoading(false);
+    }, 2000);
 
     return () => {
-      mounted = false;
+      mountedRef.current = false;
       subscription.unsubscribe();
       clearTimeout(timeout);
     };
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
     <AuthContext.Provider value={{ user, loading, refreshUser, clearUser }}>
