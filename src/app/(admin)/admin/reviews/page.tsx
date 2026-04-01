@@ -25,11 +25,17 @@ export default function AdminReviewsPage() {
   async function fetchArtworks() {
     setLoading(true);
     const supabase = createClient();
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('artworks')
       .select('*, profiles!artworks_artist_id_fkey(*)')
       .eq('status', filter)
       .order('created_at', { ascending: true });
+
+    if (error) {
+      console.error('[AdminReviews] Query error:', error.message, error.details);
+    }
+
+    console.log(`[AdminReviews] Fetched ${data?.length ?? 0} artworks with status "${filter}"`);
 
     if (data) {
       setArtworks(data.map((a: Record<string, unknown>) => ({
