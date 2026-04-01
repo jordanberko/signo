@@ -153,33 +153,29 @@ export default function AuthButton() {
   // --- Loading state ---
   if (loading) {
     return (
-      <>
-        <div className="ml-3">
-          <div className="w-9 h-9 rounded-full bg-muted-bg animate-pulse" />
-        </div>
-      </>
+      <div className="relative z-50 ml-4 flex-shrink-0">
+        <div className="w-10 h-10 rounded-full bg-muted-bg animate-pulse" />
+      </div>
     );
   }
 
   // --- Not logged in ---
   if (!profile) {
     return (
-      <>
-        <div className="flex items-center gap-2 ml-3">
-          <Link
-            href="/login"
-            className="px-4 py-2 text-sm font-medium text-foreground hover:text-accent-dark transition-colors"
-          >
-            Sign In
-          </Link>
-          <Link
-            href="/register"
-            className="px-4 py-2 bg-accent text-primary text-sm font-semibold rounded-full hover:bg-accent-light transition-colors duration-300"
-          >
-            Join Signo
-          </Link>
-        </div>
-      </>
+      <div className="flex items-center gap-2 ml-4 flex-shrink-0">
+        <Link
+          href="/login"
+          className="px-4 py-2 text-sm font-medium text-foreground hover:text-accent-dark transition-colors"
+        >
+          Sign In
+        </Link>
+        <Link
+          href="/register"
+          className="px-4 py-2 bg-accent text-primary text-sm font-semibold rounded-full hover:bg-accent-light transition-colors duration-300"
+        >
+          Join Signo
+        </Link>
+      </div>
     );
   }
 
@@ -187,37 +183,35 @@ export default function AuthButton() {
   const initials = getInitials(profile.full_name ?? '');
 
   return (
-    <>
-      <div className="relative ml-3" ref={menuRef}>
-        {/* Avatar button */}
-        {profile.avatar_url ? (
-          <button
-            type="button"
-            onClick={() => setMenuOpen(!menuOpen)}
-            className="rounded-full overflow-hidden ring-2 ring-transparent hover:ring-accent/30 transition-all duration-200"
-            style={{ width: 36, height: 36 }}
-          >
-            <Image
-              src={profile.avatar_url}
-              alt={profile.full_name ?? 'Avatar'}
-              width={36}
-              height={36}
-              className="object-cover w-full h-full"
-            />
-          </button>
-        ) : (
-          <button
-            type="button"
-            onClick={() => setMenuOpen(!menuOpen)}
-            className="w-9 h-9 rounded-full bg-primary text-white text-xs font-semibold flex items-center justify-center hover:bg-accent hover:text-primary transition-colors duration-200 ring-2 ring-transparent hover:ring-accent/30"
-          >
-            {initials || <User className="h-4 w-4" />}
-          </button>
-        )}
+    <div className="relative z-50 ml-4 flex-shrink-0" ref={menuRef}>
+      {/* Avatar button */}
+      {profile.avatar_url ? (
+        <button
+          type="button"
+          onClick={() => setMenuOpen(!menuOpen)}
+          className="w-10 h-10 rounded-full overflow-hidden ring-2 ring-border hover:ring-accent/50 transition-all duration-200 cursor-pointer"
+        >
+          <Image
+            src={profile.avatar_url}
+            alt={profile.full_name ?? 'Avatar'}
+            width={40}
+            height={40}
+            className="object-cover w-full h-full"
+          />
+        </button>
+      ) : (
+        <button
+          type="button"
+          onClick={() => setMenuOpen(!menuOpen)}
+          className="w-10 h-10 rounded-full bg-primary text-white text-sm font-semibold flex items-center justify-center hover:bg-accent hover:text-primary transition-colors duration-200 ring-2 ring-border hover:ring-accent/50 cursor-pointer"
+        >
+          {initials || <User className="h-4 w-4" />}
+        </button>
+      )}
 
         {/* Dropdown */}
         {menuOpen && (
-          <div className="absolute right-0 mt-2 w-64 bg-white border border-border rounded-xl shadow-xl py-1 z-50 animate-scale-in origin-top-right">
+          <div className="absolute right-0 mt-2 w-64 bg-white border border-border rounded-xl shadow-xl py-1 z-[60] animate-scale-in origin-top-right">
             {/* User info */}
             <div className="px-4 py-3 border-b border-border">
               <p className="font-medium text-sm truncate">{profile.full_name || 'User'}</p>
@@ -261,8 +255,7 @@ export default function AuthButton() {
             </div>
           </div>
         )}
-      </div>
-    </>
+    </div>
   );
 }
 
