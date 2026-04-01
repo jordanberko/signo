@@ -75,22 +75,25 @@ export default function AuthButton() {
     let cancelled = false;
     const supabase = createClient();
 
-    // Hard 3-second timeout: if auth check hasn't resolved, assume not logged in
+    // Hard 5-second timeout
     const timeout = setTimeout(() => {
-      if (cancelled) return;
-      cancelled = true;
-      setProfile(null);
-      setLoading(false);
-    }, 3000);
+      if (!cancelled) {
+        cancelled = true;
+        setProfile(null);
+        setLoading(false);
+      }
+    }, 5000);
 
-    async function init() {
+    async function checkAuth() {
       try {
-        const { data: { session }, error } = await supabase.auth.getSession();
+        // Use getUser() which validates the token with Supabase servers
+        // and reads from cookies (same cookies the middleware refreshes).
+        // getSession() only reads in-memory cache which can be stale.
+        const { data: { user: authUser }, error } = await supabase.auth.getUser();
 
         if (cancelled) return;
 
-        if (error || !session?.user) {
-          // No session or error — not logged in
+        if (error || !authUser) {
           cancelled = true;
           clearTimeout(timeout);
           setProfile(null);
@@ -98,42 +101,31 @@ export default function AuthButton() {
           return;
         }
 
-        // Session exists — try to fetch profile to validate it's not stale
-        const prof = await fetchProfile(session.user.id);
+        const prof = await fetchProfile(authUser.id);
 
         if (cancelled) return;
         clearTimeout(timeout);
         cancelled = true;
 
         if (prof) {
-          // Valid session + valid profile
           setProfile(prof);
-          setLoading(false);
         } else {
-          // Session exists but profile fetch failed — stale/invalid session
-          // Clear the bad session silently
-          try {
-            await supabase.auth.signOut();
-          } catch {
-            // Ignore signOut errors
-          }
-          clearSupabaseCookies();
+          setProfile(null);
+        }
+        setLoading(false);
+      } catch {
+        if (!cancelled) {
+          cancelled = true;
+          clearTimeout(timeout);
           setProfile(null);
           setLoading(false);
         }
-      } catch {
-        // Any error at all — default to not logged in
-        if (cancelled) return;
-        clearTimeout(timeout);
-        cancelled = true;
-        setProfile(null);
-        setLoading(false);
       }
     }
 
-    init();
+    checkAuth();
 
-    // Listen for auth state changes (login, logout, token refresh)
+    // Listen for auth state changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         if (event === 'SIGNED_OUT') {
@@ -142,15 +134,10 @@ export default function AuthButton() {
           return;
         }
 
-        if (session?.user) {
+        if (event === 'SIGNED_IN' && session?.user) {
           const prof = await fetchProfile(session.user.id);
           if (prof) {
             setProfile(prof);
-          } else {
-            // Stale session on auth change — clear it
-            try { await supabase.auth.signOut(); } catch { /* ignore */ }
-            clearSupabaseCookies();
-            setProfile(null);
           }
           setLoading(false);
         }
