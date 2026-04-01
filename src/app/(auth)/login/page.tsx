@@ -2,10 +2,9 @@
 
 import Link from 'next/link';
 import { useState } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 import { Eye, EyeOff, Loader2 } from 'lucide-react';
 import { signIn, signInWithGoogle } from '@/lib/supabase/auth';
-import { useAuth } from '@/components/providers/AuthProvider';
 import { createClient } from '@/lib/supabase/client';
 import { Suspense } from 'react';
 
@@ -21,7 +20,6 @@ function GoogleIcon() {
 }
 
 function LoginForm() {
-  const router = useRouter();
   const searchParams = useSearchParams();
   const authError = searchParams.get('error');
 
@@ -31,8 +29,6 @@ function LoginForm() {
   const [error, setError] = useState(authError === 'auth' ? 'Something went wrong with sign in. Please try again.' : '');
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
-
-  const { refreshUser } = useAuth();
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -55,35 +51,40 @@ function LoginForm() {
     }
 
     try {
-      await refreshUser();
+      // Figure out where to redirect
+      const rawRedirect = searchParams.get('redirect');
+      let destination = rawRedirect ? decodeURIComponent(rawRedirect) : null;
 
-      // Redirect based on role
-      const supabase = createClient();
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('role')
-          .eq('id', user.id)
-          .single();
-
-        const redirect = searchParams.get('redirect');
-        if (redirect) {
-          router.push(redirect);
-        } else if (profile?.role === 'artist') {
-          router.push('/artist/dashboard');
+      if (!destination) {
+        // Check role to decide default destination
+        const supabase = createClient();
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('role')
+            .eq('id', user.id)
+            .single();
+          destination = profile?.role === 'artist' ? '/artist/dashboard' : '/dashboard';
         } else {
-          router.push('/dashboard');
+          destination = '/dashboard';
         }
-      } else {
-        router.push('/dashboard');
       }
 
-      router.refresh();
+      // Use window.location.href for a full page reload — router.push hangs
+      window.location.href = destination;
     } catch {
-      setError('Something went wrong. Please try again.');
-      setLoading(false);
+      // Even if something fails, force redirect after showing error briefly
+      setError('Something went wrong. Redirecting...');
+      setTimeout(() => {
+        window.location.href = '/dashboard';
+      }, 1500);
     }
+
+    // Safety net: if nothing has redirected after 3 seconds, force it
+    setTimeout(() => {
+      window.location.href = '/dashboard';
+    }, 3000);
   }
 
   async function handleGoogleSignIn() {
