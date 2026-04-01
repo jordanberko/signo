@@ -207,7 +207,7 @@ function ArtworkActions({
 // ── Main page ──
 
 export default function ArtistArtworksPage() {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const [activeTab, setActiveTab] = useState(0);
   const [allArtworks, setAllArtworks] = useState<Artwork[]>([]);
   const [loading, setLoading] = useState(true);
@@ -215,17 +215,28 @@ export default function ArtistArtworksPage() {
   const [actionError, setActionError] = useState('');
 
   const fetchArtworks = useCallback(async () => {
-    if (!user) return;
+    if (!user) {
+      // If auth is done loading and there's no user, stop the spinner
+      if (!authLoading) setLoading(false);
+      return;
+    }
     setLoading(true);
-    const supabase = createClient();
-    const { data } = await supabase
-      .from('artworks')
-      .select('*')
-      .eq('artist_id', user.id)
-      .order('created_at', { ascending: false });
-    if (data) setAllArtworks(data as Artwork[]);
+    try {
+      const supabase = createClient();
+      const { data, error } = await supabase
+        .from('artworks')
+        .select('*')
+        .eq('artist_id', user.id)
+        .order('created_at', { ascending: false });
+      if (error) {
+        console.error('[Artworks] Fetch error:', error.message);
+      }
+      if (data) setAllArtworks(data as Artwork[]);
+    } catch (err) {
+      console.error('[Artworks] Fetch exception:', err);
+    }
     setLoading(false);
-  }, [user]);
+  }, [user, authLoading]);
 
   useEffect(() => {
     fetchArtworks();

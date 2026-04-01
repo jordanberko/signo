@@ -3,7 +3,6 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { useRouter } from 'next/navigation';
 import {
   User,
   LogOut,
@@ -39,7 +38,6 @@ export default function AuthButton() {
   const [loading, setLoading] = useState(true);
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
-  const router = useRouter();
 
   const isArtist = profile?.role === 'artist' || profile?.role === 'admin';
   const isAdmin = profile?.role === 'admin';
@@ -142,10 +140,14 @@ export default function AuthButton() {
   async function handleSignOut() {
     setMenuOpen(false);
     setProfile(null);
-    const supabase = createClient();
-    await supabase.auth.signOut();
-    router.push('/');
-    router.refresh();
+    try {
+      const supabase = createClient();
+      await supabase.auth.signOut();
+    } catch (err) {
+      console.error('[AuthButton] Sign out error:', err);
+    }
+    // Force full page reload to clear all cached React state and session data
+    window.location.href = '/';
   }
 
   // Debug render state
@@ -219,12 +221,13 @@ export default function AuthButton() {
             height: 40,
             borderRadius: '50%',
             overflow: 'hidden',
-            border: '2px solid #ddd7ce',
+            border: 'none',
             cursor: 'pointer',
             padding: 0,
-            background: 'none',
+            background: '#E8E2D9',
             position: 'relative',
             zIndex: 50,
+            flexShrink: 0,
           }}
         >
           <Image
@@ -253,10 +256,11 @@ export default function AuthButton() {
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            border: '2px solid #ddd7ce',
+            border: 'none',
             cursor: 'pointer',
             position: 'relative',
             zIndex: 50,
+            flexShrink: 0,
             padding: 0,
             lineHeight: 1,
           }}
