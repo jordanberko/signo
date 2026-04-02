@@ -41,7 +41,7 @@ export default function AdminDisputesPage() {
 
     let query = supabase
       .from('disputes')
-      .select('*, orders(id, total_amount_aud, artworks(title), buyer:profiles!orders_buyer_id_fkey(full_name, email), artist:profiles!orders_artist_id_fkey(full_name, email))')
+      .select('*, orders(id, total_amount_aud, artworks(title), profiles!orders_buyer_id_fkey(full_name, email), profiles!orders_artist_id_fkey(full_name, email))')
       .order('created_at', { ascending: false });
 
     if (filter !== 'all') {
@@ -55,11 +55,9 @@ export default function AdminDisputesPage() {
         return {
           ...d,
           orders: {
-            id: order?.id,
-            total_amount_aud: order?.total_amount_aud,
-            artworks: order?.artworks as { title: string },
-            buyer: (order?.buyer as { full_name: string; email: string }) || { full_name: 'Unknown', email: '' },
-            artist: (order?.artist as { full_name: string; email: string }) || { full_name: 'Unknown', email: '' },
+            ...order,
+            buyer: (order as Record<string, unknown[]>).profiles?.[0] || { full_name: 'Unknown', email: '' },
+            artist: (order as Record<string, unknown[]>).profiles?.[1] || { full_name: 'Unknown', email: '' },
           },
         };
       }) as unknown as DisputeRow[]);

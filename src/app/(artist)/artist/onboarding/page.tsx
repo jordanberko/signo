@@ -81,30 +81,15 @@ export default function ArtistOnboardingPage() {
   }, [user]);
 
   // Step 1 — Profile
-  const [fullName, setFullName] = useState('');
-  const [bio, setBio] = useState('');
-  const [location, setLocation] = useState('');
-  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [fullName, setFullName] = useState(user?.full_name ?? '');
+  const [bio, setBio] = useState(user?.bio ?? '');
+  const [location, setLocation] = useState(user?.location ?? '');
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(user?.avatar_url ?? null);
 
   // Step 2 — Socials
-  const [instagram, setInstagram] = useState('');
-  const [website, setWebsite] = useState('');
-  const [otherLink, setOtherLink] = useState('');
-
-  // Pre-populate form fields when user data loads (e.g. buyer upgrading to artist)
-  const [prefilled, setPrefilled] = useState(false);
-  useEffect(() => {
-    if (user && !prefilled) {
-      setPrefilled(true);
-      if (user.full_name) setFullName(user.full_name);
-      if (user.bio) setBio(user.bio);
-      if (user.location) setLocation(user.location);
-      if (user.avatar_url) setAvatarUrl(user.avatar_url);
-      if (user.social_links?.instagram) setInstagram(user.social_links.instagram);
-      if (user.social_links?.website) setWebsite(user.social_links.website);
-      if (user.social_links?.other) setOtherLink(user.social_links.other);
-    }
-  }, [user, prefilled]);
+  const [instagram, setInstagram] = useState(user?.social_links?.instagram ?? '');
+  const [website, setWebsite] = useState(user?.social_links?.website ?? '');
+  const [otherLink, setOtherLink] = useState(user?.social_links?.other ?? '');
 
   // Step 3 — Terms
   const [agreedToTerms, setAgreedToTerms] = useState(false);
