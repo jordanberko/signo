@@ -420,9 +420,40 @@ function RegisterForm() {
   );
 }
 
+function RegisterFallback() {
+  return (
+    <div className="min-h-[80vh] flex items-center justify-center px-4 py-12">
+      <div className="w-full max-w-md">
+        <div className="text-center mb-10">
+          <span className="font-editorial text-3xl font-medium text-primary">SIGNO</span>
+          <h1 className="font-editorial text-2xl font-medium mt-6">Join the community</h1>
+          <p className="mt-2 text-sm text-muted">Create your account to start buying and selling</p>
+        </div>
+        <div className="space-y-5">
+          <div className="w-full h-12 bg-muted-bg rounded-full animate-pulse" />
+          <div className="flex items-center gap-4 my-6">
+            <div className="flex-1 h-px bg-border" />
+            <span className="text-xs text-warm-gray uppercase tracking-wider">or</span>
+            <div className="flex-1 h-px bg-border" />
+          </div>
+          <div className="h-5 w-32 bg-muted-bg rounded animate-pulse" />
+          <div className="grid grid-cols-2 gap-3">
+            <div className="h-24 bg-muted-bg rounded-xl animate-pulse" />
+            <div className="h-24 bg-muted-bg rounded-xl animate-pulse" />
+          </div>
+          <div className="w-full h-12 bg-muted-bg rounded-xl animate-pulse" />
+          <div className="w-full h-12 bg-muted-bg rounded-xl animate-pulse" />
+          <div className="w-full h-12 bg-muted-bg rounded-xl animate-pulse" />
+          <div className="w-full h-12 bg-primary/30 rounded-full animate-pulse" />
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function RegisterPage() {
   return (
-    <Suspense>
+    <Suspense fallback={<RegisterFallback />}>
       <RegisterForm />
     </Suspense>
   );

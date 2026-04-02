@@ -7,8 +7,23 @@ import { NextResponse, type NextRequest } from 'next/server';
  * No redirects, no role checks, no auth gating.
  * Pages handle their own auth via useRequireAuth hook.
  * This prevents the middleware from breaking sessions.
+ *
+ * Optimisation: skips the getUser() network call entirely when
+ * no Supabase auth cookies are present (i.e. anonymous visitors).
  */
 export async function updateSession(request: NextRequest) {
+  // Fast path: if no Supabase auth cookies exist, skip the network call.
+  // This avoids a 200-500ms round-trip to Supabase on every anonymous request.
+  const hasAuthCookies = request.cookies.getAll().some(
+    (c) => c.name.startsWith('sb-')
+  );
+
+  if (!hasAuthCookies) {
+    return NextResponse.next({
+      request: { headers: request.headers },
+    });
+  }
+
   let response = NextResponse.next({
     request: {
       headers: request.headers,

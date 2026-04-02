@@ -2,9 +2,8 @@
 
 import Link from 'next/link';
 import Image from 'next/image';
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import {
-  User,
   LogOut,
   Palette,
   LayoutDashboard,
@@ -16,14 +15,7 @@ import {
   DollarSign,
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
-
-interface UserProfile {
-  id: string;
-  email: string | null;
-  full_name: string | null;
-  role: string;
-  avatar_url: string | null;
-}
+import { useAuth } from '@/components/providers/AuthProvider';
 
 function getInitials(name: string): string {
   if (!name || !name.trim()) return '?';
@@ -48,108 +40,15 @@ function clearSupabaseCookies() {
 }
 
 export default function AuthButton() {
-  const [profile, setProfile] = useState<UserProfile | null>(null);
-  const [loading, setLoading] = useState(true);
+  // Use the shared AuthProvider context instead of making independent API calls.
+  // This eliminates redundant getUser() + fetchProfile() calls on every page load.
+  const { user, loading } = useAuth();
+
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
-  const isArtist = profile?.role === 'artist' || profile?.role === 'admin';
-  const isAdmin = profile?.role === 'admin';
-
-  const fetchProfile = useCallback(async (userId: string): Promise<UserProfile | null> => {
-    try {
-      const supabase = createClient();
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('id, email, full_name, role, avatar_url')
-        .eq('id', userId)
-        .single();
-      if (error || !data) return null;
-      return data;
-    } catch {
-      return null;
-    }
-  }, []);
-
-  useEffect(() => {
-    let cancelled = false;
-    const supabase = createClient();
-
-    // Hard 5-second timeout
-    const timeout = setTimeout(() => {
-      if (!cancelled) {
-        cancelled = true;
-        setProfile(null);
-        setLoading(false);
-      }
-    }, 5000);
-
-    async function checkAuth() {
-      try {
-        // Use getUser() which validates the token with Supabase servers
-        // and reads from cookies (same cookies the middleware refreshes).
-        // getSession() only reads in-memory cache which can be stale.
-        const { data: { user: authUser }, error } = await supabase.auth.getUser();
-
-        if (cancelled) return;
-
-        if (error || !authUser) {
-          cancelled = true;
-          clearTimeout(timeout);
-          setProfile(null);
-          setLoading(false);
-          return;
-        }
-
-        const prof = await fetchProfile(authUser.id);
-
-        if (cancelled) return;
-        clearTimeout(timeout);
-        cancelled = true;
-
-        if (prof) {
-          setProfile(prof);
-        } else {
-          setProfile(null);
-        }
-        setLoading(false);
-      } catch {
-        if (!cancelled) {
-          cancelled = true;
-          clearTimeout(timeout);
-          setProfile(null);
-          setLoading(false);
-        }
-      }
-    }
-
-    checkAuth();
-
-    // Listen for auth state changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        if (event === 'SIGNED_OUT') {
-          setProfile(null);
-          setLoading(false);
-          return;
-        }
-
-        if (event === 'SIGNED_IN' && session?.user) {
-          const prof = await fetchProfile(session.user.id);
-          if (prof) {
-            setProfile(prof);
-          }
-          setLoading(false);
-        }
-      }
-    );
-
-    return () => {
-      cancelled = true;
-      clearTimeout(timeout);
-      subscription.unsubscribe();
-    };
-  }, [fetchProfile]);
+  const isArtist = user?.role === 'artist' || user?.role === 'admin';
+  const isAdmin = user?.role === 'admin';
 
   // Close dropdown on outside click
   useEffect(() => {
@@ -164,7 +63,6 @@ export default function AuthButton() {
 
   async function handleSignOut() {
     setMenuOpen(false);
-    setProfile(null);
 
     // Force redirect after 2 seconds no matter what — in case signOut() hangs
     const forceRedirect = setTimeout(() => {
@@ -205,7 +103,7 @@ export default function AuthButton() {
   }
 
   // --- Not logged in ---
-  if (!profile) {
+  if (!user) {
     return (
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginLeft: 16, flexShrink: 0 }}>
         <Link
@@ -239,12 +137,12 @@ export default function AuthButton() {
   }
 
   // --- Logged in ---
-  const initials = getInitials(profile.full_name ?? '');
+  const initials = getInitials(user.full_name ?? '');
 
   return (
     <div ref={menuRef} style={{ position: 'relative', marginLeft: 16, flexShrink: 0, zIndex: 50 }}>
       {/* Avatar button — ALL inline styles */}
-      {profile.avatar_url ? (
+      {user.avatar_url ? (
         <button
           type="button"
           onClick={() => setMenuOpen(!menuOpen)}
@@ -266,8 +164,8 @@ export default function AuthButton() {
           }}
         >
           <Image
-            src={profile.avatar_url}
-            alt={profile.full_name ?? 'Avatar'}
+            src={user.avatar_url}
+            alt={user.full_name ?? 'Avatar'}
             width={40}
             height={40}
             style={{ objectFit: 'cover', width: '100%', height: '100%' }}
@@ -325,10 +223,10 @@ export default function AuthButton() {
           {/* User info */}
           <div style={{ padding: '12px 16px', borderBottom: '1px solid #E5E2DB' }}>
             <p style={{ fontWeight: 600, fontSize: 14, margin: 0, color: '#1a1a1a' }}>
-              {profile.full_name || 'User'}
+              {user.full_name || 'User'}
             </p>
             <p style={{ fontSize: 12, color: '#8A8880', margin: '2px 0 0 0' }}>
-              {profile.email}
+              {user.email}
             </p>
           </div>
 
