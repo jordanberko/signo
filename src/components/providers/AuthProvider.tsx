@@ -37,10 +37,17 @@ async function fetchProfile(userId: string): Promise<Profile | null> {
   }
 }
 
+/** Check if Supabase auth cookies exist (without any network call). */
+function hasAuthCookies(): boolean {
+  if (typeof document === 'undefined') return false;
+  return document.cookie.split(';').some((c) => c.trim().startsWith('sb-'));
+}
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
   const mountedRef = useRef(true);
+  const resolvedRef = useRef(false);
 
   async function refreshUser() {
     const supabase = createClient();
@@ -59,11 +66,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     mountedRef.current = true;
+    resolvedRef.current = false;
     const supabase = createClient();
 
+    // Fast path: if no auth cookies exist, the user is definitely anonymous.
+    // Resolve immediately without waiting for the Supabase client to initialize.
+    if (!hasAuthCookies()) {
+      setUser(null);
+      setLoading(false);
+      resolvedRef.current = true;
+    }
+
     // Subscribe to all auth state changes including INITIAL_SESSION.
-    // This is the single source of truth for auth state — no separate
-    // getSession() call needed, which avoids lock contention.
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         if (!mountedRef.current) return;
@@ -71,6 +85,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (event === 'SIGNED_OUT') {
           setUser(null);
           setLoading(false);
+          resolvedRef.current = true;
           return;
         }
 
@@ -89,27 +104,33 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             if (mountedRef.current) {
               setUser(profile);
               setLoading(false);
+              resolvedRef.current = true;
             }
           } else if (event === 'INITIAL_SESSION' || event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED') {
             const profile = await fetchProfile(session.user.id);
             if (mountedRef.current) {
               setUser(profile);
               setLoading(false);
+              resolvedRef.current = true;
             }
           }
         } else if (event === 'INITIAL_SESSION') {
           // No session at all — user is not logged in
           setUser(null);
           setLoading(false);
+          resolvedRef.current = true;
         }
       }
     );
 
-    // 3. Safety timeout — if nothing resolves within 2s, stop loading
-    //    so the header always renders something.
+    // Safety timeout — only fires if auth hasn't resolved yet.
+    // 8 seconds is generous enough for lock acquisition + token refresh +
+    // profile fetch, even on cold Vercel functions.
     const timeout = setTimeout(() => {
-      if (mountedRef.current) setLoading(false);
-    }, 2000);
+      if (mountedRef.current && !resolvedRef.current) {
+        setLoading(false);
+      }
+    }, 8000);
 
     return () => {
       mountedRef.current = false;
