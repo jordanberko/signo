@@ -2,14 +2,35 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 
 /**
- * POST /api/auth/session
+ * GET /api/auth/session
  *
- * Called by the login page after successful client-side authentication.
- * This endpoint exists to ensure the server-side Supabase client reads
- * and refreshes the session cookies. Without this server round-trip,
- * the middleware may not see the session on the next navigation.
- *
- * Returns the user's role so the client knows where to redirect.
+ * Returns the current user's full profile if authenticated.
+ * Used by AuthProvider as the primary auth check — runs server-side
+ * so there are no navigator.locks or browser client issues.
+ */
+export async function GET() {
+  try {
+    const supabase = await createClient();
+    const { data: { user }, error } = await supabase.auth.getUser();
+
+    if (error || !user) {
+      return NextResponse.json({ user: null });
+    }
+
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', user.id)
+      .single();
+
+    return NextResponse.json({ user: profile ?? null });
+  } catch {
+    return NextResponse.json({ user: null });
+  }
+}
+
+/**
+ * POST /api/auth/session (legacy — kept for backward compatibility)
  */
 export async function POST() {
   try {
@@ -20,7 +41,6 @@ export async function POST() {
       return NextResponse.json({ authenticated: false, role: null }, { status: 200 });
     }
 
-    // Fetch role for redirect decision
     const { data: profile } = await supabase
       .from('profiles')
       .select('role')

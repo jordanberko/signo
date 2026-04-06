@@ -18,13 +18,13 @@ const AuthContext = createContext<AuthContextType>({
   clearUser: () => {},
 });
 
-/** Check if any Supabase auth cookies exist (quick boolean, no parsing). */
+/** Check if any Supabase auth cookies exist (quick boolean). */
 function hasAuthCookies(): boolean {
   if (typeof document === 'undefined') return false;
   return document.cookie.split(';').some((c) => c.trim().startsWith('sb-'));
 }
 
-/** Fetch a profile row from the profiles table using the Supabase client. */
+/** Fetch profile using the Supabase JS client (for post-init events). */
 async function fetchProfile(userId: string): Promise<Profile | null> {
   try {
     const supabase = createClient();
@@ -46,15 +46,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const mountedRef = useRef(true);
 
   async function refreshUser() {
-    const supabase = createClient();
-    const {
-      data: { session },
-    } = await supabase.auth.getSession();
-    if (session?.user) {
-      const profile = await fetchProfile(session.user.id);
-      if (mountedRef.current) setUser(profile);
-    } else {
-      if (mountedRef.current) setUser(null);
+    try {
+      const res = await fetch('/api/auth/session');
+      const data = await res.json();
+      if (mountedRef.current) setUser(data.user ?? null);
+    } catch {
+      // ignore
     }
   }
 
@@ -74,35 +71,59 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
 
     // ── FAST PATH: no auth cookies → anonymous immediately ──
-    // This avoids waiting for the Supabase client to initialize when
-    // we already know the user is not logged in.
     if (!hasAuthCookies()) {
       resolve(null);
+    } else {
+      // ── PRIMARY PATH: server-side session check ──
+      // Calls our own API endpoint which uses the server-side Supabase client.
+      // This completely bypasses navigator.locks and the browser Supabase client.
+      // The server reads session cookies, validates with Supabase, fetches profile.
+      fetch('/api/auth/session')
+        .then((res) => res.json())
+        .then((data) => {
+          if (mountedRef.current && !resolved) {
+            resolve(data.user ?? null);
+          }
+        })
+        .catch(() => {
+          // If the API call fails, fall through to onAuthStateChange
+        });
     }
 
-    // ── SINGLE SOURCE OF TRUTH: onAuthStateChange ──
-    // The Supabase client handles cookie reading, token refresh, and
-    // session restoration internally. We just listen for the result.
-    //
-    // Lock contention is no longer an issue because:
-    // - Login page uses useAuth() instead of getUser()
-    // - useRequireAuth uses useAuth() instead of its own client
-    // - AuthGate uses useAuth() instead of getSession()
-    // So the only lock consumer is this single onAuthStateChange subscription.
+    // ── SECONDARY PATH: onAuthStateChange for subsequent events ──
+    // Handles SIGNED_IN (after login), SIGNED_OUT (after logout),
+    // TOKEN_REFRESHED, and USER_UPDATED. Also serves as a fallback
+    // if the API call above fails.
     const supabase = createClient();
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (!mountedRef.current) return;
 
+      // Skip INITIAL_SESSION — the API call above handles it.
+      if (event === 'INITIAL_SESSION') {
+        // Only use as fallback if the API call hasn't resolved yet.
+        if (!resolved && session?.user) {
+          const profile = await fetchProfile(session.user.id);
+          if (mountedRef.current) resolve(profile);
+        } else if (!resolved) {
+          resolve(null);
+        }
+        return;
+      }
+
       if (event === 'SIGNED_OUT') {
-        resolve(null);
+        // Force update even if already resolved (user logged out).
+        if (mountedRef.current) {
+          resolved = true; // prevent further updates
+          setUser(null);
+          setLoading(false);
+        }
         return;
       }
 
       if (session?.user) {
         if (event === 'SIGNED_IN') {
-          // New sign-in: profile trigger may not have fired yet — retry
           let profile: Profile | null = null;
           for (let attempt = 0; attempt < 3; attempt++) {
             profile = await fetchProfile(session.user.id);
@@ -113,28 +134,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               );
             }
           }
-          if (mountedRef.current) resolve(profile);
-        } else if (
-          event === 'INITIAL_SESSION' ||
-          event === 'TOKEN_REFRESHED' ||
-          event === 'USER_UPDATED'
-        ) {
+          if (mountedRef.current) {
+            resolved = true;
+            setUser(profile);
+            setLoading(false);
+          }
+        } else if (event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED') {
           const profile = await fetchProfile(session.user.id);
-          if (mountedRef.current) resolve(profile);
+          if (mountedRef.current) {
+            setUser(profile);
+          }
         }
-      } else if (event === 'INITIAL_SESSION') {
-        // No session — user is anonymous
-        resolve(null);
       }
     });
 
-    // Safety timeout: 4 seconds. Should rarely be needed now that
-    // lock contention is eliminated, but prevents infinite loading.
+    // Safety timeout: 6 seconds. Generous because the API call
+    // should resolve in ~300-500ms on a warm function.
     const timeout = setTimeout(() => {
       if (!resolved && mountedRef.current) {
         resolve(null);
       }
-    }, 4000);
+    }, 6000);
 
     return () => {
       mountedRef.current = false;
