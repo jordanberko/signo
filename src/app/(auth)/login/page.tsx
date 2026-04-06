@@ -38,14 +38,14 @@ function LoginForm() {
 
   // If user is already logged in, redirect away from login page.
   // If error=no-profile, sign out first to break the redirect loop.
-  // Uses getUser() (validates server-side) instead of getSession() (reads local
-  // state only) so that expired tokens don't trigger a redirect loop.
   useEffect(() => {
     const supabase = createClient();
     if (authError === 'no-profile') {
       supabase.auth.signOut();
       return;
     }
+    // Use getUser() (validates server-side) instead of getSession() (local only)
+    // so expired tokens don't trigger a redirect loop.
     supabase.auth.getUser().then(({ data: { user } }) => {
       if (user) {
         const redirect = searchParams.get('redirect');
@@ -65,8 +65,7 @@ function LoginForm() {
     }, 8000);
 
     try {
-      // Timeout the signIn call so it can't hang forever
-      const { error } = await Promise.race([
+      const { data, error } = await Promise.race([
         signIn(email, password),
         new Promise<never>((_, reject) =>
           setTimeout(() => reject(new Error('Sign in timed out. Please try again.')), 10000)
@@ -85,40 +84,26 @@ function LoginForm() {
         setLoading(false);
         return;
       }
+
+      // Sign-in succeeded — redirect immediately.
+      // The AuthProvider will pick up the session from cookies on the next page.
+      clearTimeout(safetyTimeout);
+
+      const rawRedirect = searchParams.get('redirect');
+      const redirectPath = rawRedirect ? decodeURIComponent(rawRedirect) : null;
+
+      // Use the role from the sign-in response to choose destination
+      let destination = redirectPath;
+      if (!destination) {
+        const role = data?.user?.user_metadata?.role;
+        destination = role === 'artist' ? '/artist/dashboard' : '/dashboard';
+      }
+
+      window.location.href = destination;
     } catch (err) {
       clearTimeout(safetyTimeout);
       setError(err instanceof Error ? err.message : 'Sign in failed. Please try again.');
       setLoading(false);
-      return;
-    }
-
-    try {
-      // Make a server round-trip to ensure the session cookies are properly set.
-      // Use AbortController to timeout after 5s so it can't hang indefinitely.
-      const rawRedirect = searchParams.get('redirect');
-      const redirectPath = rawRedirect ? decodeURIComponent(rawRedirect) : null;
-
-      const controller = new AbortController();
-      const fetchTimeout = setTimeout(() => controller.abort(), 5000);
-      const res = await fetch('/api/auth/session', {
-        method: 'POST',
-        credentials: 'include',
-        signal: controller.signal,
-      });
-      clearTimeout(fetchTimeout);
-      const session = await res.json().catch(() => ({ authenticated: false, role: 'buyer' }));
-
-      let destination = redirectPath;
-      if (!destination) {
-        destination = session.role === 'artist' ? '/artist/dashboard' : '/dashboard';
-      }
-
-      clearTimeout(safetyTimeout);
-      window.location.href = destination;
-    } catch {
-      // Even if the session check fails, try to redirect — the cookies might still work
-      clearTimeout(safetyTimeout);
-      window.location.href = '/dashboard';
     }
   }
 
