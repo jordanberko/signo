@@ -32,8 +32,9 @@ export default function AdminDisputesPage() {
   const [filter, setFilter] = useState<'open' | 'under_review' | 'all'>('open');
 
   useEffect(() => {
+    if (authLoading) return;
     fetchDisputes();
-  }, [filter]);
+  }, [filter, authLoading]);
 
   async function fetchDisputes() {
     setLoading(true);

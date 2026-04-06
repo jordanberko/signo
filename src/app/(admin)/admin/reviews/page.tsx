@@ -21,8 +21,9 @@ export default function AdminReviewsPage() {
   const [filter, setFilter] = useState<'pending_review' | 'approved' | 'rejected'>('pending_review');
 
   useEffect(() => {
+    if (authLoading) return;
     fetchArtworks();
-  }, [filter]);
+  }, [filter, authLoading]);
 
   async function fetchArtworks() {
     setLoading(true);
