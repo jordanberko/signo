@@ -22,8 +22,19 @@ export function useRequireAuth(requiredRole?: string) {
     if (loading) return; // Still checking auth state
 
     if (!user) {
-      window.location.href =
-        '/login?redirect=' + encodeURIComponent(window.location.pathname);
+      // Check if there are auth cookies — if so, the profile is missing
+      // (auth user exists but no profile row). Redirect with error=no-profile
+      // so the login page can sign out and show an error, breaking the loop.
+      const hasAuthCookies =
+        typeof document !== 'undefined' &&
+        document.cookie.split(';').some((c) => c.trim().startsWith('sb-'));
+
+      if (hasAuthCookies) {
+        window.location.href = '/login?error=no-profile';
+      } else {
+        window.location.href =
+          '/login?redirect=' + encodeURIComponent(window.location.pathname);
+      }
       return;
     }
 

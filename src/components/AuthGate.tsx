@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { createClient } from '@/lib/supabase/client';
+import { useAuth } from '@/components/providers/AuthProvider';
 
 interface AuthGateProps {
   children: React.ReactNode;
@@ -13,49 +13,37 @@ interface AuthGateProps {
 
 /**
  * Client-side auth gate. Wraps protected page content.
- * If the user is not authenticated, redirects to login.
- * If the user doesn't have the right role, redirects to /dashboard.
- * Shows nothing while checking (prevents flash of content).
+ * Uses the shared AuthProvider context instead of making independent API calls.
  */
 export default function AuthGate({
   children,
   allowedRoles = [],
   loginUrl = '/login',
 }: AuthGateProps) {
+  const { user, loading } = useAuth();
   const [authorized, setAuthorized] = useState(false);
 
   useEffect(() => {
-    const supabase = createClient();
+    if (loading) return;
 
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      if (!session?.user) {
-        // Not authenticated — redirect to login with return URL
-        const returnUrl = encodeURIComponent(window.location.pathname);
-        window.location.href = `${loginUrl}?redirect=${returnUrl}`;
+    if (!user) {
+      const returnUrl = encodeURIComponent(window.location.pathname);
+      window.location.href = `${loginUrl}?redirect=${returnUrl}`;
+      return;
+    }
+
+    if (allowedRoles.length > 0) {
+      const role = (user as Record<string, unknown>).role as string ?? 'buyer';
+      if (!allowedRoles.includes(role) && role !== 'admin') {
+        window.location.href = '/dashboard';
         return;
       }
+    }
 
-      // Check role if required
-      if (allowedRoles.length > 0) {
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('role')
-          .eq('id', session.user.id)
-          .single();
-
-        const role = profile?.role ?? 'buyer';
-        if (!allowedRoles.includes(role)) {
-          window.location.href = '/dashboard';
-          return;
-        }
-      }
-
-      setAuthorized(true);
-    });
-  }, [allowedRoles, loginUrl]);
+    setAuthorized(true);
+  }, [user, loading, allowedRoles, loginUrl]);
 
   if (!authorized) {
-    // Show a minimal loading state while checking auth
     return (
       <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '60vh' }}>
         <div

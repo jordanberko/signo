@@ -6,6 +6,7 @@ import { useSearchParams } from 'next/navigation';
 import { Eye, EyeOff, Loader2 } from 'lucide-react';
 import { signIn, signInWithGoogle } from '@/lib/supabase/auth';
 import { createClient } from '@/lib/supabase/client';
+import { useAuth } from '@/components/providers/AuthProvider';
 import { Suspense } from 'react';
 
 function GoogleIcon() {
@@ -22,6 +23,7 @@ function GoogleIcon() {
 function LoginForm() {
   const searchParams = useSearchParams();
   const authError = searchParams.get('error');
+  const { user: authUser, loading: authLoading } = useAuth();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -38,21 +40,21 @@ function LoginForm() {
 
   // If user is already logged in, redirect away from login page.
   // If error=no-profile, sign out first to break the redirect loop.
+  // Uses useAuth() context instead of getUser() to avoid lock contention.
   useEffect(() => {
-    const supabase = createClient();
+    if (authLoading) return;
+
     if (authError === 'no-profile') {
+      const supabase = createClient();
       supabase.auth.signOut();
       return;
     }
-    // Use getUser() (validates server-side) instead of getSession() (local only)
-    // so expired tokens don't trigger a redirect loop.
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      if (user) {
-        const redirect = searchParams.get('redirect');
-        window.location.href = redirect ? decodeURIComponent(redirect) : '/dashboard';
-      }
-    });
-  }, [searchParams, authError]);
+
+    if (authUser) {
+      const redirect = searchParams.get('redirect');
+      window.location.href = redirect ? decodeURIComponent(redirect) : '/dashboard';
+    }
+  }, [authUser, authLoading, searchParams, authError]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -86,13 +88,11 @@ function LoginForm() {
       }
 
       // Sign-in succeeded — redirect immediately.
-      // The AuthProvider will pick up the session from cookies on the next page.
       clearTimeout(safetyTimeout);
 
       const rawRedirect = searchParams.get('redirect');
       const redirectPath = rawRedirect ? decodeURIComponent(rawRedirect) : null;
 
-      // Use the role from the sign-in response to choose destination
       let destination = redirectPath;
       if (!destination) {
         const role = data?.user?.user_metadata?.role;
@@ -115,7 +115,6 @@ function LoginForm() {
       setError(error.message);
       setGoogleLoading(false);
     }
-    // Google OAuth redirects away — no need to setGoogleLoading(false) on success
   }
 
   return (
