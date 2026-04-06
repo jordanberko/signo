@@ -38,14 +38,16 @@ function LoginForm() {
 
   // If user is already logged in, redirect away from login page.
   // If error=no-profile, sign out first to break the redirect loop.
+  // Uses getUser() (validates server-side) instead of getSession() (reads local
+  // state only) so that expired tokens don't trigger a redirect loop.
   useEffect(() => {
     const supabase = createClient();
     if (authError === 'no-profile') {
       supabase.auth.signOut();
       return;
     }
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session?.user) {
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (user) {
         const redirect = searchParams.get('redirect');
         window.location.href = redirect ? decodeURIComponent(redirect) : '/dashboard';
       }
