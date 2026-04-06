@@ -35,7 +35,7 @@ export function useRequireAuth(requiredRole?: string) {
           .single();
 
         if (!profile) {
-          window.location.href = '/login';
+          window.location.href = '/login?error=no-profile';
           return;
         }
 

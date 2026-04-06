@@ -26,51 +26,84 @@ function LoginForm() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [error, setError] = useState(authError === 'auth' ? 'Something went wrong with sign in. Please try again.' : '');
+  const [error, setError] = useState(
+    authError === 'auth'
+      ? 'Something went wrong with sign in. Please try again.'
+      : authError === 'no-profile'
+        ? 'Your account profile could not be found. Please try signing up again or contact support.'
+        : ''
+  );
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
 
-  // If user is already logged in, redirect away from login page
+  // If user is already logged in, redirect away from login page.
+  // If error=no-profile, sign out first to break the redirect loop.
   useEffect(() => {
     const supabase = createClient();
+    if (authError === 'no-profile') {
+      supabase.auth.signOut();
+      return;
+    }
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session?.user) {
         const redirect = searchParams.get('redirect');
         window.location.href = redirect ? decodeURIComponent(redirect) : '/dashboard';
       }
     });
-  }, [searchParams]);
+  }, [searchParams, authError]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError('');
     setLoading(true);
 
-    const { error } = await signIn(email, password);
+    // Safety net: force redirect after 8s no matter what
+    const safetyTimeout = setTimeout(() => {
+      window.location.href = '/dashboard';
+    }, 8000);
 
-    if (error) {
-      // Friendlier error messages
-      if (error.message.includes('Invalid login credentials')) {
-        setError('Incorrect email or password. Please try again.');
-      } else if (error.message.includes('Email not confirmed')) {
-        setError('Please check your email and confirm your account before signing in.');
-      } else {
-        setError(error.message);
+    try {
+      // Timeout the signIn call so it can't hang forever
+      const { error } = await Promise.race([
+        signIn(email, password),
+        new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error('Sign in timed out. Please try again.')), 10000)
+        ),
+      ]);
+
+      if (error) {
+        clearTimeout(safetyTimeout);
+        if (error.message.includes('Invalid login credentials')) {
+          setError('Incorrect email or password. Please try again.');
+        } else if (error.message.includes('Email not confirmed')) {
+          setError('Please check your email and confirm your account before signing in.');
+        } else {
+          setError(error.message);
+        }
+        setLoading(false);
+        return;
       }
+    } catch (err) {
+      clearTimeout(safetyTimeout);
+      setError(err instanceof Error ? err.message : 'Sign in failed. Please try again.');
       setLoading(false);
       return;
     }
 
     try {
-      // Make a server round-trip to ensure the session cookies are properly set
-      // on the server side. Without this, the middleware may not see the session.
+      // Make a server round-trip to ensure the session cookies are properly set.
+      // Use AbortController to timeout after 5s so it can't hang indefinitely.
       const rawRedirect = searchParams.get('redirect');
       const redirectPath = rawRedirect ? decodeURIComponent(rawRedirect) : null;
 
+      const controller = new AbortController();
+      const fetchTimeout = setTimeout(() => controller.abort(), 5000);
       const res = await fetch('/api/auth/session', {
         method: 'POST',
         credentials: 'include',
+        signal: controller.signal,
       });
+      clearTimeout(fetchTimeout);
       const session = await res.json().catch(() => ({ authenticated: false, role: 'buyer' }));
 
       let destination = redirectPath;
@@ -78,16 +111,13 @@ function LoginForm() {
         destination = session.role === 'artist' ? '/artist/dashboard' : '/dashboard';
       }
 
+      clearTimeout(safetyTimeout);
       window.location.href = destination;
     } catch {
       // Even if the session check fails, try to redirect — the cookies might still work
+      clearTimeout(safetyTimeout);
       window.location.href = '/dashboard';
     }
-
-    // Safety net: if nothing has redirected after 5 seconds, force it
-    setTimeout(() => {
-      window.location.href = '/dashboard';
-    }, 5000);
   }
 
   async function handleGoogleSignIn() {
