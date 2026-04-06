@@ -72,50 +72,92 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     // ── FAST PATH: no auth cookies → anonymous immediately ──
     if (!hasAuthCookies()) {
-      resolve(null);
-    } else {
-      // ── PRIMARY PATH: server-side session check ──
-      // Calls our own API endpoint which uses the server-side Supabase client.
-      // This completely bypasses navigator.locks and the browser Supabase client.
-      // The server reads session cookies, validates with Supabase, fetches profile.
-      fetch('/api/auth/session')
-        .then((res) => res.json())
-        .then((data) => {
-          if (mountedRef.current && !resolved) {
-            resolve(data.user ?? null);
+      // Still initialise the Supabase client (it's a singleton, so cheap)
+      // but resolve immediately since there's no session.
+      const supabase = createClient();
+      const {
+        data: { subscription },
+      } = supabase.auth.onAuthStateChange(async (event, session) => {
+        if (!mountedRef.current) return;
+        if (event === 'INITIAL_SESSION') return; // no-op for anon
+        if (event === 'SIGNED_IN' && session?.user) {
+          let profile: Profile | null = null;
+          for (let attempt = 0; attempt < 3; attempt++) {
+            profile = await fetchProfile(session.user.id);
+            if (profile) break;
+            if (attempt < 2) {
+              await new Promise((r) =>
+                setTimeout(r, attempt === 0 ? 200 : 500),
+              );
+            }
           }
-        })
-        .catch(() => {
-          // If the API call fails, fall through to onAuthStateChange
-        });
+          if (mountedRef.current) {
+            setUser(profile);
+            setLoading(false);
+          }
+        }
+        if (event === 'SIGNED_OUT' && mountedRef.current) {
+          setUser(null);
+        }
+      });
+
+      resolve(null);
+
+      return () => {
+        mountedRef.current = false;
+        subscription.unsubscribe();
+      };
     }
 
-    // ── SECONDARY PATH: onAuthStateChange for subsequent events ──
-    // Handles SIGNED_IN (after login), SIGNED_OUT (after logout),
-    // TOKEN_REFRESHED, and USER_UPDATED. Also serves as a fallback
-    // if the API call above fails.
+    // ── DUAL-GATE: wait for BOTH server profile AND browser client ready ──
+    // Gate 1: Server API returns the profile (reliable, no navigator.locks)
+    // Gate 2: onAuthStateChange INITIAL_SESSION fires (browser client is ready)
+    // We only resolve loading=false when BOTH gates have passed, so that
+    // page components can safely query with the browser Supabase client.
+    let profileLoaded = false;
+    let clientReady = false;
+    let loadedProfile: Profile | null = null;
+
+    function tryResolve() {
+      if (profileLoaded && clientReady && !resolved && mountedRef.current) {
+        resolve(loadedProfile);
+      }
+    }
+
+    // Gate 1: Server-side session check
+    fetch('/api/auth/session')
+      .then((res) => res.json())
+      .then((data) => {
+        loadedProfile = data.user ?? null;
+        profileLoaded = true;
+        tryResolve();
+      })
+      .catch(() => {
+        // If API fails, still mark as loaded (null profile)
+        loadedProfile = null;
+        profileLoaded = true;
+        tryResolve();
+      });
+
+    // Gate 2: Browser client initialization + subsequent events
     const supabase = createClient();
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (!mountedRef.current) return;
 
-      // Skip INITIAL_SESSION — the API call above handles it.
       if (event === 'INITIAL_SESSION') {
-        // Only use as fallback if the API call hasn't resolved yet.
-        if (!resolved && session?.user) {
-          const profile = await fetchProfile(session.user.id);
-          if (mountedRef.current) resolve(profile);
-        } else if (!resolved) {
-          resolve(null);
-        }
+        // Browser client is now initialized and has its auth token.
+        // This means subsequent queries via createClient() will include
+        // the Authorization header.
+        clientReady = true;
+        tryResolve();
         return;
       }
 
       if (event === 'SIGNED_OUT') {
-        // Force update even if already resolved (user logged out).
         if (mountedRef.current) {
-          resolved = true; // prevent further updates
+          resolved = true;
           setUser(null);
           setLoading(false);
         }
@@ -148,13 +190,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     });
 
-    // Safety timeout: 6 seconds. Generous because the API call
-    // should resolve in ~300-500ms on a warm function.
+    // Safety timeout: 8 seconds. Covers both the API call (~300-500ms)
+    // and INITIAL_SESSION (~500-2000ms with navigator.locks).
     const timeout = setTimeout(() => {
       if (!resolved && mountedRef.current) {
-        resolve(null);
+        // If the API loaded a profile but client isn't ready yet,
+        // force-resolve anyway — better than infinite loading.
+        if (profileLoaded) {
+          resolve(loadedProfile);
+        } else {
+          resolve(null);
+        }
       }
-    }, 6000);
+    }, 8000);
 
     return () => {
       mountedRef.current = false;
