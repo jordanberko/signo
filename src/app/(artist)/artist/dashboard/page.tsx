@@ -17,7 +17,7 @@ import {
 import { formatPrice } from '@/lib/utils';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { useRequireAuth } from '@/lib/hooks/useRequireAuth';
-import { createClient } from '@/lib/supabase/client';
+import { getReadyClient } from '@/lib/supabase/client';
 
 interface Stats {
   totalSales: number;
@@ -54,7 +54,7 @@ export default function ArtistDashboardPage() {
 
     async function fetchStats() {
       setLoading(true);
-      const supabase = createClient();
+      const supabase = await getReadyClient();
 
       // Count active listings
       const { count: activeCount } = await supabase

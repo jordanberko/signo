@@ -20,7 +20,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { useRequireAuth } from '@/lib/hooks/useRequireAuth';
-import { createClient } from '@/lib/supabase/client';
+import { getReadyClient } from '@/lib/supabase/client';
 import { uploadAvatar } from '@/lib/supabase/storage';
 import AvatarUpload from '@/components/AvatarUpload';
 
@@ -171,7 +171,7 @@ export default function SettingsPage() {
     setProfileStatus(null);
 
     try {
-      const supabase = createClient();
+      const supabase = await getReadyClient();
       const { error } = await supabase
         .from('profiles')
         .update({
@@ -202,7 +202,7 @@ export default function SettingsPage() {
     setAddressStatus(null);
 
     try {
-      const supabase = createClient();
+      const supabase = await getReadyClient();
       const { error } = await supabase
         .from('profiles')
         .update({
@@ -255,7 +255,7 @@ export default function SettingsPage() {
     setPasswordSaving(true);
 
     try {
-      const supabase = createClient();
+      const supabase = await getReadyClient();
       const { error } = await supabase.auth.updateUser({
         password: newPassword,
       });
@@ -289,7 +289,7 @@ export default function SettingsPage() {
     setArtistStatus(null);
 
     try {
-      const supabase = createClient();
+      const supabase = await getReadyClient();
       const socialLinks = { ...(user.social_links || {}) };
       if (instagramUrl.trim()) socialLinks.instagram = instagramUrl.trim();
       else delete socialLinks.instagram;

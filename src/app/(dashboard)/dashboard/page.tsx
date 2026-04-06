@@ -17,7 +17,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { useRequireAuth } from '@/lib/hooks/useRequireAuth';
-import { createClient } from '@/lib/supabase/client';
+import { getReadyClient } from '@/lib/supabase/client';
 import { formatPrice } from '@/lib/utils';
 
 // ── Types ──
@@ -74,7 +74,7 @@ function DashboardContent() {
 
     async function fetchOrders() {
       setLoading(true);
-      const supabase = createClient();
+      const supabase = await getReadyClient();
 
       // Get total count
       const { count } = await supabase

@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Users, Search, ShieldCheck, Palette, ShoppingBag } from 'lucide-react';
-import { createClient } from '@/lib/supabase/client';
+import { getReadyClient } from '@/lib/supabase/client';
 import { useRequireAuth } from '@/lib/hooks/useRequireAuth';
 import type { User } from '@/types/database';
 
@@ -21,7 +21,7 @@ export default function AdminUsersPage() {
 
   async function fetchUsers() {
     setLoading(true);
-    const supabase = createClient();
+    const supabase = await getReadyClient();
 
     let query = supabase
       .from('profiles')
@@ -38,7 +38,7 @@ export default function AdminUsersPage() {
   }
 
   async function updateRole(userId: string, newRole: 'buyer' | 'artist' | 'admin') {
-    const supabase = createClient();
+    const supabase = await getReadyClient();
     await supabase.from('profiles').update({ role: newRole }).eq('id', userId);
     fetchUsers();
   }

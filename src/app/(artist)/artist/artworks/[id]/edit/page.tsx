@@ -20,7 +20,7 @@ import {
   Lightbulb,
   AlertCircle,
 } from 'lucide-react';
-import { createClient } from '@/lib/supabase/client';
+import { getReadyClient } from '@/lib/supabase/client';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { useRequireAuth } from '@/lib/hooks/useRequireAuth';
 import { uploadArtworkImage } from '@/lib/supabase/storage';
@@ -113,7 +113,7 @@ export default function EditArtworkPage() {
   useEffect(() => {
     if (!user) return;
     async function load() {
-      const supabase = createClient();
+      const supabase = await getReadyClient();
       const { data, error } = await supabase
         .from('artworks')
         .select('*')

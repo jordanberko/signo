@@ -16,7 +16,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { useRequireAuth } from '@/lib/hooks/useRequireAuth';
-import { createClient } from '@/lib/supabase/client';
+import { getReadyClient } from '@/lib/supabase/client';
 import { formatPrice } from '@/lib/utils';
 
 // ── Types ──
@@ -103,7 +103,7 @@ function OrderContent({ orderId }: { orderId: string }) {
 
   async function fetchOrder() {
     if (!user) return;
-    const supabase = createClient();
+    const supabase = await getReadyClient();
 
     const { data } = await supabase
       .from('orders')

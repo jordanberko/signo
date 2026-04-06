@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { AlertTriangle, CheckCircle, Clock, MessageSquare } from 'lucide-react';
 import { formatPrice } from '@/lib/utils';
-import { createClient } from '@/lib/supabase/client';
+import { getReadyClient } from '@/lib/supabase/client';
 import { useRequireAuth } from '@/lib/hooks/useRequireAuth';
 
 interface DisputeRow {
@@ -38,7 +38,7 @@ export default function AdminDisputesPage() {
 
   async function fetchDisputes() {
     setLoading(true);
-    const supabase = createClient();
+    const supabase = await getReadyClient();
 
     let query = supabase
       .from('disputes')
@@ -68,7 +68,7 @@ export default function AdminDisputesPage() {
 
   async function resolveDispute(disputeId: string, resolution: 'resolved_refund' | 'resolved_no_refund' | 'resolved_return') {
     setActionLoading(true);
-    const supabase = createClient();
+    const supabase = await getReadyClient();
 
     await supabase
       .from('disputes')

@@ -20,7 +20,7 @@ import {
 import { formatPrice } from '@/lib/utils';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { useRequireAuth } from '@/lib/hooks/useRequireAuth';
-import { createClient } from '@/lib/supabase/client';
+import { getReadyClient } from '@/lib/supabase/client';
 import type { Artwork, ArtworkStatus } from '@/types/database';
 import { Suspense } from 'react';
 
@@ -224,7 +224,7 @@ export default function ArtistArtworksPage() {
     }
     setLoading(true);
     try {
-      const supabase = createClient();
+      const supabase = await getReadyClient();
       const { data, error } = await supabase
         .from('artworks')
         .select('*')

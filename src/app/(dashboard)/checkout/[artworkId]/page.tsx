@@ -18,7 +18,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { useRequireAuth } from '@/lib/hooks/useRequireAuth';
-import { createClient } from '@/lib/supabase/client';
+import { getReadyClient } from '@/lib/supabase/client';
 import { formatPrice, calculateCommission } from '@/lib/utils';
 
 // ── Types ──
@@ -92,7 +92,7 @@ export default function CheckoutPage({
     if (!artworkId) return;
 
     async function fetchArtwork() {
-      const supabase = createClient();
+      const supabase = await getReadyClient();
       const { data, error: fetchError } = await supabase
         .from('artworks')
         .select(
@@ -132,7 +132,7 @@ export default function CheckoutPage({
   useEffect(() => {
     if (!user) return;
     async function loadAddress() {
-      const supabase = createClient();
+      const supabase = await getReadyClient();
       const { data } = await supabase
         .from('profiles')
         .select('social_links')

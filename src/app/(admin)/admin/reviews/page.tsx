@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Check, X, Eye, ChevronLeft, ChevronRight, Clock, MessageSquare } from 'lucide-react';
 import { formatPrice } from '@/lib/utils';
-import { createClient } from '@/lib/supabase/client';
+import { getReadyClient } from '@/lib/supabase/client';
 import { useRequireAuth } from '@/lib/hooks/useRequireAuth';
 import type { Artwork, User } from '@/types/database';
 
@@ -27,7 +27,7 @@ export default function AdminReviewsPage() {
 
   async function fetchArtworks() {
     setLoading(true);
-    const supabase = createClient();
+    const supabase = await getReadyClient();
     const { data, error } = await supabase
       .from('artworks')
       .select('*, profiles!artworks_artist_id_fkey(*)')
@@ -51,7 +51,7 @@ export default function AdminReviewsPage() {
 
   async function handleAction(artworkId: string, action: 'approved' | 'rejected') {
     setActionLoading(true);
-    const supabase = createClient();
+    const supabase = await getReadyClient();
 
     await supabase
       .from('artworks')

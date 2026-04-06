@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Users, Package, DollarSign, AlertTriangle, Clock, CheckCircle, ArrowRight } from 'lucide-react';
 import { formatPrice } from '@/lib/utils';
-import { createClient } from '@/lib/supabase/client';
+import { getReadyClient } from '@/lib/supabase/client';
 import { useRequireAuth } from '@/lib/hooks/useRequireAuth';
 
 interface PlatformStats {
@@ -31,7 +31,7 @@ export default function AdminDashboardPage() {
   useEffect(() => {
     if (authLoading) return;
     async function fetchStats() {
-      const supabase = createClient();
+      const supabase = await getReadyClient();
 
       const [users, artists, buyers, artworks, pending, approved, orders, disputes] = await Promise.all([
         supabase.from('profiles').select('*', { count: 'exact', head: true }),

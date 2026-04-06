@@ -23,7 +23,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { useRequireAuth } from '@/lib/hooks/useRequireAuth';
-import { createClient } from '@/lib/supabase/client';
+import { getReadyClient } from '@/lib/supabase/client';
 import { formatPrice } from '@/lib/utils';
 
 // ── Types ──
@@ -131,7 +131,7 @@ function OrderContent({
     if (!user) return;
 
     async function doFetch() {
-      const supabase = createClient();
+      const supabase = await getReadyClient();
 
       // If orderId looks like a Stripe checkout session ID (cs_*), find by that
       // Otherwise it's a UUID order ID
