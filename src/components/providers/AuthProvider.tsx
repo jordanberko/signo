@@ -199,10 +199,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // ── TRY COOKIE PARSING for instant auth ──
       const session = getSessionFromCookies();
       if (session) {
-        // We got a user ID from cookies — fetch profile via REST (no locks)
+        // We got a user ID from cookies — fetch profile via REST (no locks).
+        // We also need to ensure the Supabase JS client has finished loading
+        // the session before we resolve, because page components use the
+        // client for data queries and it needs the auth token.
+        const supabaseReady = createClient().auth.getSession();
+
         fetchProfileREST(session.userId, session.accessToken).then(
-          (profile) => {
-            // Only resolve if onAuthStateChange hasn't beaten us
+          async (profile) => {
+            // Wait for the Supabase client to have the session loaded.
+            // getSession() just awaits the client's internal _initializePromise
+            // — it doesn't acquire a new lock or make a network call.
+            await supabaseReady;
             if (!resolved && mountedRef.current) {
               resolve(profile);
             }
