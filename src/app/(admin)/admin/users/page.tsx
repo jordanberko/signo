@@ -4,17 +4,20 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Users, Search, ShieldCheck, Palette, ShoppingBag } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
+import { useRequireAuth } from '@/lib/hooks/useRequireAuth';
 import type { User } from '@/types/database';
 
 export default function AdminUsersPage() {
+  const { loading: authLoading } = useRequireAuth('admin');
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [roleFilter, setRoleFilter] = useState<'all' | 'artist' | 'buyer' | 'admin'>('all');
 
   useEffect(() => {
+    if (authLoading) return;
     fetchUsers();
-  }, [roleFilter]);
+  }, [roleFilter, authLoading]);
 
   async function fetchUsers() {
     setLoading(true);

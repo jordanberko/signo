@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { Users, Package, DollarSign, AlertTriangle, Clock, CheckCircle, ArrowRight } from 'lucide-react';
 import { formatPrice } from '@/lib/utils';
 import { createClient } from '@/lib/supabase/client';
+import { useRequireAuth } from '@/lib/hooks/useRequireAuth';
 
 interface PlatformStats {
   totalUsers: number;
@@ -19,6 +20,7 @@ interface PlatformStats {
 }
 
 export default function AdminDashboardPage() {
+  const { loading: authLoading } = useRequireAuth('admin');
   const [stats, setStats] = useState<PlatformStats>({
     totalUsers: 0, totalArtists: 0, totalBuyers: 0,
     totalArtworks: 0, pendingReviews: 0, approvedArtworks: 0,
@@ -27,6 +29,7 @@ export default function AdminDashboardPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (authLoading) return;
     async function fetchStats() {
       const supabase = createClient();
 
@@ -57,7 +60,7 @@ export default function AdminDashboardPage() {
       setLoading(false);
     }
     fetchStats();
-  }, []);
+  }, [authLoading]);
 
   if (loading) {
     return (
