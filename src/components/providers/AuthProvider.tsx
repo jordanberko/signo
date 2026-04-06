@@ -22,53 +22,81 @@ const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 
 /**
- * Extract the user ID from Supabase auth cookies WITHOUT using the Supabase
- * client (avoids navigator.locks entirely). The cookie value is a base64url-
- * encoded JSON blob containing an access_token JWT. We decode just the JWT
- * payload to read the `sub` claim.
+ * Read the Supabase session from cookies WITHOUT using the Supabase client
+ * (avoids navigator.locks entirely).
+ *
+ * @supabase/ssr chunks large cookies into sb-<ref>-auth-token.0, .1, .2 etc.
+ * (max 3180 bytes per chunk). We need to find all chunks, concatenate them,
+ * then decode the result (which may be raw JSON or prefixed with "base64-").
  */
-function getUserIdFromCookies(): string | null {
+function getSessionFromCookies(): { userId: string; accessToken: string } | null {
   if (typeof document === 'undefined') return null;
   try {
-    const cookies = document.cookie.split(';');
-    // Look for the auth token cookie: sb-<ref>-auth-token or the base64 variant
-    for (const c of cookies) {
-      const trimmed = c.trim();
-      if (!trimmed.startsWith('sb-')) continue;
-      const eqIdx = trimmed.indexOf('=');
+    const cookieMap: Record<string, string> = {};
+    for (const c of document.cookie.split(';')) {
+      const eqIdx = c.indexOf('=');
       if (eqIdx === -1) continue;
-      const name = trimmed.slice(0, eqIdx);
-      if (!name.includes('auth-token')) continue;
-      const value = decodeURIComponent(trimmed.slice(eqIdx + 1));
+      const name = c.slice(0, eqIdx).trim();
+      const value = c.slice(eqIdx + 1).trim();
+      cookieMap[name] = value;
+    }
 
-      // The cookie might be base64url-encoded JSON like: base64url({"access_token":"...","refresh_token":"...",...})
-      // Or it could be the raw JSON. Try both.
-      let parsed: { access_token?: string } | null = null;
-      try {
-        parsed = JSON.parse(value);
-      } catch {
-        // Try base64url decode
-        try {
-          const decoded = atob(value.replace(/-/g, '+').replace(/_/g, '/'));
-          parsed = JSON.parse(decoded);
-        } catch {
-          // Not valid
-        }
+    // Find the auth-token base key (e.g. "sb-leppiftwjreqqvfiartt-auth-token")
+    let baseKey: string | null = null;
+    for (const name of Object.keys(cookieMap)) {
+      if (name.startsWith('sb-') && name.includes('auth-token') && !name.match(/\.\d+$/)) {
+        baseKey = name;
+        break;
       }
+    }
 
-      if (parsed?.access_token) {
-        // Decode JWT payload (second segment)
-        const parts = parsed.access_token.split('.');
-        if (parts.length === 3) {
-          const payload = JSON.parse(atob(parts[1].replace(/-/g, '+').replace(/_/g, '/')));
-          if (payload.sub) return payload.sub;
+    // If no non-chunked key found, derive it from a chunked key (.0)
+    if (!baseKey) {
+      for (const name of Object.keys(cookieMap)) {
+        if (name.startsWith('sb-') && name.endsWith('-auth-token.0')) {
+          baseKey = name.replace(/\.0$/, '');
+          break;
         }
       }
     }
+    if (!baseKey) return null;
+
+    // Combine chunks: try the base key first, then .0, .1, .2, ...
+    let combined = '';
+    if (cookieMap[baseKey] !== undefined && !cookieMap[`${baseKey}.0`]) {
+      // Non-chunked: single cookie
+      combined = decodeURIComponent(cookieMap[baseKey]);
+    } else {
+      // Chunked: concatenate .0, .1, .2, ...
+      for (let i = 0; ; i++) {
+        const chunk = cookieMap[`${baseKey}.${i}`];
+        if (chunk === undefined) break;
+        combined += decodeURIComponent(chunk);
+      }
+    }
+
+    if (!combined) return null;
+
+    // Decode: handle "base64-" prefix or raw JSON
+    let jsonStr = combined;
+    if (combined.startsWith('base64-')) {
+      const b64 = combined.slice(7); // strip "base64-" prefix
+      jsonStr = atob(b64.replace(/-/g, '+').replace(/_/g, '/'));
+    }
+
+    const parsed = JSON.parse(jsonStr) as { access_token?: string };
+    if (!parsed?.access_token) return null;
+
+    // Decode JWT payload to get user ID (sub claim)
+    const parts = parsed.access_token.split('.');
+    if (parts.length !== 3) return null;
+    const payload = JSON.parse(atob(parts[1].replace(/-/g, '+').replace(/_/g, '/')));
+    if (!payload.sub) return null;
+
+    return { userId: payload.sub, accessToken: parsed.access_token };
   } catch {
-    // Cookie parsing failed — fall through
+    return null;
   }
-  return null;
 }
 
 /**
@@ -80,12 +108,8 @@ async function fetchProfileREST(userId: string, accessToken?: string): Promise<P
     const headers: Record<string, string> = {
       'apikey': SUPABASE_ANON_KEY,
       'Content-Type': 'application/json',
+      'Authorization': `Bearer ${accessToken || SUPABASE_ANON_KEY}`,
     };
-    if (accessToken) {
-      headers['Authorization'] = `Bearer ${accessToken}`;
-    } else {
-      headers['Authorization'] = `Bearer ${SUPABASE_ANON_KEY}`;
-    }
 
     const res = await fetch(
       `${SUPABASE_URL}/rest/v1/profiles?id=eq.${userId}&select=*`,
@@ -97,41 +121,6 @@ async function fetchProfileREST(userId: string, accessToken?: string): Promise<P
   } catch {
     return null;
   }
-}
-
-/**
- * Get the access token from cookies (for use in REST API calls).
- */
-function getAccessTokenFromCookies(): string | null {
-  if (typeof document === 'undefined') return null;
-  try {
-    const cookies = document.cookie.split(';');
-    for (const c of cookies) {
-      const trimmed = c.trim();
-      if (!trimmed.startsWith('sb-')) continue;
-      const eqIdx = trimmed.indexOf('=');
-      if (eqIdx === -1) continue;
-      const name = trimmed.slice(0, eqIdx);
-      if (!name.includes('auth-token')) continue;
-      const value = decodeURIComponent(trimmed.slice(eqIdx + 1));
-
-      let parsed: { access_token?: string } | null = null;
-      try {
-        parsed = JSON.parse(value);
-      } catch {
-        try {
-          const decoded = atob(value.replace(/-/g, '+').replace(/_/g, '/'));
-          parsed = JSON.parse(decoded);
-        } catch {
-          // skip
-        }
-      }
-      if (parsed?.access_token) return parsed.access_token;
-    }
-  } catch {
-    // skip
-  }
-  return null;
 }
 
 /** Fetch profile using the Supabase JS client (for events after init). */
@@ -177,9 +166,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     let resolved = false;
 
     // ── FAST PATH: read cookies directly (no Supabase client, no locks) ──
-    const userId = getUserIdFromCookies();
+    const session = getSessionFromCookies();
 
-    if (!userId) {
+    if (!session) {
       // No auth cookies → user is anonymous. Resolve immediately.
       setUser(null);
       setLoading(false);
@@ -187,8 +176,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } else {
       // We have a user ID from cookies — fetch their profile via REST API
       // (completely bypasses the Supabase JS client and navigator.locks).
-      const accessToken = getAccessTokenFromCookies();
-      fetchProfileREST(userId, accessToken ?? undefined).then((profile) => {
+      fetchProfileREST(session.userId, session.accessToken).then((profile) => {
         if (!mountedRef.current) return;
         if (profile) {
           setUser(profile);
