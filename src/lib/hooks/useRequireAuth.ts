@@ -1,10 +1,14 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { createClient } from '@/lib/supabase/client';
+import { useEffect } from 'react';
+import { useAuth } from '@/components/providers/AuthProvider';
 
 /**
  * Client-side auth gate hook. Call at the top of any protected page.
+ *
+ * Uses the AuthProvider context (which already manages session state)
+ * instead of creating a separate Supabase client. This avoids lock
+ * contention with navigator.locks that can cause pages to hang.
  *
  * - If user is not authenticated → redirects to /login
  * - If requiredRole is set and user doesn't have it → redirects to /dashboard
@@ -12,53 +16,26 @@ import { createClient } from '@/lib/supabase/client';
  * - When authorised → returns user profile + loading=false
  */
 export function useRequireAuth(requiredRole?: string) {
-  const [user, setUser] = useState<Record<string, unknown> | null>(null);
-  const [loading, setLoading] = useState(true);
+  const { user, loading } = useAuth();
 
   useEffect(() => {
-    const supabase = createClient();
+    if (loading) return; // Still checking auth state
 
-    const check = async () => {
-      try {
-        const { data: { user: authUser } } = await supabase.auth.getUser();
+    if (!user) {
+      window.location.href =
+        '/login?redirect=' + encodeURIComponent(window.location.pathname);
+      return;
+    }
 
-        if (!authUser) {
-          window.location.href =
-            '/login?redirect=' + encodeURIComponent(window.location.pathname);
-          return;
-        }
-
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', authUser.id)
-          .single();
-
-        if (!profile) {
-          window.location.href = '/login?error=no-profile';
-          return;
-        }
-
-        if (
-          requiredRole &&
-          profile.role !== requiredRole &&
-          profile.role !== 'admin'
-        ) {
-          window.location.href = '/dashboard';
-          return;
-        }
-
-        setUser(profile);
-        setLoading(false);
-      } catch {
-        // On any error, redirect to login
-        window.location.href =
-          '/login?redirect=' + encodeURIComponent(window.location.pathname);
-      }
-    };
-
-    check();
-  }, [requiredRole]);
+    if (
+      requiredRole &&
+      (user as Record<string, unknown>).role !== requiredRole &&
+      (user as Record<string, unknown>).role !== 'admin'
+    ) {
+      window.location.href = '/dashboard';
+      return;
+    }
+  }, [user, loading, requiredRole]);
 
   return { user, loading };
 }

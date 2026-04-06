@@ -61,26 +61,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     mountedRef.current = true;
     const supabase = createClient();
 
-    // 1. Fast initial check using getSession() (reads local storage, no network call).
-    //    This gives us the session immediately if one exists.
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      if (!mountedRef.current) return;
-
-      if (session?.user) {
-        const profile = await fetchProfile(session.user.id);
-        if (mountedRef.current) {
-          setUser(profile);
-          setLoading(false);
-        }
-      } else {
-        // No session in local storage — user is not logged in
-        setUser(null);
-        setLoading(false);
-      }
-    });
-
-    // 2. Subscribe to all auth state changes.
-    //    This handles: sign in, sign out, token refresh, initial session.
+    // Subscribe to all auth state changes including INITIAL_SESSION.
+    // This is the single source of truth for auth state — no separate
+    // getSession() call needed, which avoids lock contention.
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         if (!mountedRef.current) return;
@@ -92,9 +75,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
 
         if (session?.user) {
-          // For SIGNED_IN, fetch profile (with retry for new signups where
-          // the database trigger may not have created the profile row yet)
           if (event === 'SIGNED_IN') {
+            // Retry for new signups where the database trigger may not
+            // have created the profile row yet
             let profile: Profile | null = null;
             for (let attempt = 0; attempt < 3; attempt++) {
               profile = await fetchProfile(session.user.id);
@@ -107,14 +90,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               setUser(profile);
               setLoading(false);
             }
-          } else if (event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED') {
+          } else if (event === 'INITIAL_SESSION' || event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED') {
             const profile = await fetchProfile(session.user.id);
             if (mountedRef.current) {
               setUser(profile);
               setLoading(false);
             }
           }
-          // INITIAL_SESSION is handled by getSession() above — skip here to avoid race
+        } else if (event === 'INITIAL_SESSION') {
+          // No session at all — user is not logged in
+          setUser(null);
+          setLoading(false);
         }
       }
     );
