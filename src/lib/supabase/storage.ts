@@ -26,7 +26,7 @@
 
 import { createClient } from './client';
 
-const ACCEPTED_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
+const ACCEPTED_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/heic', 'image/heif'];
 
 // ── Compression ──
 
@@ -52,9 +52,9 @@ async function compressImage(
 
   return new Promise<File>((resolve) => {
     const timeout = setTimeout(() => {
-      console.log('[Upload] Compression timed out after 8s, using original');
+      console.log('[Upload] Compression timed out after 15s, using original');
       resolve(file);
-    }, 8000);
+    }, 15000);
 
     const img = new window.Image();
 
@@ -136,7 +136,7 @@ async function uploadToStorage(
 ): Promise<{ url: string }> {
   const supabase = createClient();
   const sizeMB = file.size / 1024 / 1024;
-  const timeoutMs = sizeMB > 5 ? 60_000 : 30_000;
+  const timeoutMs = sizeMB > 5 ? 90_000 : 45_000;
 
   console.log(`[Upload] Uploading to ${bucket}/${path} (${sizeMB.toFixed(1)}MB, timeout ${timeoutMs / 1000}s)`);
 
@@ -183,7 +183,7 @@ export async function uploadArtworkImage(
 ): Promise<string> {
   // Validate
   if (!ACCEPTED_TYPES.includes(file.type)) {
-    throw new Error(`"${file.name}" is not supported. Use JPG, PNG, or WebP.`);
+    throw new Error(`"${file.name}" is not supported. Use JPG, PNG, WebP, or HEIC.`);
   }
   if (file.size > 25 * 1024 * 1024) {
     throw new Error(`"${file.name}" is too large (${(file.size / 1024 / 1024).toFixed(1)}MB). Max 25MB.`);

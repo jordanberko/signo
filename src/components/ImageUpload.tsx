@@ -34,8 +34,8 @@ interface ImageUploadProps {
   uploadFile: (file: File, onProgress: (progress: number) => void) => Promise<string>;
 }
 
-const ACCEPTED = '.jpg,.jpeg,.png,.webp';
-const ACCEPTED_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
+const ACCEPTED = '.jpg,.jpeg,.png,.webp,.heic,.heif';
+const ACCEPTED_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/heic', 'image/heif'];
 
 export default function ImageUpload({
   maxFiles = 6,
@@ -272,7 +272,7 @@ export default function ImageUpload({
                 {isDraggingOver ? 'Drop images here' : 'Drop images here or click to browse'}
               </p>
               <p className="text-xs text-muted mt-1">
-                JPG, PNG, or WebP · Max {maxSizeMB} MB each · Up to {maxFiles} images · High-res recommended
+                JPG, PNG, WebP, or HEIC · Max {maxSizeMB} MB each · Up to {maxFiles} images · High-res recommended
               </p>
             </div>
           </div>

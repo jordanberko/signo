@@ -17,14 +17,6 @@ import {
 import { formatPrice } from '@/lib/utils';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { useRequireAuth } from '@/lib/hooks/useRequireAuth';
-import { getReadyClient } from '@/lib/supabase/client';
-
-interface Stats {
-  totalSales: number;
-  activeListings: number;
-  pendingReview: number;
-  totalEarnings: number;
-}
 
 interface RecentOrder {
   id: string;
@@ -40,97 +32,82 @@ interface RecentOrder {
 export default function ArtistDashboardPage() {
   const { loading: authLoading } = useRequireAuth('artist');
   const { user } = useAuth();
-  const [stats, setStats] = useState<Stats>({
-    totalSales: 0,
-    activeListings: 0,
-    pendingReview: 0,
-    totalEarnings: 0,
-  });
+
+  // Stats default to 0 — never show loading placeholders
+  const [totalSales, setTotalSales] = useState(0);
+  const [totalEarnings, setTotalEarnings] = useState(0);
+  const [activeListings, setActiveListings] = useState(0);
+  const [pendingReview, setPendingReview] = useState(0);
+
+  // Orders: separate loaded flag with 5s safety timeout
   const [recentOrders, setRecentOrders] = useState<RecentOrder[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [ordersLoaded, setOrdersLoaded] = useState(false);
 
   useEffect(() => {
-    if (!user) return;
+    if (!user) {
+      setOrdersLoaded(true);
+      return;
+    }
 
-    async function fetchStats() {
-      setLoading(true);
+    // Safety timeout: show empty state after 5s no matter what
+    const timer = setTimeout(() => setOrdersLoaded(true), 5000);
+
+    const controller = new AbortController();
+
+    async function fetchDashboard() {
       try {
-        const supabase = await getReadyClient();
-
-        // Count active listings
-        const { count: activeCount } = await supabase
-          .from('artworks')
-          .select('*', { count: 'exact', head: true })
-          .eq('artist_id', user!.id)
-          .eq('status', 'approved');
-
-        // Count pending review
-        const { count: pendingCount } = await supabase
-          .from('artworks')
-          .select('*', { count: 'exact', head: true })
-          .eq('artist_id', user!.id)
-          .eq('status', 'pending_review');
-
-        // Get ALL completed orders for total sales count & earnings
-        const { data: allOrders } = await supabase
-          .from('orders')
-          .select('total_amount_aud, artist_payout_aud')
-          .eq('artist_id', user!.id)
-          .in('status', ['paid', 'shipped', 'delivered', 'completed']);
-
-        // Total earnings = sum of (total_amount_aud - stripe fee) for all completed orders
-        // artist_payout_aud already reflects this (sale price minus Stripe fees, zero commission)
-        const totalEarnings =
-          allOrders?.reduce((sum, o) => sum + (o.artist_payout_aud || 0), 0) || 0;
-
-        // Get recent 5 orders for the table
-        const { data: recent } = await supabase
-          .from('orders')
-          .select(
-            '*, artworks(title), profiles!orders_buyer_id_fkey(full_name)'
-          )
-          .eq('artist_id', user!.id)
-          .order('created_at', { ascending: false })
-          .limit(5);
-
-        setStats({
-          totalSales: allOrders?.length || 0,
-          activeListings: activeCount || 0,
-          pendingReview: pendingCount || 0,
-          totalEarnings,
+        console.log('[ArtistDashboard] Fetching from /api/artist/dashboard');
+        const res = await fetch('/api/artist/dashboard', {
+          signal: controller.signal,
         });
 
-        if (recent) {
+        if (!res.ok) {
+          console.error('[ArtistDashboard] API error:', res.status);
+          return;
+        }
+
+        const data = await res.json();
+        console.log('[ArtistDashboard] API response:', data);
+
+        // Update stats (they default to 0, so partial failure is fine)
+        if (data.stats) {
+          setTotalSales(data.stats.totalSales ?? 0);
+          setTotalEarnings(data.stats.totalEarnings ?? 0);
+          setActiveListings(data.stats.activeListings ?? 0);
+          setPendingReview(data.stats.pendingReview ?? 0);
+        }
+
+        // Update orders
+        if (data.recentOrders) {
           setRecentOrders(
-            recent.map((o: Record<string, unknown>) => {
-              const salePrice = (o.total_amount_aud as number) || 0;
-              const payout = (o.artist_payout_aud as number) || 0;
-              const stripeFee = Math.round((salePrice - payout) * 100) / 100;
-              return {
-                id: o.id as string,
-                title:
-                  (o.artworks as Record<string, string>)?.title || 'Unknown',
-                buyer:
-                  (o.profiles as Record<string, string>)?.full_name || 'Unknown',
-                salePrice,
-                stripeFee,
-                youReceive: payout,
-                status: o.status as string,
-                date: new Date(o.created_at as string).toLocaleDateString(
-                  'en-AU'
-                ),
-              };
-            })
+            data.recentOrders.map((o: Record<string, unknown>) => ({
+              id: o.id as string,
+              title: o.title as string,
+              buyer: o.buyer as string,
+              salePrice: o.salePrice as number,
+              stripeFee: o.stripeFee as number,
+              youReceive: o.youReceive as number,
+              status: o.status as string,
+              date: new Date(o.date as string).toLocaleDateString('en-AU'),
+            }))
           );
         }
       } catch (err) {
-        console.error('[ArtistDashboard] Stats fetch error:', err);
+        if ((err as Error).name !== 'AbortError') {
+          console.error('[ArtistDashboard] Fetch error:', err);
+        }
       } finally {
-        setLoading(false);
+        clearTimeout(timer);
+        setOrdersLoaded(true);
       }
     }
 
-    fetchStats();
+    fetchDashboard();
+
+    return () => {
+      clearTimeout(timer);
+      controller.abort();
+    };
   }, [user]);
 
   if (authLoading) return <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '60vh' }}><div style={{ width: 32, height: 32, border: '3px solid #E5E2DB', borderTopColor: '#2C2C2A', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} /><style>{'@keyframes spin { to { transform: rotate(360deg) } }'}</style></div>;
@@ -138,25 +115,25 @@ export default function ArtistDashboardPage() {
   const STATS = [
     {
       label: 'Total Sales',
-      value: String(stats.totalSales),
+      value: String(totalSales),
       icon: TrendingUp,
       color: 'text-blue-600 bg-blue-50',
     },
     {
       label: 'Total Earnings',
-      value: formatPrice(stats.totalEarnings),
+      value: formatPrice(totalEarnings),
       icon: DollarSign,
       color: 'text-green-600 bg-green-50',
     },
     {
       label: 'Active Listings',
-      value: String(stats.activeListings),
+      value: String(activeListings),
       icon: Package,
       color: 'text-purple-600 bg-purple-50',
     },
     {
       label: 'Pending Review',
-      value: String(stats.pendingReview),
+      value: String(pendingReview),
       icon: Eye,
       color: 'text-amber-600 bg-amber-50',
     },
@@ -200,7 +177,7 @@ export default function ArtistDashboardPage() {
         </Link>
       </div>
 
-      {/* Stats Grid */}
+      {/* Stats Grid — always shows numbers, defaults to 0 */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         {STATS.map((stat) => (
           <div
@@ -215,13 +192,7 @@ export default function ArtistDashboardPage() {
                 <stat.icon className="h-4 w-4" />
               </div>
             </div>
-            <p className="text-2xl font-bold">
-              {loading ? (
-                <span className="inline-block w-16 h-7 bg-gray-100 rounded animate-pulse" />
-              ) : (
-                stat.value
-              )}
-            </p>
+            <p className="text-2xl font-bold">{stat.value}</p>
           </div>
         ))}
       </div>
@@ -324,7 +295,7 @@ export default function ArtistDashboardPage() {
             View All <ArrowRight className="h-3 w-3" />
           </Link>
         </div>
-        {loading ? (
+        {!ordersLoaded ? (
           <div className="p-10 flex items-center justify-center">
             <Loader2 className="h-5 w-5 animate-spin text-muted" />
           </div>

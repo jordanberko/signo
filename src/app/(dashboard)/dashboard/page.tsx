@@ -18,7 +18,6 @@ import {
 import ArtworkCard from '@/components/ui/ArtworkCard';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { useRequireAuth } from '@/lib/hooks/useRequireAuth';
-import { getReadyClient } from '@/lib/supabase/client';
 import { formatPrice } from '@/lib/utils';
 
 // ── Types ──
@@ -90,70 +89,66 @@ function DashboardContent() {
     }
 
     let cancelled = false;
+    const controller = new AbortController();
+
+    // Safety timeout: show empty state after 5s no matter what
+    const timer = setTimeout(() => {
+      if (!cancelled) setLoading(false);
+    }, 5000);
 
     async function fetchOrders() {
       try {
-        const supabase = await getReadyClient();
+        console.log('[Dashboard] Fetching orders from /api/orders');
+        const res = await fetch('/api/orders', { signal: controller.signal });
 
-        const [countResult, dataResult] = await Promise.allSettled([
-          supabase
-            .from('orders')
-            .select('*', { count: 'exact', head: true })
-            .eq('buyer_id', user!.id),
-          supabase
-            .from('orders')
-            .select(
-              'id, total_amount_aud, status, created_at, artworks(title, images), profiles!orders_artist_id_fkey(full_name)'
-            )
-            .eq('buyer_id', user!.id)
-            .order('created_at', { ascending: false })
-            .limit(5),
-        ]);
+        if (!res.ok) {
+          console.error('[Dashboard] Orders API error:', res.status);
+          return;
+        }
+
+        const data = await res.json();
+        console.log('[Dashboard] Orders response:', data.orders?.length, 'orders');
 
         if (cancelled) return;
 
-        if (countResult.status === 'fulfilled') {
-          setTotalOrders(countResult.value.count || 0);
-        }
+        const ordersList = data.orders || [];
+        setTotalOrders(ordersList.length);
 
-        if (dataResult.status === 'fulfilled' && dataResult.value.data) {
-          setOrders(
-            dataResult.value.data.map((o: Record<string, unknown>) => {
-              const artwork = o.artworks as Record<string, unknown> | null;
-              const artist = o.profiles as Record<string, string> | null;
-              const images = (artwork?.images as string[]) || [];
-              return {
-                id: o.id as string,
-                artworkTitle: (artwork?.title as string) || 'Unknown',
-                artworkImage: images[0] || null,
-                artistName: artist?.full_name || 'Unknown Artist',
-                price: (o.total_amount_aud as number) || 0,
-                date: new Date(o.created_at as string).toLocaleDateString(
-                  'en-AU',
-                  { day: 'numeric', month: 'short', year: 'numeric' }
-                ),
-                status: o.status as string,
-              };
-            })
-          );
-        }
+        setOrders(
+          ordersList.slice(0, 5).map((o: Record<string, unknown>) => {
+            const artwork = o.artworks as Record<string, unknown> | null;
+            const artist = o.profiles as Record<string, string> | null;
+            const images = (artwork?.images as string[]) || [];
+            return {
+              id: o.id as string,
+              artworkTitle: (artwork?.title as string) || 'Unknown',
+              artworkImage: images[0] || null,
+              artistName: artist?.full_name || 'Unknown Artist',
+              price: (o.total_amount_aud as number) || 0,
+              date: new Date(o.created_at as string).toLocaleDateString(
+                'en-AU',
+                { day: 'numeric', month: 'short', year: 'numeric' }
+              ),
+              status: o.status as string,
+            };
+          })
+        );
       } catch (err) {
-        console.error('[Dashboard] Orders fetch exception:', err);
+        if ((err as Error).name !== 'AbortError') {
+          console.error('[Dashboard] Orders fetch error:', err);
+        }
       } finally {
+        clearTimeout(timer);
         if (!cancelled) setLoading(false);
       }
     }
 
-    // 5-second timeout — show empty state rather than spinner forever
-    const timeout = setTimeout(() => {
-      if (!cancelled) setLoading(false);
-    }, 5000);
-
-    fetchOrders().then(() => clearTimeout(timeout));
+    fetchOrders();
 
     return () => {
       cancelled = true;
-      clearTimeout(timeout);
+      controller.abort();
+      clearTimeout(timer);
     };
   }, [user]);
 
