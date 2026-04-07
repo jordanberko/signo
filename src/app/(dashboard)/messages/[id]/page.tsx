@@ -2,7 +2,14 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import Link from 'next/link';
-import { ArrowLeft, Send, Loader2, CheckCheck, ImageIcon } from 'lucide-react';
+import {
+  ArrowLeft,
+  Send,
+  Loader2,
+  CheckCheck,
+  ImageIcon,
+  RefreshCw,
+} from 'lucide-react';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { useRequireAuth } from '@/lib/hooks/useRequireAuth';
 import { createClient } from '@/lib/supabase/client';
@@ -17,13 +24,6 @@ interface MessageRow {
   content: string;
   read: boolean;
   created_at: string;
-}
-
-interface ConversationInfo {
-  id: string;
-  participant_1: string;
-  participant_2: string;
-  artwork_id: string | null;
 }
 
 interface ProfileBasic {
@@ -91,13 +91,11 @@ export default function ConversationPage({
   const { user } = useAuth();
 
   const [conversationId, setConversationId] = useState<string | null>(null);
-  const [conversation, setConversation] = useState<ConversationInfo | null>(
-    null
-  );
   const [otherUser, setOtherUser] = useState<ProfileBasic | null>(null);
   const [artwork, setArtwork] = useState<ArtworkBasic | null>(null);
   const [messages, setMessages] = useState<MessageRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [newMessage, setNewMessage] = useState('');
   const [sending, setSending] = useState(false);
   const [sendCooldown, setSendCooldown] = useState(false);
@@ -107,105 +105,87 @@ export default function ConversationPage({
 
   // Resolve params
   useEffect(() => {
-    params.then((p) => setConversationId(p.id));
+    params.then((p) => {
+      console.log('[Chat] Resolved conversation ID:', p.id);
+      setConversationId(p.id);
+    });
   }, [params]);
 
   const scrollToBottom = useCallback(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, []);
 
-  // Load conversation data
-  useEffect(() => {
-    if (!conversationId || !user) return;
+  // Load conversation data via server API route
+  const loadConversation = useCallback(
+    async (convoId: string) => {
+      console.log('[Chat] Fetching conversation:', convoId);
+      setError(null);
 
-    async function loadConversation() {
       try {
-        const supabase = createClient();
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 8000);
 
-        // Fetch conversation
-        const { data: convo } = await (supabase as unknown as {
-          from: (table: string) => {
-            select: (cols: string) => {
-              eq: (col: string, val: string) => {
-                single: () => Promise<{
-                  data: ConversationInfo | null;
-                  error: unknown;
-                }>;
-              };
-            };
-          };
-        })
-          .from('conversations')
-          .select('*')
-          .eq('id', conversationId!)
-          .single();
+        const res = await fetch(`/api/messages/${convoId}`, {
+          signal: controller.signal,
+        });
+        clearTimeout(timeout);
 
-        if (!convo) {
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({}));
+          console.error('[Chat] API error:', res.status, data.error);
+          setError(data.error || `Failed to load conversation (${res.status})`);
           setLoading(false);
           return;
         }
 
-        setConversation(convo);
+        const json = await res.json();
+        console.log(
+          '[Chat] Loaded conversation. Messages:',
+          json.messages?.length ?? 0
+        );
 
-        // Fetch other user's profile
-        const otherId =
-          convo.participant_1 === user!.id
-            ? convo.participant_2
-            : convo.participant_1;
-
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('id, full_name, avatar_url')
-          .eq('id', otherId)
-          .single();
-
-        if (profile) setOtherUser(profile as ProfileBasic);
-
-        // Fetch artwork if linked
-        if (convo.artwork_id) {
-          const { data: art } = await supabase
-            .from('artworks')
-            .select('id, title, images')
-            .eq('id', convo.artwork_id)
-            .single();
-          if (art) setArtwork(art as ArtworkBasic);
-        }
-
-        // Fetch messages
-        const { data: msgs } = await (supabase as unknown as {
-          from: (table: string) => {
-            select: (cols: string) => {
-              eq: (col: string, val: string) => {
-                order: (col: string, opts: { ascending: boolean }) => Promise<{
-                  data: MessageRow[] | null;
-                  error: unknown;
-                }>;
-              };
-            };
-          };
-        })
-          .from('messages')
-          .select('*')
-          .eq('conversation_id', conversationId!)
-          .order('created_at', { ascending: true });
-
-        setMessages(msgs || []);
+        setOtherUser(json.otherUser);
+        setArtwork(json.artwork);
+        setMessages(json.messages || []);
 
         // Mark messages as read
-        await fetch('/api/messages/read', {
+        fetch('/api/messages/read', {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ conversation_id: conversationId }),
-        });
+          body: JSON.stringify({ conversation_id: convoId }),
+        }).catch(() => {});
       } catch (err) {
-        console.error('[Chat] Load error:', err);
+        if (err instanceof DOMException && err.name === 'AbortError') {
+          console.error('[Chat] Request timed out');
+          setError('Could not load conversation — request timed out.');
+        } else {
+          console.error('[Chat] Fetch error:', err);
+          setError('Could not load conversation. Please try again.');
+        }
       } finally {
         setLoading(false);
       }
-    }
+    },
+    []
+  );
 
-    loadConversation();
-  }, [conversationId, user]);
+  useEffect(() => {
+    if (!conversationId || !user) return;
+    loadConversation(conversationId);
+  }, [conversationId, user, loadConversation]);
+
+  // Safety timeout
+  useEffect(() => {
+    if (!loading) return;
+    const t = setTimeout(() => {
+      if (loading) {
+        console.error('[Chat] Safety timeout — forcing load complete');
+        setLoading(false);
+        setError('Could not load conversation. Please try again.');
+      }
+    }, 10000);
+    return () => clearTimeout(t);
+  }, [loading]);
 
   // Scroll to bottom when messages change
   useEffect(() => {
@@ -230,8 +210,8 @@ export default function ConversationPage({
           filter: `conversation_id=eq.${conversationId}`,
         } as unknown as Record<string, unknown>,
         (payload: { new: MessageRow }) => {
+          console.log('[Chat] Real-time: new message received');
           setMessages((prev) => {
-            // Avoid duplicates
             if (prev.some((m) => m.id === payload.new.id)) return prev;
             return [...prev, payload.new];
           });
@@ -242,7 +222,7 @@ export default function ConversationPage({
               method: 'PUT',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ conversation_id: conversationId }),
-            });
+            }).catch(() => {});
           }
         }
       )
@@ -273,7 +253,6 @@ export default function ConversationPage({
     if (value.length <= 2000) {
       setNewMessage(value);
     }
-    // Auto-resize
     const el = textareaRef.current;
     if (el) {
       el.style.height = 'auto';
@@ -284,6 +263,7 @@ export default function ConversationPage({
   async function handleSend() {
     if (!newMessage.trim() || sending || sendCooldown || !conversationId) return;
 
+    console.log('[Chat] Sending message...');
     setSending(true);
     setSendCooldown(true);
 
@@ -298,19 +278,27 @@ export default function ConversationPage({
       });
 
       if (res.ok) {
+        const { data } = await res.json();
+        console.log('[Chat] Message sent:', data?.id);
         setNewMessage('');
         if (textareaRef.current) {
           textareaRef.current.style.height = 'auto';
         }
+        // Optimistically add message if real-time hasn't delivered it
+        if (data) {
+          setMessages((prev) => {
+            if (prev.some((m) => m.id === data.id)) return prev;
+            return [...prev, data as MessageRow];
+          });
+        }
       } else {
-        const data = await res.json();
+        const data = await res.json().catch(() => ({}));
         console.error('[Chat] Send error:', data.error);
       }
     } catch (err) {
       console.error('[Chat] Send error:', err);
     } finally {
       setSending(false);
-      // Debounce: disable send for 500ms
       setTimeout(() => setSendCooldown(false), 500);
     }
   }
@@ -322,8 +310,7 @@ export default function ConversationPage({
     }
   }
 
-  // ── Loading states ──
-
+  // ── Auth loading ──
   if (authLoading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
@@ -332,6 +319,7 @@ export default function ConversationPage({
     );
   }
 
+  // ── Data loading ──
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
@@ -340,7 +328,42 @@ export default function ConversationPage({
     );
   }
 
-  if (!conversation || !otherUser) {
+  // ── Error state ──
+  if (error) {
+    return (
+      <div className="max-w-2xl mx-auto px-4 py-16 text-center">
+        <h1 className="font-editorial text-2xl font-medium mb-2">
+          Something went wrong
+        </h1>
+        <p className="text-muted mb-6">{error}</p>
+        <div className="flex gap-3 justify-center">
+          <Link
+            href="/messages"
+            className="inline-flex items-center gap-2 px-6 py-3 border border-border font-medium rounded-full hover:bg-cream transition-colors"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Back
+          </Link>
+          <button
+            onClick={() => {
+              if (conversationId) {
+                setLoading(true);
+                setError(null);
+                loadConversation(conversationId);
+              }
+            }}
+            className="inline-flex items-center gap-2 px-6 py-3 bg-primary text-white font-semibold rounded-full hover:bg-accent hover:text-primary transition-colors"
+          >
+            <RefreshCw className="h-4 w-4" />
+            Try Again
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // ── Conversation not found ──
+  if (!otherUser) {
     return (
       <div className="max-w-2xl mx-auto px-4 py-16 text-center">
         <h1 className="font-editorial text-2xl font-medium mb-2">
@@ -363,7 +386,10 @@ export default function ConversationPage({
   const showCharCount = charCount > 1800;
 
   return (
-    <div className="max-w-3xl mx-auto px-4 sm:px-6 flex flex-col" style={{ height: 'calc(100vh - 64px)' }}>
+    <div
+      className="max-w-3xl mx-auto px-4 sm:px-6 flex flex-col"
+      style={{ height: 'calc(100vh - 64px)' }}
+    >
       {/* ── Header ── */}
       <div className="flex items-center gap-3 py-4 border-b border-border flex-shrink-0">
         <Link

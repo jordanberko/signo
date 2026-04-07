@@ -175,12 +175,15 @@ export default function ArtworkDetailClient({
   const isOwnArtwork = user?.id === artwork.artist.id;
 
   async function handleMessageArtist() {
+    console.log('[Artwork] Message Artist clicked for artwork:', artwork.id);
+
     if (!user) {
-      // Redirect to login with return URL
+      console.log('[Artwork] User not logged in, redirecting to login');
       window.location.href = `/login?redirect=${encodeURIComponent(`/artwork/${artwork.id}`)}`;
       return;
     }
 
+    console.log('[Artwork] Creating conversation with artist:', artwork.artist.id);
     setMessagingLoading(true);
     try {
       const res = await fetch('/api/messages/conversations', {
@@ -192,11 +195,14 @@ export default function ArtworkDetailClient({
         }),
       });
 
+      const json = await res.json();
+
       if (res.ok) {
-        const { data } = await res.json();
-        router.push(`/messages/${data.id}`);
+        console.log('[Artwork] Conversation created/found:', json.data?.id);
+        console.log('[Artwork] Navigating to /messages/' + json.data?.id);
+        router.push(`/messages/${json.data.id}`);
       } else {
-        console.error('[Artwork] Failed to create conversation');
+        console.error('[Artwork] Failed to create conversation:', json.error);
         setMessagingLoading(false);
       }
     } catch (err) {

@@ -1,40 +1,18 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
-import { MessageCircle, Loader2 } from 'lucide-react';
+import { MessageCircle, Loader2, RefreshCw } from 'lucide-react';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { useRequireAuth } from '@/lib/hooks/useRequireAuth';
-import { createClient } from '@/lib/supabase/client';
 import { getInitials } from '@/lib/utils';
 
 // ── Types ──
 
-interface ConversationRow {
-  id: string;
-  participant_1: string;
-  participant_2: string;
-  artwork_id: string | null;
-  last_message_at: string;
-  created_at: string;
-}
-
-interface ProfileBasic {
-  id: string;
-  full_name: string | null;
-  avatar_url: string | null;
-}
-
-interface ArtworkBasic {
-  id: string;
-  title: string;
-  images: string[];
-}
-
 interface ConversationDisplay {
   id: string;
-  otherUser: ProfileBasic;
-  artwork: ArtworkBasic | null;
+  otherUser: { id: string; full_name: string | null; avatar_url: string | null };
+  artwork: { id: string; title: string; images: string[] } | null;
   lastMessage: string | null;
   lastMessageAt: string;
   unreadCount: number;
@@ -66,173 +44,63 @@ export default function MessagesPage() {
   const { user } = useAuth();
   const [conversations, setConversations] = useState<ConversationDisplay[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const loadConversations = useCallback(async () => {
+    console.log('[Messages] Fetching inbox...');
+    setError(null);
+
+    try {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 8000);
+
+      const res = await fetch('/api/messages/inbox', {
+        signal: controller.signal,
+      });
+      clearTimeout(timeout);
+
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        console.error('[Messages] API error:', res.status, data.error);
+        setError(data.error || `Failed to load messages (${res.status})`);
+        return;
+      }
+
+      const json = await res.json();
+      console.log('[Messages] Loaded', json.data?.length ?? 0, 'conversations');
+      setConversations(json.data || []);
+    } catch (err) {
+      if (err instanceof DOMException && err.name === 'AbortError') {
+        console.error('[Messages] Request timed out');
+        setError('Could not load messages — request timed out.');
+      } else {
+        console.error('[Messages] Fetch error:', err);
+        setError('Could not load messages. Please try again.');
+      }
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
     if (!user) return;
-
-    async function loadConversations() {
-      try {
-        const supabase = createClient();
-
-        // Fetch conversations where user is a participant
-        const { data: convos, error } = await (supabase as unknown as {
-          from: (table: string) => {
-            select: (cols: string) => {
-              or: (filter: string) => {
-                order: (col: string, opts: { ascending: boolean }) => Promise<{
-                  data: ConversationRow[] | null;
-                  error: { message: string } | null;
-                }>;
-              };
-            };
-          };
-        })
-          .from('conversations')
-          .select('*')
-          .or(`participant_1.eq.${user!.id},participant_2.eq.${user!.id}`)
-          .order('last_message_at', { ascending: false });
-
-        if (error || !convos || convos.length === 0) {
-          setLoading(false);
-          return;
-        }
-
-        // Gather all participant IDs and artwork IDs we need to look up
-        const otherUserIds = new Set<string>();
-        const artworkIds = new Set<string>();
-
-        convos.forEach((c) => {
-          const otherId =
-            c.participant_1 === user!.id ? c.participant_2 : c.participant_1;
-          otherUserIds.add(otherId);
-          if (c.artwork_id) artworkIds.add(c.artwork_id);
-        });
-
-        // Fetch profiles
-        const { data: profiles } = await supabase
-          .from('profiles')
-          .select('id, full_name, avatar_url')
-          .in('id', Array.from(otherUserIds));
-
-        const profileMap = new Map<string, ProfileBasic>();
-        (profiles || []).forEach((p: ProfileBasic) => profileMap.set(p.id, p));
-
-        // Fetch artworks
-        let artworkMap = new Map<string, ArtworkBasic>();
-        if (artworkIds.size > 0) {
-          const { data: artworks } = await supabase
-            .from('artworks')
-            .select('id, title, images')
-            .in('id', Array.from(artworkIds));
-          (artworks || []).forEach((a: ArtworkBasic) =>
-            artworkMap.set(a.id, a)
-          );
-        }
-
-        // Fetch last message for each conversation + unread counts
-        const displayConvos: ConversationDisplay[] = [];
-
-        for (const c of convos) {
-          const otherId =
-            c.participant_1 === user!.id ? c.participant_2 : c.participant_1;
-
-          // Last message
-          const { data: lastMsgs } = await (supabase as unknown as {
-            from: (table: string) => {
-              select: (cols: string) => {
-                eq: (col: string, val: string) => {
-                  order: (col: string, opts: { ascending: boolean }) => {
-                    limit: (n: number) => Promise<{
-                      data: { content: string; sender_id: string }[] | null;
-                      error: unknown;
-                    }>;
-                  };
-                };
-              };
-            };
-          })
-            .from('messages')
-            .select('content, sender_id')
-            .eq('conversation_id', c.id)
-            .order('created_at', { ascending: false })
-            .limit(1);
-
-          // Unread count
-          const { count: unread } = await (supabase as unknown as {
-            from: (table: string) => {
-              select: (cols: string, opts: { count: string; head: boolean }) => {
-                eq: (col: string, val: string) => {
-                  eq: (col2: string, val2: boolean) => {
-                    neq: (col3: string, val3: string) => Promise<{
-                      count: number | null;
-                      error: unknown;
-                    }>;
-                  };
-                };
-              };
-            };
-          })
-            .from('messages')
-            .select('*', { count: 'exact', head: true })
-            .eq('conversation_id', c.id)
-            .eq('read', false)
-            .neq('sender_id', user!.id);
-
-          const lastMsg = lastMsgs?.[0] || null;
-          let preview = lastMsg?.content || null;
-          if (preview && preview.length > 60) {
-            preview = preview.substring(0, 57) + '...';
-          }
-
-          displayConvos.push({
-            id: c.id,
-            otherUser: profileMap.get(otherId) || {
-              id: otherId,
-              full_name: 'Unknown',
-              avatar_url: null,
-            },
-            artwork: c.artwork_id ? artworkMap.get(c.artwork_id) || null : null,
-            lastMessage: preview,
-            lastMessageAt: c.last_message_at,
-            unreadCount: unread ?? 0,
-          });
-        }
-
-        setConversations(displayConvos);
-      } catch (err) {
-        console.error('[Messages] Load error:', err);
-      } finally {
-        setLoading(false);
-      }
-    }
-
     loadConversations();
+  }, [user, loadConversations]);
 
-    // Real-time: listen for new messages to update the list
-    const supabase = createClient();
-    const channel = supabase
-      .channel('inbox-updates')
-      .on(
-        'postgres_changes' as unknown as 'system',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'messages',
-        } as unknown as Record<string, unknown>,
-        () => {
-          // Reload conversations when a new message arrives
-          loadConversations();
-        }
-      )
-      .subscribe();
+  // Safety timeout: if loading takes more than 10 seconds, stop
+  useEffect(() => {
+    if (!loading) return;
+    const t = setTimeout(() => {
+      if (loading) {
+        console.error('[Messages] Safety timeout — forcing load complete');
+        setLoading(false);
+        setError('Could not load messages. Please try again.');
+      }
+    }, 10000);
+    return () => clearTimeout(t);
+  }, [loading]);
 
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [user]);
-
-  // ── Loading states ──
-
+  // ── Auth loading ──
   if (authLoading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
@@ -241,6 +109,7 @@ export default function MessagesPage() {
     );
   }
 
+  // ── Data loading ──
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
@@ -249,8 +118,33 @@ export default function MessagesPage() {
     );
   }
 
-  // ── Empty state ──
+  // ── Error state ──
+  if (error) {
+    return (
+      <div className="max-w-2xl mx-auto px-4 py-16 text-center">
+        <div className="w-16 h-16 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-5">
+          <MessageCircle className="h-8 w-8 text-red-400" />
+        </div>
+        <h1 className="font-editorial text-2xl font-medium mb-2">
+          Something went wrong
+        </h1>
+        <p className="text-muted mb-6">{error}</p>
+        <button
+          onClick={() => {
+            setLoading(true);
+            setError(null);
+            loadConversations();
+          }}
+          className="inline-flex items-center gap-2 px-6 py-3 bg-primary text-white font-semibold rounded-full hover:bg-accent hover:text-primary transition-colors"
+        >
+          <RefreshCw className="h-4 w-4" />
+          Try Again
+        </button>
+      </div>
+    );
+  }
 
+  // ── Empty state ──
   if (conversations.length === 0) {
     return (
       <div className="max-w-2xl mx-auto px-4 py-16 text-center">
@@ -274,7 +168,6 @@ export default function MessagesPage() {
   }
 
   // ── Conversation list ──
-
   return (
     <div className="max-w-2xl mx-auto px-4 sm:px-6 py-8">
       <h1 className="font-editorial text-2xl md:text-3xl font-medium mb-6">
