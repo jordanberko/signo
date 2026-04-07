@@ -20,7 +20,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { useRequireAuth } from '@/lib/hooks/useRequireAuth';
-import { getReadyClient } from '@/lib/supabase/client';
+import { createClient } from '@/lib/supabase/client';
 import { uploadAvatar } from '@/lib/supabase/storage';
 import AvatarUpload from '@/components/AvatarUpload';
 
@@ -108,13 +108,14 @@ export default function SettingsPage() {
     message: string;
   } | null>(null);
 
-  // Address state
+  // Address state — load from profile if available
+  const userAny = user as Record<string, unknown> | null;
   const [address, setAddress] = useState<Address>({
-    street: '',
-    city: '',
-    state: '',
-    postcode: '',
-    country: 'Australia',
+    street: (userAny?.street_address as string) || '',
+    city: (userAny?.city as string) || '',
+    state: (userAny?.state as string) || '',
+    postcode: (userAny?.postcode as string) || '',
+    country: (userAny?.country as string) || 'Australia',
   });
   const [addressSaving, setAddressSaving] = useState(false);
   const [addressStatus, setAddressStatus] = useState<{
@@ -164,68 +165,98 @@ export default function SettingsPage() {
     [user]
   );
 
-  // Save profile
+  // Save profile via server API route
   async function saveProfile() {
     if (!user) return;
     setProfileSaving(true);
     setProfileStatus(null);
 
     try {
-      const supabase = await getReadyClient();
-      const { error } = await supabase
-        .from('profiles')
-        .update({
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 5000);
+
+      const res = await fetch('/api/profile', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        signal: controller.signal,
+        body: JSON.stringify({
           full_name: fullName.trim(),
           avatar_url: avatarUrl,
-        })
-        .eq('id', user.id);
+        }),
+      });
+      clearTimeout(timeout);
 
-      if (error) throw error;
+      const result = await res.json();
+      console.log('[Settings] Profile save result:', result);
 
-      await refreshUser();
-      setProfileStatus({ type: 'success', message: 'Profile updated.' });
+      if (!res.ok) {
+        setProfileStatus({
+          type: 'error',
+          message: result.error || 'Failed to update profile.',
+        });
+      } else {
+        await refreshUser();
+        setProfileStatus({ type: 'success', message: 'Profile updated.' });
+      }
     } catch (err) {
       console.error('[Settings] Profile save error:', err);
       setProfileStatus({
         type: 'error',
-        message: 'Failed to update profile. Please try again.',
+        message: (err as Error).name === 'AbortError'
+          ? 'Request timed out. Please try again.'
+          : 'Failed to update profile. Please try again.',
       });
     } finally {
       setProfileSaving(false);
     }
   }
 
-  // Save address (stored in profile as JSON — placeholder for now)
+  // Save address via server API route
   async function saveAddress() {
     if (!user) return;
     setAddressSaving(true);
     setAddressStatus(null);
 
     try {
-      const supabase = await getReadyClient();
-      const { error } = await supabase
-        .from('profiles')
-        .update({
-          // Store address as part of social_links for now — separate column in Phase 5
-          social_links: {
-            ...(user.social_links || {}),
-            _shipping_address: JSON.stringify(address),
-          },
-        })
-        .eq('id', user.id);
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 5000);
 
-      if (error) throw error;
-
-      await refreshUser();
-      setAddressStatus({
-        type: 'success',
-        message: 'Shipping address saved.',
+      const res = await fetch('/api/profile', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        signal: controller.signal,
+        body: JSON.stringify({
+          street_address: address.street,
+          city: address.city,
+          state: address.state,
+          postcode: address.postcode,
+          country: address.country,
+        }),
       });
+      clearTimeout(timeout);
+
+      const result = await res.json();
+      console.log('[Settings] Address save result:', result);
+
+      if (!res.ok) {
+        setAddressStatus({
+          type: 'error',
+          message: result.error || 'Failed to save address.',
+        });
+      } else {
+        await refreshUser();
+        setAddressStatus({
+          type: 'success',
+          message: 'Shipping address saved.',
+        });
+      }
     } catch (err) {
       console.error('[Settings] Address save error:', err);
       setAddressStatus({
         type: 'error',
-        message: 'Failed to save address. Please try again.',
+        message: (err as Error).name === 'AbortError'
+          ? 'Request timed out. Please try again.'
+          : 'Something went wrong. Please try again.',
       });
     } finally {
       setAddressSaving(false);
@@ -255,7 +286,7 @@ export default function SettingsPage() {
     setPasswordSaving(true);
 
     try {
-      const supabase = await getReadyClient();
+      const supabase = createClient();
       const { error } = await supabase.auth.updateUser({
         password: newPassword,
       });
@@ -289,23 +320,31 @@ export default function SettingsPage() {
     setArtistStatus(null);
 
     try {
-      const supabase = await getReadyClient();
       const socialLinks = { ...(user.social_links || {}) };
       if (instagramUrl.trim()) socialLinks.instagram = instagramUrl.trim();
       else delete socialLinks.instagram;
       if (websiteUrl.trim()) socialLinks.website = websiteUrl.trim();
       else delete socialLinks.website;
 
-      const { error } = await supabase
-        .from('profiles')
-        .update({
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 5000);
+
+      const res = await fetch('/api/profile', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        signal: controller.signal,
+        body: JSON.stringify({
           bio: artistBio.trim() || null,
           location: artistLocation.trim() || null,
           social_links: socialLinks,
-        })
-        .eq('id', user.id);
+        }),
+      });
+      clearTimeout(timeout);
 
-      if (error) throw error;
+      const result = await res.json();
+      console.log('[Settings] Artist profile save result:', result);
+
+      if (!res.ok) throw new Error(result.error || 'Failed to update artist profile.');
 
       await refreshUser();
       setArtistStatus({ type: 'success', message: 'Artist profile updated.' });

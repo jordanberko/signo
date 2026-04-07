@@ -272,7 +272,7 @@ export default function ImageUpload({
                 {isDraggingOver ? 'Drop images here' : 'Drop images here or click to browse'}
               </p>
               <p className="text-xs text-muted mt-1">
-                JPG, PNG, or WebP · Max {maxSizeMB} MB each · Up to {maxFiles} images
+                JPG, PNG, or WebP · Max {maxSizeMB} MB each · Up to {maxFiles} images · High-res recommended
               </p>
             </div>
           </div>

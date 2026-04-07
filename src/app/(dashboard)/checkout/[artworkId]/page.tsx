@@ -18,7 +18,6 @@ import {
 } from 'lucide-react';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { useRequireAuth } from '@/lib/hooks/useRequireAuth';
-import { getReadyClient } from '@/lib/supabase/client';
 import { formatPrice, calculateCommission } from '@/lib/utils';
 
 // ── Types ──
@@ -87,77 +86,70 @@ export default function CheckoutPage({
     params.then((p) => setArtworkId(p.artworkId));
   }, [params]);
 
-  // Fetch artwork
+  // Fetch artwork + saved address via server API route
   useEffect(() => {
     if (!artworkId) return;
 
-    async function fetchArtwork() {
-      const supabase = await getReadyClient();
-      const { data, error: fetchError } = await supabase
-        .from('artworks')
-        .select(
-          'id, title, price_aud, category, images, medium, artist_id, shipping_weight_kg, profiles!artworks_artist_id_fkey(full_name)'
-        )
-        .eq('id', artworkId!)
-        .eq('status', 'approved')
-        .single();
+    async function fetchCheckoutData() {
+      try {
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 8000);
 
-      if (fetchError || !data) {
-        setError('This artwork is not available for purchase.');
-        setLoading(false);
-        return;
-      }
+        const res = await fetch(`/api/checkout/artwork?id=${artworkId}`, {
+          signal: controller.signal,
+        });
+        clearTimeout(timeout);
 
-      const profile = data.profiles as Record<string, string> | null;
-      setArtwork({
-        id: data.id,
-        title: data.title,
-        price_aud: data.price_aud,
-        category: data.category as ArtworkCheckout['category'],
-        images: (data.images as string[]) || [],
-        medium: data.medium,
-        artist_id: data.artist_id,
-        shipping_weight_kg: data.shipping_weight_kg,
-        artist: {
-          full_name: profile?.full_name || null,
-        },
-      });
-      setLoading(false);
-    }
+        const data = await res.json();
+        console.log('[Checkout] Data loaded:', data);
 
-    fetchArtwork();
-  }, [artworkId]);
-
-  // Load saved address from profile
-  useEffect(() => {
-    if (!user) return;
-    async function loadAddress() {
-      const supabase = await getReadyClient();
-      const { data } = await supabase
-        .from('profiles')
-        .select('social_links')
-        .eq('id', user!.id)
-        .single();
-
-      if (data?.social_links?._shipping_address) {
-        try {
-          const saved = JSON.parse(data.social_links._shipping_address);
-          if (saved.street) {
-            setAddress({
-              street: saved.street || '',
-              city: saved.city || '',
-              state: saved.state || 'VIC',
-              postcode: saved.postcode || '',
-              country: saved.country || 'Australia',
-            });
-          }
-        } catch {
-          // Ignore parse errors
+        if (!res.ok) {
+          setError(data.error || 'This artwork is not available for purchase.');
+          setLoading(false);
+          return;
         }
+
+        const raw = data.artwork;
+        const profile = raw.profiles as Record<string, string> | null;
+        setArtwork({
+          id: raw.id,
+          title: raw.title,
+          price_aud: raw.price_aud,
+          category: raw.category as ArtworkCheckout['category'],
+          images: (raw.images as string[]) || [],
+          medium: raw.medium,
+          artist_id: raw.artist_id,
+          shipping_weight_kg: raw.shipping_weight_kg,
+          artist: {
+            full_name: profile?.full_name || null,
+          },
+        });
+
+        // Load saved address if available
+        if (data.address && data.address.street) {
+          setAddress({
+            street: data.address.street || '',
+            city: data.address.city || '',
+            state: data.address.state || 'VIC',
+            postcode: data.address.postcode || '',
+            country: data.address.country || 'Australia',
+          });
+        }
+      } catch (err) {
+        console.error('[Checkout] Load error:', err);
+        setError(
+          (err as Error).name === 'AbortError'
+            ? 'Request timed out. Please refresh the page.'
+            : 'Failed to load artwork details.'
+        );
+      } finally {
+        setLoading(false);
       }
     }
-    loadAddress();
-  }, [user]);
+
+    const safetyTimeout = setTimeout(() => setLoading(false), 10000);
+    fetchCheckoutData().then(() => clearTimeout(safetyTimeout));
+  }, [artworkId]);
 
   const isDigital = artwork?.category === 'digital';
   const shippingCost = isDigital ? 0 : 0; // Free shipping (included in price)

@@ -22,6 +22,11 @@ export async function PUT(request: Request) {
       social_links,
       onboarding_completed,
       role,
+      street_address,
+      city,
+      state,
+      postcode,
+      country,
     } = body;
 
     // Validate full_name if provided
@@ -42,6 +47,11 @@ export async function PUT(request: Request) {
     if (avatar_url !== undefined) updateData.avatar_url = avatar_url || null;
     if (social_links !== undefined) updateData.social_links = social_links;
     if (onboarding_completed !== undefined) updateData.onboarding_completed = !!onboarding_completed;
+    if (street_address !== undefined) updateData.street_address = street_address?.trim() || null;
+    if (city !== undefined) updateData.city = city?.trim() || null;
+    if (state !== undefined) updateData.state = state?.trim() || null;
+    if (postcode !== undefined) updateData.postcode = postcode?.trim() || null;
+    if (country !== undefined) updateData.country = country?.trim() || null;
 
     // Role upgrade: only allow buyer → artist (never downgrade or escalate to admin)
     if (role === 'artist') {

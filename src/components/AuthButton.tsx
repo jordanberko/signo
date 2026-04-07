@@ -233,7 +233,7 @@ export default function AuthButton() {
           {/* Common links */}
           <div style={{ padding: '4px 0' }}>
             <DropdownLink href="/dashboard" icon={LayoutDashboard} label="Dashboard" onClick={() => setMenuOpen(false)} />
-            <DropdownLink href="/dashboard" icon={ShoppingBag} label="My Orders" onClick={() => setMenuOpen(false)} />
+            <DropdownLink href="/orders" icon={ShoppingBag} label="My Orders" onClick={() => setMenuOpen(false)} />
             <DropdownLink href="/settings" icon={Settings} label="Settings" onClick={() => setMenuOpen(false)} />
           </div>
 

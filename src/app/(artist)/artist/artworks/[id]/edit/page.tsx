@@ -368,7 +368,7 @@ export default function EditArtworkPage() {
 
             <ImageUpload
               maxFiles={6}
-              maxSizeMB={10}
+              maxSizeMB={25}
               initialImages={form.images}
               onImagesChange={(urls) => updateForm('images', urls)}
               uploadFile={handleImageUpload}

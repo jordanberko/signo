@@ -1,141 +1,102 @@
 /**
  * Supabase Storage Utilities for Signo
  *
- * ─── SETUP INSTRUCTIONS ───────────────────────────────────────────
+ * SETUP: Create these storage buckets in Supabase Dashboard → Storage:
  *
- * Before using these functions, create the following storage buckets
- * in your Supabase Dashboard → Storage:
+ * 1. "artwork-images" — Public: ON, File size limit: 25 MB, MIME: image/jpeg, image/png, image/webp
+ * 2. "avatars" — Public: ON, File size limit: 5 MB, MIME: image/jpeg, image/png, image/webp
  *
- * 1. Create bucket: "artwork-images"
- *    - Public: ON
- *    - File size limit: 15 MB
- *    - Allowed MIME types: image/jpeg, image/png, image/webp
+ * RLS policies — run in SQL Editor:
  *
- * 2. Create bucket: "avatars"
- *    - Public: ON
- *    - File size limit: 5 MB
- *    - Allowed MIME types: image/jpeg, image/png, image/webp
+ *   CREATE POLICY "Public read access" ON storage.objects FOR SELECT
+ *     USING (bucket_id IN ('artwork-images', 'avatars'));
  *
- * 3. Add the following RLS policies (SQL Editor → New Query):
+ *   CREATE POLICY "Authenticated users can upload artwork images" ON storage.objects FOR INSERT
+ *     TO authenticated WITH CHECK (bucket_id = 'artwork-images');
  *
- *    -- Allow anyone to view images (public read)
- *    CREATE POLICY "Public read access"
- *      ON storage.objects FOR SELECT
- *      USING (bucket_id IN ('artwork-images', 'avatars'));
+ *   CREATE POLICY "Users can manage their own artwork images" ON storage.objects FOR DELETE
+ *     TO authenticated USING (bucket_id = 'artwork-images' AND (storage.foldername(name))[1] = auth.uid()::text);
  *
- *    -- Allow authenticated users to upload to artwork-images
- *    CREATE POLICY "Authenticated users can upload artwork images"
- *      ON storage.objects FOR INSERT
- *      TO authenticated
- *      WITH CHECK (bucket_id = 'artwork-images');
+ *   CREATE POLICY "Users can upload their own avatar" ON storage.objects FOR INSERT
+ *     TO authenticated WITH CHECK (bucket_id = 'avatars' AND (storage.foldername(name))[1] = auth.uid()::text);
  *
- *    -- Allow users to update/delete their own artwork images
- *    CREATE POLICY "Users can manage their own artwork images"
- *      ON storage.objects FOR DELETE
- *      TO authenticated
- *      USING (bucket_id = 'artwork-images' AND (storage.foldername(name))[1] = auth.uid()::text);
- *
- *    -- Allow authenticated users to upload their avatar
- *    CREATE POLICY "Users can upload their own avatar"
- *      ON storage.objects FOR INSERT
- *      TO authenticated
- *      WITH CHECK (bucket_id = 'avatars' AND (storage.foldername(name))[1] = auth.uid()::text);
- *
- *    -- Allow users to update/delete their own avatar
- *    CREATE POLICY "Users can manage their own avatar"
- *      ON storage.objects FOR DELETE
- *      TO authenticated
- *      USING (bucket_id = 'avatars' AND (storage.foldername(name))[1] = auth.uid()::text);
- *
- * ───────────────────────────────────────────────────────────────────
+ *   CREATE POLICY "Users can manage their own avatar" ON storage.objects FOR DELETE
+ *     TO authenticated USING (bucket_id = 'avatars' AND (storage.foldername(name))[1] = auth.uid()::text);
  */
 
 import { createClient } from './client';
 
 const ACCEPTED_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
-const MAX_INPUT_SIZE_MB = 15;
 
-function getFileExtension(file: File): string {
-  const parts = file.name.split('.');
-  return parts.length > 1 ? parts.pop()!.toLowerCase() : 'jpg';
-}
-
-function validateFile(file: File, maxSizeMB: number): string | null {
-  if (!ACCEPTED_TYPES.includes(file.type)) {
-    return `"${file.name}" is not a supported format. Please use JPG, PNG, or WebP.`;
-  }
-  if (file.size > maxSizeMB * 1024 * 1024) {
-    return `"${file.name}" is too large (${(file.size / 1024 / 1024).toFixed(1)} MB). Maximum size is ${maxSizeMB} MB.`;
-  }
-  return null;
-}
-
-// ── Client-side image compression via Canvas API ──
+// ── Compression ──
 
 /**
- * Compress an image using Canvas API with a hard timeout.
- * If compression fails or takes too long, returns the original file.
+ * Compress an image using Canvas API.
+ * - Files under 500KB skip compression entirely.
+ * - 8-second hard timeout — if it hangs, use the original file.
+ * - Always resolves (never rejects) — worst case returns the original.
  */
 async function compressImage(
   file: File,
-  maxWidth = 1800,
-  quality = 0.85,
-): Promise<Blob> {
-  const startTime = Date.now();
-  const sizeKB = (file.size / 1024).toFixed(0);
-  console.log(`[Upload] Starting compression for: ${file.name} (${sizeKB}KB)`);
+  maxWidth = 2400,
+  quality = 0.9,
+): Promise<File> {
+  // Skip small files
+  if (file.size < 500_000) {
+    console.log(`[Upload] File under 500KB (${(file.size / 1024).toFixed(0)}KB), skipping compression`);
+    return file;
+  }
 
-  return new Promise((resolve) => {
-    // Hard 5-second timeout — if compression hangs, use original
+  const sizeMB = (file.size / 1024 / 1024).toFixed(1);
+  console.log(`[Upload] Compressing ${file.name} (${sizeMB}MB), max ${maxWidth}px, quality ${quality}`);
+
+  return new Promise<File>((resolve) => {
     const timeout = setTimeout(() => {
-      console.warn(`[Upload] Compression timed out after 5s, using original (${sizeKB}KB)`);
+      console.log('[Upload] Compression timed out after 8s, using original');
       resolve(file);
-    }, 5000);
+    }, 8000);
 
     const img = new window.Image();
 
     img.onload = () => {
-      clearTimeout(timeout);
       try {
-        const canvas = document.createElement('canvas');
+        clearTimeout(timeout);
         let width = img.width;
         let height = img.height;
 
-        // Scale down if wider than maxWidth
+        // Only resize if larger than maxWidth
         if (width > maxWidth) {
           height = Math.round((height * maxWidth) / width);
           width = maxWidth;
         }
-        // Also cap height
         if (height > maxWidth) {
           width = Math.round((width * maxWidth) / height);
           height = maxWidth;
         }
 
+        const canvas = document.createElement('canvas');
         canvas.width = width;
         canvas.height = height;
         const ctx = canvas.getContext('2d');
+
         if (!ctx) {
-          console.warn('[Upload] Canvas context unavailable, using original');
+          console.log('[Upload] No canvas context, using original');
+          URL.revokeObjectURL(img.src);
           resolve(file);
           return;
         }
 
-        ctx.imageSmoothingEnabled = true;
-        ctx.imageSmoothingQuality = 'high';
         ctx.drawImage(img, 0, 0, width, height);
 
         canvas.toBlob(
           (blob) => {
             URL.revokeObjectURL(img.src);
             if (blob) {
-              const elapsed = Date.now() - startTime;
-              console.log(
-                `[Upload] Compression complete: ${sizeKB}KB → ${(blob.size / 1024).toFixed(0)}KB in ${elapsed}ms`,
-              );
-              resolve(blob);
+              const outMB = (blob.size / 1024 / 1024).toFixed(1);
+              console.log(`[Upload] Compressed: ${sizeMB}MB → ${outMB}MB (${width}x${height})`);
+              resolve(new File([blob], file.name.replace(/\.[^.]+$/, '.jpg'), { type: 'image/jpeg' }));
             } else {
-              console.warn('[Upload] Canvas toBlob returned null, using original');
+              console.log('[Upload] toBlob returned null, using original');
               resolve(file);
             }
           },
@@ -143,7 +104,8 @@ async function compressImage(
           quality,
         );
       } catch (err) {
-        console.warn('[Upload] Compression error, using original:', err);
+        clearTimeout(timeout);
+        console.log('[Upload] Compression error, using original:', err);
         URL.revokeObjectURL(img.src);
         resolve(file);
       }
@@ -151,7 +113,7 @@ async function compressImage(
 
     img.onerror = () => {
       clearTimeout(timeout);
-      console.warn('[Upload] Image load failed, using original');
+      console.log('[Upload] Image load failed, using original');
       URL.revokeObjectURL(img.src);
       resolve(file);
     };
@@ -160,107 +122,58 @@ async function compressImage(
   });
 }
 
+// ── Upload ──
+
 /**
- * Upload a blob to Supabase storage using XMLHttpRequest with a hard timeout.
- * Returns the response or throws on failure/timeout.
+ * Upload a file to Supabase Storage using the JS client.
+ * Uses upsert:true so retries work without "already exists" errors.
+ * Timeout scales with file size: 30s base, 60s for >5MB.
  */
-async function uploadToSupabase(
+async function uploadToStorage(
   bucket: string,
   path: string,
-  blob: Blob,
-  contentType: string,
-  timeoutMs: number,
-  accessToken?: string,
-): Promise<void> {
-  let token = accessToken;
+  file: File | Blob,
+): Promise<{ url: string }> {
+  const supabase = createClient();
+  const sizeMB = file.size / 1024 / 1024;
+  const timeoutMs = sizeMB > 5 ? 60_000 : 30_000;
 
-  if (!token) {
-    // Get access token with a 5-second timeout to prevent hanging on navigator.locks
-    console.log('[Upload] Getting auth session...');
-    const authResult = await Promise.race([
-      (async () => {
-        const supabase = createClient();
-        const { data: { session } } = await supabase.auth.getSession();
-        return session;
-      })(),
-      new Promise<null>((resolve) => setTimeout(() => resolve(null), 5000)),
-    ]);
+  console.log(`[Upload] Uploading to ${bucket}/${path} (${sizeMB.toFixed(1)}MB, timeout ${timeoutMs / 1000}s)`);
 
-    if (!authResult?.access_token) {
-      throw new Error('Authentication timed out. Please refresh the page and try again.');
-    }
-    token = authResult.access_token;
-    console.log('[Upload] Auth session obtained');
+  // Race between upload and timeout
+  const result = await Promise.race([
+    supabase.storage.from(bucket).upload(path, file, {
+      cacheControl: '31536000',
+      upsert: true,
+    }),
+    new Promise<{ data: null; error: { message: string } }>((resolve) =>
+      setTimeout(
+        () => resolve({ data: null, error: { message: `Upload timed out after ${timeoutMs / 1000}s` } }),
+        timeoutMs,
+      ),
+    ),
+  ]);
+
+  if (result.error) {
+    console.error('[Upload] Storage error:', result.error.message);
+    throw new Error(result.error.message);
   }
 
-  const url = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/${bucket}/${path}`;
-
-  return new Promise((resolve, reject) => {
-    const xhr = new XMLHttpRequest();
-    let completed = false;
-
-    const timer = setTimeout(() => {
-      if (!completed) {
-        completed = true;
-        xhr.abort();
-        reject(new Error(`Upload timed out after ${timeoutMs / 1000}s`));
-      }
-    }, timeoutMs);
-
-    xhr.open('POST', url, true);
-    xhr.setRequestHeader('Authorization', `Bearer ${token}`);
-    xhr.setRequestHeader('Content-Type', contentType);
-    xhr.setRequestHeader('Cache-Control', 'max-age=31536000');
-    xhr.setRequestHeader('x-upsert', 'false');
-
-    xhr.onload = () => {
-      if (completed) return;
-      completed = true;
-      clearTimeout(timer);
-      if (xhr.status >= 200 && xhr.status < 300) {
-        resolve();
-      } else {
-        let message = `Upload failed (${xhr.status})`;
-        try {
-          const body = JSON.parse(xhr.responseText);
-          if (body.message) message = body.message;
-          if (body.error) message = body.error;
-        } catch {
-          // ignore parse error
-        }
-        reject(new Error(message));
-      }
-    };
-
-    xhr.onerror = () => {
-      if (completed) return;
-      completed = true;
-      clearTimeout(timer);
-      reject(new Error('Upload failed. Please check your connection and try again.'));
-    };
-
-    xhr.onabort = () => {
-      if (completed) return;
-      completed = true;
-      clearTimeout(timer);
-      reject(new Error('Upload was cancelled.'));
-    };
-
-    xhr.send(blob);
-  });
+  const { data: urlData } = supabase.storage.from(bucket).getPublicUrl(path);
+  console.log('[Upload] Upload complete:', urlData.publicUrl);
+  return { url: urlData.publicUrl };
 }
 
+// ── Public API ──
+
 /**
- * Upload an artwork image to the `artwork-images` bucket.
+ * Upload an artwork image.
  *
- * Pipeline:
- * 1. Validate file (type, size)
- * 2. Compress client-side: max 1600px, JPEG @ 82% quality (5s timeout)
- * 3. Upload to Supabase with 15s timeout
- * 4. If upload fails, retry once with aggressive compression (800px, 60% quality)
- * 5. Generate thumbnail (400px) as a non-critical background upload
- *
- * Total max wait: ~20 seconds. Never hangs indefinitely.
+ * 1. Validate file type/size
+ * 2. Compress (2400px, 90% JPEG, 8s timeout, skip if <500KB)
+ * 3. Upload to Supabase (30s/60s timeout)
+ * 4. On failure: retry with aggressive compression (1200px, 70%)
+ * 5. Return public URL
  */
 export async function uploadArtworkImage(
   file: File,
@@ -268,139 +181,99 @@ export async function uploadArtworkImage(
   artworkId: string,
   onProgress?: (progress: number) => void,
 ): Promise<string> {
-  // Validate input
-  const error = validateFile(file, MAX_INPUT_SIZE_MB);
-  if (error) throw new Error(error);
+  // Validate
+  if (!ACCEPTED_TYPES.includes(file.type)) {
+    throw new Error(`"${file.name}" is not supported. Use JPG, PNG, or WebP.`);
+  }
+  if (file.size > 25 * 1024 * 1024) {
+    throw new Error(`"${file.name}" is too large (${(file.size / 1024 / 1024).toFixed(1)}MB). Max 25MB.`);
+  }
 
   const fileId = crypto.randomUUID();
-  const startTime = Date.now();
+  const path = `${userId}/${artworkId}/${fileId}.jpg`;
 
-  console.log(`[Upload] Selected file: ${file.name} (${(file.size / 1024).toFixed(0)}KB)`);
+  console.log(`[Upload] Processing ${file.name} (${(file.size / 1024 / 1024).toFixed(1)}MB)`);
 
-  // Step 0: Get auth token upfront (with timeout to prevent hanging)
-  console.log('[Upload] Obtaining auth token...');
-  const supabase = createClient();
-  const sessionResult = await Promise.race([
-    supabase.auth.getSession(),
-    new Promise<null>((resolve) => setTimeout(() => resolve(null), 5000)),
-  ]);
-
-  const accessToken = sessionResult && 'data' in sessionResult
-    ? (sessionResult as { data: { session: { access_token: string } | null } }).data.session?.access_token
-    : undefined;
-
-  if (!accessToken) {
-    throw new Error('Authentication timed out. Please refresh the page and try again.');
-  }
-  console.log('[Upload] Auth token obtained');
-
-  // Step 1: Compress (0% → 40%)
+  // Step 1: Compress
   onProgress?.(5);
-  const compressed = await compressImage(file, 1800, 0.85);
+  const compressed = await compressImage(file, 2400, 0.9);
   onProgress?.(40);
 
-  // Step 2: Upload full image with 20s timeout (40% → 90%)
-  const fullPath = `${userId}/${artworkId}/${fileId}.jpg`;
-  const sizeKB = (compressed.size / 1024).toFixed(0);
-  console.log(`[Upload] Starting upload to Supabase: ${fullPath} (${sizeKB}KB)`);
-  onProgress?.(45);
+  console.log(`[Upload] Ready to upload: ${(compressed.size / 1024 / 1024).toFixed(1)}MB`);
 
+  // Step 2: Upload
+  onProgress?.(45);
   try {
-    await uploadToSupabase('artwork-images', fullPath, compressed, 'image/jpeg', 20000, accessToken);
+    const { url } = await uploadToStorage('artwork-images', path, compressed);
+    onProgress?.(100);
+    return url;
   } catch (firstErr) {
-    // First attempt failed — retry with aggressive compression
-    console.warn('[Upload] First upload attempt failed:', firstErr);
-    console.log('[Upload] Retrying with aggressive compression (800px, 60% quality)...');
+    // Retry with aggressive compression
+    console.warn('[Upload] First attempt failed:', (firstErr as Error).message);
+    console.log('[Upload] Retrying with aggressive compression (1200px, 70%)...');
     onProgress?.(50);
 
-    const aggressiveCompressed = await compressImage(file, 800, 0.6);
-    const retrySizeKB = (aggressiveCompressed.size / 1024).toFixed(0);
-    console.log(`[Upload] Aggressive compression: ${retrySizeKB}KB. Retrying upload...`);
-    onProgress?.(55);
+    const aggressive = await compressImage(file, 1200, 0.7);
+    onProgress?.(60);
 
     try {
-      await uploadToSupabase('artwork-images', fullPath, aggressiveCompressed, 'image/jpeg', 20000, accessToken);
+      const { url } = await uploadToStorage('artwork-images', path, aggressive);
+      onProgress?.(100);
+      return url;
     } catch (retryErr) {
-      console.error('[Upload] Second upload attempt also failed:', retryErr);
+      console.error('[Upload] Retry also failed:', (retryErr as Error).message);
       throw new Error(
-        'Image upload failed. Please try a smaller image or check your internet connection.',
+        'Upload failed. Please try a smaller image or check your internet connection.',
       );
     }
   }
-
-  onProgress?.(90);
-  const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
-  console.log(`[Upload] Full image upload complete in ${elapsed}s`);
-
-  // Step 3: Upload thumbnail (non-critical, fire and forget)
-  const thumbBlob = await compressImage(file, 400, 0.7);
-  const thumbPath = `${userId}/${artworkId}/${fileId}_thumb.jpg`;
-  uploadToSupabase('artwork-images', thumbPath, thumbBlob, 'image/jpeg', 10000, accessToken).catch((err) =>
-    console.warn('[Upload] Thumbnail upload failed (non-critical):', err),
-  );
-
-  onProgress?.(95);
-
-  const publicUrl = getPublicUrl(fullPath, 'artwork-images');
-  console.log(`[Upload] Upload complete: ${publicUrl}`);
-  onProgress?.(100);
-
-  return publicUrl;
 }
 
 /**
- * Upload an avatar image to the `avatars` bucket.
+ * Upload an avatar image.
  */
 export async function uploadAvatar(
   file: File,
   userId: string,
   onProgress?: (progress: number) => void,
 ): Promise<string> {
-  const error = validateFile(file, 5);
-  if (error) throw new Error(error);
-
-  const supabase = createClient();
-  const ext = getFileExtension(file);
-  const fileName = `${crypto.randomUUID()}.${ext}`;
-  const path = `${userId}/${fileName}`;
+  if (!ACCEPTED_TYPES.includes(file.type)) {
+    throw new Error('Please use JPG, PNG, or WebP.');
+  }
+  if (file.size > 5 * 1024 * 1024) {
+    throw new Error('Avatar must be under 5MB.');
+  }
 
   onProgress?.(10);
 
-  // Remove any existing avatars first
-  const { data: existing } = await supabase.storage.from('avatars').list(userId);
+  const supabase = createClient();
 
+  // Remove existing avatars
+  const { data: existing } = await supabase.storage.from('avatars').list(userId);
   if (existing && existing.length > 0) {
-    const filesToRemove = existing.map((f) => `${userId}/${f.name}`);
-    await supabase.storage.from('avatars').remove(filesToRemove);
+    await supabase.storage.from('avatars').remove(existing.map((f) => `${userId}/${f.name}`));
   }
 
   onProgress?.(30);
 
-  // Compress avatar before upload
+  // Compress to 400px
   const compressed = await compressImage(file, 400, 0.82);
+  onProgress?.(50);
 
-  try {
-    await uploadToSupabase('avatars', path, compressed, 'image/jpeg', 15000);
-  } catch (err) {
-    console.error('[Upload] Avatar upload error:', err);
-    throw err;
-  }
+  const path = `${userId}/${crypto.randomUUID()}.jpg`;
+  const { url } = await uploadToStorage('avatars', path, compressed);
 
-  onProgress?.(90);
   onProgress?.(100);
-
-  return getPublicUrl(path, 'avatars');
+  return url;
 }
 
 /**
- * Delete an image from a storage bucket.
+ * Delete an image from storage.
  */
 export async function deleteImage(path: string, bucket: string): Promise<void> {
   const supabase = createClient();
   const { error } = await supabase.storage.from(bucket).remove([path]);
-  if (error) {
-    throw new Error(`Delete failed: ${error.message}`);
-  }
+  if (error) throw new Error(`Delete failed: ${error.message}`);
 }
 
 /**
