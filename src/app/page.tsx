@@ -5,7 +5,6 @@ import Link from 'next/link';
 import { ArrowRight, Search, ShieldCheck, Palette, DollarSign } from 'lucide-react';
 import ArtworkCard from '@/components/ui/ArtworkCard';
 import HeroRibbons from '@/components/ui/HeroRibbons';
-import { createClient } from '@/lib/supabase/client';
 
 interface FeaturedArtwork {
   id: string;
@@ -38,31 +37,29 @@ export default function HomePage() {
 
   useEffect(() => {
     async function fetchArt() {
-      const supabase = createClient();
+      try {
+        // Use server API route — bypasses browser client navigator.locks issues
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 5000);
 
-      // Featured artwork (approved, newest first)
-      const { data } = await supabase
-        .from('artworks')
-        .select('id, title, price_aud, images, medium, category, artist_id, profiles!artworks_artist_id_fkey(id, full_name)')
-        .eq('status', 'approved')
-        .order('created_at', { ascending: false })
-        .limit(12);
+        const res = await fetch('/api/artworks/featured?limit=12', {
+          signal: controller.signal,
+        });
+        clearTimeout(timeout);
 
-      if (data && data.length > 0) {
-        const mapped = data.map((a: Record<string, unknown>) => ({
-          id: a.id as string,
-          title: a.title as string,
-          artistName: (a.profiles as Record<string, string>)?.full_name || 'Unknown',
-          artistId: a.artist_id as string,
-          price: a.price_aud as number,
-          imageUrl: ((a.images as string[]) || [])[0] || '',
-          medium: a.medium as string,
-          category: a.category as 'original' | 'print' | 'digital',
-        }));
-        setArtworks(mapped.slice(0, 8));
-        setNewArrivals(mapped.slice(0, 6));
+        if (res.ok) {
+          const json = await res.json();
+          const mapped = (json.data || []) as FeaturedArtwork[];
+          if (mapped.length > 0) {
+            setArtworks(mapped.slice(0, 8));
+            setNewArrivals(mapped.slice(0, 6));
+          }
+        }
+      } catch (err) {
+        console.error('[Home] Featured artwork fetch error:', err);
+      } finally {
+        setLoaded(true);
       }
-      setLoaded(true);
     }
     fetchArt();
   }, []);

@@ -10,7 +10,6 @@ import {
   Loader2,
 } from 'lucide-react';
 import ArtworkCard from '@/components/ui/ArtworkCard';
-import { createClient } from '@/lib/supabase/client';
 import type { ArtworkCategory } from '@/lib/types/database';
 
 // ── Constants ──
@@ -235,7 +234,7 @@ function BrowseContent() {
     (filters.priceMin || filters.priceMax ? 1 : 0) +
     (filters.size ? 1 : 0);
 
-  // Build and execute query
+  // Build and execute query via server API route
   const fetchArtworks = useCallback(
     async (append = false) => {
       const id = ++fetchIdRef.current;
@@ -246,102 +245,55 @@ function BrowseContent() {
         setLoading(true);
       }
 
-      const supabase = createClient();
+      try {
+        // Build query params for the server API
+        const params = new URLSearchParams();
+        if (filters.category !== 'all') params.set('category', filters.category);
+        if (debouncedSearch.trim()) params.set('q', debouncedSearch.trim());
+        if (filters.mediums.length > 0) params.set('mediums', filters.mediums.join(','));
+        if (filters.styles.length > 0) params.set('styles', filters.styles.join(','));
+        if (filters.priceMin) params.set('priceMin', filters.priceMin);
+        if (filters.priceMax) params.set('priceMax', filters.priceMax);
+        if (filters.size) params.set('size', filters.size);
+        if (filters.sort !== 'newest') params.set('sort', filters.sort);
 
-      let query = supabase
-        .from('artworks')
-        .select(
-          'id, title, price_aud, images, medium, style, category, artist_id, width_cm, height_cm, profiles!artworks_artist_id_fkey(id, full_name)',
-          { count: 'exact' }
-        )
-        .eq('status', 'approved');
+        const offset = append ? artworks.length : 0;
+        if (offset > 0) params.set('offset', String(offset));
+        params.set('limit', String(PAGE_SIZE));
 
-      // Category
-      if (filters.category !== 'all') {
-        query = query.eq('category', filters.category);
-      }
+        // 5-second timeout
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 5000);
 
-      // Search
-      if (debouncedSearch.trim()) {
-        const term = debouncedSearch.trim();
-        query = query.or(
-          `title.ilike.%${term}%,description.ilike.%${term}%,medium.ilike.%${term}%,style.ilike.%${term}%`
-        );
-      }
+        const res = await fetch(`/api/artworks/browse?${params.toString()}`, {
+          signal: controller.signal,
+        });
+        clearTimeout(timeout);
 
-      // Medium filter
-      if (filters.mediums.length > 0) {
-        query = query.in('medium', filters.mediums);
-      }
+        // Guard against stale responses
+        if (id !== fetchIdRef.current) return;
 
-      // Style filter
-      if (filters.styles.length > 0) {
-        query = query.in('style', filters.styles);
-      }
-
-      // Price range
-      const priceMin = parseFloat(filters.priceMin);
-      const priceMax = parseFloat(filters.priceMax);
-      if (!isNaN(priceMin) && priceMin > 0) {
-        query = query.gte('price_aud', priceMin);
-      }
-      if (!isNaN(priceMax) && priceMax > 0) {
-        query = query.lte('price_aud', priceMax);
-      }
-
-      // Size filter — uses the larger of width/height
-      if (filters.size) {
-        const preset = SIZE_PRESETS.find(
-          (p) => p.label.toLowerCase() === filters.size
-        );
-        if (preset) {
-          if (preset.minCm != null) {
-            query = query.or(
-              `width_cm.gte.${preset.minCm},height_cm.gte.${preset.minCm}`
-            );
+        if (res.ok) {
+          const json = await res.json();
+          const rows = (json.data || []) as ArtworkRow[];
+          if (append) {
+            setArtworks((prev) => [...prev, ...rows]);
+          } else {
+            setArtworks(rows);
           }
-          if (preset.maxCm != null && !preset.minCm) {
-            // "small" — both under max
-            query = query.lte('width_cm', preset.maxCm).lte('height_cm', preset.maxCm);
-          } else if (preset.maxCm != null && preset.minCm != null) {
-            // "medium" — at least one dimension within range
-            query = query.or(
-              `width_cm.lte.${preset.maxCm},height_cm.lte.${preset.maxCm}`
-            );
-          }
-        }
-      }
-
-      // Sort
-      if (filters.sort === 'price-low') {
-        query = query.order('price_aud', { ascending: true });
-      } else if (filters.sort === 'price-high') {
-        query = query.order('price_aud', { ascending: false });
-      } else {
-        query = query.order('created_at', { ascending: false });
-      }
-
-      // Pagination
-      const offset = append ? artworks.length : 0;
-      query = query.range(offset, offset + PAGE_SIZE - 1);
-
-      const { data, error, count } = await query;
-
-      // Guard against stale responses
-      if (id !== fetchIdRef.current) return;
-
-      if (!error && data) {
-        const rows = data as unknown as ArtworkRow[];
-        if (append) {
-          setArtworks((prev) => [...prev, ...rows]);
+          if (json.count != null) setTotalCount(json.count);
         } else {
-          setArtworks(rows);
+          console.error('[Browse] API error:', res.status);
+          if (!append) setArtworks([]);
         }
-        if (count != null) setTotalCount(count);
+      } catch (err) {
+        if (id !== fetchIdRef.current) return;
+        console.error('[Browse] Fetch error:', err);
+        if (!append) setArtworks([]);
+      } finally {
+        setLoading(false);
+        setLoadingMore(false);
       }
-
-      setLoading(false);
-      setLoadingMore(false);
     },
     [filters, debouncedSearch, artworks.length]
   );
