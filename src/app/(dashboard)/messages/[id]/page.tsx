@@ -22,7 +22,7 @@ interface MessageRow {
   conversation_id: string;
   sender_id: string;
   content: string;
-  read: boolean;
+  is_read: boolean;
   created_at: string;
 }
 
@@ -505,7 +505,7 @@ export default function ConversationPage({
                     {isOwn && (
                       <CheckCheck
                         className={`h-3 w-3 ${
-                          msg.read ? 'text-accent' : 'text-white/40'
+                          msg.is_read ? 'text-accent' : 'text-white/40'
                         }`}
                       />
                     )}

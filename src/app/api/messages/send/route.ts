@@ -31,56 +31,76 @@ export async function POST(request: Request) {
     const db = supabase as unknown as {
       from: (table: string) => {
         select: (cols: string) => {
-          eq: (col: string, val: string) => {
-            single: () => Promise<{ data: Record<string, unknown> | null; error: { message: string } | null }>;
-          };
           or: (filter: string) => {
             eq: (col: string, val: string) => {
-              single: () => Promise<{ data: Record<string, unknown> | null; error: { message: string } | null }>;
+              single: () => Promise<{
+                data: Record<string, unknown> | null;
+                error: { message: string } | null;
+              }>;
             };
           };
         };
         insert: (row: Record<string, unknown>) => {
           select: (cols: string) => {
-            single: () => Promise<{ data: Record<string, unknown> | null; error: { message: string } | null }>;
+            single: () => Promise<{
+              data: Record<string, unknown> | null;
+              error: { message: string } | null;
+            }>;
           };
         };
         update: (row: Record<string, unknown>) => {
-          eq: (col: string, val: string) => Promise<{ error: { message: string } | null }>;
+          eq: (col: string, val: string) => Promise<{
+            error: { message: string } | null;
+          }>;
         };
       };
     };
 
-    // Verify user is a participant
+    // Verify user is a participant and get the conversation details
     const { data: conversation, error: convError } = await db
       .from('conversations')
       .select('*')
-      .or(`participant_1.eq.${user.id},participant_2.eq.${user.id}`)
+      .or(
+        `participant_1.eq.${user.id},participant_2.eq.${user.id}`
+      )
       .eq('id', conversation_id)
       .single();
 
     if (convError || !conversation) {
+      console.error('[API send] conversation lookup failed:', convError?.message);
       return NextResponse.json(
         { error: 'Conversation not found or access denied' },
         { status: 403 }
       );
     }
 
-    // Insert message
+    // Determine the receiver (the OTHER participant)
+    const receiverId =
+      conversation.participant_1 === user.id
+        ? conversation.participant_2
+        : conversation.participant_1;
+
+    // Insert message — using the ORIGINAL messages table schema:
+    // columns: conversation_id, sender_id, receiver_id (NOT NULL), artwork_id, content, is_read
     const { data: message, error: msgError } = await db
       .from('messages')
       .insert({
         conversation_id,
         sender_id: user.id,
+        receiver_id: receiverId,
+        artwork_id: (conversation.artwork_id as string) || null,
         content: content.trim(),
-        read: false,
+        is_read: false,
       })
       .select('*')
       .single();
 
     if (msgError) {
+      console.error('[API send] insert message failed:', msgError.message);
       return NextResponse.json({ error: msgError.message }, { status: 500 });
     }
+
+    console.log('[API send] message created:', (message as Record<string, unknown>)?.id);
 
     // Update last_message_at on conversation
     await db
@@ -90,7 +110,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ data: message });
   } catch (err) {
-    console.error('[API] send message error:', err);
+    console.error('[API send] unexpected error:', err);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

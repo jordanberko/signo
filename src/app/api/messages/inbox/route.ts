@@ -121,7 +121,7 @@ export async function GET() {
         .from('messages')
         .select('*', { count: 'exact', head: true })
         .eq('conversation_id', c.id as string)
-        .eq('read', false)
+        .eq('is_read', false)
         .neq('sender_id', user.id);
 
       const lastMsg = lastMsgs?.[0] || null;

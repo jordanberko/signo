@@ -11,8 +11,8 @@ export async function GET() {
       return NextResponse.json({ count: 0 });
     }
 
-    // Get all conversation IDs where user is a participant
-    const db = supabase as unknown as {
+    // Get conversation IDs where user is a participant
+    const { data: convos } = await (supabase as unknown as {
       from: (table: string) => {
         select: (cols: string) => {
           or: (filter: string) => Promise<{
@@ -21,9 +21,7 @@ export async function GET() {
           }>;
         };
       };
-    };
-
-    const { data: convos } = await db
+    })
       .from('conversations')
       .select('id')
       .or(`participant_1.eq.${user.id},participant_2.eq.${user.id}`);
@@ -34,7 +32,7 @@ export async function GET() {
 
     const convoIds = convos.map((c) => c.id);
 
-    // Count unread messages in those conversations not sent by the user
+    // Count unread messages using `is_read` column (original schema)
     const { count, error } = await (supabase as unknown as {
       from: (table: string) => {
         select: (cols: string, opts: { count: string; head: boolean }) => {
@@ -52,16 +50,17 @@ export async function GET() {
       .from('messages')
       .select('*', { count: 'exact', head: true })
       .in('conversation_id', convoIds)
-      .eq('read', false)
+      .eq('is_read', false)
       .neq('sender_id', user.id);
 
     if (error) {
+      console.error('[API unread] count error:', error.message);
       return NextResponse.json({ count: 0 });
     }
 
     return NextResponse.json({ count: count ?? 0 });
   } catch (err) {
-    console.error('[API] unread count error:', err);
+    console.error('[API unread] error:', err);
     return NextResponse.json({ count: 0 });
   }
 }
