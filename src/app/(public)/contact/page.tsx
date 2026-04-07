@@ -4,7 +4,8 @@ import { useState } from 'react';
 import { Mail, Clock, Send } from 'lucide-react';
 
 export default function ContactPage() {
-  const [formState, setFormState] = useState<'idle' | 'submitting' | 'success'>('idle');
+  const [formState, setFormState] = useState<'idle' | 'submitting' | 'success' | 'error'>('idle');
+  const [errorMsg, setErrorMsg] = useState('');
   const [form, setForm] = useState({
     name: '',
     email: '',
@@ -16,13 +17,34 @@ export default function ContactPage() {
     setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
   }
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setFormState('submitting');
-    // Simulate submission — actual email sending to be implemented later
-    setTimeout(() => {
-      setFormState('success');
-    }, 800);
+    setErrorMsg('');
+
+    try {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 10000);
+
+      const res = await fetch('/api/contact', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(form),
+        signal: controller.signal,
+      });
+      clearTimeout(timeout);
+
+      if (res.ok) {
+        setFormState('success');
+      } else {
+        const json = await res.json();
+        setErrorMsg(json.error || 'Something went wrong. Please try again.');
+        setFormState('error');
+      }
+    } catch {
+      setErrorMsg('Network error. Please check your connection and try again.');
+      setFormState('error');
+    }
   }
 
   return (
@@ -89,7 +111,7 @@ export default function ContactPage() {
                   </div>
                   <h2 className="font-editorial text-2xl font-medium mb-3">Message sent!</h2>
                   <p className="text-muted leading-relaxed max-w-sm mx-auto">
-                    Thanks for getting in touch. We&apos;ll get back to you within 24 hours.
+                    Thanks for reaching out! We&apos;ll get back to you within 24 hours.
                   </p>
                   <button
                     onClick={() => {
@@ -172,6 +194,10 @@ export default function ContactPage() {
                       placeholder="Tell us what's on your mind..."
                     />
                   </div>
+
+                  {formState === 'error' && errorMsg && (
+                    <p className="text-error text-sm">{errorMsg}</p>
+                  )}
 
                   <button
                     type="submit"

@@ -24,9 +24,26 @@ const playfair = Playfair_Display({
 });
 
 export const metadata: Metadata = {
-  title: "Signo — Curated Australian Art",
+  title: {
+    default: "Signo — Where Art Finds Its People",
+    template: "%s — Signo",
+  },
   description:
     "Discover extraordinary art from Australian creators. A curated marketplace where artists keep 100% of every sale.",
+  openGraph: {
+    type: "website",
+    siteName: "Signo",
+    title: "Signo — Where Art Finds Its People",
+    description:
+      "A curated Australian art marketplace. Zero commission. Artists keep 100% of every sale.",
+    locale: "en_AU",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Signo — Where Art Finds Its People",
+    description:
+      "A curated Australian art marketplace. Zero commission. Artists keep 100% of every sale.",
+  },
 };
 
 export default function RootLayout({

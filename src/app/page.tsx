@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { ArrowRight, Search, ShieldCheck, Palette, DollarSign } from 'lucide-react';
+import { ArrowRight, ShieldCheck, Palette, DollarSign } from 'lucide-react';
 import ArtworkCard from '@/components/ui/ArtworkCard';
 import HeroRibbons from '@/components/ui/HeroRibbons';
 
@@ -32,7 +32,6 @@ const PLACEHOLDER_CARDS = [
 export default function HomePage() {
   const [artworks, setArtworks] = useState<FeaturedArtwork[]>([]);
   const [newArrivals, setNewArrivals] = useState<FeaturedArtwork[]>([]);
-  const [searchQuery, setSearchQuery] = useState('');
   const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
@@ -74,33 +73,14 @@ export default function HomePage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
           <div className="max-w-2xl mx-auto text-center animate-fade-up">
             <h1 className="font-editorial text-4xl md:text-5xl lg:text-6xl font-medium leading-[1.1] tracking-tight text-primary">
-              Where Art Finds <span className="italic">Its People</span>
+              Where Art Finds{' '}
+              <span className="italic" style={{ color: '#B8965A' }}>
+                Its People
+              </span>
             </h1>
             <p className="mt-4 text-lg text-muted max-w-md mx-auto leading-relaxed">
               A curated marketplace for Australian artists. Zero commission. You keep everything you earn.
             </p>
-
-            {/* Search Bar */}
-            <form
-              onSubmit={(e) => {
-                e.preventDefault();
-                if (searchQuery.trim()) {
-                  window.location.href = `/browse?q=${encodeURIComponent(searchQuery.trim())}`;
-                }
-              }}
-              className="mt-8 max-w-lg mx-auto"
-            >
-              <div className="relative">
-                <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-warm-gray" />
-                <input
-                  type="text"
-                  placeholder="Search artwork, artists, styles..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-12 pr-4 py-3.5 bg-cream border border-border rounded-full text-sm placeholder:text-warm-gray focus:bg-white focus:border-accent transition-all shadow-sm"
-                />
-              </div>
-            </form>
           </div>
         </div>
       </section>

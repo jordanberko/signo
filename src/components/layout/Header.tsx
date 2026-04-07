@@ -5,9 +5,11 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Search, Menu, X } from 'lucide-react';
 import AuthButton from '@/components/AuthButton';
+import { useAuth } from '@/components/providers/AuthProvider';
 
 export default function Header() {
   const router = useRouter();
+  const { user } = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [scrolled, setScrolled] = useState(false);
@@ -79,8 +81,9 @@ export default function Header() {
             <AuthButton />
           </nav>
 
-          {/* Mobile Menu Button */}
-          <div className="md:hidden flex items-center gap-2">
+          {/* Mobile: Auth + Menu Button */}
+          <div className="md:hidden flex items-center gap-1">
+            <AuthButton />
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
               className="p-2 text-foreground hover:text-accent-dark transition-colors"
@@ -117,23 +120,27 @@ export default function Header() {
             <MobileLink href="/browse" label="Browse Art" onClick={() => setMobileMenuOpen(false)} />
             <MobileLink href="/how-it-works" label="How It Works" onClick={() => setMobileMenuOpen(false)} />
 
-            <div className="h-px bg-border my-2" />
-            <div className="flex gap-2 pt-1">
-              <Link
-                href="/login"
-                onClick={() => setMobileMenuOpen(false)}
-                className="flex-1 text-center py-2.5 border border-border text-sm font-medium rounded-full hover:bg-cream transition-colors"
-              >
-                Sign In
-              </Link>
-              <Link
-                href="/register"
-                onClick={() => setMobileMenuOpen(false)}
-                className="flex-1 text-center py-2.5 bg-accent text-primary text-sm font-semibold rounded-full hover:bg-accent-light transition-colors"
-              >
-                Join Signo
-              </Link>
-            </div>
+            {!user && (
+              <>
+                <div className="h-px bg-border my-2" />
+                <div className="flex gap-2 pt-1">
+                  <Link
+                    href="/login"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="flex-1 text-center py-2.5 border border-border text-sm font-medium rounded-full hover:bg-cream transition-colors"
+                  >
+                    Sign In
+                  </Link>
+                  <Link
+                    href="/register"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="flex-1 text-center py-2.5 bg-accent text-primary text-sm font-semibold rounded-full hover:bg-accent-light transition-colors"
+                  >
+                    Join Signo
+                  </Link>
+                </div>
+              </>
+            )}
           </nav>
         </div>
       )}

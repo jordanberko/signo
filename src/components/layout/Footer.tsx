@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import NewsletterSignup from '@/components/ui/NewsletterSignup';
 
 export default function Footer() {
   return (
@@ -76,12 +77,13 @@ export default function Footer() {
             </nav>
           </div>
 
-          {/* Newsletter teaser */}
+          {/* Newsletter signup */}
           <div className="md:col-span-2 space-y-4">
             <h4 className="text-xs font-semibold tracking-[0.2em] uppercase text-warm-gray">Stay in Touch</h4>
             <p className="text-sm text-muted leading-relaxed">
               New artists and collections, delivered to your inbox.
             </p>
+            <NewsletterSignup />
           </div>
         </div>
       </div>

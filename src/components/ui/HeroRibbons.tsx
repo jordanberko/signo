@@ -5,22 +5,18 @@ import { useEffect, useRef, useCallback } from 'react';
 const PATHS = [
   // Ribbon 1: top-left → curves through middle → exits right
   'M-100,120 C100,80 200,220 350,200 C500,180 450,350 300,380 C150,410 80,500 200,550 C320,600 500,520 650,560 C800,600 850,480 750,420 C650,360 700,280 850,300 C1000,320 1050,200 1200,250 C1350,300 1400,180 1540,200',
-  // Ribbon 2: bottom-right → curves up → exits left
-  'M1540,650 C1350,680 1250,580 1100,620 C950,660 900,780 750,750 C600,720 550,600 400,640 C250,680 200,800 50,770 C-100,740 -50,620 100,600 C250,580 300,700 150,730 C0,760 -100,850 -200,820',
-  // Ribbon 3: gentle middle flow
+  // Ribbon 2: gentle middle flow
   'M-150,400 C50,350 150,450 300,420 C450,390 500,300 650,330 C800,360 900,450 1050,400 C1200,350 1300,430 1450,380 C1600,330 1550,450 1600,500',
 ];
 
 const RIBBON_TEXT = [
   '$30/month \u2726 zero commission \u2726 your art, your rules \u2726 sell direct to collectors \u2726 keep 100% of every sale \u2726 ',
-  '$30/MONTH \u2726 UNLIMITED LISTINGS \u2726 ESCROW PROTECTION \u2726 24-HOUR REVIEW \u2726 AUSTRALIAN ARTISTS \u2726 CURATED QUALITY \u2726 ',
   'originals \u2726 prints \u2726 digital downloads \u2726 direct from the studio \u2726 art finds its people \u2726 ',
 ];
 
 const RIBBON_CONFIG = [
-  { duration: 35, direction: 1, fontClass: 'ribbon-serif', opacity: 0.18, fontSize: 18, strokeOpacity: 0.12 },
-  { duration: 40, direction: -1, fontClass: 'ribbon-sans', opacity: 0.13, fontSize: 15, strokeOpacity: 0.10 },
-  { duration: 45, direction: 1, fontClass: 'ribbon-serif', opacity: 0.18, fontSize: 18, strokeOpacity: 0.12 },
+  { duration: 50, direction: 1, fontClass: 'ribbon-serif', opacity: 0.08, fontSize: 18, strokeOpacity: 0.06 },
+  { duration: 60, direction: -1, fontClass: 'ribbon-sans', opacity: 0.08, fontSize: 15, strokeOpacity: 0.06 },
 ];
 
 export default function HeroRibbons() {
