@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { ArrowRight, ShieldCheck, Palette, DollarSign } from 'lucide-react';
 import ArtworkCard from '@/components/ui/ArtworkCard';
 import HeroRibbons from '@/components/ui/HeroRibbons';
+import GuidedSearch from '@/components/ui/GuidedSearch';
 
 interface FeaturedArtwork {
   id: string;
@@ -82,6 +83,9 @@ export default function HomePage() {
               A curated marketplace for Australian artists. Zero commission. You keep everything you earn.
             </p>
           </div>
+
+          {/* Guided Search */}
+          <GuidedSearch />
         </div>
       </section>
 

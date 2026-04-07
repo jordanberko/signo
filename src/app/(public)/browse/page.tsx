@@ -175,14 +175,30 @@ function BrowseContent() {
   const [searchInput, setSearchInput] = useState(initialQuery);
   const debouncedSearch = useDebounce(searchInput, 400);
 
+  // Read URL params from guided search and pre-apply as initial filters
+  const initialStyle = searchParams.get('style') || '';
+  const initialMedium = searchParams.get('medium') || '';
+  const initialSize = searchParams.get('size') || '';
+  const initialBudget = searchParams.get('budget') || '';
+  const initialSort = searchParams.get('sort') || 'newest';
+
+  // Parse budget param (e.g. "200-500") into priceMin/priceMax
+  let initPriceMin = '';
+  let initPriceMax = '';
+  if (initialBudget) {
+    const [lo, hi] = initialBudget.split('-');
+    if (lo) initPriceMin = lo;
+    if (hi) initPriceMax = hi;
+  }
+
   const [filters, setFilters] = useState<Filters>({
     category: 'all',
-    mediums: [],
-    styles: [],
-    priceMin: '',
-    priceMax: '',
-    size: '',
-    sort: 'newest',
+    mediums: initialMedium ? [initialMedium] : [],
+    styles: initialStyle ? [initialStyle] : [],
+    priceMin: initPriceMin,
+    priceMax: initPriceMax,
+    size: initialSize,
+    sort: initialSort,
   });
 
   const [artworks, setArtworks] = useState<ArtworkRow[]>([]);
