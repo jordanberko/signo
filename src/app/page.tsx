@@ -67,7 +67,7 @@ export default function HomePage() {
   return (
     <div>
       {/* ==================== HERO — MINIMAL ==================== */}
-      <section className="bg-background pt-12 pb-8 md:pt-20 md:pb-12 relative overflow-hidden">
+      <section className="bg-background pt-12 pb-8 md:pt-20 md:pb-12 relative overflow-x-clip">
         {/* Ribbon animation layer */}
         <HeroRibbons />
 

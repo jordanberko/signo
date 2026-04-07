@@ -167,7 +167,7 @@ export default function GuidedSearch() {
   return (
     <div className="mt-10 max-w-4xl mx-auto w-full">
       {/* ── Filter bar — desktop: horizontal pill, mobile: 2x2 grid ── */}
-      <div ref={barRef}>
+      <div ref={barRef} className="relative z-20">
         {/* Desktop layout */}
         <div
           className="hidden md:flex items-center bg-white/90 backdrop-blur-sm border border-border rounded-full px-2 py-1.5"
