@@ -3,9 +3,10 @@
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Search, Menu, X } from 'lucide-react';
+import { Search, Menu, X, MessageCircle } from 'lucide-react';
 import AuthButton from '@/components/AuthButton';
 import { useAuth } from '@/components/providers/AuthProvider';
+import { createClient } from '@/lib/supabase/client';
 
 export default function Header() {
   const router = useRouter();
@@ -13,6 +14,7 @@ export default function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [scrolled, setScrolled] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
 
   // Scroll shadow
   useEffect(() => {
@@ -22,6 +24,58 @@ export default function Header() {
     window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
+
+  // Fetch unread message count
+  useEffect(() => {
+    if (!user) {
+      setUnreadCount(0);
+      return;
+    }
+
+    async function fetchUnread() {
+      try {
+        const res = await fetch('/api/messages/unread-count');
+        const data = await res.json();
+        setUnreadCount(data.count || 0);
+      } catch {
+        // Ignore
+      }
+    }
+
+    fetchUnread();
+
+    // Real-time subscription for new messages
+    const supabase = createClient();
+    const channel = supabase
+      .channel('header-unread')
+      .on(
+        'postgres_changes' as unknown as 'system',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'messages',
+        } as unknown as Record<string, unknown>,
+        () => {
+          fetchUnread();
+        }
+      )
+      .on(
+        'postgres_changes' as unknown as 'system',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'messages',
+        } as unknown as Record<string, unknown>,
+        () => {
+          fetchUnread();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user]);
 
   function handleSearch(e: React.FormEvent) {
     e.preventDefault();
@@ -77,6 +131,22 @@ export default function Header() {
               How It Works
             </Link>
 
+            {/* Messages icon — only when logged in */}
+            {user && (
+              <Link
+                href="/messages"
+                className="relative p-2 text-foreground hover:text-accent-dark transition-colors rounded-lg hover:bg-cream"
+                aria-label="Messages"
+              >
+                <MessageCircle className="h-5 w-5" />
+                {unreadCount > 0 && (
+                  <span className="absolute -top-0.5 -right-0.5 w-4.5 h-4.5 min-w-[18px] bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center leading-none px-1">
+                    {unreadCount > 9 ? '9+' : unreadCount}
+                  </span>
+                )}
+              </Link>
+            )}
+
             {/* Auth — self-contained client component */}
             <AuthButton />
           </nav>
@@ -119,6 +189,16 @@ export default function Header() {
           <nav className="px-4 pb-5 space-y-1">
             <MobileLink href="/browse" label="Browse Art" onClick={() => setMobileMenuOpen(false)} />
             <MobileLink href="/how-it-works" label="How It Works" onClick={() => setMobileMenuOpen(false)} />
+            {user && (
+              <div className="relative">
+                <MobileLink href="/messages" label="Messages" onClick={() => setMobileMenuOpen(false)} />
+                {unreadCount > 0 && (
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 min-w-[18px] h-[18px] bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center leading-none px-1">
+                    {unreadCount > 9 ? '9+' : unreadCount}
+                  </span>
+                )}
+              </div>
+            )}
 
             {!user && (
               <>

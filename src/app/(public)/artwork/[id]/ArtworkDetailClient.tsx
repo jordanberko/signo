@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import {
   Heart,
@@ -18,8 +19,10 @@ import {
   MapPin,
   ArrowRight,
   Frame,
+  Loader2,
 } from 'lucide-react';
 import { formatPrice } from '@/lib/utils';
+import { useAuth } from '@/components/providers/AuthProvider';
 import ArtworkCard from '@/components/ui/ArtworkCard';
 
 // ── Types ──
@@ -165,6 +168,42 @@ export default function ArtworkDetailClient({
 }: Props) {
   const [selectedImage, setSelectedImage] = useState(0);
   const [lightboxOpen, setLightboxOpen] = useState(false);
+  const [messagingLoading, setMessagingLoading] = useState(false);
+  const router = useRouter();
+  const { user } = useAuth();
+
+  const isOwnArtwork = user?.id === artwork.artist.id;
+
+  async function handleMessageArtist() {
+    if (!user) {
+      // Redirect to login with return URL
+      window.location.href = `/login?redirect=${encodeURIComponent(`/artwork/${artwork.id}`)}`;
+      return;
+    }
+
+    setMessagingLoading(true);
+    try {
+      const res = await fetch('/api/messages/conversations', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          participant_2: artwork.artist.id,
+          artwork_id: artwork.id,
+        }),
+      });
+
+      if (res.ok) {
+        const { data } = await res.json();
+        router.push(`/messages/${data.id}`);
+      } else {
+        console.error('[Artwork] Failed to create conversation');
+        setMessagingLoading(false);
+      }
+    } catch (err) {
+      console.error('[Artwork] Message artist error:', err);
+      setMessagingLoading(false);
+    }
+  }
 
   const images = artwork.images || [];
   const artist = artwork.artist;
@@ -363,10 +402,20 @@ export default function ArtworkDetailClient({
                 Buy Now
               </Link>
               <div className="flex gap-3">
-                <button className="flex-1 py-2.5 border-2 border-border rounded-full flex items-center justify-center gap-2 hover:border-accent hover:text-accent-dark transition-colors text-sm font-medium">
-                  <MessageCircle className="h-4 w-4" />
-                  Message Artist
-                </button>
+                {!isOwnArtwork && (
+                  <button
+                    onClick={handleMessageArtist}
+                    disabled={messagingLoading}
+                    className="flex-1 py-2.5 border-2 border-border rounded-full flex items-center justify-center gap-2 hover:border-accent hover:text-accent-dark transition-colors text-sm font-medium disabled:opacity-50"
+                  >
+                    {messagingLoading ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <MessageCircle className="h-4 w-4" />
+                    )}
+                    Message Artist
+                  </button>
+                )}
                 <button
                   className="py-2.5 px-4 border-2 border-border rounded-full flex items-center justify-center gap-2 hover:border-red-300 hover:text-red-500 transition-colors text-sm font-medium"
                   aria-label="Save to favourites"
