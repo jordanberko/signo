@@ -109,37 +109,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       };
     }
 
-    // ── DUAL-GATE: wait for BOTH server profile AND browser client ready ──
-    // Gate 1: Server API returns the profile (reliable, no navigator.locks)
-    // Gate 2: onAuthStateChange INITIAL_SESSION fires (browser client is ready)
-    // We only resolve loading=false when BOTH gates have passed, so that
-    // page components can safely query with the browser Supabase client.
-    let profileLoaded = false;
-    let clientReady = false;
-    let loadedProfile: Profile | null = null;
+    // ── SERVER-FIRST AUTH: resolve as soon as server returns profile ──
+    // The server API is reliable (no navigator.locks) and fast (~300ms).
+    // We resolve loading=false immediately when it returns, so the page
+    // shell renders instantly. Each page's getReadyClient() handles
+    // waiting for the browser client to be ready before data queries.
 
-    function tryResolve() {
-      if (profileLoaded && clientReady && !resolved && mountedRef.current) {
-        resolve(loadedProfile);
-      }
-    }
-
-    // Gate 1: Server-side session check
+    // Primary: Server-side session check — resolves auth state
     fetch('/api/auth/session')
       .then((res) => res.json())
       .then((data) => {
-        loadedProfile = data.user ?? null;
-        profileLoaded = true;
-        tryResolve();
+        if (mountedRef.current && !resolved) {
+          resolve(data.user ?? null);
+        }
       })
       .catch(() => {
-        // If API fails, still mark as loaded (null profile)
-        loadedProfile = null;
-        profileLoaded = true;
-        tryResolve();
+        // If API fails, fall through to onAuthStateChange
       });
 
-    // Gate 2: Browser client initialization + subsequent events
+    // Secondary: Browser client events for sign-in/out/refresh
     const supabase = createClient();
     const {
       data: { subscription },
@@ -147,11 +135,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (!mountedRef.current) return;
 
       if (event === 'INITIAL_SESSION') {
-        // Browser client is now initialized and has its auth token.
-        // This means subsequent queries via createClient() will include
-        // the Authorization header.
-        clientReady = true;
-        tryResolve();
+        // Fallback: if API hasn't resolved yet, use INITIAL_SESSION
+        if (!resolved && session?.user) {
+          const profile = await fetchProfile(session.user.id);
+          if (mountedRef.current) resolve(profile);
+        } else if (!resolved) {
+          resolve(null);
+        }
         return;
       }
 
@@ -190,19 +180,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     });
 
-    // Safety timeout: 8 seconds. Covers both the API call (~300-500ms)
-    // and INITIAL_SESSION (~500-2000ms with navigator.locks).
+    // Safety timeout: 3 seconds. The server API should return in ~300ms.
+    // If both API and INITIAL_SESSION fail, resolve as anonymous.
     const timeout = setTimeout(() => {
       if (!resolved && mountedRef.current) {
-        // If the API loaded a profile but client isn't ready yet,
-        // force-resolve anyway — better than infinite loading.
-        if (profileLoaded) {
-          resolve(loadedProfile);
-        } else {
-          resolve(null);
-        }
+        resolve(null);
       }
-    }, 8000);
+    }, 3000);
 
     return () => {
       mountedRef.current = false;

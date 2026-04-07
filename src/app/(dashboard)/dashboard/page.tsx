@@ -70,38 +70,41 @@ function DashboardContent() {
   const isArtist = user?.role === 'artist';
 
   useEffect(() => {
-    if (!user) return;
+    if (!user) {
+      setLoading(false);
+      return;
+    }
+
+    let cancelled = false;
 
     async function fetchOrders() {
-      setLoading(true);
       try {
         const supabase = await getReadyClient();
 
-        // Get total count
-        const { count } = await supabase
-          .from('orders')
-          .select('*', { count: 'exact', head: true })
-          .eq('buyer_id', user!.id);
+        const [countResult, dataResult] = await Promise.allSettled([
+          supabase
+            .from('orders')
+            .select('*', { count: 'exact', head: true })
+            .eq('buyer_id', user!.id),
+          supabase
+            .from('orders')
+            .select(
+              'id, total_amount_aud, status, created_at, artworks(title, images), profiles!orders_artist_id_fkey(full_name)'
+            )
+            .eq('buyer_id', user!.id)
+            .order('created_at', { ascending: false })
+            .limit(5),
+        ]);
 
-        // Get recent 5
-        const { data, error } = await supabase
-          .from('orders')
-          .select(
-            'id, total_amount_aud, status, created_at, artworks(title, images), profiles!orders_artist_id_fkey(full_name)'
-          )
-          .eq('buyer_id', user!.id)
-          .order('created_at', { ascending: false })
-          .limit(5);
+        if (cancelled) return;
 
-        if (error) {
-          console.error('[Dashboard] Orders fetch error:', error.message);
+        if (countResult.status === 'fulfilled') {
+          setTotalOrders(countResult.value.count || 0);
         }
 
-        setTotalOrders(count || 0);
-
-        if (data) {
+        if (dataResult.status === 'fulfilled' && dataResult.value.data) {
           setOrders(
-            data.map((o: Record<string, unknown>) => {
+            dataResult.value.data.map((o: Record<string, unknown>) => {
               const artwork = o.artworks as Record<string, unknown> | null;
               const artist = o.profiles as Record<string, string> | null;
               const images = (artwork?.images as string[]) || [];
@@ -123,11 +126,21 @@ function DashboardContent() {
       } catch (err) {
         console.error('[Dashboard] Orders fetch exception:', err);
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     }
 
-    fetchOrders();
+    // 5-second timeout — show empty state rather than spinner forever
+    const timeout = setTimeout(() => {
+      if (!cancelled) setLoading(false);
+    }, 5000);
+
+    fetchOrders().then(() => clearTimeout(timeout));
+
+    return () => {
+      cancelled = true;
+      clearTimeout(timeout);
+    };
   }, [user]);
 
   const firstName = user?.full_name?.split(' ')[0] || '';
