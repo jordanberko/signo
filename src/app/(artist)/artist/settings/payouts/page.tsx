@@ -16,6 +16,7 @@ import {
   Info,
 } from 'lucide-react';
 import { useAuth } from '@/components/providers/AuthProvider';
+import { useRequireAuth } from '@/lib/hooks/useRequireAuth';
 
 // ── Types ──
 
@@ -32,6 +33,7 @@ interface ConnectStatus {
 // ── Component ──
 
 function PayoutsContent() {
+  const { loading: authLoading } = useRequireAuth('artist');
   const searchParams = useSearchParams();
   const onboarded = searchParams.get('onboarded');
   const refresh = searchParams.get('refresh');
@@ -118,7 +120,7 @@ function PayoutsContent() {
 
   // ── Render ──
 
-  if (loading) {
+  if (authLoading || loading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
         <Loader2 className="h-6 w-6 animate-spin text-muted" />

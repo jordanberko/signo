@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
-import { useRouter, useParams } from 'next/navigation';
+import { useParams } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
 import {
@@ -78,7 +78,6 @@ interface FormState {
 
 export default function EditArtworkPage() {
   const { loading: authLoading } = useRequireAuth('artist');
-  const router = useRouter();
   const { id: artworkId } = useParams() as { id: string };
   const { user } = useAuth();
 
@@ -244,8 +243,7 @@ export default function EditArtworkPage() {
         throw new Error(apiError || 'Failed to update artwork');
       }
 
-      router.push('/artist/artworks');
-      router.refresh();
+      window.location.href = '/artist/artworks';
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Something went wrong';
       setError(message);

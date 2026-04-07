@@ -12,7 +12,7 @@ const PATHS = [
 ];
 
 const RIBBON_TEXT = [
-  'keep all your profits \u2726 no gallery commission \u2726 your art, your rules \u2726 sell direct to collectors \u2726 zero percent taken \u2726 ',
+  '$30/month \u2726 zero commission \u2726 your art, your rules \u2726 sell direct to collectors \u2726 keep 100% of every sale \u2726 ',
   '$30/MONTH \u2726 UNLIMITED LISTINGS \u2726 ESCROW PROTECTION \u2726 24-HOUR REVIEW \u2726 AUSTRALIAN ARTISTS \u2726 CURATED QUALITY \u2726 ',
   'originals \u2726 prints \u2726 digital downloads \u2726 direct from the studio \u2726 art finds its people \u2726 ',
 ];

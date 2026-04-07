@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
-import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
 import {
@@ -126,7 +125,6 @@ function getDefaultForm(): FormState {
 
 export default function NewArtworkPage() {
   const { loading: authLoading } = useRequireAuth('artist');
-  const router = useRouter();
   const { user } = useAuth();
 
   const [step, setStep] = useState(1);
@@ -255,11 +253,10 @@ export default function NewArtworkPage() {
       clearDraft();
 
       if (status === 'draft') {
-        router.push('/artist/artworks');
+        window.location.href = '/artist/artworks';
       } else {
-        router.push('/artist/artworks?submitted=true');
+        window.location.href = '/artist/artworks?submitted=true';
       }
-      router.refresh();
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Something went wrong';
       setError(message);

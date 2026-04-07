@@ -173,9 +173,15 @@ async function uploadToSupabase(
 ): Promise<void> {
   const supabase = createClient();
 
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) {
+    throw new Error('Not authenticated. Please sign in and try again.');
+  }
+
+  // Get session for the access token (needed for XHR Authorization header)
   const { data: { session } } = await supabase.auth.getSession();
   if (!session) {
-    throw new Error('Not authenticated. Please sign in and try again.');
+    throw new Error('Session expired. Please sign in again.');
   }
 
   const url = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/${bucket}/${path}`;
