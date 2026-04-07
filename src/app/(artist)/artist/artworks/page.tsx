@@ -20,7 +20,6 @@ import {
 import { formatPrice } from '@/lib/utils';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { useRequireAuth } from '@/lib/hooks/useRequireAuth';
-import { getReadyClient } from '@/lib/supabase/client';
 import type { Artwork, ArtworkStatus } from '@/types/database';
 import { Suspense } from 'react';
 
@@ -218,31 +217,40 @@ export default function ArtistArtworksPage() {
 
   const fetchArtworks = useCallback(async () => {
     if (!user) {
-      // If auth is done loading and there's no user, stop the spinner
       if (!authLoading) setLoading(false);
       return;
     }
     setLoading(true);
     try {
-      const supabase = await getReadyClient();
-      const { data, error } = await supabase
-        .from('artworks')
-        .select('*')
-        .eq('artist_id', user.id)
-        .order('created_at', { ascending: false });
-      if (error) {
-        console.error('[Artworks] Fetch error:', error.message);
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 8000);
+
+      const res = await fetch('/api/artworks/mine', {
+        signal: controller.signal,
+      });
+      clearTimeout(timeout);
+
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        console.error('[Artworks] API error:', body.error || res.status);
+      } else {
+        const { artworks } = await res.json();
+        if (artworks) setAllArtworks(artworks as Artwork[]);
       }
-      if (data) setAllArtworks(data as Artwork[]);
     } catch (err) {
-      console.error('[Artworks] Fetch exception:', err);
+      if ((err as Error).name === 'AbortError') {
+        console.error('[Artworks] Fetch timed out after 8s');
+      } else {
+        console.error('[Artworks] Fetch exception:', err);
+      }
     }
     setLoading(false);
   }, [user, authLoading]);
 
   useEffect(() => {
+    if (authLoading) return;
     fetchArtworks();
-  }, [fetchArtworks]);
+  }, [authLoading, fetchArtworks]);
 
   // Count per status
   const counts: Record<string, number> = { '': allArtworks.length };

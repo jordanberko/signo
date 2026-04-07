@@ -78,8 +78,8 @@ function validateFile(file: File, maxSizeMB: number): string | null {
  */
 async function compressImage(
   file: File,
-  maxWidth = 1600,
-  quality = 0.82,
+  maxWidth = 1800,
+  quality = 0.85,
 ): Promise<Blob> {
   const startTime = Date.now();
   const sizeKB = (file.size / 1024).toFixed(0);
@@ -170,18 +170,27 @@ async function uploadToSupabase(
   blob: Blob,
   contentType: string,
   timeoutMs: number,
+  accessToken?: string,
 ): Promise<void> {
-  const supabase = createClient();
+  let token = accessToken;
 
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) {
-    throw new Error('Not authenticated. Please sign in and try again.');
-  }
+  if (!token) {
+    // Get access token with a 5-second timeout to prevent hanging on navigator.locks
+    console.log('[Upload] Getting auth session...');
+    const authResult = await Promise.race([
+      (async () => {
+        const supabase = createClient();
+        const { data: { session } } = await supabase.auth.getSession();
+        return session;
+      })(),
+      new Promise<null>((resolve) => setTimeout(() => resolve(null), 5000)),
+    ]);
 
-  // Get session for the access token (needed for XHR Authorization header)
-  const { data: { session } } = await supabase.auth.getSession();
-  if (!session) {
-    throw new Error('Session expired. Please sign in again.');
+    if (!authResult?.access_token) {
+      throw new Error('Authentication timed out. Please refresh the page and try again.');
+    }
+    token = authResult.access_token;
+    console.log('[Upload] Auth session obtained');
   }
 
   const url = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/${bucket}/${path}`;
@@ -199,7 +208,7 @@ async function uploadToSupabase(
     }, timeoutMs);
 
     xhr.open('POST', url, true);
-    xhr.setRequestHeader('Authorization', `Bearer ${session.access_token}`);
+    xhr.setRequestHeader('Authorization', `Bearer ${token}`);
     xhr.setRequestHeader('Content-Type', contentType);
     xhr.setRequestHeader('Cache-Control', 'max-age=31536000');
     xhr.setRequestHeader('x-upsert', 'false');
@@ -268,19 +277,36 @@ export async function uploadArtworkImage(
 
   console.log(`[Upload] Selected file: ${file.name} (${(file.size / 1024).toFixed(0)}KB)`);
 
+  // Step 0: Get auth token upfront (with timeout to prevent hanging)
+  console.log('[Upload] Obtaining auth token...');
+  const supabase = createClient();
+  const sessionResult = await Promise.race([
+    supabase.auth.getSession(),
+    new Promise<null>((resolve) => setTimeout(() => resolve(null), 5000)),
+  ]);
+
+  const accessToken = sessionResult && 'data' in sessionResult
+    ? (sessionResult as { data: { session: { access_token: string } | null } }).data.session?.access_token
+    : undefined;
+
+  if (!accessToken) {
+    throw new Error('Authentication timed out. Please refresh the page and try again.');
+  }
+  console.log('[Upload] Auth token obtained');
+
   // Step 1: Compress (0% → 40%)
   onProgress?.(5);
-  const compressed = await compressImage(file, 1600, 0.82);
+  const compressed = await compressImage(file, 1800, 0.85);
   onProgress?.(40);
 
-  // Step 2: Upload full image with 15s timeout (40% → 90%)
+  // Step 2: Upload full image with 20s timeout (40% → 90%)
   const fullPath = `${userId}/${artworkId}/${fileId}.jpg`;
   const sizeKB = (compressed.size / 1024).toFixed(0);
   console.log(`[Upload] Starting upload to Supabase: ${fullPath} (${sizeKB}KB)`);
   onProgress?.(45);
 
   try {
-    await uploadToSupabase('artwork-images', fullPath, compressed, 'image/jpeg', 15000);
+    await uploadToSupabase('artwork-images', fullPath, compressed, 'image/jpeg', 20000, accessToken);
   } catch (firstErr) {
     // First attempt failed — retry with aggressive compression
     console.warn('[Upload] First upload attempt failed:', firstErr);
@@ -293,11 +319,11 @@ export async function uploadArtworkImage(
     onProgress?.(55);
 
     try {
-      await uploadToSupabase('artwork-images', fullPath, aggressiveCompressed, 'image/jpeg', 15000);
+      await uploadToSupabase('artwork-images', fullPath, aggressiveCompressed, 'image/jpeg', 20000, accessToken);
     } catch (retryErr) {
       console.error('[Upload] Second upload attempt also failed:', retryErr);
       throw new Error(
-        'Image upload is taking too long. Please try a smaller image or check your internet connection.',
+        'Image upload failed. Please try a smaller image or check your internet connection.',
       );
     }
   }
@@ -309,7 +335,7 @@ export async function uploadArtworkImage(
   // Step 3: Upload thumbnail (non-critical, fire and forget)
   const thumbBlob = await compressImage(file, 400, 0.7);
   const thumbPath = `${userId}/${artworkId}/${fileId}_thumb.jpg`;
-  uploadToSupabase('artwork-images', thumbPath, thumbBlob, 'image/jpeg', 10000).catch((err) =>
+  uploadToSupabase('artwork-images', thumbPath, thumbBlob, 'image/jpeg', 10000, accessToken).catch((err) =>
     console.warn('[Upload] Thumbnail upload failed (non-critical):', err),
   );
 

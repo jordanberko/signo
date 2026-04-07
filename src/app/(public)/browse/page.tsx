@@ -594,38 +594,37 @@ function BrowseContent() {
                   {totalCount === 1 ? 'artwork' : 'artworks'}
                 </p>
 
-                {/* Masonry Grid */}
-                <div
-                  className="gap-4"
-                  style={{
-                    columnCount: 4,
-                    columnGap: 16,
-                  }}
-                >
-                  <style>{`
-                    @media (max-width: 1023px) { .masonry-browse { column-count: 3 !important; } }
-                    @media (max-width: 767px) { .masonry-browse { column-count: 2 !important; } }
-                    @media (max-width: 479px) { .masonry-browse { column-count: 1 !important; } }
-                  `}</style>
-                  <div className="masonry-browse" style={{ columnCount: 'inherit', columnGap: 'inherit' }}>
-                    {artworks.map((artwork) => (
-                      <div key={artwork.id} className="mb-4" style={{ breakInside: 'avoid' }}>
-                        <ArtworkCard
-                          id={artwork.id}
-                          title={artwork.title}
-                          artistName={
-                            artwork.profiles?.full_name || 'Unknown Artist'
-                          }
-                          artistId={artwork.artist_id}
-                          price={artwork.price_aud}
-                          imageUrl={artwork.images?.[0] || ''}
-                          medium={artwork.medium}
-                          category={artwork.category}
-                          masonry
-                        />
-                      </div>
-                    ))}
-                  </div>
+                {/* Artwork Grid */}
+                <style>{`
+                  .browse-grid {
+                    display: grid;
+                    grid-template-columns: repeat(3, 1fr);
+                    gap: 20px;
+                  }
+                  @media (max-width: 1023px) {
+                    .browse-grid { grid-template-columns: repeat(2, 1fr); }
+                  }
+                  @media (max-width: 479px) {
+                    .browse-grid { grid-template-columns: 1fr; }
+                  }
+                `}</style>
+                <div className="browse-grid">
+                  {artworks.map((artwork) => (
+                    <div key={artwork.id}>
+                      <ArtworkCard
+                        id={artwork.id}
+                        title={artwork.title}
+                        artistName={
+                          artwork.profiles?.full_name || 'Unknown Artist'
+                        }
+                        artistId={artwork.artist_id}
+                        price={artwork.price_aud}
+                        imageUrl={artwork.images?.[0] || ''}
+                        medium={artwork.medium}
+                        category={artwork.category}
+                      />
+                    </div>
+                  ))}
                 </div>
 
                 {/* Load More */}
