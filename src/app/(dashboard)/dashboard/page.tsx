@@ -15,6 +15,7 @@ import {
   ImageIcon,
   Loader2,
 } from 'lucide-react';
+import ArtworkCard from '@/components/ui/ArtworkCard';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { useRequireAuth } from '@/lib/hooks/useRequireAuth';
 import { getReadyClient } from '@/lib/supabase/client';
@@ -67,6 +68,19 @@ function DashboardContent() {
   const [orders, setOrders] = useState<RecentOrder[]>([]);
   const [totalOrders, setTotalOrders] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [favourites, setFavourites] = useState<
+    {
+      id: string;
+      title: string;
+      price_aud: number;
+      images: string[];
+      medium: string | null;
+      category: 'original' | 'print' | 'digital';
+      artistName: string;
+      artistId: string;
+    }[]
+  >([]);
+  const [favouritesCount, setFavouritesCount] = useState(0);
   const isArtist = user?.role === 'artist';
 
   useEffect(() => {
@@ -143,6 +157,30 @@ function DashboardContent() {
     };
   }, [user]);
 
+  // Fetch favourites preview
+  useEffect(() => {
+    if (!user) return;
+    let cancelled = false;
+
+    async function fetchFavourites() {
+      try {
+        const res = await fetch('/api/favourites/list?sort=recent');
+        if (!res.ok) return;
+        const data = await res.json();
+        if (cancelled) return;
+        setFavouritesCount(data.count || 0);
+        setFavourites((data.artworks || []).slice(0, 4));
+      } catch {
+        // Ignore
+      }
+    }
+
+    fetchFavourites();
+    return () => {
+      cancelled = true;
+    };
+  }, [user]);
+
   const firstName = user?.full_name?.split(' ')[0] || '';
 
   return (
@@ -195,7 +233,7 @@ function DashboardContent() {
         </Link>
 
         <Link
-          href="/dashboard"
+          href="/favourites"
           className="flex items-center gap-4 p-5 bg-white border border-border rounded-xl hover:border-accent/40 hover:shadow-sm transition-all duration-300 group"
         >
           <div className="w-10 h-10 bg-muted-bg rounded-full flex items-center justify-center group-hover:bg-accent-subtle transition-colors duration-300">
@@ -420,25 +458,67 @@ function DashboardContent() {
         )}
       </div>
 
-      {/* Favourites placeholder */}
+      {/* Favourites */}
       <div className="bg-white border border-border rounded-xl overflow-hidden">
-        <div className="p-5 border-b border-border">
+        <div className="flex items-center justify-between p-5 border-b border-border">
           <h2 className="font-editorial text-lg font-medium">Favourites</h2>
+          {favouritesCount > 4 && (
+            <Link
+              href="/favourites"
+              className="text-sm text-accent-dark font-medium hover:underline flex items-center gap-1"
+            >
+              View all <ArrowRight className="h-3.5 w-3.5" />
+            </Link>
+          )}
         </div>
-        <div className="p-12 text-center">
-          <Heart className="h-10 w-10 text-muted mx-auto mb-3" />
-          <p className="font-medium mb-1">No saved artworks yet</p>
-          <p className="text-sm text-muted mb-5">
-            Save artworks you love by clicking the heart icon while browsing.
-          </p>
-          <Link
-            href="/browse"
-            className="group inline-flex items-center gap-2 text-accent-dark font-medium text-sm hover:underline"
-          >
-            Browse Artwork
-            <ArrowRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
-          </Link>
-        </div>
+
+        {favourites.length === 0 ? (
+          <div className="p-12 text-center">
+            <Heart className="h-10 w-10 text-muted mx-auto mb-3" />
+            <p className="font-medium mb-1">No saved artworks yet</p>
+            <p className="text-sm text-muted mb-5">
+              Save artworks you love by clicking the heart icon while browsing.
+            </p>
+            <Link
+              href="/browse"
+              className="group inline-flex items-center gap-2 text-accent-dark font-medium text-sm hover:underline"
+            >
+              Browse Artwork
+              <ArrowRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
+            </Link>
+          </div>
+        ) : (
+          <div className="p-5">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              {favourites.map((artwork) => (
+                <ArtworkCard
+                  key={artwork.id}
+                  id={artwork.id}
+                  title={artwork.title}
+                  artistName={artwork.artistName}
+                  artistId={artwork.artistId}
+                  price={artwork.price_aud}
+                  imageUrl={artwork.images?.[0] || ''}
+                  medium={artwork.medium}
+                  category={artwork.category}
+                  initialFavourited
+                  hideBadge
+                />
+              ))}
+            </div>
+            {favouritesCount > 0 && (
+              <div className="text-center mt-5">
+                <Link
+                  href="/favourites"
+                  className="group inline-flex items-center gap-2 text-accent-dark font-medium text-sm hover:underline"
+                >
+                  View all {favouritesCount} favourite{favouritesCount === 1 ? '' : 's'}
+                  <ArrowRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
+                </Link>
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );

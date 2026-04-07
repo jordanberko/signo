@@ -19,6 +19,10 @@ interface ArtworkCardProps {
   hideBadge?: boolean;
   /** Use natural aspect ratio for masonry layouts instead of fixed 3:4 */
   masonry?: boolean;
+  /** Pre-fill favourite state (e.g. on /favourites page) */
+  initialFavourited?: boolean;
+  /** Called after unfavouriting — used by /favourites page to remove from list */
+  onUnfavourite?: (id: string) => void;
 }
 
 export default function ArtworkCard({
@@ -32,9 +36,11 @@ export default function ArtworkCard({
   category,
   hideBadge = false,
   masonry = false,
+  initialFavourited = false,
+  onUnfavourite,
 }: ArtworkCardProps) {
   const { user } = useAuth();
-  const [isFavourited, setIsFavourited] = useState(false);
+  const [isFavourited, setIsFavourited] = useState(initialFavourited);
   const [heartAnimating, setHeartAnimating] = useState(false);
 
   const categoryLabel = category
@@ -69,12 +75,15 @@ export default function ArtworkCard({
         if (!res.ok) {
           // Revert on error
           setIsFavourited(!newState);
+        } else if (!newState && onUnfavourite) {
+          // Successfully unfavourited — notify parent
+          onUnfavourite(id);
         }
       } catch {
         setIsFavourited(!newState);
       }
     },
-    [id, isFavourited, user]
+    [id, isFavourited, user, onUnfavourite]
   );
 
   return (

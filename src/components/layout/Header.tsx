@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Search, Menu, X, MessageCircle } from 'lucide-react';
+import { Search, Menu, X, MessageCircle, Heart } from 'lucide-react';
 import AuthButton from '@/components/AuthButton';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { createClient } from '@/lib/supabase/client';
@@ -131,20 +131,29 @@ export default function Header() {
               How It Works
             </Link>
 
-            {/* Messages icon — only when logged in */}
+            {/* Favourites + Messages icons — only when logged in */}
             {user && (
-              <Link
-                href="/messages"
-                className="relative p-2 text-foreground hover:text-accent-dark transition-colors rounded-lg hover:bg-cream"
-                aria-label="Messages"
-              >
-                <MessageCircle className="h-5 w-5" />
-                {unreadCount > 0 && (
-                  <span className="absolute -top-0.5 -right-0.5 w-4.5 h-4.5 min-w-[18px] bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center leading-none px-1">
-                    {unreadCount > 9 ? '9+' : unreadCount}
-                  </span>
-                )}
-              </Link>
+              <>
+                <Link
+                  href="/favourites"
+                  className="p-2 text-foreground hover:text-accent-dark transition-colors rounded-lg hover:bg-cream"
+                  aria-label="Favourites"
+                >
+                  <Heart className="h-5 w-5" />
+                </Link>
+                <Link
+                  href="/messages"
+                  className="relative p-2 text-foreground hover:text-accent-dark transition-colors rounded-lg hover:bg-cream"
+                  aria-label="Messages"
+                >
+                  <MessageCircle className="h-5 w-5" />
+                  {unreadCount > 0 && (
+                    <span className="absolute -top-0.5 -right-0.5 w-4.5 h-4.5 min-w-[18px] bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center leading-none px-1">
+                      {unreadCount > 9 ? '9+' : unreadCount}
+                    </span>
+                  )}
+                </Link>
+              </>
             )}
 
             {/* Auth — self-contained client component */}
@@ -190,14 +199,17 @@ export default function Header() {
             <MobileLink href="/browse" label="Browse Art" onClick={() => setMobileMenuOpen(false)} />
             <MobileLink href="/how-it-works" label="How It Works" onClick={() => setMobileMenuOpen(false)} />
             {user && (
-              <div className="relative">
-                <MobileLink href="/messages" label="Messages" onClick={() => setMobileMenuOpen(false)} />
-                {unreadCount > 0 && (
-                  <span className="absolute right-3 top-1/2 -translate-y-1/2 min-w-[18px] h-[18px] bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center leading-none px-1">
-                    {unreadCount > 9 ? '9+' : unreadCount}
-                  </span>
-                )}
-              </div>
+              <>
+                <MobileLink href="/favourites" label="Favourites" onClick={() => setMobileMenuOpen(false)} />
+                <div className="relative">
+                  <MobileLink href="/messages" label="Messages" onClick={() => setMobileMenuOpen(false)} />
+                  {unreadCount > 0 && (
+                    <span className="absolute right-3 top-1/2 -translate-y-1/2 min-w-[18px] h-[18px] bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center leading-none px-1">
+                      {unreadCount > 9 ? '9+' : unreadCount}
+                    </span>
+                  )}
+                </div>
+              </>
             )}
 
             {!user && (
