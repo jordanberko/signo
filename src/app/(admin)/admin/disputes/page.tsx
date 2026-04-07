@@ -38,32 +38,37 @@ export default function AdminDisputesPage() {
 
   async function fetchDisputes() {
     setLoading(true);
-    const supabase = await getReadyClient();
+    try {
+      const supabase = await getReadyClient();
 
-    let query = supabase
-      .from('disputes')
-      .select('*, orders(id, total_amount_aud, artworks(title), profiles!orders_buyer_id_fkey(full_name, email), profiles!orders_artist_id_fkey(full_name, email))')
-      .order('created_at', { ascending: false });
+      let query = supabase
+        .from('disputes')
+        .select('*, orders(id, total_amount_aud, artworks(title), profiles!orders_buyer_id_fkey(full_name, email), profiles!orders_artist_id_fkey(full_name, email))')
+        .order('created_at', { ascending: false });
 
-    if (filter !== 'all') {
-      query = query.eq('status', filter);
+      if (filter !== 'all') {
+        query = query.eq('status', filter);
+      }
+
+      const { data } = await query;
+      if (data) {
+        setDisputes(data.map((d: Record<string, unknown>) => {
+          const order = d.orders as Record<string, unknown>;
+          return {
+            ...d,
+            orders: {
+              ...order,
+              buyer: (order as Record<string, unknown[]>).profiles?.[0] || { full_name: 'Unknown', email: '' },
+              artist: (order as Record<string, unknown[]>).profiles?.[1] || { full_name: 'Unknown', email: '' },
+            },
+          };
+        }) as unknown as DisputeRow[]);
+      }
+    } catch (err) {
+      console.error('[AdminDisputes] Fetch error:', err);
+    } finally {
+      setLoading(false);
     }
-
-    const { data } = await query;
-    if (data) {
-      setDisputes(data.map((d: Record<string, unknown>) => {
-        const order = d.orders as Record<string, unknown>;
-        return {
-          ...d,
-          orders: {
-            ...order,
-            buyer: (order as Record<string, unknown[]>).profiles?.[0] || { full_name: 'Unknown', email: '' },
-            artist: (order as Record<string, unknown[]>).profiles?.[1] || { full_name: 'Unknown', email: '' },
-          },
-        };
-      }) as unknown as DisputeRow[]);
-    }
-    setLoading(false);
   }
 
   async function resolveDispute(disputeId: string, resolution: 'resolved_refund' | 'resolved_no_refund' | 'resolved_return') {

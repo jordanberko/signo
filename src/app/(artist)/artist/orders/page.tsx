@@ -52,17 +52,22 @@ export default function ArtistOrdersPage() {
     if (!user) return;
 
     async function fetchOrders() {
-      const supabase = await getReadyClient();
-      const { data } = await supabase
-        .from('orders')
-        .select(
-          'id, total_amount_aud, artist_payout_aud, status, created_at, artworks(title, images), profiles!orders_buyer_id_fkey(full_name)'
-        )
-        .eq('artist_id', user!.id)
-        .order('created_at', { ascending: false });
+      try {
+        const supabase = await getReadyClient();
+        const { data } = await supabase
+          .from('orders')
+          .select(
+            'id, total_amount_aud, artist_payout_aud, status, created_at, artworks(title, images), profiles!orders_buyer_id_fkey(full_name)'
+          )
+          .eq('artist_id', user!.id)
+          .order('created_at', { ascending: false });
 
-      setOrders((data as unknown as OrderRow[]) ?? []);
-      setLoading(false);
+        setOrders((data as unknown as OrderRow[]) ?? []);
+      } catch (err) {
+        console.error('[ArtistOrders] Fetch error:', err);
+      } finally {
+        setLoading(false);
+      }
     }
 
     fetchOrders();

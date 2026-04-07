@@ -21,20 +21,25 @@ export default function AdminUsersPage() {
 
   async function fetchUsers() {
     setLoading(true);
-    const supabase = await getReadyClient();
+    try {
+      const supabase = await getReadyClient();
 
-    let query = supabase
-      .from('profiles')
-      .select('*')
-      .order('created_at', { ascending: false });
+      let query = supabase
+        .from('profiles')
+        .select('*')
+        .order('created_at', { ascending: false });
 
-    if (roleFilter !== 'all') {
-      query = query.eq('role', roleFilter);
+      if (roleFilter !== 'all') {
+        query = query.eq('role', roleFilter);
+      }
+
+      const { data } = await query;
+      if (data) setUsers(data as User[]);
+    } catch (err) {
+      console.error('[AdminUsers] Fetch error:', err);
+    } finally {
+      setLoading(false);
     }
-
-    const { data } = await query;
-    if (data) setUsers(data as User[]);
-    setLoading(false);
   }
 
   async function updateRole(userId: string, newRole: 'buyer' | 'artist' | 'admin') {

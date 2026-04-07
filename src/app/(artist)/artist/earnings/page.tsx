@@ -67,16 +67,21 @@ export default function EarningsPage() {
   useEffect(() => {
     if (!user) return;
     async function fetchOrders() {
-      const supabase = await getReadyClient();
-      const { data } = await supabase
-        .from('orders')
-        .select('id, total_amount_aud, artist_payout_aud, status, payout_released_at, inspection_deadline, created_at, artworks(title, images)')
-        .eq('artist_id', user!.id)
-        .in('status', ['paid', 'shipped', 'delivered', 'completed', 'disputed', 'refunded'])
-        .order('created_at', { ascending: false });
+      try {
+        const supabase = await getReadyClient();
+        const { data } = await supabase
+          .from('orders')
+          .select('id, total_amount_aud, artist_payout_aud, status, payout_released_at, inspection_deadline, created_at, artworks(title, images)')
+          .eq('artist_id', user!.id)
+          .in('status', ['paid', 'shipped', 'delivered', 'completed', 'disputed', 'refunded'])
+          .order('created_at', { ascending: false });
 
-      setOrders((data as unknown as OrderRow[]) ?? []);
-      setLoading(false);
+        setOrders((data as unknown as OrderRow[]) ?? []);
+      } catch (err) {
+        console.error('[Earnings] Fetch error:', err);
+      } finally {
+        setLoading(false);
+      }
     }
     fetchOrders();
   }, [user]);

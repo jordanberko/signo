@@ -31,33 +31,38 @@ export default function AdminDashboardPage() {
   useEffect(() => {
     if (authLoading) return;
     async function fetchStats() {
-      const supabase = await getReadyClient();
+      try {
+        const supabase = await getReadyClient();
 
-      const [users, artists, buyers, artworks, pending, approved, orders, disputes] = await Promise.all([
-        supabase.from('profiles').select('*', { count: 'exact', head: true }),
-        supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('role', 'artist'),
-        supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('role', 'buyer'),
-        supabase.from('artworks').select('*', { count: 'exact', head: true }),
-        supabase.from('artworks').select('*', { count: 'exact', head: true }).eq('status', 'pending_review'),
-        supabase.from('artworks').select('*', { count: 'exact', head: true }).eq('status', 'approved'),
-        supabase.from('orders').select('platform_fee_aud'),
-        supabase.from('disputes').select('*', { count: 'exact', head: true }).eq('status', 'open'),
-      ]);
+        const [users, artists, buyers, artworks, pending, approved, orders, disputes] = await Promise.all([
+          supabase.from('profiles').select('*', { count: 'exact', head: true }),
+          supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('role', 'artist'),
+          supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('role', 'buyer'),
+          supabase.from('artworks').select('*', { count: 'exact', head: true }),
+          supabase.from('artworks').select('*', { count: 'exact', head: true }).eq('status', 'pending_review'),
+          supabase.from('artworks').select('*', { count: 'exact', head: true }).eq('status', 'approved'),
+          supabase.from('orders').select('platform_fee_aud'),
+          supabase.from('disputes').select('*', { count: 'exact', head: true }).eq('status', 'open'),
+        ]);
 
-      const totalRevenue = orders.data?.reduce((sum, o) => sum + (o.platform_fee_aud || 0), 0) || 0;
+        const totalRevenue = orders.data?.reduce((sum, o) => sum + (o.platform_fee_aud || 0), 0) || 0;
 
-      setStats({
-        totalUsers: users.count || 0,
-        totalArtists: artists.count || 0,
-        totalBuyers: buyers.count || 0,
-        totalArtworks: artworks.count || 0,
-        pendingReviews: pending.count || 0,
-        approvedArtworks: approved.count || 0,
-        totalOrders: orders.data?.length || 0,
-        totalRevenue,
-        openDisputes: disputes.count || 0,
-      });
-      setLoading(false);
+        setStats({
+          totalUsers: users.count || 0,
+          totalArtists: artists.count || 0,
+          totalBuyers: buyers.count || 0,
+          totalArtworks: artworks.count || 0,
+          pendingReviews: pending.count || 0,
+          approvedArtworks: approved.count || 0,
+          totalOrders: orders.data?.length || 0,
+          totalRevenue,
+          openDisputes: disputes.count || 0,
+        });
+      } catch (err) {
+        console.error('[AdminDashboard] Stats fetch error:', err);
+      } finally {
+        setLoading(false);
+      }
     }
     fetchStats();
   }, [authLoading]);

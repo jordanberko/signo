@@ -54,76 +54,80 @@ export default function ArtistDashboardPage() {
 
     async function fetchStats() {
       setLoading(true);
-      const supabase = await getReadyClient();
+      try {
+        const supabase = await getReadyClient();
 
-      // Count active listings
-      const { count: activeCount } = await supabase
-        .from('artworks')
-        .select('*', { count: 'exact', head: true })
-        .eq('artist_id', user!.id)
-        .eq('status', 'approved');
+        // Count active listings
+        const { count: activeCount } = await supabase
+          .from('artworks')
+          .select('*', { count: 'exact', head: true })
+          .eq('artist_id', user!.id)
+          .eq('status', 'approved');
 
-      // Count pending review
-      const { count: pendingCount } = await supabase
-        .from('artworks')
-        .select('*', { count: 'exact', head: true })
-        .eq('artist_id', user!.id)
-        .eq('status', 'pending_review');
+        // Count pending review
+        const { count: pendingCount } = await supabase
+          .from('artworks')
+          .select('*', { count: 'exact', head: true })
+          .eq('artist_id', user!.id)
+          .eq('status', 'pending_review');
 
-      // Get ALL completed orders for total sales count & earnings
-      const { data: allOrders } = await supabase
-        .from('orders')
-        .select('total_amount_aud, artist_payout_aud')
-        .eq('artist_id', user!.id)
-        .in('status', ['paid', 'shipped', 'delivered', 'completed']);
+        // Get ALL completed orders for total sales count & earnings
+        const { data: allOrders } = await supabase
+          .from('orders')
+          .select('total_amount_aud, artist_payout_aud')
+          .eq('artist_id', user!.id)
+          .in('status', ['paid', 'shipped', 'delivered', 'completed']);
 
-      // Total earnings = sum of (total_amount_aud - stripe fee) for all completed orders
-      // artist_payout_aud already reflects this (sale price minus Stripe fees, zero commission)
-      const totalEarnings =
-        allOrders?.reduce((sum, o) => sum + (o.artist_payout_aud || 0), 0) || 0;
+        // Total earnings = sum of (total_amount_aud - stripe fee) for all completed orders
+        // artist_payout_aud already reflects this (sale price minus Stripe fees, zero commission)
+        const totalEarnings =
+          allOrders?.reduce((sum, o) => sum + (o.artist_payout_aud || 0), 0) || 0;
 
-      // Get recent 5 orders for the table
-      const { data: recent } = await supabase
-        .from('orders')
-        .select(
-          '*, artworks(title), profiles!orders_buyer_id_fkey(full_name)'
-        )
-        .eq('artist_id', user!.id)
-        .order('created_at', { ascending: false })
-        .limit(5);
+        // Get recent 5 orders for the table
+        const { data: recent } = await supabase
+          .from('orders')
+          .select(
+            '*, artworks(title), profiles!orders_buyer_id_fkey(full_name)'
+          )
+          .eq('artist_id', user!.id)
+          .order('created_at', { ascending: false })
+          .limit(5);
 
-      setStats({
-        totalSales: allOrders?.length || 0,
-        activeListings: activeCount || 0,
-        pendingReview: pendingCount || 0,
-        totalEarnings,
-      });
+        setStats({
+          totalSales: allOrders?.length || 0,
+          activeListings: activeCount || 0,
+          pendingReview: pendingCount || 0,
+          totalEarnings,
+        });
 
-      if (recent) {
-        setRecentOrders(
-          recent.map((o: Record<string, unknown>) => {
-            const salePrice = (o.total_amount_aud as number) || 0;
-            const payout = (o.artist_payout_aud as number) || 0;
-            const stripeFee = Math.round((salePrice - payout) * 100) / 100;
-            return {
-              id: o.id as string,
-              title:
-                (o.artworks as Record<string, string>)?.title || 'Unknown',
-              buyer:
-                (o.profiles as Record<string, string>)?.full_name || 'Unknown',
-              salePrice,
-              stripeFee,
-              youReceive: payout,
-              status: o.status as string,
-              date: new Date(o.created_at as string).toLocaleDateString(
-                'en-AU'
-              ),
-            };
-          })
-        );
+        if (recent) {
+          setRecentOrders(
+            recent.map((o: Record<string, unknown>) => {
+              const salePrice = (o.total_amount_aud as number) || 0;
+              const payout = (o.artist_payout_aud as number) || 0;
+              const stripeFee = Math.round((salePrice - payout) * 100) / 100;
+              return {
+                id: o.id as string,
+                title:
+                  (o.artworks as Record<string, string>)?.title || 'Unknown',
+                buyer:
+                  (o.profiles as Record<string, string>)?.full_name || 'Unknown',
+                salePrice,
+                stripeFee,
+                youReceive: payout,
+                status: o.status as string,
+                date: new Date(o.created_at as string).toLocaleDateString(
+                  'en-AU'
+                ),
+              };
+            })
+          );
+        }
+      } catch (err) {
+        console.error('[ArtistDashboard] Stats fetch error:', err);
+      } finally {
+        setLoading(false);
       }
-
-      setLoading(false);
     }
 
     fetchStats();

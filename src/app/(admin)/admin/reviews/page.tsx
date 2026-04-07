@@ -27,26 +27,29 @@ export default function AdminReviewsPage() {
 
   async function fetchArtworks() {
     setLoading(true);
-    const supabase = await getReadyClient();
-    const { data, error } = await supabase
-      .from('artworks')
-      .select('*, profiles!artworks_artist_id_fkey(*)')
-      .eq('status', filter)
-      .order('created_at', { ascending: true });
+    try {
+      const supabase = await getReadyClient();
+      const { data, error } = await supabase
+        .from('artworks')
+        .select('*, profiles!artworks_artist_id_fkey(*)')
+        .eq('status', filter)
+        .order('created_at', { ascending: true });
 
-    if (error) {
-      console.error('[AdminReviews] Query error:', error.message, error.details);
+      if (error) {
+        console.error('[AdminReviews] Query error:', error.message, error.details);
+      }
+
+      if (data) {
+        setArtworks(data.map((a: Record<string, unknown>) => ({
+          ...a,
+          artist: a.profiles,
+        })) as unknown as ReviewArtwork[]);
+      }
+    } catch (err) {
+      console.error('[AdminReviews] Fetch exception:', err);
+    } finally {
+      setLoading(false);
     }
-
-    console.log(`[AdminReviews] Fetched ${data?.length ?? 0} artworks with status "${filter}"`);
-
-    if (data) {
-      setArtworks(data.map((a: Record<string, unknown>) => ({
-        ...a,
-        artist: a.profiles,
-      })) as unknown as ReviewArtwork[]);
-    }
-    setLoading(false);
   }
 
   async function handleAction(artworkId: string, action: 'approved' | 'rejected') {

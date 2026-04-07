@@ -74,49 +74,57 @@ function DashboardContent() {
 
     async function fetchOrders() {
       setLoading(true);
-      const supabase = await getReadyClient();
+      try {
+        const supabase = await getReadyClient();
 
-      // Get total count
-      const { count } = await supabase
-        .from('orders')
-        .select('*', { count: 'exact', head: true })
-        .eq('buyer_id', user!.id);
+        // Get total count
+        const { count } = await supabase
+          .from('orders')
+          .select('*', { count: 'exact', head: true })
+          .eq('buyer_id', user!.id);
 
-      // Get recent 5
-      const { data } = await supabase
-        .from('orders')
-        .select(
-          'id, total_amount_aud, status, created_at, artworks(title, images), profiles!orders_artist_id_fkey(full_name)'
-        )
-        .eq('buyer_id', user!.id)
-        .order('created_at', { ascending: false })
-        .limit(5);
+        // Get recent 5
+        const { data, error } = await supabase
+          .from('orders')
+          .select(
+            'id, total_amount_aud, status, created_at, artworks(title, images), profiles!orders_artist_id_fkey(full_name)'
+          )
+          .eq('buyer_id', user!.id)
+          .order('created_at', { ascending: false })
+          .limit(5);
 
-      setTotalOrders(count || 0);
+        if (error) {
+          console.error('[Dashboard] Orders fetch error:', error.message);
+        }
 
-      if (data) {
-        setOrders(
-          data.map((o: Record<string, unknown>) => {
-            const artwork = o.artworks as Record<string, unknown> | null;
-            const artist = o.profiles as Record<string, string> | null;
-            const images = (artwork?.images as string[]) || [];
-            return {
-              id: o.id as string,
-              artworkTitle: (artwork?.title as string) || 'Unknown',
-              artworkImage: images[0] || null,
-              artistName: artist?.full_name || 'Unknown Artist',
-              price: (o.total_amount_aud as number) || 0,
-              date: new Date(o.created_at as string).toLocaleDateString(
-                'en-AU',
-                { day: 'numeric', month: 'short', year: 'numeric' }
-              ),
-              status: o.status as string,
-            };
-          })
-        );
+        setTotalOrders(count || 0);
+
+        if (data) {
+          setOrders(
+            data.map((o: Record<string, unknown>) => {
+              const artwork = o.artworks as Record<string, unknown> | null;
+              const artist = o.profiles as Record<string, string> | null;
+              const images = (artwork?.images as string[]) || [];
+              return {
+                id: o.id as string,
+                artworkTitle: (artwork?.title as string) || 'Unknown',
+                artworkImage: images[0] || null,
+                artistName: artist?.full_name || 'Unknown Artist',
+                price: (o.total_amount_aud as number) || 0,
+                date: new Date(o.created_at as string).toLocaleDateString(
+                  'en-AU',
+                  { day: 'numeric', month: 'short', year: 'numeric' }
+                ),
+                status: o.status as string,
+              };
+            })
+          );
+        }
+      } catch (err) {
+        console.error('[Dashboard] Orders fetch exception:', err);
+      } finally {
+        setLoading(false);
       }
-
-      setLoading(false);
     }
 
     fetchOrders();
