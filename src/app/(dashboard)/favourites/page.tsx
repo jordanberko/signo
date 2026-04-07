@@ -200,51 +200,33 @@ export default function FavouritesPage() {
           </Link>
         </div>
       ) : (
-        /* Masonry grid */
-        <div
-          style={{
-            columnCount: 4,
-            columnGap: 16,
-          }}
-        >
-          <style>{`
-            @media (max-width: 1023px) { .masonry-favs { column-count: 3 !important; } }
-            @media (max-width: 767px) { .masonry-favs { column-count: 2 !important; } }
-            @media (max-width: 479px) { .masonry-favs { column-count: 1 !important; } }
-          `}</style>
-          <div
-            className="masonry-favs"
-            style={{ columnCount: 'inherit', columnGap: 'inherit' }}
-          >
-            {artworks.map((artwork) => (
-              <div
-                key={artwork.id}
-                className="mb-4"
-                style={{
-                  breakInside: 'avoid',
-                  opacity: removing.has(artwork.id) ? 0 : 1,
-                  transform: removing.has(artwork.id)
-                    ? 'scale(0.95)'
-                    : 'scale(1)',
-                  transition: 'opacity 400ms ease-out, transform 400ms ease-out',
-                }}
-              >
-                <ArtworkCard
-                  id={artwork.id}
-                  title={artwork.title}
-                  artistName={artwork.artistName}
-                  artistId={artwork.artistId}
-                  price={artwork.price_aud}
-                  imageUrl={artwork.images?.[0] || ''}
-                  medium={artwork.medium}
-                  category={artwork.category}
-                  masonry
-                  initialFavourited
-                  onUnfavourite={handleUnfavourite}
-                />
-              </div>
-            ))}
-          </div>
+        /* Artwork grid */
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-x-5 gap-y-10">
+          {artworks.map((artwork) => (
+            <div
+              key={artwork.id}
+              style={{
+                opacity: removing.has(artwork.id) ? 0 : 1,
+                transform: removing.has(artwork.id)
+                  ? 'scale(0.95)'
+                  : 'scale(1)',
+                transition: 'opacity 400ms ease-out, transform 400ms ease-out',
+              }}
+            >
+              <ArtworkCard
+                id={artwork.id}
+                title={artwork.title}
+                artistName={artwork.artistName}
+                artistId={artwork.artistId}
+                price={artwork.price_aud}
+                imageUrl={artwork.images?.[0] || ''}
+                medium={artwork.medium}
+                category={artwork.category}
+                initialFavourited
+                onUnfavourite={handleUnfavourite}
+              />
+            </div>
+          ))}
         </div>
       )}
     </div>

@@ -595,35 +595,21 @@ function BrowseContent() {
                 </p>
 
                 {/* Artwork Grid */}
-                <style>{`
-                  .browse-grid {
-                    display: grid;
-                    grid-template-columns: repeat(3, 1fr);
-                    gap: 20px;
-                  }
-                  @media (max-width: 1023px) {
-                    .browse-grid { grid-template-columns: repeat(2, 1fr); }
-                  }
-                  @media (max-width: 479px) {
-                    .browse-grid { grid-template-columns: 1fr; }
-                  }
-                `}</style>
-                <div className="browse-grid">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-5 gap-y-10">
                   {artworks.map((artwork) => (
-                    <div key={artwork.id}>
-                      <ArtworkCard
-                        id={artwork.id}
-                        title={artwork.title}
-                        artistName={
-                          artwork.profiles?.full_name || 'Unknown Artist'
-                        }
-                        artistId={artwork.artist_id}
-                        price={artwork.price_aud}
-                        imageUrl={artwork.images?.[0] || ''}
-                        medium={artwork.medium}
-                        category={artwork.category}
-                      />
-                    </div>
+                    <ArtworkCard
+                      key={artwork.id}
+                      id={artwork.id}
+                      title={artwork.title}
+                      artistName={
+                        artwork.profiles?.full_name || 'Unknown Artist'
+                      }
+                      artistId={artwork.artist_id}
+                      price={artwork.price_aud}
+                      imageUrl={artwork.images?.[0] || ''}
+                      medium={artwork.medium}
+                      category={artwork.category}
+                    />
                   ))}
                 </div>
 

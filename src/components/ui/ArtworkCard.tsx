@@ -89,7 +89,7 @@ export default function ArtworkCard({
   return (
     <div
       className="group relative rounded-xl bg-[#FAFAF7] overflow-hidden transition-all duration-300 ease-out md:hover:-translate-y-1 md:hover:shadow-[0_8px_24px_rgba(0,0,0,0.08)]"
-      style={{ breakInside: 'avoid' }}
+      style={{ minWidth: 0 }}
     >
       {/* Image */}
       <Link
@@ -101,7 +101,7 @@ export default function ArtworkCard({
             <img
               src={imageUrl}
               alt={title}
-              className={`w-full ${masonry ? 'block' : 'h-full object-cover'} transition-transform duration-300 ease-out md:group-hover:scale-[1.03]`}
+              className={`block w-full ${masonry ? '' : 'h-full object-cover'} transition-transform duration-300 ease-out md:group-hover:scale-[1.03]`}
               loading="lazy"
             />
             {/* Hover overlay — desktop only */}
