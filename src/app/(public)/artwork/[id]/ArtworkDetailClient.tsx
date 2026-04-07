@@ -65,6 +65,7 @@ export interface RelatedArtwork {
 interface Props {
   artwork: ArtworkDetail;
   relatedArtworks: RelatedArtwork[];
+  suggestedArtworks: RelatedArtwork[];
   artistArtworkCount: number;
 }
 
@@ -164,15 +165,55 @@ function Lightbox({
 export default function ArtworkDetailClient({
   artwork,
   relatedArtworks,
+  suggestedArtworks,
   artistArtworkCount,
 }: Props) {
   const [selectedImage, setSelectedImage] = useState(0);
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [messagingLoading, setMessagingLoading] = useState(false);
+  const [isFavourited, setIsFavourited] = useState(false);
+  const [favouriteCount, setFavouriteCount] = useState(0);
+  const [heartAnimating, setHeartAnimating] = useState(false);
   const router = useRouter();
   const { user } = useAuth();
 
   const isOwnArtwork = user?.id === artwork.artist.id;
+
+  // Load favourite state
+  useEffect(() => {
+    fetch(`/api/favourites?artworkId=${artwork.id}`)
+      .then((r) => r.json())
+      .then((data) => {
+        setIsFavourited(data.isFavourited ?? false);
+        setFavouriteCount(data.count ?? 0);
+      })
+      .catch(() => {});
+  }, [artwork.id]);
+
+  function handleFavourite() {
+    if (!user) {
+      window.location.href = `/login?redirect=${encodeURIComponent(`/artwork/${artwork.id}`)}`;
+      return;
+    }
+
+    const newState = !isFavourited;
+    setIsFavourited(newState);
+    setFavouriteCount((c) => c + (newState ? 1 : -1));
+
+    if (newState) {
+      setHeartAnimating(true);
+      setTimeout(() => setHeartAnimating(false), 300);
+    }
+
+    fetch('/api/favourites', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ artworkId: artwork.id }),
+    }).catch(() => {
+      setIsFavourited(!newState);
+      setFavouriteCount((c) => c + (newState ? -1 : 1));
+    });
+  }
 
   async function handleMessageArtist() {
     console.log('[Artwork] Message Artist clicked for artwork:', artwork.id);
@@ -423,10 +464,23 @@ export default function ArtworkDetailClient({
                   </button>
                 )}
                 <button
-                  className="py-2.5 px-4 border-2 border-border rounded-full flex items-center justify-center gap-2 hover:border-red-300 hover:text-red-500 transition-colors text-sm font-medium"
-                  aria-label="Save to favourites"
+                  onClick={handleFavourite}
+                  className={`py-2.5 px-4 border-2 rounded-full flex items-center justify-center gap-2 transition-all text-sm font-medium ${
+                    isFavourited
+                      ? 'border-[#D85A30]/30 text-[#D85A30]'
+                      : 'border-border hover:border-[#D85A30]/40 hover:text-[#D85A30]'
+                  }`}
+                  aria-label={isFavourited ? 'Remove from favourites' : 'Save to favourites'}
+                  style={{
+                    transform: heartAnimating ? 'scale(1.15)' : 'scale(1)',
+                    transition: 'transform 150ms ease-out, border-color 200ms, color 200ms',
+                  }}
                 >
-                  <Heart className="h-4 w-4" />
+                  <Heart
+                    className="h-4 w-4"
+                    fill={isFavourited ? '#D85A30' : 'none'}
+                    stroke={isFavourited ? '#D85A30' : 'currentColor'}
+                  />
                 </button>
                 <button
                   className="py-2.5 px-4 border-2 border-border rounded-full flex items-center justify-center gap-2 hover:border-accent hover:text-accent-dark transition-colors text-sm font-medium"
@@ -436,6 +490,14 @@ export default function ArtworkDetailClient({
                 </button>
               </div>
             </div>
+
+            {/* Favourite count */}
+            {favouriteCount > 0 && (
+              <p className="text-xs text-warm-gray flex items-center gap-1.5">
+                <Heart className="h-3 w-3" fill="#D85A30" stroke="#D85A30" />
+                {favouriteCount} {favouriteCount === 1 ? 'person has' : 'people have'} saved this
+              </p>
+            )}
 
             {/* Details grid */}
             <div className="border-t border-border pt-5">
@@ -649,6 +711,49 @@ export default function ArtworkDetailClient({
           </div>
         )}
       </div>
+
+      {/* ── You may also like ── */}
+      {suggestedArtworks.length > 0 && (
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-16">
+          <div className="pt-10 border-t border-border">
+            <h2 className="font-editorial text-xl font-medium mb-6">
+              You may also like
+            </h2>
+            {/* Desktop: 4 grid, Mobile: horizontal scroll */}
+            <div className="hidden md:grid grid-cols-4 gap-x-5 gap-y-10">
+              {suggestedArtworks.map((a) => (
+                <ArtworkCard
+                  key={a.id}
+                  id={a.id}
+                  title={a.title}
+                  artistName={a.artistName}
+                  artistId={a.artist_id}
+                  price={a.price_aud}
+                  imageUrl={a.images?.[0] || ''}
+                  medium={a.medium}
+                  category={a.category}
+                />
+              ))}
+            </div>
+            <div className="md:hidden flex gap-4 overflow-x-auto pb-4 -mx-4 px-4 snap-x snap-mandatory scrollbar-hide">
+              {suggestedArtworks.map((a) => (
+                <div key={a.id} className="flex-shrink-0 w-[200px] snap-start">
+                  <ArtworkCard
+                    id={a.id}
+                    title={a.title}
+                    artistName={a.artistName}
+                    artistId={a.artist_id}
+                    price={a.price_aud}
+                    imageUrl={a.images?.[0] || ''}
+                    medium={a.medium}
+                    category={a.category}
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Lightbox */}
       {lightboxOpen && images.length > 0 && (

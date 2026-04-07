@@ -173,10 +173,77 @@ export default async function ArtworkDetailPage({ params }: Props) {
     }
   }
 
+  // Fetch "You may also like" — random artworks of same category/style
+  const existingIds = [id, ...related.map((r) => r.id)];
+  let suggested: RelatedArtwork[] = [];
+
+  // Try same category or style first
+  const { data: suggestedData } = await supabase
+    .from('artworks')
+    .select(
+      'id, title, price_aud, images, medium, category, artist_id, profiles!artworks_artist_id_fkey(full_name)'
+    )
+    .eq('status', 'approved')
+    .not('id', 'in', `(${existingIds.join(',')})`)
+    .or(
+      [
+        data.category ? `category.eq.${data.category}` : null,
+        data.style ? `style.eq.${data.style}` : null,
+      ]
+        .filter(Boolean)
+        .join(',') || 'id.neq.impossible'
+    )
+    .limit(8);
+
+  if (suggestedData && suggestedData.length > 0) {
+    // Shuffle and take 4
+    const shuffled = suggestedData.sort(() => Math.random() - 0.5).slice(0, 4);
+    suggested = shuffled.map((a: Record<string, unknown>) => ({
+      id: a.id as string,
+      title: a.title as string,
+      price_aud: a.price_aud as number,
+      images: (a.images as string[]) || [],
+      medium: a.medium as string | null,
+      category: a.category as RelatedArtwork['category'],
+      artist_id: a.artist_id as string,
+      artistName:
+        (a.profiles as Record<string, string>)?.full_name || 'Unknown Artist',
+    }));
+  }
+
+  // If not enough, fill with random approved artworks
+  if (suggested.length < 4) {
+    const usedIds = [...existingIds, ...suggested.map((s) => s.id)];
+    const { data: randomData } = await supabase
+      .from('artworks')
+      .select(
+        'id, title, price_aud, images, medium, category, artist_id, profiles!artworks_artist_id_fkey(full_name)'
+      )
+      .eq('status', 'approved')
+      .not('id', 'in', `(${usedIds.join(',')})`)
+      .limit(4 - suggested.length);
+
+    if (randomData) {
+      const extra = randomData.map((a: Record<string, unknown>) => ({
+        id: a.id as string,
+        title: a.title as string,
+        price_aud: a.price_aud as number,
+        images: (a.images as string[]) || [],
+        medium: a.medium as string | null,
+        category: a.category as RelatedArtwork['category'],
+        artist_id: a.artist_id as string,
+        artistName:
+          (a.profiles as Record<string, string>)?.full_name || 'Unknown Artist',
+      }));
+      suggested = [...suggested, ...extra];
+    }
+  }
+
   return (
     <ArtworkDetailClient
       artwork={artwork}
       relatedArtworks={related}
+      suggestedArtworks={suggested}
       artistArtworkCount={artistArtworkCount || 0}
     />
   );
