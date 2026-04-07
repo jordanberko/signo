@@ -3,7 +3,6 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Users, Search, ShieldCheck, Palette, ShoppingBag } from 'lucide-react';
-import { getReadyClient } from '@/lib/supabase/client';
 import { useRequireAuth } from '@/lib/hooks/useRequireAuth';
 import type { User } from '@/types/database';
 
@@ -22,19 +21,16 @@ export default function AdminUsersPage() {
   async function fetchUsers() {
     setLoading(true);
     try {
-      const supabase = await getReadyClient();
+      // Use server API route — bypasses browser client auth timing issues
+      const res = await fetch(`/api/admin/users?role=${roleFilter}`);
+      const json = await res.json();
 
-      let query = supabase
-        .from('profiles')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      if (roleFilter !== 'all') {
-        query = query.eq('role', roleFilter);
+      if (!res.ok) {
+        console.error('[AdminUsers] API error:', json.error);
+        return;
       }
 
-      const { data } = await query;
-      if (data) setUsers(data as User[]);
+      setUsers((json.data || []) as User[]);
     } catch (err) {
       console.error('[AdminUsers] Fetch error:', err);
     } finally {
@@ -43,8 +39,19 @@ export default function AdminUsersPage() {
   }
 
   async function updateRole(userId: string, newRole: 'buyer' | 'artist' | 'admin') {
-    const supabase = await getReadyClient();
-    await supabase.from('profiles').update({ role: newRole }).eq('id', userId);
+    try {
+      const res = await fetch('/api/admin/users', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId, role: newRole }),
+      });
+      if (!res.ok) {
+        const json = await res.json();
+        console.error('[AdminUsers] Update error:', json.error);
+      }
+    } catch (err) {
+      console.error('[AdminUsers] Update exception:', err);
+    }
     fetchUsers();
   }
 

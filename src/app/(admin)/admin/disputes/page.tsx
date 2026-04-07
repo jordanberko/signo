@@ -3,7 +3,6 @@
 import { useEffect, useState } from 'react';
 import { AlertTriangle, CheckCircle, Clock, MessageSquare } from 'lucide-react';
 import { formatPrice } from '@/lib/utils';
-import { getReadyClient } from '@/lib/supabase/client';
 import { useRequireAuth } from '@/lib/hooks/useRequireAuth';
 
 interface DisputeRow {
@@ -39,33 +38,20 @@ export default function AdminDisputesPage() {
   async function fetchDisputes() {
     setLoading(true);
     try {
-      const supabase = await getReadyClient();
+      // Use server API route — bypasses browser client auth timing issues
+      const res = await fetch(`/api/admin/disputes?status=${filter}`);
+      const json = await res.json();
 
-      let query = supabase
-        .from('disputes')
-        .select('*, orders(id, total_amount_aud, artworks(title), profiles!orders_buyer_id_fkey(full_name, email), profiles!orders_artist_id_fkey(full_name, email))')
-        .order('created_at', { ascending: false });
-
-      if (filter !== 'all') {
-        query = query.eq('status', filter);
+      if (!res.ok) {
+        console.error('[AdminDisputes] API error:', json.error);
+        setDisputes([]);
+        return;
       }
 
-      const { data } = await query;
-      if (data) {
-        setDisputes(data.map((d: Record<string, unknown>) => {
-          const order = d.orders as Record<string, unknown>;
-          return {
-            ...d,
-            orders: {
-              ...order,
-              buyer: (order as Record<string, unknown[]>).profiles?.[0] || { full_name: 'Unknown', email: '' },
-              artist: (order as Record<string, unknown[]>).profiles?.[1] || { full_name: 'Unknown', email: '' },
-            },
-          };
-        }) as unknown as DisputeRow[]);
-      }
+      setDisputes((json.data || []) as DisputeRow[]);
     } catch (err) {
       console.error('[AdminDisputes] Fetch error:', err);
+      setDisputes([]);
     } finally {
       setLoading(false);
     }
@@ -73,16 +59,22 @@ export default function AdminDisputesPage() {
 
   async function resolveDispute(disputeId: string, resolution: 'resolved_refund' | 'resolved_no_refund' | 'resolved_return') {
     setActionLoading(true);
-    const supabase = await getReadyClient();
-
-    await supabase
-      .from('disputes')
-      .update({
-        status: resolution,
-        resolution_notes: resolutionNotes || null,
-        resolved_at: new Date().toISOString(),
-      })
-      .eq('id', disputeId);
+    try {
+      const res = await fetch(`/api/admin/disputes/${disputeId}/resolve`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          resolution,
+          resolution_notes: resolutionNotes || null,
+        }),
+      });
+      if (!res.ok) {
+        const json = await res.json();
+        console.error('[AdminDisputes] Resolve error:', json.error);
+      }
+    } catch (err) {
+      console.error('[AdminDisputes] Resolve exception:', err);
+    }
 
     setSelected(null);
     setResolutionNotes('');

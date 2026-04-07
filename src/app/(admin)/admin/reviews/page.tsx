@@ -4,7 +4,6 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Check, X, Eye, ChevronLeft, ChevronRight, Clock, MessageSquare } from 'lucide-react';
 import { formatPrice } from '@/lib/utils';
-import { getReadyClient } from '@/lib/supabase/client';
 import { useRequireAuth } from '@/lib/hooks/useRequireAuth';
 import type { Artwork, User } from '@/types/database';
 
@@ -28,25 +27,20 @@ export default function AdminReviewsPage() {
   async function fetchArtworks() {
     setLoading(true);
     try {
-      const supabase = await getReadyClient();
-      const { data, error } = await supabase
-        .from('artworks')
-        .select('*, profiles!artworks_artist_id_fkey(*)')
-        .eq('status', filter)
-        .order('created_at', { ascending: true });
+      // Use server API route — bypasses browser client auth timing issues
+      const res = await fetch(`/api/admin/artworks?status=${filter}`);
+      const json = await res.json();
 
-      if (error) {
-        console.error('[AdminReviews] Query error:', error.message, error.details);
+      if (!res.ok) {
+        console.error('[AdminReviews] API error:', json.error);
+        setArtworks([]);
+        return;
       }
 
-      if (data) {
-        setArtworks(data.map((a: Record<string, unknown>) => ({
-          ...a,
-          artist: a.profiles,
-        })) as unknown as ReviewArtwork[]);
-      }
+      setArtworks((json.data || []) as ReviewArtwork[]);
     } catch (err) {
       console.error('[AdminReviews] Fetch exception:', err);
+      setArtworks([]);
     } finally {
       setLoading(false);
     }
@@ -54,15 +48,21 @@ export default function AdminReviewsPage() {
 
   async function handleAction(artworkId: string, action: 'approved' | 'rejected') {
     setActionLoading(true);
-    const supabase = await getReadyClient();
+    try {
+      // Use server API route for review actions
+      const res = await fetch(`/api/admin/artworks/${artworkId}/review`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action, review_notes: reviewNotes || null }),
+      });
 
-    await supabase
-      .from('artworks')
-      .update({
-        status: action,
-        review_notes: reviewNotes || null,
-      })
-      .eq('id', artworkId);
+      if (!res.ok) {
+        const json = await res.json();
+        console.error('[AdminReviews] Action error:', json.error);
+      }
+    } catch (err) {
+      console.error('[AdminReviews] Action exception:', err);
+    }
 
     setSelectedArtwork(null);
     setReviewNotes('');

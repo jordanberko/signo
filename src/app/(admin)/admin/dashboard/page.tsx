@@ -4,7 +4,6 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Users, Package, DollarSign, AlertTriangle, Clock, CheckCircle, ArrowRight } from 'lucide-react';
 import { formatPrice } from '@/lib/utils';
-import { getReadyClient } from '@/lib/supabase/client';
 import { useRequireAuth } from '@/lib/hooks/useRequireAuth';
 
 interface PlatformStats {
@@ -32,32 +31,16 @@ export default function AdminDashboardPage() {
     if (authLoading) return;
     async function fetchStats() {
       try {
-        const supabase = await getReadyClient();
+        // Use server API route — bypasses browser client auth timing issues
+        const res = await fetch('/api/admin/stats');
+        const json = await res.json();
 
-        const [users, artists, buyers, artworks, pending, approved, orders, disputes] = await Promise.all([
-          supabase.from('profiles').select('*', { count: 'exact', head: true }),
-          supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('role', 'artist'),
-          supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('role', 'buyer'),
-          supabase.from('artworks').select('*', { count: 'exact', head: true }),
-          supabase.from('artworks').select('*', { count: 'exact', head: true }).eq('status', 'pending_review'),
-          supabase.from('artworks').select('*', { count: 'exact', head: true }).eq('status', 'approved'),
-          supabase.from('orders').select('platform_fee_aud'),
-          supabase.from('disputes').select('*', { count: 'exact', head: true }).eq('status', 'open'),
-        ]);
+        if (!res.ok) {
+          console.error('[AdminDashboard] API error:', json.error);
+          return;
+        }
 
-        const totalRevenue = orders.data?.reduce((sum, o) => sum + (o.platform_fee_aud || 0), 0) || 0;
-
-        setStats({
-          totalUsers: users.count || 0,
-          totalArtists: artists.count || 0,
-          totalBuyers: buyers.count || 0,
-          totalArtworks: artworks.count || 0,
-          pendingReviews: pending.count || 0,
-          approvedArtworks: approved.count || 0,
-          totalOrders: orders.data?.length || 0,
-          totalRevenue,
-          openDisputes: disputes.count || 0,
-        });
+        setStats(json.data);
       } catch (err) {
         console.error('[AdminDashboard] Stats fetch error:', err);
       } finally {
