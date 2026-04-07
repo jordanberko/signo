@@ -24,7 +24,8 @@ export default function TestUpload() {
 
     // Check auth
     addLog('Checking auth...')
-    const { data: { user }, error: authErr } = await supabase.auth.getUser()
+    const { data: { session }, error: authErr } = await supabase.auth.getSession()
+    const user = session?.user
     if (authErr) {
       addLog(`Auth ERROR: ${authErr.message}`)
       return

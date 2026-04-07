@@ -20,7 +20,8 @@ export async function PATCH(request: Request, context: RouteContext) {
     const supabase = await createClient();
 
     // Auth check
-    const { data: { user } } = await supabase.auth.getUser();
+    const { data: { session } } = await supabase.auth.getSession()
+    const user = session?.user;
     if (!user) {
       return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
     }

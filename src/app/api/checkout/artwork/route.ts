@@ -12,9 +12,9 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: 'Missing artwork ID' }, { status: 400 });
     }
 
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
+    const { data: { session } } = await supabase.auth.getSession();
+
+    const user = session?.user;
 
     if (!user) {
       return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });

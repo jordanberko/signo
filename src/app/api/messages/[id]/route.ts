@@ -8,9 +8,8 @@ export async function GET(
   try {
     const { id: conversationId } = await params;
     const supabase = await createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
+    const { data: { session } } = await supabase.auth.getSession();
+    const user = session?.user;
     if (!user) {
       return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
     }

@@ -11,7 +11,8 @@ import { createClient } from '@/lib/supabase/server';
 export async function GET() {
   try {
     const supabase = await createClient();
-    const { data: { user }, error } = await supabase.auth.getUser();
+    const { data: { session }, error } = await supabase.auth.getSession()
+    const user = session?.user;
 
     if (error || !user) {
       return NextResponse.json({ user: null });
@@ -35,7 +36,8 @@ export async function GET() {
 export async function POST() {
   try {
     const supabase = await createClient();
-    const { data: { user }, error } = await supabase.auth.getUser();
+    const { data: { session }, error } = await supabase.auth.getSession()
+    const user = session?.user;
 
     if (error || !user) {
       return NextResponse.json({ authenticated: false, role: null }, { status: 200 });
