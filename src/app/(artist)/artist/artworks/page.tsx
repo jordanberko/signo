@@ -139,7 +139,7 @@ function ArtworkActions({
       {open && (
         <>
           <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />
-          <div className="absolute right-0 top-full mt-1 z-20 w-48 bg-white border border-border rounded-xl shadow-lg py-1 animate-scale-in origin-top-right">
+          <div className="absolute right-0 bottom-full mb-1 z-20 w-48 bg-white border border-border rounded-xl shadow-lg py-1 animate-scale-in origin-bottom-right">
             {/* Edit */}
             <Link
               href={
