@@ -21,57 +21,55 @@ export default function TestUpload() {
 
     // Get session token from cookie directly
     const cookies = document.cookie.split(';').map(c => c.trim())
-    const sbCookie = cookies.find(c => c.startsWith('sb-') && c.includes('auth-token'))
+    addLog(`Found ${cookies.length} cookies`)
 
-    if (!sbCookie) {
-      addLog('No auth cookie found. Trying Supabase getSession...')
-      // Fallback: try getting session from Supabase client
-      const { createBrowserClient } = await import('@supabase/ssr')
-      const supabase = createBrowserClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-      )
-      const { data: { session } } = await supabase.auth.getSession()
-      if (!session) {
-        addLog('NO SESSION FOUND. Please log in at /login first.')
-        return
+    // Find the Supabase auth token cookie
+    let accessToken: string | null = null
+    for (const cookie of cookies) {
+      if (cookie.includes('auth-token')) {
+        addLog(`Found auth cookie: ${cookie.substring(0, 50)}...`)
+        const value = cookie.split('=').slice(1).join('=')
+
+        try {
+          // Handle base64-encoded cookies
+          let decoded = value
+          if (decoded.startsWith('base64-')) {
+            decoded = atob(decoded.replace('base64-', ''))
+            addLog('Decoded base64 cookie')
+          }
+
+          const parsed = JSON.parse(decoded)
+          addLog(`Parsed JSON: keys = ${Object.keys(parsed).join(', ')}`)
+
+          // The token could be in different structures
+          accessToken = parsed.access_token
+            || parsed?.currentSession?.access_token
+            || parsed?.[0]?.access_token
+            || null
+
+          if (accessToken) {
+            addLog(`Access token found: ${accessToken.substring(0, 30)}...`)
+            break
+          } else {
+            addLog(`No access_token in parsed data. Structure: ${JSON.stringify(parsed).substring(0, 200)}`)
+          }
+        } catch (err) {
+          addLog(`Parse error: ${(err as Error).message}`)
+          addLog(`Raw value (first 200 chars): ${value.substring(0, 200)}`)
+        }
       }
-      addLog(`Session found: ${session.user.email}`)
+    }
+
+    if (!accessToken) {
       addLog('')
-      await doUpload(file, session.access_token)
+      addLog('Could not extract access token from cookies.')
+      addLog('Listing all cookie names:')
+      cookies.forEach(c => addLog('  ' + c.split('=')[0]))
       return
     }
 
-    addLog('Auth cookie found')
-    // Parse the JWT from the cookie
-    try {
-      const cookieValue = sbCookie.split('=').slice(1).join('=')
-      const parsed = JSON.parse(decodeURIComponent(cookieValue))
-      const token = parsed?.access_token || parsed?.[0]?.access_token
-      if (token) {
-        addLog(`Token found: ${token.substring(0, 20)}...`)
-        addLog('')
-        await doUpload(file, token)
-      } else {
-        addLog('Could not extract token from cookie')
-        addLog(`Cookie value: ${cookieValue.substring(0, 100)}...`)
-      }
-    } catch (err) {
-      addLog(`Cookie parse error: ${(err as Error).message}`)
-      addLog('Trying Supabase getSession fallback...')
-      const { createBrowserClient } = await import('@supabase/ssr')
-      const supabase = createBrowserClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-      )
-      const { data: { session } } = await supabase.auth.getSession()
-      if (session) {
-        addLog(`Session found via fallback: ${session.user.email}`)
-        await doUpload(file, session.access_token)
-      } else {
-        addLog('No session. Please log in.')
-      }
-    }
+    addLog('')
+    await doUpload(file, accessToken)
   }
 
   const doUpload = async (file: File, accessToken: string) => {
@@ -126,7 +124,7 @@ export default function TestUpload() {
     <div style={{ padding: 40, maxWidth: 700, margin: '0 auto', fontFamily: 'monospace' }}>
       <h1 style={{ fontFamily: 'sans-serif' }}>Upload Test (Direct Fetch)</h1>
       <p style={{ color: '#888', fontFamily: 'sans-serif' }}>
-        Bypasses Supabase JS client — uses direct fetch to Storage REST API
+        Bypasses Supabase JS client — reads token from cookie, uploads via direct fetch
       </p>
       <input
         type="file"
