@@ -139,8 +139,21 @@ export async function POST(request: Request) {
     return NextResponse.json({ url: session.url });
   } catch (err) {
     console.error('[Checkout] Create session error:', err);
+
+    // Return more specific error info for debugging
+    let message = 'Failed to create checkout session';
+    if (err instanceof Error) {
+      // Stripe errors have a `type` property
+      const stripeErr = err as Error & { type?: string; code?: string };
+      if (stripeErr.type) {
+        message = `Stripe error: ${stripeErr.message}`;
+      } else {
+        message = err.message;
+      }
+    }
+
     return NextResponse.json(
-      { error: 'Failed to create checkout session' },
+      { error: message },
       { status: 500 }
     );
   }
