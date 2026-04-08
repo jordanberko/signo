@@ -29,13 +29,30 @@ export async function GET(request: NextRequest) {
       query = query.eq('category', category as ArtworkCategory);
     }
 
-    // Search
+    // Search — match artwork fields + artist name
     const search = params.get('q');
     if (search && search.trim()) {
       const term = search.trim();
-      query = query.or(
-        `title.ilike.%${term}%,description.ilike.%${term}%,medium.ilike.%${term}%,style.ilike.%${term}%`,
-      );
+
+      // First search artwork fields directly
+      // Also find artist IDs matching the name so we can include their works
+      const { data: matchingArtists } = await supabase
+        .from('profiles')
+        .select('id')
+        .ilike('full_name', `%${term}%`);
+
+      const artistIds = (matchingArtists || []).map((a) => a.id);
+
+      if (artistIds.length > 0) {
+        // Match artwork fields OR artist name
+        query = query.or(
+          `title.ilike.%${term}%,description.ilike.%${term}%,medium.ilike.%${term}%,style.ilike.%${term}%,artist_id.in.(${artistIds.join(',')})`,
+        );
+      } else {
+        query = query.or(
+          `title.ilike.%${term}%,description.ilike.%${term}%,medium.ilike.%${term}%,style.ilike.%${term}%`,
+        );
+      }
     }
 
     // Medium filter (comma-separated)

@@ -191,6 +191,34 @@ export async function DELETE(_request: Request, context: RouteContext) {
       return NextResponse.json({ error: 'Cannot delete a sold artwork' }, { status: 400 });
     }
 
+    // Remove or nullify FK references in related tables so delete doesn't violate constraints
+    const nullifyResults = await Promise.allSettled([
+      supabase.from('favourites').delete().eq('artwork_id', id),
+      supabase.from('orders').update({ artwork_id: null } as never).eq('artwork_id', id),
+      supabase.from('reviews').update({ artwork_id: null } as never).eq('artwork_id', id),
+      supabase.from('conversations').update({ artwork_id: null } as never).eq('artwork_id', id),
+      supabase.from('messages').update({ artwork_id: null } as never).eq('artwork_id', id),
+    ]);
+
+    // Check if any nullification failed (likely NOT NULL constraint)
+    const nullifyErrors = nullifyResults
+      .filter((r): r is PromiseRejectedResult => r.status === 'rejected')
+      .map((r) => r.reason);
+    // Also check for Supabase error responses
+    for (const result of nullifyResults) {
+      if (result.status === 'fulfilled') {
+        const val = result.value as { error?: { message?: string } };
+        if (val.error?.message) {
+          nullifyErrors.push(new Error(val.error.message));
+        }
+      }
+    }
+
+    if (nullifyErrors.length > 0) {
+      console.error('[DELETE artwork] Nullify FK errors:', nullifyErrors);
+      // Continue anyway — the delete below will fail with a clear FK error if columns are still NOT NULL
+    }
+
     // Clean up images from storage
     const images = (artwork.images as string[]) ?? [];
     if (images.length > 0) {
@@ -214,6 +242,13 @@ export async function DELETE(_request: Request, context: RouteContext) {
       .eq('id', id);
 
     if (deleteError) {
+      // If still a FK constraint error, provide a clear message
+      if (deleteError.message.includes('violates foreign key constraint')) {
+        return NextResponse.json(
+          { error: 'This artwork has associated records that prevent deletion. Please contact support.' },
+          { status: 409 }
+        );
+      }
       return NextResponse.json({ error: deleteError.message }, { status: 400 });
     }
 

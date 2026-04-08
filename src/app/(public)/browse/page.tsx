@@ -144,7 +144,11 @@ function CheckboxItem({
   onChange: () => void;
 }) {
   return (
-    <label className="flex items-center gap-2.5 py-1 cursor-pointer group">
+    <button
+      type="button"
+      onClick={onChange}
+      className="flex items-center gap-2.5 py-1 cursor-pointer group w-full text-left"
+    >
       <div
         className={`w-4 h-4 rounded border-2 flex items-center justify-center transition-colors ${
           checked
@@ -161,7 +165,7 @@ function CheckboxItem({
       <span className="text-sm text-muted group-hover:text-foreground transition-colors">
         {label}
       </span>
-    </label>
+    </button>
   );
 }
 
@@ -206,6 +210,7 @@ function BrowseContent() {
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
+  const [fetchError, setFetchError] = useState<string | null>(null);
   const fetchIdRef = useRef(0);
 
   function updateFilter<K extends keyof Filters>(key: K, value: Filters[K]) {
@@ -261,6 +266,8 @@ function BrowseContent() {
         setLoading(true);
       }
 
+      setFetchError(null);
+
       try {
         // Build query params for the server API
         const params = new URLSearchParams();
@@ -277,9 +284,9 @@ function BrowseContent() {
         if (offset > 0) params.set('offset', String(offset));
         params.set('limit', String(PAGE_SIZE));
 
-        // 5-second timeout
+        // 15-second timeout (allows for Vercel cold starts)
         const controller = new AbortController();
-        const timeout = setTimeout(() => controller.abort(), 5000);
+        const timeout = setTimeout(() => controller.abort(), 15000);
 
         const res = await fetch(`/api/artworks/browse?${params.toString()}`, {
           signal: controller.signal,
@@ -299,12 +306,18 @@ function BrowseContent() {
           }
           if (json.count != null) setTotalCount(json.count);
         } else {
-          console.error('[Browse] API error:', res.status);
+          const errBody = await res.json().catch(() => ({}));
+          console.error('[Browse] API error:', res.status, errBody);
+          setFetchError(errBody.error || `Server error (${res.status})`);
           if (!append) setArtworks([]);
         }
       } catch (err) {
         if (id !== fetchIdRef.current) return;
         console.error('[Browse] Fetch error:', err);
+        const msg = err instanceof Error && err.name === 'AbortError'
+          ? 'Request timed out — please try again'
+          : 'Failed to load artworks';
+        setFetchError(msg);
         if (!append) setArtworks([]);
       } finally {
         setLoading(false);
@@ -553,6 +566,17 @@ function BrowseContent() {
 
           {/* Results area */}
           <div className="flex-1 min-w-0">
+            {fetchError && (
+              <div className="mb-4 p-3.5 bg-red-50 border border-red-200 rounded-xl flex items-center gap-2 text-sm text-red-800">
+                <span>{fetchError}</span>
+                <button
+                  onClick={() => { setFetchError(null); fetchArtworks(false); }}
+                  className="ml-auto text-red-600 font-medium hover:underline"
+                >
+                  Retry
+                </button>
+              </div>
+            )}
             {loading ? (
               <div className="text-center py-24">
                 <div className="inline-block w-8 h-8 border-2 border-accent border-t-transparent rounded-full animate-spin" />
