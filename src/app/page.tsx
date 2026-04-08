@@ -176,15 +176,30 @@ export default function HomePage() {
       <section className="py-16 md:py-24">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-12 md:gap-16 items-center">
-            {/* Visual */}
+            {/* Visual — show featured artwork or attractive gradient */}
             <div className="relative">
-              <div className="aspect-[4/3] rounded-2xl bg-gradient-to-br from-stone-200 to-sand overflow-hidden">
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <div className="text-center">
-                    <Palette className="h-12 w-12 text-warm-gray/40 mx-auto mb-3" />
-                    <span className="text-warm-gray/60 text-sm tracking-wide">Artist Spotlight</span>
+              <div className="aspect-[4/3] rounded-2xl overflow-hidden">
+                {artworks.length > 0 ? (
+                  <Link href={`/artwork/${artworks[0].id}`} className="block w-full h-full group">
+                    <img
+                      src={artworks[0].imageUrl}
+                      alt={artworks[0].title}
+                      className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                    />
+                    <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent p-6">
+                      <p className="text-white/70 text-xs font-semibold tracking-[0.15em] uppercase mb-1">Artist Spotlight</p>
+                      <p className="text-white font-editorial text-xl font-medium">{artworks[0].title}</p>
+                      <p className="text-white/80 text-sm mt-0.5">{artworks[0].artistName}</p>
+                    </div>
+                  </Link>
+                ) : (
+                  <div className="w-full h-full bg-gradient-to-br from-stone-300 via-amber-100 to-stone-200 flex items-center justify-center">
+                    <div className="text-center">
+                      <Palette className="h-12 w-12 text-warm-gray/40 mx-auto mb-3" />
+                      <span className="text-warm-gray/60 text-sm tracking-wide">Artist Spotlight</span>
+                    </div>
                   </div>
-                </div>
+                )}
               </div>
               {/* Accent block */}
               <div className="absolute -bottom-4 -right-4 w-24 h-24 bg-accent rounded-xl -z-10" />
