@@ -23,7 +23,6 @@ import {
 } from 'lucide-react';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { useRequireAuth } from '@/lib/hooks/useRequireAuth';
-import { createClient } from '@/lib/supabase/client';
 import { formatPrice } from '@/lib/utils';
 
 // ── Types ──
@@ -130,86 +129,13 @@ function OrderContent({
   const fetchOrder = useCallback(async () => {
     if (!user) return;
 
-    async function doFetch() {
-      const supabase = createClient();
-
-      // If orderId looks like a Stripe checkout session ID (cs_*), find by that
-      // Otherwise it's a UUID order ID
-      let query;
-      if (orderId.startsWith('cs_')) {
-        // For success redirect — the order may not exist yet (webhook race condition)
-        // We'll poll a few times
-        for (let attempt = 0; attempt < 5; attempt++) {
-          const { data } = await supabase
-            .from('orders')
-            .select(
-              '*, artworks(id, title, images, category, medium), profiles!orders_artist_id_fkey(id, full_name)'
-            )
-            .eq('buyer_id', user!.id)
-            .order('created_at', { ascending: false })
-            .limit(1)
-            .single();
-
-          if (data) {
-            const artwork = data.artworks as Record<string, unknown> | null;
-            const artist = data.profiles as Record<string, string> | null;
-            setOrder({
-              id: data.id as string,
-              total_amount_aud: (data.total_amount_aud as number) || 0,
-              shipping_cost_aud: data.shipping_cost_aud as number | null,
-              platform_fee_aud: data.platform_fee_aud as number | null,
-              artist_payout_aud: data.artist_payout_aud as number | null,
-              stripe_payment_intent_id: data.stripe_payment_intent_id as string | null,
-              status: data.status as string,
-              shipping_tracking_number: data.shipping_tracking_number as string | null,
-              shipping_carrier: data.shipping_carrier as string | null,
-              shipped_at: data.shipped_at as string | null,
-              delivered_at: data.delivered_at as string | null,
-              inspection_deadline: data.inspection_deadline as string | null,
-              payout_released_at: data.payout_released_at as string | null,
-              shipping_address: data.shipping_address as Record<string, string> | null,
-              created_at: data.created_at as string,
-              artwork: artwork
-                ? {
-                    id: artwork.id as string,
-                    title: artwork.title as string,
-                    images: (artwork.images as string[]) || [],
-                    category: artwork.category as string | null,
-                    medium: artwork.medium as string | null,
-                  }
-                : null,
-              artist: artist
-                ? {
-                    id: artist.id || '',
-                    full_name: artist.full_name || null,
-                  }
-                : null,
-            });
-            setLoading(false);
-            return;
-          }
-
-          // Wait before retrying
-          if (attempt < 4) {
-            await new Promise((r) => setTimeout(r, 1500));
-          }
-        }
-        // If we still don't have an order, show a pending message
+    try {
+      const res = await fetch(`/api/orders/${orderId}`);
+      if (!res.ok) {
         setLoading(false);
         return;
       }
-
-      // Regular order ID lookup
-      query = supabase
-        .from('orders')
-        .select(
-          '*, artworks(id, title, images, category, medium), profiles!orders_artist_id_fkey(id, full_name)'
-        )
-        .eq('id', orderId)
-        .eq('buyer_id', user!.id)
-        .single();
-
-      const { data } = await query;
+      const { order: data } = await res.json();
       if (data) {
         const artwork = data.artworks as Record<string, unknown> | null;
         const artist = data.profiles as Record<string, string> | null;
@@ -246,10 +172,10 @@ function OrderContent({
             : null,
         });
       }
-      setLoading(false);
+    } catch (err) {
+      console.error('[OrderDetail] Fetch error:', err);
     }
-
-    doFetch();
+    setLoading(false);
   }, [user, orderId]);
 
   useEffect(() => {

@@ -11,7 +11,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { useRequireAuth } from '@/lib/hooks/useRequireAuth';
-import { createClient } from '@/lib/supabase/client';
+// Data fetching uses server API routes to avoid SDK latency issues
 
 // ── Types ──
 
@@ -69,30 +69,29 @@ function DisputeContent({ orderId }: { orderId: string }) {
     if (!user) return;
 
     async function load() {
-      const supabase = createClient();
+      try {
+        const res = await fetch(`/api/orders/${orderId}`);
+        if (!res.ok) {
+          setBlockReason('Order not found or you do not have access.');
+          setLoading(false);
+          return;
+        }
 
-      // Fetch order
-      const { data: orderData } = await supabase
-        .from('orders')
-        .select('id, status, inspection_deadline, artworks(title)')
-        .eq('id', orderId)
-        .eq('buyer_id', user!.id)
-        .single();
+        const { order: orderData } = await res.json();
+        if (!orderData) {
+          setBlockReason('Order not found or you do not have access.');
+          setLoading(false);
+          return;
+        }
 
-      if (!orderData) {
-        setBlockReason('Order not found or you do not have access.');
-        setLoading(false);
-        return;
-      }
-
-      const artwork = orderData.artworks as Record<string, string> | null;
-      const ord: OrderBasic = {
-        id: orderData.id as string,
-        status: orderData.status as string,
-        inspection_deadline: orderData.inspection_deadline as string | null,
-        artwork: artwork ? { title: artwork.title || 'Artwork' } : null,
-      };
-      setOrder(ord);
+        const artwork = orderData.artworks as Record<string, string> | null;
+        const ord: OrderBasic = {
+          id: orderData.id as string,
+          status: orderData.status as string,
+          inspection_deadline: orderData.inspection_deadline as string | null,
+          artwork: artwork ? { title: artwork.title || 'Artwork' } : null,
+        };
+        setOrder(ord);
 
       // Validate status
       if (ord.status !== 'delivered') {
@@ -111,21 +110,12 @@ function DisputeContent({ orderId }: { orderId: string }) {
         return;
       }
 
-      // Check existing dispute
-      const { data: existingDispute } = await supabase
-        .from('disputes')
-        .select('id')
-        .eq('order_id', orderId)
-        .limit(1)
-        .maybeSingle();
-
-      if (existingDispute) {
-        setBlockReason('A dispute has already been submitted for this order.');
-        setLoading(false);
-        return;
-      }
-
       setLoading(false);
+      } catch (err) {
+        console.error('[Dispute] Fetch error:', err);
+        setBlockReason('Failed to load order details.');
+        setLoading(false);
+      }
     }
 
     load();

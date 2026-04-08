@@ -20,7 +20,6 @@ import {
   Lightbulb,
   AlertCircle,
 } from 'lucide-react';
-import { createClient } from '@/lib/supabase/client';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { useRequireAuth } from '@/lib/hooks/useRequireAuth';
 import { uploadArtworkImage } from '@/lib/supabase/storage';
@@ -111,22 +110,28 @@ export default function EditArtworkPage() {
   // Load artwork
   useEffect(() => {
     if (!user) return;
+    const controller = new AbortController();
+
     async function load() {
-      const supabase = createClient();
-      const { data, error } = await supabase
-        .from('artworks')
-        .select('*')
-        .eq('id', artworkId)
-        .eq('artist_id', user!.id)
-        .single();
+      try {
+        const res = await fetch(`/api/artworks/${artworkId}`, {
+          signal: controller.signal,
+        });
 
-      if (error || !data) {
-        setNotFound(true);
-        setLoadingArtwork(false);
-        return;
-      }
+        if (!res.ok) {
+          setNotFound(true);
+          setLoadingArtwork(false);
+          return;
+        }
 
-      const a = data as Artwork;
+        const { artwork: data } = await res.json();
+        if (!data) {
+          setNotFound(true);
+          setLoadingArtwork(false);
+          return;
+        }
+
+        const a = data as Artwork;
       setArtwork(a);
 
       // Determine if medium is a known option or custom
@@ -153,8 +158,16 @@ export default function EditArtworkPage() {
       });
 
       setLoadingArtwork(false);
+      } catch (err) {
+        if ((err as Error).name !== 'AbortError') {
+          console.error('[EditArtwork] Fetch error:', err);
+          setNotFound(true);
+          setLoadingArtwork(false);
+        }
+      }
     }
     load();
+    return () => controller.abort();
   }, [user, artworkId]);
 
   function updateForm<K extends keyof FormState>(key: K, value: FormState[K]) {

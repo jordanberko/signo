@@ -11,7 +11,6 @@ import {
 } from 'lucide-react';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { useRequireAuth } from '@/lib/hooks/useRequireAuth';
-import { createClient } from '@/lib/supabase/client';
 import { formatPrice } from '@/lib/utils';
 
 // ── Types ──
@@ -53,16 +52,10 @@ export default function ArtistOrdersPage() {
 
     async function fetchOrders() {
       try {
-        const supabase = createClient();
-        const { data } = await supabase
-          .from('orders')
-          .select(
-            'id, total_amount_aud, artist_payout_aud, status, created_at, artworks(title, images), profiles!orders_buyer_id_fkey(full_name)'
-          )
-          .eq('artist_id', user!.id)
-          .order('created_at', { ascending: false });
-
-        setOrders((data as unknown as OrderRow[]) ?? []);
+        const res = await fetch('/api/artist/orders');
+        if (!res.ok) throw new Error('Failed to fetch orders');
+        const { orders } = await res.json();
+        setOrders((orders as OrderRow[]) ?? []);
       } catch (err) {
         console.error('[ArtistOrders] Fetch error:', err);
       } finally {

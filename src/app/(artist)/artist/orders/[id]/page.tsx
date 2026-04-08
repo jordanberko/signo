@@ -16,7 +16,6 @@ import {
 } from 'lucide-react';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { useRequireAuth } from '@/lib/hooks/useRequireAuth';
-import { createClient } from '@/lib/supabase/client';
 import { formatPrice } from '@/lib/utils';
 
 // ── Types ──
@@ -103,36 +102,22 @@ function OrderContent({ orderId }: { orderId: string }) {
 
   async function fetchOrder() {
     if (!user) return;
-    const supabase = createClient();
-
-    const { data } = await supabase
-      .from('orders')
-      .select(
-        'id, total_amount_aud, artist_payout_aud, status, created_at, shipped_at, delivered_at, payout_released_at, shipping_tracking_number, shipping_carrier, shipping_address, artworks(id, title, images, category, medium), profiles!orders_buyer_id_fkey(full_name, email)'
-      )
-      .eq('id', orderId)
-      .eq('artist_id', user.id)
-      .single();
-
-    if (data) {
-      setOrder(data as unknown as OrderDetail);
-
-      // Fetch dispute if status is disputed
-      if ((data as unknown as OrderDetail).status === 'disputed') {
-        const { data: disputeData } = await supabase
-          .from('disputes')
-          .select('type, description, status, created_at')
-          .eq('order_id', orderId)
-          .order('created_at', { ascending: false })
-          .limit(1)
-          .single();
-
-        if (disputeData) {
-          setDispute(disputeData as unknown as DisputeInfo);
-        }
+    try {
+      const res = await fetch(`/api/artist/orders/${orderId}`);
+      if (!res.ok) {
+        setLoading(false);
+        return;
       }
+      const data = await res.json();
+      if (data.order) {
+        setOrder(data.order as OrderDetail);
+      }
+      if (data.dispute) {
+        setDispute(data.dispute as DisputeInfo);
+      }
+    } catch (err) {
+      console.error('[ArtistOrderDetail] Fetch error:', err);
     }
-
     setLoading(false);
   }
 

@@ -17,7 +17,6 @@ import {
 } from 'lucide-react';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { useRequireAuth } from '@/lib/hooks/useRequireAuth';
-import { createClient } from '@/lib/supabase/client';
 import { formatPrice } from '@/lib/utils';
 
 // ── Types ──
@@ -68,15 +67,10 @@ export default function EarningsPage() {
     if (!user) return;
     async function fetchOrders() {
       try {
-        const supabase = createClient();
-        const { data } = await supabase
-          .from('orders')
-          .select('id, total_amount_aud, artist_payout_aud, status, payout_released_at, inspection_deadline, created_at, artworks(title, images)')
-          .eq('artist_id', user!.id)
-          .in('status', ['paid', 'shipped', 'delivered', 'completed', 'disputed', 'refunded'])
-          .order('created_at', { ascending: false });
-
-        setOrders((data as unknown as OrderRow[]) ?? []);
+        const res = await fetch('/api/artist/earnings');
+        if (!res.ok) throw new Error('Failed to fetch earnings');
+        const { orders } = await res.json();
+        setOrders((orders as OrderRow[]) ?? []);
       } catch (err) {
         console.error('[Earnings] Fetch error:', err);
       } finally {

@@ -7,6 +7,36 @@ interface RouteContext {
   params: Promise<{ id: string }>;
 }
 
+// ── GET: Fetch single artwork (owner only) ──
+
+export async function GET(_request: Request, context: RouteContext) {
+  try {
+    const { id } = await context.params;
+    const supabase = await createClient();
+
+    const { data: { session } } = await supabase.auth.getSession();
+    const user = session?.user;
+    if (!user) {
+      return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
+    }
+
+    const { data, error } = await supabase
+      .from('artworks')
+      .select('*')
+      .eq('id', id)
+      .eq('artist_id', user.id)
+      .single();
+
+    if (error || !data) {
+      return NextResponse.json({ error: 'Artwork not found' }, { status: 404 });
+    }
+
+    return NextResponse.json({ artwork: data });
+  } catch {
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+  }
+}
+
 // ── PUT: Update artwork ──
 
 export async function PUT(request: Request, context: RouteContext) {
