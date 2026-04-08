@@ -17,7 +17,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { useRequireAuth } from '@/lib/hooks/useRequireAuth';
-import { getReadyClient } from '@/lib/supabase/client';
+import { createClient } from '@/lib/supabase/client';
 import { formatPrice } from '@/lib/utils';
 
 // ── Types ──
@@ -68,7 +68,7 @@ export default function EarningsPage() {
     if (!user) return;
     async function fetchOrders() {
       try {
-        const supabase = await getReadyClient();
+        const supabase = createClient();
         const { data } = await supabase
           .from('orders')
           .select('id, total_amount_aud, artist_payout_aud, status, payout_released_at, inspection_deadline, created_at, artworks(title, images)')

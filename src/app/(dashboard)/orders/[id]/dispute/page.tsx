@@ -11,7 +11,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { useRequireAuth } from '@/lib/hooks/useRequireAuth';
-import { getReadyClient } from '@/lib/supabase/client';
+import { createClient } from '@/lib/supabase/client';
 
 // ── Types ──
 
@@ -69,7 +69,7 @@ function DisputeContent({ orderId }: { orderId: string }) {
     if (!user) return;
 
     async function load() {
-      const supabase = await getReadyClient();
+      const supabase = createClient();
 
       // Fetch order
       const { data: orderData } = await supabase

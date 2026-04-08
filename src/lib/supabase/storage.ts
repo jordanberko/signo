@@ -1,30 +1,16 @@
 /**
  * Supabase Storage Utilities for Signo
  *
+ * Uses direct fetch to Supabase Storage REST API — bypasses the JS SDK
+ * which hangs on auth calls from high-latency regions (Australia → US).
+ *
  * SETUP: Create these storage buckets in Supabase Dashboard → Storage:
  *
- * 1. "artwork-images" — Public: ON, File size limit: 25 MB, MIME: image/jpeg, image/png, image/webp
+ * 1. "artwork-images" — Public: ON, File size limit: 50 MB, MIME: any
  * 2. "avatars" — Public: ON, File size limit: 5 MB, MIME: image/jpeg, image/png, image/webp
- *
- * RLS policies — run in SQL Editor:
- *
- *   CREATE POLICY "Public read access" ON storage.objects FOR SELECT
- *     USING (bucket_id IN ('artwork-images', 'avatars'));
- *
- *   CREATE POLICY "Authenticated users can upload artwork images" ON storage.objects FOR INSERT
- *     TO authenticated WITH CHECK (bucket_id = 'artwork-images');
- *
- *   CREATE POLICY "Users can manage their own artwork images" ON storage.objects FOR DELETE
- *     TO authenticated USING (bucket_id = 'artwork-images' AND (storage.foldername(name))[1] = auth.uid()::text);
- *
- *   CREATE POLICY "Users can upload their own avatar" ON storage.objects FOR INSERT
- *     TO authenticated WITH CHECK (bucket_id = 'avatars' AND (storage.foldername(name))[1] = auth.uid()::text);
- *
- *   CREATE POLICY "Users can manage their own avatar" ON storage.objects FOR DELETE
- *     TO authenticated USING (bucket_id = 'avatars' AND (storage.foldername(name))[1] = auth.uid()::text);
  */
 
-import { createClient } from './client';
+import { getAuthToken } from './getAuthToken';
 
 const ACCEPTED_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/heic', 'image/heif'];
 
@@ -33,7 +19,7 @@ const ACCEPTED_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/heic', '
 /**
  * Compress an image using Canvas API.
  * - Files under 500KB skip compression entirely.
- * - 8-second hard timeout — if it hangs, use the original file.
+ * - 15-second hard timeout — if it hangs, use the original file.
  * - Always resolves (never rejects) — worst case returns the original.
  */
 async function compressImage(
@@ -64,7 +50,6 @@ async function compressImage(
         let width = img.width;
         let height = img.height;
 
-        // Only resize if larger than maxWidth
         if (width > maxWidth) {
           height = Math.round((height * maxWidth) / width);
           width = maxWidth;
@@ -122,46 +107,66 @@ async function compressImage(
   });
 }
 
-// ── Upload ──
+// ── Direct Upload (bypasses Supabase JS SDK) ──
 
 /**
- * Upload a file to Supabase Storage using the JS client.
- * Uses upsert:true so retries work without "already exists" errors.
- * Timeout scales with file size: 30s base, 60s for >5MB.
+ * Upload a file directly to Supabase Storage REST API.
+ * No SDK involvement — just fetch with the auth token from cookies.
  */
 async function uploadToStorage(
   bucket: string,
   path: string,
   file: File | Blob,
 ): Promise<{ url: string }> {
-  const supabase = createClient();
+  const token = getAuthToken();
+  if (!token) {
+    throw new Error('Not logged in. Please sign in and try again.');
+  }
+
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
   const sizeMB = file.size / 1024 / 1024;
-  const timeoutMs = sizeMB > 5 ? 90_000 : 45_000;
+  const timeoutMs = sizeMB > 5 ? 90_000 : 60_000;
 
   console.log(`[Upload] Uploading to ${bucket}/${path} (${sizeMB.toFixed(1)}MB, timeout ${timeoutMs / 1000}s)`);
 
-  // Race between upload and timeout
-  const result = await Promise.race([
-    supabase.storage.from(bucket).upload(path, file, {
-      cacheControl: '31536000',
-      upsert: true,
-    }),
-    new Promise<{ data: null; error: { message: string } }>((resolve) =>
-      setTimeout(
-        () => resolve({ data: null, error: { message: `Upload timed out after ${timeoutMs / 1000}s` } }),
-        timeoutMs,
-      ),
-    ),
-  ]);
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
 
-  if (result.error) {
-    console.error('[Upload] Storage error:', result.error.message);
-    throw new Error(result.error.message);
+  try {
+    const response = await fetch(
+      `${supabaseUrl}/storage/v1/object/${bucket}/${path}`,
+      {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'apikey': anonKey!,
+          'x-upsert': 'true',
+          'cache-control': 'max-age=31536000',
+        },
+        body: file,
+        signal: controller.signal,
+      }
+    );
+
+    clearTimeout(timer);
+
+    if (!response.ok) {
+      const errText = await response.text();
+      console.error('[Upload] Storage error:', response.status, errText);
+      throw new Error(`Upload failed (${response.status}): ${errText}`);
+    }
+
+    const publicUrl = `${supabaseUrl}/storage/v1/object/public/${bucket}/${path}`;
+    console.log('[Upload] Upload complete:', publicUrl);
+    return { url: publicUrl };
+  } catch (err) {
+    clearTimeout(timer);
+    if ((err as Error).name === 'AbortError') {
+      throw new Error(`Upload timed out after ${timeoutMs / 1000}s`);
+    }
+    throw err;
   }
-
-  const { data: urlData } = supabase.storage.from(bucket).getPublicUrl(path);
-  console.log('[Upload] Upload complete:', urlData.publicUrl);
-  return { url: urlData.publicUrl };
 }
 
 // ── Public API ──
@@ -170,8 +175,8 @@ async function uploadToStorage(
  * Upload an artwork image.
  *
  * 1. Validate file type/size
- * 2. Compress (2400px, 90% JPEG, 8s timeout, skip if <500KB)
- * 3. Upload to Supabase (30s/60s timeout)
+ * 2. Compress (2400px, 90% JPEG, 15s timeout, skip if <500KB)
+ * 3. Upload via direct fetch (60s/90s timeout)
  * 4. On failure: retry with aggressive compression (1200px, 70%)
  * 5. Return public URL
  */
@@ -246,16 +251,6 @@ export async function uploadAvatar(
 
   onProgress?.(10);
 
-  const supabase = createClient();
-
-  // Remove existing avatars
-  const { data: existing } = await supabase.storage.from('avatars').list(userId);
-  if (existing && existing.length > 0) {
-    await supabase.storage.from('avatars').remove(existing.map((f) => `${userId}/${f.name}`));
-  }
-
-  onProgress?.(30);
-
   // Compress to 400px
   const compressed = await compressImage(file, 400, 0.82);
   onProgress?.(50);
@@ -268,21 +263,11 @@ export async function uploadAvatar(
 }
 
 /**
- * Delete an image from storage.
- */
-export async function deleteImage(path: string, bucket: string): Promise<void> {
-  const supabase = createClient();
-  const { error } = await supabase.storage.from(bucket).remove([path]);
-  if (error) throw new Error(`Delete failed: ${error.message}`);
-}
-
-/**
  * Get the public URL for a stored file.
  */
 export function getPublicUrl(path: string, bucket: string): string {
-  const supabase = createClient();
-  const { data } = supabase.storage.from(bucket).getPublicUrl(path);
-  return data.publicUrl;
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  return `${supabaseUrl}/storage/v1/object/public/${bucket}/${path}`;
 }
 
 /**

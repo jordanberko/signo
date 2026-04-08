@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { signOut as authSignOut } from '@/lib/supabase/auth';
+import { getAuthUser } from '@/lib/supabase/getAuthToken';
 import type { Profile } from '@/lib/types/database';
 
 interface UseUserReturn {
@@ -33,9 +34,7 @@ export function useUser(): UseUserReturn {
   const fetched = useRef(false);
 
   const fetchProfile = useCallback(async () => {
-    const supabase = createClient();
-    const { data: { session } } = await supabase.auth.getSession()
-    const authUser = session?.user;
+    const authUser = getAuthUser();
 
     if (!authUser) {
       setUser(null);
@@ -43,6 +42,7 @@ export function useUser(): UseUserReturn {
       return;
     }
 
+    const supabase = createClient();
     const { data: profile, error: profileError } = await supabase
       .from('profiles')
       .select('*')
