@@ -6,6 +6,7 @@ import { ArrowRight, ShieldCheck, Palette, DollarSign } from 'lucide-react';
 import ArtworkCard from '@/components/ui/ArtworkCard';
 import HeroRibbons from '@/components/ui/HeroRibbons';
 import GuidedSearch from '@/components/ui/GuidedSearch';
+import TrustBar from '@/components/ui/TrustBar';
 
 interface FeaturedArtwork {
   id: string;
@@ -108,8 +109,11 @@ export default function HomePage() {
         </div>
       </section>
 
+      {/* ==================== TRUST BAR ==================== */}
+      <TrustBar />
+
       {/* ==================== FEATURED ARTWORK GRID ==================== */}
-      <section className="pb-16 md:pb-24 pt-4">
+      <section className="pb-16 md:pb-24 pt-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-end justify-between mb-8">
             <div>
