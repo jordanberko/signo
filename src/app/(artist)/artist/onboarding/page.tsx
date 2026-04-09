@@ -1,8 +1,7 @@
 'use client';
 
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useMemo } from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
 import {
   ArrowRight,
   ArrowLeft,
@@ -23,6 +22,9 @@ import {
   BarChart3,
   Search,
   Shield,
+  Upload,
+  Zap,
+  X,
 } from 'lucide-react';
 
 function InstagramIcon({ className }: { className?: string }) {
@@ -34,80 +36,227 @@ function InstagramIcon({ className }: { className?: string }) {
     </svg>
   );
 }
+
 import { useAuth } from '@/components/providers/AuthProvider';
 import { useRequireAuth } from '@/lib/hooks/useRequireAuth';
 import AvatarUpload from '@/components/AvatarUpload';
-import { uploadAvatar } from '@/lib/supabase/storage';
+import Avatar from '@/components/ui/Avatar';
+import ImageUpload from '@/components/ImageUpload';
+import { uploadAvatar, uploadArtworkImage } from '@/lib/supabase/storage';
+import { formatPrice, calculateCommission } from '@/lib/utils';
 
-const TOTAL_STEPS = 5;
+// ── Constants ──
+
+const TOTAL_STEPS = 6; // Welcome (0) + 4 steps + Done (5)
+const DRAFT_KEY = 'signo_onboarding_draft';
+
+const MEDIUMS = [
+  'Oil', 'Acrylic', 'Watercolour', 'Mixed Media', 'Photography',
+  'Printmaking', 'Digital Art', 'Sculpture', 'Ink', 'Pencil/Graphite',
+  'Charcoal', 'Pastel', 'Ceramics', 'Textile', 'Other',
+];
+
+const STYLES = [
+  'Abstract', 'Realism', 'Landscape', 'Portrait', 'Contemporary',
+  'Modern', 'Impressionism', 'Minimalist', 'Figurative', 'Still Life',
+  'Botanical', 'Geometric', 'Pop Art', 'Surrealism', 'Other',
+];
 
 const COMMITMENTS = [
-  {
-    icon: Package,
-    text: 'I will ship all physical items with tracked shipping',
-  },
-  {
-    icon: Clock,
-    text: 'I will ship within 5 business days of a sale',
-  },
-  {
-    icon: Camera,
-    text: 'I will photograph packaging before shipping',
-  },
-  {
-    icon: ShieldCheck,
-    text: 'For orders over $500, I will use insured shipping with signature on delivery',
-  },
-  {
-    icon: Palette,
-    text: 'All work I upload is my own original creation',
-  },
+  { icon: Package, text: 'I will ship all physical items with tracked shipping' },
+  { icon: Clock, text: 'I will ship within 5 business days of a sale' },
+  { icon: Camera, text: 'I will photograph packaging before shipping' },
+  { icon: ShieldCheck, text: 'For orders over $500, I will use insured shipping with signature on delivery' },
+  { icon: Palette, text: 'All work I upload is my own original creation' },
 ];
+
+// ── Draft persistence helpers ──
+
+interface OnboardingDraft {
+  fullName: string;
+  bio: string;
+  location: string;
+  avatarUrl: string | null;
+  primaryMedium: string;
+  selectedStyles: string[];
+  instagram: string;
+  website: string;
+  agreedToTerms: boolean;
+  // Artwork fields
+  artworkId: string;
+  artworkImages: string[];
+  artworkTitle: string;
+  artworkDescription: string;
+  artworkMedium: string;
+  artworkStyle: string;
+  artworkCategory: 'original' | 'print' | 'digital';
+  artworkWidth: string;
+  artworkHeight: string;
+  artworkPrice: string;
+}
+
+function loadDraft(): Partial<OnboardingDraft> {
+  if (typeof window === 'undefined') return {};
+  try {
+    const saved = localStorage.getItem(DRAFT_KEY);
+    return saved ? JSON.parse(saved) : {};
+  } catch {
+    return {};
+  }
+}
+
+function saveDraft(draft: Partial<OnboardingDraft>) {
+  try {
+    localStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
+  } catch {
+    // ignore
+  }
+}
+
+function clearDraft() {
+  try {
+    localStorage.removeItem(DRAFT_KEY);
+  } catch {
+    // ignore
+  }
+}
+
+// ── Component ──
 
 export default function ArtistOnboardingPage() {
   const { loading: authLoading } = useRequireAuth();
   const { user, refreshUser } = useAuth();
   const isBuyerUpgrade = user?.role === 'buyer';
 
-  const [step, setStep] = useState(1);
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState('');
-
-  // If user is already an artist who completed onboarding, redirect to dashboard
+  // If user already completed onboarding, redirect to dashboard
   useEffect(() => {
     if (user && user.role === 'artist' && user.onboarding_completed) {
       window.location.href = '/artist/dashboard';
     }
   }, [user]);
 
-  // Step 1 — Profile
-  const [fullName, setFullName] = useState(user?.full_name ?? '');
-  const [bio, setBio] = useState(user?.bio ?? '');
-  const [location, setLocation] = useState(user?.location ?? '');
-  const [avatarUrl, setAvatarUrl] = useState<string | null>(user?.avatar_url ?? null);
+  // Load draft from localStorage
+  const draft = useMemo(() => loadDraft(), []);
 
-  // Step 2 — Socials
-  const [instagram, setInstagram] = useState(user?.social_links?.instagram ?? '');
-  const [website, setWebsite] = useState(user?.social_links?.website ?? '');
-  const [otherLink, setOtherLink] = useState(user?.social_links?.other ?? '');
+  const [step, setStep] = useState(0); // 0 = welcome
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
 
-  // Step 3 — Terms
-  const [agreedToTerms, setAgreedToTerms] = useState(false);
+  // Step 1 — Profile & Art
+  const [fullName, setFullName] = useState(draft.fullName ?? user?.full_name ?? '');
+  const [bio, setBio] = useState(draft.bio ?? user?.bio ?? '');
+  const [location, setLocation] = useState(draft.location ?? user?.location ?? '');
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(draft.avatarUrl ?? user?.avatar_url ?? null);
+  const [primaryMedium, setPrimaryMedium] = useState(draft.primaryMedium ?? '');
+  const [selectedStyles, setSelectedStyles] = useState<string[]>(draft.selectedStyles ?? []);
+  const [instagram, setInstagram] = useState(draft.instagram ?? user?.social_links?.instagram ?? '');
+  const [website, setWebsite] = useState(draft.website ?? user?.social_links?.website ?? '');
 
+  // Step 2 — Standards
+  const [agreedToTerms, setAgreedToTerms] = useState(draft.agreedToTerms ?? false);
+
+  // Step 3 — First Artwork
+  const [artworkId] = useState(draft.artworkId ?? crypto.randomUUID());
+  const [artworkImages, setArtworkImages] = useState<string[]>(draft.artworkImages ?? []);
+  const [artworkTitle, setArtworkTitle] = useState(draft.artworkTitle ?? '');
+  const [artworkDescription, setArtworkDescription] = useState(draft.artworkDescription ?? '');
+  const [artworkMedium, setArtworkMedium] = useState(draft.artworkMedium ?? '');
+  const [artworkStyle, setArtworkStyle] = useState(draft.artworkStyle ?? '');
+  const [artworkCategory, setArtworkCategory] = useState<'original' | 'print' | 'digital'>(draft.artworkCategory ?? 'original');
+  const [artworkWidth, setArtworkWidth] = useState(draft.artworkWidth ?? '');
+  const [artworkHeight, setArtworkHeight] = useState(draft.artworkHeight ?? '');
+  const [artworkPrice, setArtworkPrice] = useState(draft.artworkPrice ?? '');
+
+  // Step 4 — Stripe Connect
+  const [stripeLoading, setStripeLoading] = useState(false);
+  const [stripeConnected, setStripeConnected] = useState(false);
+
+  // Sync user data into form when user loads (only if no draft)
+  useEffect(() => {
+    if (!user) return;
+    if (!draft.fullName && user.full_name) setFullName(user.full_name);
+    if (!draft.bio && user.bio) setBio(user.bio);
+    if (!draft.location && user.location) setLocation(user.location);
+    if (!draft.avatarUrl && user.avatar_url) setAvatarUrl(user.avatar_url);
+    if (!draft.instagram && user.social_links?.instagram) setInstagram(user.social_links.instagram);
+    if (!draft.website && user.social_links?.website) setWebsite(user.social_links.website);
+  }, [user, draft]);
+
+  // Pre-fill artwork medium from primary medium selection
+  useEffect(() => {
+    if (primaryMedium && !artworkMedium) {
+      setArtworkMedium(primaryMedium);
+    }
+  }, [primaryMedium, artworkMedium]);
+
+  // Auto-save draft on changes
+  useEffect(() => {
+    saveDraft({
+      fullName, bio, location, avatarUrl, primaryMedium, selectedStyles,
+      instagram, website, agreedToTerms, artworkId, artworkImages,
+      artworkTitle, artworkDescription, artworkMedium, artworkStyle,
+      artworkCategory, artworkWidth, artworkHeight, artworkPrice,
+    });
+  }, [
+    fullName, bio, location, avatarUrl, primaryMedium, selectedStyles,
+    instagram, website, agreedToTerms, artworkId, artworkImages,
+    artworkTitle, artworkDescription, artworkMedium, artworkStyle,
+    artworkCategory, artworkWidth, artworkHeight, artworkPrice,
+  ]);
+
+  // Check Stripe status on mount
+  useEffect(() => {
+    async function checkStripe() {
+      try {
+        const res = await fetch('/api/stripe/connect/status');
+        if (res.ok) {
+          const data = await res.json();
+          if (data.connected && data.detailsSubmitted) {
+            setStripeConnected(true);
+          }
+        }
+      } catch {
+        // ignore
+      }
+    }
+    if (user) checkStripe();
+  }, [user]);
+
+  // Validation
   const canProceedStep1 = fullName.trim().length > 0 && bio.trim().length >= 10;
-  const canProceedStep3 = agreedToTerms;
+  const canProceedStep2 = agreedToTerms;
+  const canProceedStep3 = artworkImages.length > 0 && artworkTitle.trim().length > 0 && artworkMedium.length > 0 && parseFloat(artworkPrice) >= 1;
 
+  // Upload handlers
   const handleAvatarUpload = useCallback(
     async (file: File, onProgress: (p: number) => void) => {
       if (!user) throw new Error('Not authenticated');
       return uploadAvatar(file, user.id, onProgress);
     },
-    [user]
+    [user],
   );
 
-  async function saveProfile() {
+  const handleImageUpload = useCallback(
+    async (file: File, onProgress: (p: number) => void) => {
+      if (!user) throw new Error('Not authenticated');
+      return uploadArtworkImage(file, user.id, artworkId, onProgress);
+    },
+    [user, artworkId],
+  );
+
+  // Toggle a style in the multi-select
+  function toggleStyle(style: string) {
+    setSelectedStyles((prev) =>
+      prev.includes(style)
+        ? prev.filter((s) => s !== style)
+        : prev.length < 5 ? [...prev, style] : prev,
+    );
+  }
+
+  // Save profile + artwork + complete onboarding
+  async function saveAndComplete(skipArtwork: boolean) {
     if (!user) {
-      setError('You appear to be signed out. Please refresh the page and sign in again.');
+      setError('You appear to be signed out. Please refresh and sign in again.');
       return;
     }
     setSaving(true);
@@ -117,139 +266,241 @@ export default function ArtistOnboardingPage() {
       const socialLinks: Record<string, string> = {};
       if (instagram.trim()) socialLinks.instagram = instagram.trim();
       if (website.trim()) socialLinks.website = website.trim();
-      if (otherLink.trim()) socialLinks.other = otherLink.trim();
 
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 10000);
+      const timeoutId = setTimeout(() => controller.abort(), 15000);
 
-      let res: Response;
-      try {
-        res = await fetch('/api/profile', {
-          method: 'PUT',
+      // 1. Save profile
+      const profileRes = await fetch('/api/profile', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          full_name: fullName.trim(),
+          bio: bio.trim(),
+          location: location.trim() || null,
+          avatar_url: avatarUrl,
+          social_links: socialLinks,
+          onboarding_completed: true,
+          ...(isBuyerUpgrade ? { role: 'artist' } : {}),
+        }),
+        signal: controller.signal,
+      });
+
+      if (!profileRes.ok) {
+        const body = await profileRes.json().catch(() => ({}));
+        throw new Error(body.error || 'Failed to save profile');
+      }
+
+      // 2. Submit artwork (unless skipped)
+      if (!skipArtwork && artworkImages.length > 0 && artworkTitle.trim()) {
+        const artworkRes = await fetch('/api/artworks', {
+          method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            full_name: fullName.trim(),
-            bio: bio.trim(),
-            location: location.trim() || null,
-            avatar_url: avatarUrl,
-            social_links: socialLinks,
-            onboarding_completed: true,
-            // Upgrade buyer → artist when completing onboarding
-            ...(isBuyerUpgrade ? { role: 'artist' } : {}),
+            title: artworkTitle.trim(),
+            description: artworkDescription.trim() || null,
+            images: artworkImages,
+            medium: artworkMedium,
+            style: artworkStyle || null,
+            category: artworkCategory,
+            width_cm: artworkWidth ? parseFloat(artworkWidth) : null,
+            height_cm: artworkHeight ? parseFloat(artworkHeight) : null,
+            price_aud: parseFloat(artworkPrice),
+            status: 'pending_review',
           }),
           signal: controller.signal,
         });
-      } finally {
-        clearTimeout(timeoutId);
-      }
 
-      if (!res.ok) {
-        let message = 'Failed to save profile';
-        try {
-          const body = await res.json();
-          if (body.error) message = body.error;
-        } catch {
-          // response wasn't JSON — use default message
+        if (!artworkRes.ok) {
+          const body = await artworkRes.json().catch(() => ({}));
+          console.warn('[Onboarding] Artwork submit warning:', body.error);
+          // Don't block onboarding completion if artwork fails
         }
-        console.error('[Onboarding] Save failed:', message);
-        setError(message);
-        return;
       }
 
-      const responseBody = await res.json().catch(() => ({}));
-      if (responseBody.warning) {
-        console.warn('[Onboarding]', responseBody.warning);
-      }
+      clearTimeout(timeoutId);
 
-      // refreshUser can also hang — race it against a timeout
+      // 3. Refresh user context
       try {
         await Promise.race([
           refreshUser(),
-          new Promise((_, reject) =>
-            setTimeout(() => reject(new Error('timeout')), 5000)
-          ),
+          new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 5000)),
         ]);
-      } catch (refreshErr) {
-        // Profile was saved successfully — proceed even if refresh fails
-        console.warn('[Onboarding] refreshUser failed, proceeding anyway:', refreshErr);
+      } catch {
+        // Profile was saved — proceed even if refresh fails
       }
 
-      setStep(5);
+      clearDraft();
+      setStep(5); // Done screen
     } catch (err) {
       console.error('[Onboarding] Save error:', err);
       if (err instanceof DOMException && err.name === 'AbortError') {
         setError('Save timed out — please check your connection and try again.');
       } else {
-        const message = err instanceof Error ? err.message : 'Something went wrong. Please try again.';
-        setError(message);
+        setError(err instanceof Error ? err.message : 'Something went wrong. Please try again.');
       }
     } finally {
       setSaving(false);
     }
   }
 
-  function nextStep() {
-    if (step === 4) {
-      saveProfile();
-    } else {
-      setStep((s) => Math.min(s + 1, TOTAL_STEPS));
+  // Stripe Connect
+  async function handleConnectStripe() {
+    setStripeLoading(true);
+    try {
+      const res = await fetch('/api/stripe/connect/onboard', { method: 'POST' });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.error || 'Failed to start Stripe onboarding');
+      }
+      const data = await res.json();
+      if (data.url) {
+        window.location.href = data.url;
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to connect Stripe');
+      setStripeLoading(false);
     }
   }
 
-  function prevStep() {
-    setStep((s) => Math.max(s - 1, 1));
+  // Navigation
+  function nextStep() {
+    setError('');
+    setStep((s) => Math.min(s + 1, TOTAL_STEPS));
   }
 
-  if (authLoading) return <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '60vh' }}><div style={{ width: 32, height: 32, border: '3px solid #E5E2DB', borderTopColor: '#2C2C2A', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} /><style>{'@keyframes spin { to { transform: rotate(360deg) } }'}</style></div>;
+  function prevStep() {
+    setError('');
+    setStep((s) => Math.max(s - 1, 0));
+  }
+
+  // Price calculation for artwork
+  const priceCalc = useMemo(() => {
+    const price = parseFloat(artworkPrice);
+    if (!price || price < 1) return null;
+    return calculateCommission(price);
+  }, [artworkPrice]);
+
+  // ── Render ──
+
+  if (authLoading) {
+    return (
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '60vh' }}>
+        <div style={{ width: 32, height: 32, border: '3px solid #E5E2DB', borderTopColor: '#2C2C2A', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+        <style>{'@keyframes spin { to { transform: rotate(360deg) } }'}</style>
+      </div>
+    );
+  }
+
+  const STEP_LABELS = ['Welcome', 'Profile', 'Standards', 'Artwork', 'Payments', 'Done'];
 
   return (
     <div className="min-h-[85vh] flex flex-col items-center px-4 py-10">
-      {/* Progress bar */}
-      <div className="w-full max-w-lg mb-10">
-        <div className="flex items-center justify-between mb-3">
-          {[1, 2, 3, 4, 5].map((s) => (
-            <div key={s} className="flex items-center">
-              <div
-                className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-medium transition-all duration-300 ${
-                  s < step
-                    ? 'bg-accent text-white'
-                    : s === step
-                    ? 'bg-primary text-white'
-                    : 'bg-muted-bg text-muted'
-                }`}
-              >
-                {s < step ? <Check className="h-4 w-4" /> : s}
-              </div>
-              {s < 5 && (
+      {/* Skip link (header) */}
+      {step > 0 && step < 5 && (
+        <div className="w-full max-w-lg flex justify-end mb-4">
+          <Link
+            href="/artist/dashboard"
+            className="text-xs text-muted hover:text-foreground transition-colors"
+          >
+            Skip for now →
+          </Link>
+        </div>
+      )}
+
+      {/* Progress bar — visible on steps 1-4 */}
+      {step >= 1 && step <= 4 && (
+        <div className="w-full max-w-lg mb-10">
+          <div className="flex items-center justify-between mb-3">
+            {[1, 2, 3, 4].map((s) => (
+              <div key={s} className="flex items-center">
                 <div
-                  className={`hidden sm:block w-16 md:w-24 h-0.5 mx-2 transition-colors duration-300 ${
-                    s < step ? 'bg-accent' : 'bg-border'
+                  className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-medium transition-all duration-300 ${
+                    s < step
+                      ? 'bg-accent text-white'
+                      : s === step
+                      ? 'bg-primary text-white'
+                      : 'bg-muted-bg text-muted'
                   }`}
-                />
-              )}
-            </div>
-          ))}
+                >
+                  {s < step ? <Check className="h-4 w-4" /> : s}
+                </div>
+                {s < 4 && (
+                  <div
+                    className={`hidden sm:block w-20 md:w-28 h-0.5 mx-2 transition-colors duration-300 ${
+                      s < step ? 'bg-accent' : 'bg-border'
+                    }`}
+                  />
+                )}
+              </div>
+            ))}
+          </div>
+          <div className="flex justify-between text-[11px] text-muted tracking-wide uppercase px-1">
+            <span>Profile</span>
+            <span>Standards</span>
+            <span>Artwork</span>
+            <span>Payments</span>
+          </div>
         </div>
-        <div className="flex justify-between text-[11px] text-muted tracking-wide uppercase">
-          <span>Profile</span>
-          <span>Socials</span>
-          <span>Standards</span>
-          <span>Subscription</span>
-          <span>Done</span>
-        </div>
-      </div>
+      )}
 
       {/* Step content */}
       <div className="w-full max-w-lg animate-fade-in">
-        {/* ────────────── STEP 1: Profile ────────────── */}
+
+        {/* ────────────── STEP 0: Welcome ────────────── */}
+        {step === 0 && (
+          <div className="space-y-8 text-center">
+            <div className="flex justify-center">
+              <div className="w-20 h-20 bg-accent-subtle rounded-full flex items-center justify-center">
+                <Palette className="h-9 w-9 text-accent-dark" />
+              </div>
+            </div>
+
+            <div>
+              <h1 className="font-editorial text-3xl md:text-4xl font-medium">
+                Welcome to Signo
+              </h1>
+              <p className="text-muted mt-3 max-w-sm mx-auto leading-relaxed">
+                Let&apos;s get your artist profile set up and your first artwork listed. This takes about 5 minutes.
+              </p>
+            </div>
+
+            <div className="space-y-3 text-left max-w-xs mx-auto">
+              {[
+                { icon: Palette, label: 'Set up your artist profile' },
+                { icon: ShieldCheck, label: 'Agree to our quality standards' },
+                { icon: Upload, label: 'List your first artwork' },
+                { icon: CreditCard, label: 'Connect payments (optional)' },
+              ].map((item, i) => (
+                <div key={i} className="flex items-center gap-3">
+                  <div className="w-8 h-8 bg-accent-subtle rounded-full flex items-center justify-center flex-shrink-0">
+                    <item.icon className="h-4 w-4 text-accent-dark" />
+                  </div>
+                  <p className="text-sm">{item.label}</p>
+                </div>
+              ))}
+            </div>
+
+            <button
+              type="button"
+              onClick={nextStep}
+              className="px-10 py-3.5 bg-primary text-white font-semibold rounded-full hover:bg-accent transition-colors duration-300 inline-flex items-center gap-2"
+            >
+              Get Started
+              <ArrowRight className="h-4 w-4" />
+            </button>
+          </div>
+        )}
+
+        {/* ────────────── STEP 1: Profile & Art ────────────── */}
         {step === 1 && (
           <div className="space-y-8">
             <div className="text-center">
               <h1 className="font-editorial text-2xl md:text-3xl font-medium">
-                Set up your artist profile
+                Set up your profile
               </h1>
               <p className="text-sm text-muted mt-2">
-                Tell buyers a little about yourself and your work.
+                Tell buyers about yourself and your art.
               </p>
             </div>
 
@@ -267,40 +518,17 @@ export default function ArtistOnboardingPage() {
             {/* Full Name */}
             <div>
               <label htmlFor="fullName" className="block text-xs font-medium tracking-wide uppercase text-muted mb-2">
-                Full Name <span className="text-error">*</span>
+                Display Name <span className="text-error">*</span>
               </label>
               <input
                 id="fullName"
                 type="text"
                 value={fullName}
                 onChange={(e) => setFullName(e.target.value)}
-                className="w-full px-4 py-3 bg-white border border-border rounded-xl text-sm placeholder:text-warm-gray transition-colors"
+                className="w-full px-4 py-3 bg-white border border-border rounded-xl text-sm placeholder:text-warm-gray transition-colors focus:border-accent focus:ring-1 focus:ring-accent/20"
                 placeholder="Your name as it appears to buyers"
                 autoComplete="name"
               />
-            </div>
-
-            {/* Bio */}
-            <div>
-              <label htmlFor="bio" className="block text-xs font-medium tracking-wide uppercase text-muted mb-2">
-                Artist Bio <span className="text-error">*</span>
-              </label>
-              <textarea
-                id="bio"
-                value={bio}
-                onChange={(e) => setBio(e.target.value.slice(0, 500))}
-                rows={4}
-                className="w-full px-4 py-3 bg-white border border-border rounded-xl text-sm placeholder:text-warm-gray transition-colors resize-none"
-                placeholder="Share your artistic journey, inspirations, and what makes your work unique..."
-              />
-              <div className="flex justify-between mt-1.5">
-                <p className="text-xs text-muted">
-                  {bio.length < 10 ? 'Minimum 10 characters' : ''}
-                </p>
-                <p className={`text-xs ${bio.length >= 480 ? 'text-error' : 'text-warm-gray'}`}>
-                  {bio.length}/500
-                </p>
-              </div>
             </div>
 
             {/* Location */}
@@ -315,84 +543,107 @@ export default function ArtistOnboardingPage() {
                   type="text"
                   value={location}
                   onChange={(e) => setLocation(e.target.value)}
-                  className="w-full pl-11 pr-4 py-3 bg-white border border-border rounded-xl text-sm placeholder:text-warm-gray transition-colors"
+                  className="w-full pl-11 pr-4 py-3 bg-white border border-border rounded-xl text-sm placeholder:text-warm-gray transition-colors focus:border-accent focus:ring-1 focus:ring-accent/20"
                   placeholder="Melbourne, VIC"
                 />
               </div>
             </div>
-          </div>
-        )}
 
-        {/* ────────────── STEP 2: Socials ────────────── */}
-        {step === 2 && (
-          <div className="space-y-8">
-            <div className="text-center">
-              <h1 className="font-editorial text-2xl md:text-3xl font-medium">
-                Connect your socials
-              </h1>
-              <p className="text-sm text-muted mt-2">
-                Help buyers find you across the web. All fields are optional.
-              </p>
-            </div>
-
-            {/* Instagram */}
+            {/* Bio */}
             <div>
-              <label htmlFor="instagram" className="block text-xs font-medium tracking-wide uppercase text-muted mb-2">
-                Instagram
+              <label htmlFor="bio" className="block text-xs font-medium tracking-wide uppercase text-muted mb-2">
+                Short Bio <span className="text-error">*</span>
               </label>
-              <div className="relative">
-                <InstagramIcon className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-warm-gray" />
-                <input
-                  id="instagram"
-                  type="text"
-                  value={instagram}
-                  onChange={(e) => setInstagram(e.target.value)}
-                  className="w-full pl-11 pr-4 py-3 bg-white border border-border rounded-xl text-sm placeholder:text-warm-gray transition-colors"
-                  placeholder="@yourusername"
-                />
+              <textarea
+                id="bio"
+                value={bio}
+                onChange={(e) => setBio(e.target.value.slice(0, 200))}
+                rows={3}
+                className="w-full px-4 py-3 bg-white border border-border rounded-xl text-sm placeholder:text-warm-gray transition-colors resize-none focus:border-accent focus:ring-1 focus:ring-accent/20"
+                placeholder="Share your artistic journey and what inspires your work..."
+              />
+              <div className="flex justify-between mt-1.5">
+                <p className="text-xs text-muted">
+                  {bio.length < 10 ? 'Minimum 10 characters' : ''}
+                </p>
+                <p className={`text-xs ${bio.length >= 180 ? 'text-error' : 'text-warm-gray'}`}>
+                  {bio.length}/200
+                </p>
               </div>
             </div>
 
-            {/* Website */}
+            {/* Primary Medium */}
             <div>
-              <label htmlFor="website" className="block text-xs font-medium tracking-wide uppercase text-muted mb-2">
-                Website
+              <label htmlFor="primaryMedium" className="block text-xs font-medium tracking-wide uppercase text-muted mb-2">
+                Primary Medium
               </label>
+              <select
+                id="primaryMedium"
+                value={primaryMedium}
+                onChange={(e) => setPrimaryMedium(e.target.value)}
+                className="w-full px-4 py-3 bg-white border border-border rounded-xl text-sm transition-colors focus:border-accent focus:ring-1 focus:ring-accent/20 appearance-none"
+              >
+                <option value="">Select your primary medium...</option>
+                {MEDIUMS.map((m) => (
+                  <option key={m} value={m}>{m}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* Styles */}
+            <div>
+              <label className="block text-xs font-medium tracking-wide uppercase text-muted mb-2">
+                Styles you work in <span className="text-warm-gray">(select up to 5)</span>
+              </label>
+              <div className="flex flex-wrap gap-2">
+                {STYLES.map((s) => (
+                  <button
+                    key={s}
+                    type="button"
+                    onClick={() => toggleStyle(s)}
+                    className={`px-3.5 py-1.5 rounded-full text-sm transition-all ${
+                      selectedStyles.includes(s)
+                        ? 'bg-accent text-white font-medium'
+                        : 'bg-white border border-border text-foreground hover:border-accent/40'
+                    }`}
+                  >
+                    {s}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Social links */}
+            <div className="space-y-4 pt-2">
+              <p className="text-xs font-medium tracking-wide uppercase text-muted">
+                Social Links <span className="text-warm-gray">(optional)</span>
+              </p>
+              <div className="relative">
+                <InstagramIcon className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-warm-gray" />
+                <input
+                  type="text"
+                  value={instagram}
+                  onChange={(e) => setInstagram(e.target.value)}
+                  className="w-full pl-11 pr-4 py-3 bg-white border border-border rounded-xl text-sm placeholder:text-warm-gray transition-colors focus:border-accent focus:ring-1 focus:ring-accent/20"
+                  placeholder="@yourusername"
+                />
+              </div>
               <div className="relative">
                 <Globe className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-warm-gray" />
                 <input
-                  id="website"
                   type="url"
                   value={website}
                   onChange={(e) => setWebsite(e.target.value)}
-                  className="w-full pl-11 pr-4 py-3 bg-white border border-border rounded-xl text-sm placeholder:text-warm-gray transition-colors"
+                  className="w-full pl-11 pr-4 py-3 bg-white border border-border rounded-xl text-sm placeholder:text-warm-gray transition-colors focus:border-accent focus:ring-1 focus:ring-accent/20"
                   placeholder="https://yourwebsite.com"
                 />
               </div>
             </div>
-
-            {/* Other Link */}
-            <div>
-              <label htmlFor="otherLink" className="block text-xs font-medium tracking-wide uppercase text-muted mb-2">
-                Other Link
-              </label>
-              <div className="relative">
-                <Link2 className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-warm-gray" />
-                <input
-                  id="otherLink"
-                  type="url"
-                  value={otherLink}
-                  onChange={(e) => setOtherLink(e.target.value)}
-                  className="w-full pl-11 pr-4 py-3 bg-white border border-border rounded-xl text-sm placeholder:text-warm-gray transition-colors"
-                  placeholder="Behance, DeviantArt, etc."
-                />
-              </div>
-            </div>
           </div>
         )}
 
-        {/* ────────────── STEP 3: Standards ────────────── */}
-        {step === 3 && (
+        {/* ────────────── STEP 2: Standards ────────────── */}
+        {step === 2 && (
           <div className="space-y-8">
             <div className="text-center">
               <h1 className="font-editorial text-2xl md:text-3xl font-medium">
@@ -403,7 +654,6 @@ export default function ArtistOnboardingPage() {
               </p>
             </div>
 
-            {/* Commitment cards */}
             <div className="space-y-3">
               {COMMITMENTS.map((c, i) => (
                 <div
@@ -418,7 +668,6 @@ export default function ArtistOnboardingPage() {
               ))}
             </div>
 
-            {/* Agreement checkbox */}
             <label className="flex items-start gap-3 cursor-pointer group p-4 bg-cream border border-border rounded-xl">
               <div className="relative flex-shrink-0 mt-0.5">
                 <input
@@ -433,79 +682,290 @@ export default function ArtistOnboardingPage() {
               </div>
               <span className="text-sm leading-tight">
                 I agree to Signo&apos;s{' '}
-                <Link href="/terms" className="text-accent-dark link-underline">
+                <Link href="/terms" className="text-accent-dark underline">
                   artist terms
                 </Link>{' '}
                 and shipping standards outlined above.
               </span>
             </label>
 
-            {error && (
-              <div className="p-3.5 bg-error/5 border border-error/20 text-error text-sm rounded-xl animate-fade-in">
-                {error}
+            {/* Subscription info — collapsed into a single card */}
+            <div className="p-5 bg-white border border-border rounded-xl space-y-3">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 bg-accent-subtle rounded-full flex items-center justify-center flex-shrink-0">
+                  <CreditCard className="h-4 w-4 text-accent-dark" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium">$30/month subscription — free during launch</p>
+                  <p className="text-xs text-muted mt-0.5">0% commission. You keep 100% of every sale.</p>
+                </div>
               </div>
-            )}
+              <p className="text-xs text-warm-gray">
+                We&apos;ll notify you before billing begins. No credit card required.
+              </p>
+            </div>
           </div>
         )}
 
-        {/* ────────────── STEP 4: Subscription ────────────── */}
+        {/* ────────────── STEP 3: First Artwork ────────────── */}
+        {step === 3 && (
+          <div className="space-y-6">
+            <div className="text-center">
+              <h1 className="font-editorial text-2xl md:text-3xl font-medium">
+                List your first artwork
+              </h1>
+              <p className="text-sm text-muted mt-2">
+                Upload at least one photo and set your price. You can add more details later.
+              </p>
+            </div>
+
+            {/* Image upload */}
+            <div>
+              <label className="block text-xs font-medium tracking-wide uppercase text-muted mb-2">
+                Photos <span className="text-error">*</span>
+              </label>
+              <ImageUpload
+                maxFiles={4}
+                maxSizeMB={15}
+                initialImages={artworkImages}
+                onImagesChange={setArtworkImages}
+                uploadFile={handleImageUpload}
+              />
+            </div>
+
+            {/* Title */}
+            <div>
+              <label htmlFor="artTitle" className="block text-xs font-medium tracking-wide uppercase text-muted mb-2">
+                Title <span className="text-error">*</span>
+              </label>
+              <input
+                id="artTitle"
+                type="text"
+                value={artworkTitle}
+                onChange={(e) => setArtworkTitle(e.target.value)}
+                className="w-full px-4 py-3 bg-white border border-border rounded-xl text-sm placeholder:text-warm-gray transition-colors focus:border-accent focus:ring-1 focus:ring-accent/20"
+                placeholder="Give your artwork a title"
+              />
+            </div>
+
+            {/* Description */}
+            <div>
+              <label htmlFor="artDesc" className="block text-xs font-medium tracking-wide uppercase text-muted mb-2">
+                Description
+              </label>
+              <textarea
+                id="artDesc"
+                value={artworkDescription}
+                onChange={(e) => setArtworkDescription(e.target.value.slice(0, 1000))}
+                rows={3}
+                className="w-full px-4 py-3 bg-white border border-border rounded-xl text-sm placeholder:text-warm-gray transition-colors resize-none focus:border-accent focus:ring-1 focus:ring-accent/20"
+                placeholder="Tell the story behind this piece..."
+              />
+            </div>
+
+            {/* Medium & Style — row */}
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label htmlFor="artMedium" className="block text-xs font-medium tracking-wide uppercase text-muted mb-2">
+                  Medium <span className="text-error">*</span>
+                </label>
+                <select
+                  id="artMedium"
+                  value={artworkMedium}
+                  onChange={(e) => setArtworkMedium(e.target.value)}
+                  className="w-full px-4 py-3 bg-white border border-border rounded-xl text-sm transition-colors focus:border-accent focus:ring-1 focus:ring-accent/20 appearance-none"
+                >
+                  <option value="">Select...</option>
+                  {MEDIUMS.map((m) => (
+                    <option key={m} value={m}>{m}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label htmlFor="artStyle" className="block text-xs font-medium tracking-wide uppercase text-muted mb-2">
+                  Style
+                </label>
+                <select
+                  id="artStyle"
+                  value={artworkStyle}
+                  onChange={(e) => setArtworkStyle(e.target.value)}
+                  className="w-full px-4 py-3 bg-white border border-border rounded-xl text-sm transition-colors focus:border-accent focus:ring-1 focus:ring-accent/20 appearance-none"
+                >
+                  <option value="">Select...</option>
+                  {STYLES.map((s) => (
+                    <option key={s} value={s}>{s}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            {/* Category */}
+            <div>
+              <label className="block text-xs font-medium tracking-wide uppercase text-muted mb-2">
+                Artwork Type
+              </label>
+              <div className="grid grid-cols-3 gap-2">
+                {(['original', 'print', 'digital'] as const).map((cat) => (
+                  <button
+                    key={cat}
+                    type="button"
+                    onClick={() => setArtworkCategory(cat)}
+                    className={`py-2.5 rounded-xl text-sm font-medium transition-all ${
+                      artworkCategory === cat
+                        ? 'bg-accent text-white'
+                        : 'bg-white border border-border text-foreground hover:border-accent/40'
+                    }`}
+                  >
+                    {cat === 'original' ? 'Original' : cat === 'print' ? 'Print' : 'Digital'}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Dimensions — row */}
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label htmlFor="artWidth" className="block text-xs font-medium tracking-wide uppercase text-muted mb-2">
+                  Width (cm)
+                </label>
+                <input
+                  id="artWidth"
+                  type="number"
+                  value={artworkWidth}
+                  onChange={(e) => setArtworkWidth(e.target.value)}
+                  className="w-full px-4 py-3 bg-white border border-border rounded-xl text-sm placeholder:text-warm-gray transition-colors focus:border-accent focus:ring-1 focus:ring-accent/20"
+                  placeholder="e.g. 60"
+                  min="1"
+                />
+              </div>
+              <div>
+                <label htmlFor="artHeight" className="block text-xs font-medium tracking-wide uppercase text-muted mb-2">
+                  Height (cm)
+                </label>
+                <input
+                  id="artHeight"
+                  type="number"
+                  value={artworkHeight}
+                  onChange={(e) => setArtworkHeight(e.target.value)}
+                  className="w-full px-4 py-3 bg-white border border-border rounded-xl text-sm placeholder:text-warm-gray transition-colors focus:border-accent focus:ring-1 focus:ring-accent/20"
+                  placeholder="e.g. 80"
+                  min="1"
+                />
+              </div>
+            </div>
+
+            {/* Price */}
+            <div>
+              <label htmlFor="artPrice" className="block text-xs font-medium tracking-wide uppercase text-muted mb-2">
+                Price (AUD) <span className="text-error">*</span>
+              </label>
+              <div className="relative">
+                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm text-muted">$</span>
+                <input
+                  id="artPrice"
+                  type="number"
+                  value={artworkPrice}
+                  onChange={(e) => setArtworkPrice(e.target.value)}
+                  className="w-full pl-8 pr-4 py-3 bg-white border border-border rounded-xl text-sm placeholder:text-warm-gray transition-colors focus:border-accent focus:ring-1 focus:ring-accent/20"
+                  placeholder="0.00"
+                  min="1"
+                  step="0.01"
+                />
+              </div>
+              {priceCalc && (
+                <div className="mt-2 p-3 bg-accent-subtle/50 rounded-lg text-xs text-muted space-y-0.5">
+                  <div className="flex justify-between">
+                    <span>Sale price</span>
+                    <span>{formatPrice(parseFloat(artworkPrice))}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Stripe fee (~1.75% + 30c)</span>
+                    <span>−{formatPrice(priceCalc.stripeFee)}</span>
+                  </div>
+                  <div className="flex justify-between font-medium text-foreground pt-1 border-t border-border">
+                    <span>You receive</span>
+                    <span>{formatPrice(priceCalc.artistPayout)}</span>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* ────────────── STEP 4: Connect Payments ────────────── */}
         {step === 4 && (
           <div className="space-y-8">
             <div className="text-center">
               <h1 className="font-editorial text-2xl md:text-3xl font-medium">
-                Your subscription
+                Connect payments
               </h1>
               <p className="text-sm text-muted mt-2">
-                Signo uses a simple flat-rate subscription — no commission on sales.
+                Connect Stripe to receive payouts when your artwork sells.
               </p>
             </div>
 
-            <div className="bg-white border-2 border-accent rounded-2xl p-6 space-y-5">
-              <div className="text-center">
-                <p className="font-editorial text-3xl font-semibold text-accent-dark">$30<span className="text-lg text-muted font-normal">/month</span></p>
-                <p className="text-sm text-muted mt-1">Unlimited listings, zero commission</p>
+            <div className="bg-white border border-border rounded-2xl p-6 space-y-5">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 bg-accent-subtle rounded-xl flex items-center justify-center flex-shrink-0">
+                  <Zap className="h-6 w-6 text-accent-dark" />
+                </div>
+                <div>
+                  <p className="font-medium">Stripe Connect</p>
+                  <p className="text-xs text-muted mt-0.5">Secure payments powered by Stripe</p>
+                </div>
               </div>
 
               <div className="h-px bg-border" />
 
               <div className="space-y-2.5">
-                <p className="text-xs font-medium tracking-wide uppercase text-muted">What&apos;s included</p>
                 {[
-                  { icon: Store, text: 'Your own public artist storefront' },
-                  { icon: CreditCard, text: 'Unlimited listings — no per-item fees' },
-                  { icon: Check, text: '0% commission — keep 100% of every sale' },
-                  { icon: MessageCircle, text: 'Buyer-artist messaging' },
-                  { icon: BarChart3, text: 'Earnings dashboard & payout tracking' },
-                  { icon: Search, text: 'AI-assisted quality review (24-48h)' },
-                  { icon: Shield, text: 'Escrow protection & buyer guarantee' },
-                ].map((item, i) => (
-                  <div key={i} className="flex items-center gap-3">
-                    <div className="w-8 h-8 bg-accent-subtle rounded-full flex items-center justify-center flex-shrink-0">
-                      <item.icon className="h-4 w-4 text-accent-dark" />
-                    </div>
-                    <p className="text-sm">{item.text}</p>
+                  'You keep 100% of every sale',
+                  'Only Stripe\'s processing fee (~1.75% + 30c)',
+                  'Direct deposits to your bank account',
+                  'Daily payouts once connected',
+                ].map((text, i) => (
+                  <div key={i} className="flex items-center gap-2.5">
+                    <Check className="h-4 w-4 text-accent flex-shrink-0" />
+                    <p className="text-sm">{text}</p>
                   </div>
                 ))}
               </div>
 
               <div className="h-px bg-border" />
 
-              <div className="space-y-1.5 text-center">
-                <p className="text-sm text-muted">
-                  You keep 100% of every sale (minus Stripe payment processing fees of ~1.75% + 30c)
-                </p>
-                <p className="text-xs text-warm-gray">Cancel anytime</p>
-              </div>
+              {stripeConnected ? (
+                <div className="flex items-center gap-3 p-3.5 bg-green-50 border border-green-200 rounded-xl">
+                  <Check className="h-5 w-5 text-green-600 flex-shrink-0" />
+                  <p className="text-sm text-green-700 font-medium">Stripe is connected and ready to receive payments.</p>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={handleConnectStripe}
+                  disabled={stripeLoading}
+                  className="w-full py-3.5 bg-[#635BFF] text-white font-semibold rounded-xl hover:bg-[#5851DB] transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                >
+                  {stripeLoading ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Connecting...
+                    </>
+                  ) : (
+                    <>
+                      Connect with Stripe
+                      <ArrowRight className="h-4 w-4" />
+                    </>
+                  )}
+                </button>
+              )}
             </div>
 
-            <div className="p-4 bg-accent-subtle/50 border border-accent/10 rounded-xl text-center">
-              <p className="text-sm font-medium text-foreground mb-1">
-                Early access: Free during our launch period
-              </p>
-              <p className="text-xs text-muted">
-                We&apos;ll notify you before billing begins. No credit card required right now.
-              </p>
-            </div>
+            <p className="text-xs text-center text-warm-gray">
+              You can always connect Stripe later from your{' '}
+              <Link href="/artist/settings/payouts" className="text-accent-dark underline">
+                payout settings
+              </Link>.
+            </p>
 
             {error && (
               <div className="p-3.5 bg-error/5 border border-error/20 text-error text-sm rounded-xl animate-fade-in">
@@ -528,34 +988,25 @@ export default function ArtistOnboardingPage() {
               <h1 className="font-editorial text-2xl md:text-3xl font-medium">
                 You&apos;re all set!
               </h1>
-              <p className="text-sm text-muted mt-2 max-w-sm mx-auto">
-                Your artist profile is ready. Here&apos;s a preview of how it looks to buyers.
-              </p>
+              {artworkImages.length > 0 ? (
+                <p className="text-sm text-muted mt-2 max-w-sm mx-auto">
+                  Your artwork is under review. We&apos;ll notify you when it goes live — usually within 24-48 hours.
+                </p>
+              ) : (
+                <p className="text-sm text-muted mt-2 max-w-sm mx-auto">
+                  Your artist profile is ready. Upload your first artwork when you&apos;re ready.
+                </p>
+              )}
             </div>
 
-            {/* Profile preview card */}
+            {/* Profile preview */}
             <div className="bg-white border border-border rounded-2xl p-6 text-left max-w-sm mx-auto">
               <div className="flex items-center gap-4 mb-4">
-                {avatarUrl ? (
-                  <Image
-                    src={avatarUrl}
-                    alt={fullName}
-                    width={56}
-                    height={56}
-                    className="rounded-full object-cover"
-                  />
-                ) : (
-                  <div className="w-14 h-14 rounded-full bg-accent-subtle flex items-center justify-center">
-                    <span className="font-editorial text-lg font-medium text-accent-dark">
-                      {fullName
-                        .split(' ')
-                        .map((n) => n[0])
-                        .join('')
-                        .toUpperCase()
-                        .slice(0, 2)}
-                    </span>
-                  </div>
-                )}
+                <Avatar
+                  avatarUrl={avatarUrl}
+                  name={fullName}
+                  size={56}
+                />
                 <div>
                   <p className="font-medium">{fullName}</p>
                   {location && (
@@ -587,76 +1038,92 @@ export default function ArtistOnboardingPage() {
             {/* CTAs */}
             <div className="flex flex-col gap-3 max-w-xs mx-auto">
               <Link
-                href="/artist/artworks/new"
+                href="/artist/dashboard"
                 className="w-full py-3.5 bg-primary text-white font-semibold rounded-full hover:bg-accent transition-colors duration-300 flex items-center justify-center gap-2"
               >
-                Upload your first artwork
+                Go to Dashboard
                 <ArrowRight className="h-4 w-4" />
               </Link>
-              <Link
-                href="/artist/dashboard"
-                className="w-full py-3 text-muted font-medium text-sm hover:text-foreground transition-colors text-center"
-              >
-                Go to dashboard
-              </Link>
+              {artworkImages.length === 0 && (
+                <Link
+                  href="/artist/artworks/new"
+                  className="w-full py-3 text-accent-dark font-medium text-sm hover:text-foreground transition-colors text-center"
+                >
+                  Upload your first artwork
+                </Link>
+              )}
             </div>
           </div>
         )}
 
         {/* ────────────── Navigation buttons ────────────── */}
-        {step < 5 && (
+        {step >= 1 && step <= 4 && (
           <div className="flex items-center justify-between mt-10 pt-6 border-t border-border">
-            {step > 1 ? (
-              <button
-                type="button"
-                onClick={prevStep}
-                className="flex items-center gap-2 text-sm text-muted hover:text-foreground transition-colors"
-              >
-                <ArrowLeft className="h-4 w-4" /> Back
-              </button>
-            ) : (
-              <div />
-            )}
+            <button
+              type="button"
+              onClick={prevStep}
+              className="flex items-center gap-2 text-sm text-muted hover:text-foreground transition-colors"
+            >
+              <ArrowLeft className="h-4 w-4" /> Back
+            </button>
 
             <div className="flex items-center gap-3">
-              {step === 2 && (
+              {/* Skip artwork step */}
+              {step === 3 && (
                 <button
                   type="button"
-                  onClick={nextStep}
+                  onClick={() => {
+                    setStep(4);
+                  }}
                   className="text-sm text-muted hover:text-foreground transition-colors"
                 >
                   Skip for now
                 </button>
               )}
-              <button
-                type="button"
-                onClick={nextStep}
-                disabled={
-                  (step === 1 && !canProceedStep1) ||
-                  (step === 3 && !canProceedStep3) ||
-                  saving
-                }
 
-                className="px-8 py-3 bg-primary text-white font-semibold rounded-full hover:bg-accent transition-colors duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-              >
-                {saving ? (
-                  <>
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    Saving...
-                  </>
-                ) : step === 4 ? (
-                  <>
-                    Complete Setup
-                    <Check className="h-4 w-4" />
-                  </>
-                ) : (
-                  <>
-                    Continue
-                    <ArrowRight className="h-4 w-4" />
-                  </>
-                )}
-              </button>
+              {/* Step 4: Complete (save everything) */}
+              {step === 4 ? (
+                <button
+                  type="button"
+                  onClick={() => saveAndComplete(artworkImages.length === 0)}
+                  disabled={saving}
+                  className="px-8 py-3 bg-primary text-white font-semibold rounded-full hover:bg-accent transition-colors duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                >
+                  {saving ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Saving...
+                    </>
+                  ) : (
+                    <>
+                      Complete Setup
+                      <Check className="h-4 w-4" />
+                    </>
+                  )}
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={nextStep}
+                  disabled={
+                    (step === 1 && !canProceedStep1) ||
+                    (step === 2 && !canProceedStep2) ||
+                    (step === 3 && !canProceedStep3)
+                  }
+                  className="px-8 py-3 bg-primary text-white font-semibold rounded-full hover:bg-accent transition-colors duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                >
+                  Continue
+                  <ArrowRight className="h-4 w-4" />
+                </button>
+              )}
             </div>
+          </div>
+        )}
+
+        {/* Error display */}
+        {error && step !== 4 && (
+          <div className="mt-4 p-3.5 bg-error/5 border border-error/20 text-error text-sm rounded-xl animate-fade-in">
+            {error}
           </div>
         )}
       </div>

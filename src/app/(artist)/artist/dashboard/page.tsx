@@ -13,6 +13,7 @@ import {
   Sparkles,
   Loader2,
   Banknote,
+  Palette,
 } from 'lucide-react';
 import { formatPrice } from '@/lib/utils';
 import { useAuth } from '@/components/providers/AuthProvider';
@@ -32,6 +33,8 @@ interface RecentOrder {
 export default function ArtistDashboardPage() {
   const { loading: authLoading } = useRequireAuth('artist');
   const { user } = useAuth();
+
+  const showOnboardingBanner = user && !user.onboarding_completed;
 
   // Stats default to 0 — never show loading placeholders
   const [totalSales, setTotalSales] = useState(0);
@@ -160,6 +163,23 @@ export default function ArtistDashboardPage() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      {/* Onboarding banner */}
+      {showOnboardingBanner && (
+        <Link
+          href="/artist/onboarding"
+          className="flex items-center gap-4 p-4 mb-6 bg-accent-subtle border border-accent/20 rounded-2xl hover:border-accent/40 transition-colors group"
+        >
+          <div className="w-10 h-10 bg-accent/10 rounded-full flex items-center justify-center flex-shrink-0 group-hover:bg-accent/20 transition-colors">
+            <Palette className="h-5 w-5 text-accent-dark" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="font-medium text-sm text-foreground">Complete your artist setup</p>
+            <p className="text-xs text-muted mt-0.5">Finish setting up your profile and list your first artwork to start selling.</p>
+          </div>
+          <ArrowRight className="h-4 w-4 text-accent-dark flex-shrink-0 group-hover:translate-x-1 transition-transform" />
+        </Link>
+      )}
+
       <div className="flex items-center justify-between mb-8">
         <div>
           <h1 className="text-3xl font-bold">Seller Dashboard</h1>
