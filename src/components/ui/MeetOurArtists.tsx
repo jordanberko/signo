@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { ArrowRight, MapPin } from 'lucide-react';
+import Avatar from '@/components/ui/Avatar';
 
 export interface SpotlightArtist {
   id: string;
@@ -13,14 +14,6 @@ export interface SpotlightArtist {
   artworkCount: number;
   sampleImages: string[];
   sampleTitle: string;
-}
-
-function getInitials(name: string): string {
-  if (!name || !name.trim()) return '?';
-  const parts = name.trim().split(' ').filter(Boolean);
-  if (parts.length === 0) return '?';
-  if (parts.length === 1) return parts[0][0].toUpperCase();
-  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
 }
 
 /**
@@ -79,21 +72,11 @@ export default function MeetOurArtists({ artists }: { artists: SpotlightArtist[]
                 <div className="p-4">
                   <div className="flex items-center gap-3">
                     {/* Avatar */}
-                    <div className="flex-shrink-0 w-10 h-10 rounded-full overflow-hidden bg-primary">
-                      {artist.avatarUrl ? (
-                        <Image
-                          src={artist.avatarUrl}
-                          alt={artist.fullName}
-                          width={40}
-                          height={40}
-                          className="object-cover w-full h-full"
-                        />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center text-white text-xs font-semibold">
-                          {getInitials(artist.fullName)}
-                        </div>
-                      )}
-                    </div>
+                    <Avatar
+                      avatarUrl={artist.avatarUrl}
+                      name={artist.fullName}
+                      size={40}
+                    />
                     <div className="min-w-0">
                       <p className="font-medium text-sm text-primary truncate">
                         {artist.fullName}

@@ -1,7 +1,6 @@
 'use client';
 
 import Link from 'next/link';
-import Image from 'next/image';
 import { useState, useRef, useEffect } from 'react';
 import {
   LogOut,
@@ -16,14 +15,7 @@ import {
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { useAuth } from '@/components/providers/AuthProvider';
-
-function getInitials(name: string): string {
-  if (!name || !name.trim()) return '?';
-  const parts = name.trim().split(' ').filter(Boolean);
-  if (parts.length === 0) return '?';
-  if (parts.length === 1) return parts[0][0].toUpperCase();
-  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
-}
+import Avatar from '@/components/ui/Avatar';
 
 /** Clear any stale Supabase cookies from the browser. */
 function clearSupabaseCookies() {
@@ -137,70 +129,29 @@ export default function AuthButton() {
   }
 
   // --- Logged in ---
-  const initials = getInitials(user.full_name ?? '');
-
   return (
     <div ref={menuRef} style={{ position: 'relative', marginLeft: 16, flexShrink: 0, zIndex: 50 }}>
-      {/* Avatar button — ALL inline styles */}
-      {user.avatar_url ? (
-        <button
-          type="button"
-          onClick={() => setMenuOpen(!menuOpen)}
-          style={{
-            width: 40,
-            height: 40,
-            minWidth: 40,
-            minHeight: 40,
-            borderRadius: '50%',
-            overflow: 'hidden',
-            border: 'none',
-            outline: 'none',
-            cursor: 'pointer',
-            padding: 0,
-            background: '#e8e5df',
-            position: 'relative',
-            zIndex: 50,
-            flexShrink: 0,
-          }}
-        >
-          <Image
-            src={user.avatar_url}
-            alt={user.full_name ?? 'Avatar'}
-            width={40}
-            height={40}
-            style={{ objectFit: 'cover', width: '100%', height: '100%' }}
-          />
-        </button>
-      ) : (
-        <button
-          type="button"
-          onClick={() => setMenuOpen(!menuOpen)}
-          style={{
-            width: 40,
-            height: 40,
-            minWidth: 40,
-            minHeight: 40,
-            borderRadius: '50%',
-            backgroundColor: '#2C2C2A',
-            color: '#FFFFFF',
-            fontSize: 14,
-            fontWeight: 600,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            border: 'none',
-            outline: 'none',
-            cursor: 'pointer',
-            position: 'relative',
-            zIndex: 50,
-            flexShrink: 0,
-            padding: 0,
-            lineHeight: 1,
-          }}
-        >
-          {initials}
-        </button>
-      )}
+      {/* Avatar button */}
+      <button
+        type="button"
+        onClick={() => setMenuOpen(!menuOpen)}
+        style={{
+          border: 'none',
+          outline: 'none',
+          cursor: 'pointer',
+          padding: 0,
+          background: 'none',
+          position: 'relative',
+          zIndex: 50,
+          flexShrink: 0,
+        }}
+      >
+        <Avatar
+          avatarUrl={user.avatar_url}
+          name={user.full_name ?? ''}
+          size={40}
+        />
+      </button>
 
       {/* Dropdown menu */}
       {menuOpen && (

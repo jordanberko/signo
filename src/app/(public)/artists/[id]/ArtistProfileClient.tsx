@@ -13,7 +13,8 @@ import {
   MessageCircle,
   UserPlus,
 } from 'lucide-react';
-import { formatPrice, getInitials } from '@/lib/utils';
+import { formatPrice } from '@/lib/utils';
+import Avatar from '@/components/ui/Avatar';
 import type { Profile, Artwork, Review } from '@/lib/types/database';
 import ArtworkCard from '@/components/ui/ArtworkCard';
 
@@ -115,21 +116,12 @@ export default function ArtistProfileClient({
           <div className="flex flex-col md:flex-row gap-8 items-center md:items-start">
             {/* Avatar */}
             <div className="flex-shrink-0">
-              {artist.avatar_url ? (
-                <Image
-                  src={artist.avatar_url}
-                  alt={artist.full_name ?? 'Artist'}
-                  width={140}
-                  height={140}
-                  className="w-28 h-28 md:w-36 md:h-36 rounded-full object-cover border-4 border-white shadow-lg"
-                />
-              ) : (
-                <div className="w-28 h-28 md:w-36 md:h-36 rounded-full bg-accent-subtle border-4 border-white shadow-lg flex items-center justify-center">
-                  <span className="font-editorial text-3xl md:text-4xl font-medium text-accent-dark">
-                    {getInitials(artist.full_name ?? '?')}
-                  </span>
-                </div>
-              )}
+              <Avatar
+                avatarUrl={artist.avatar_url}
+                name={artist.full_name ?? ''}
+                size={140}
+                className="border-4 border-white shadow-lg w-28 h-28 md:!w-36 md:!h-36"
+              />
             </div>
 
             {/* Info */}
@@ -350,21 +342,11 @@ export default function ArtistProfileClient({
                   >
                     <div className="flex items-start gap-4">
                       {/* Reviewer avatar */}
-                      {reviewer?.avatar_url ? (
-                        <Image
-                          src={reviewer.avatar_url}
-                          alt={reviewerName}
-                          width={40}
-                          height={40}
-                          className="w-10 h-10 rounded-full object-cover flex-shrink-0"
-                        />
-                      ) : (
-                        <div className="w-10 h-10 rounded-full bg-accent-subtle flex items-center justify-center flex-shrink-0">
-                          <span className="text-sm font-medium text-accent-dark">
-                            {getInitials(reviewerName)}
-                          </span>
-                        </div>
-                      )}
+                      <Avatar
+                        avatarUrl={reviewer?.avatar_url}
+                        name={reviewerName}
+                        size={40}
+                      />
 
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between gap-3">

@@ -20,7 +20,7 @@ interface AvatarUploadProps {
 
 const ACCEPTED = '.jpg,.jpeg,.png,.webp';
 const ACCEPTED_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
-const MAX_SIZE_MB = 5;
+const MAX_SIZE_MB = 2;
 
 export default function AvatarUpload({
   currentUrl = null,

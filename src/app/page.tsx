@@ -8,6 +8,7 @@ import HeroRibbons from '@/components/ui/HeroRibbons';
 import GuidedSearch from '@/components/ui/GuidedSearch';
 import TrustBar from '@/components/ui/TrustBar';
 import MeetOurArtists, { type SpotlightArtist } from '@/components/ui/MeetOurArtists';
+import Avatar from '@/components/ui/Avatar';
 
 interface FeaturedArtwork {
   id: string;
@@ -258,14 +259,21 @@ export default function HomePage() {
                 return (
                   <div className="mb-8 pb-8 border-b border-border">
                     <p className="text-accent-dark text-xs font-semibold tracking-[0.2em] uppercase mb-3">Artist Spotlight</p>
-                    <Link href={`/artists/${artist.id}`} className="group/artist">
-                      <h3 className="font-editorial text-2xl font-medium text-primary group-hover/artist:text-accent-dark transition-colors">
-                        {artist.fullName}
-                      </h3>
+                    <Link href={`/artists/${artist.id}`} className="group/artist flex items-center gap-3">
+                      <Avatar
+                        avatarUrl={artist.avatarUrl}
+                        name={artist.fullName}
+                        size={48}
+                      />
+                      <div>
+                        <h3 className="font-editorial text-2xl font-medium text-primary group-hover/artist:text-accent-dark transition-colors">
+                          {artist.fullName}
+                        </h3>
+                        {artist.location && (
+                          <p className="text-muted text-sm">{artist.location}</p>
+                        )}
+                      </div>
                     </Link>
-                    {artist.location && (
-                      <p className="text-muted text-sm mt-1">{artist.location}</p>
-                    )}
                     <p className="mt-3 text-muted text-sm leading-relaxed line-clamp-3">
                       {artist.bio}
                     </p>
