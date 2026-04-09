@@ -52,7 +52,7 @@ function LoginForm() {
 
     if (authUser) {
       const redirect = searchParams.get('redirect');
-      window.location.href = redirect ? decodeURIComponent(redirect) : '/dashboard';
+      window.location.href = redirect ? decodeURIComponent(redirect) : '/';
     }
   }, [authUser, authLoading, searchParams, authError]);
 
@@ -63,7 +63,7 @@ function LoginForm() {
 
     // Safety net: force redirect after 8s no matter what
     const safetyTimeout = setTimeout(() => {
-      window.location.href = '/dashboard';
+      window.location.href = '/';
     }, 8000);
 
     try {
@@ -95,8 +95,7 @@ function LoginForm() {
 
       let destination = redirectPath;
       if (!destination) {
-        const role = data?.user?.user_metadata?.role;
-        destination = role === 'artist' ? '/artist/dashboard' : '/dashboard';
+        destination = '/';
       }
 
       window.location.href = destination;

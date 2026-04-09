@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { Search, Menu, X, MessageCircle, Heart } from 'lucide-react';
+import { Search, Menu, X, MessageCircle, Heart, LayoutDashboard } from 'lucide-react';
 import AuthButton from '@/components/AuthButton';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { createClient } from '@/lib/supabase/client';
@@ -187,6 +187,16 @@ export default function Header() {
               How It Works
             </Link>
 
+            {/* Dashboard link — only for artists/admins */}
+            {user && (user.role === 'artist' || user.role === 'admin') && (
+              <Link
+                href="/artist/artworks"
+                className="px-3 py-2 text-sm font-medium text-foreground hover:text-accent-dark transition-colors rounded-lg hover:bg-cream"
+              >
+                Dashboard
+              </Link>
+            )}
+
             {/* Favourites + Messages icons — only when logged in */}
             {user && (
               <>
@@ -254,6 +264,9 @@ export default function Header() {
           <nav className="px-4 pb-5 space-y-1">
             <MobileLink href="/browse" label="Browse Art" onClick={() => setMobileMenuOpen(false)} />
             <MobileLink href="/how-it-works" label="How It Works" onClick={() => setMobileMenuOpen(false)} />
+            {user && (user.role === 'artist' || user.role === 'admin') && (
+              <MobileLink href="/artist/artworks" label="Dashboard" onClick={() => setMobileMenuOpen(false)} />
+            )}
             {user && (
               <>
                 <MobileLink href="/favourites" label="Favourites" onClick={() => setMobileMenuOpen(false)} />

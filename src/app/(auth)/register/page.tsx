@@ -126,14 +126,14 @@ function RegisterForm() {
       // Small delay to let the profile trigger complete in the database
       await new Promise((resolve) => setTimeout(resolve, 500));
       // Use window.location.href for full page reload — clears all cached state
-      window.location.href = role === 'artist' ? '/artist/onboarding' : '/dashboard';
+      window.location.href = role === 'artist' ? '/artist/onboarding' : '/';
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Something went wrong. Please try again.';
       setError(message);
       setLoading(false);
       // Safety net: force redirect after 3 seconds
       setTimeout(() => {
-        window.location.href = '/dashboard';
+        window.location.href = '/';
       }, 3000);
     }
   }
