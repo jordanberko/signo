@@ -8,6 +8,8 @@ import {
   SlidersHorizontal,
   ChevronDown,
   Loader2,
+  Clock,
+  TrendingUp,
 } from 'lucide-react';
 import ArtworkCard from '@/components/ui/ArtworkCard';
 import type { ArtworkCategory } from '@/lib/types/database';
@@ -67,6 +69,58 @@ const SIZE_PRESETS = [
   { label: 'Medium', desc: '40–100cm', minCm: 40, maxCm: 100 },
   { label: 'Large', desc: 'Over 100cm', minCm: 100 },
 ];
+
+// TODO: Make popular searches dynamic based on actual search frequency once traffic grows
+const POPULAR_SEARCHES = [
+  'Abstract',
+  'Landscape',
+  'Oil painting',
+  'Under $500',
+  'Large artwork',
+  'Portrait',
+];
+
+const RECENT_SEARCHES_KEY = 'signo_recent_searches';
+const MAX_RECENT_SEARCHES = 5;
+
+function getRecentSearches(): string[] {
+  try {
+    const stored = localStorage.getItem(RECENT_SEARCHES_KEY);
+    return stored ? JSON.parse(stored) : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveRecentSearch(term: string) {
+  try {
+    const existing = getRecentSearches();
+    const filtered = existing.filter((s) => s.toLowerCase() !== term.toLowerCase());
+    const updated = [term, ...filtered].slice(0, MAX_RECENT_SEARCHES);
+    localStorage.setItem(RECENT_SEARCHES_KEY, JSON.stringify(updated));
+  } catch {
+    // localStorage unavailable
+  }
+}
+
+function removeRecentSearch(term: string): string[] {
+  try {
+    const existing = getRecentSearches();
+    const updated = existing.filter((s) => s !== term);
+    localStorage.setItem(RECENT_SEARCHES_KEY, JSON.stringify(updated));
+    return updated;
+  } catch {
+    return [];
+  }
+}
+
+function clearRecentSearches() {
+  try {
+    localStorage.removeItem(RECENT_SEARCHES_KEY);
+  } catch {
+    // localStorage unavailable
+  }
+}
 
 // ── Types ──
 
@@ -212,7 +266,42 @@ function BrowseContent() {
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
   const [fetchError, setFetchError] = useState<string | null>(null);
   const [favouriteIds, setFavouriteIds] = useState<Set<string>>(new Set());
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [recentSearches, setRecentSearches] = useState<string[]>([]);
+  const searchWrapperRef = useRef<HTMLDivElement>(null);
   const fetchIdRef = useRef(0);
+
+  // Load recent searches on mount
+  useEffect(() => {
+    setRecentSearches(getRecentSearches());
+  }, []);
+
+  // Close suggestions on click outside
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (searchWrapperRef.current && !searchWrapperRef.current.contains(e.target as Node)) {
+        setShowSuggestions(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  function handleSuggestionClick(term: string) {
+    setSearchInput(term);
+    setShowSuggestions(false);
+  }
+
+  function handleRemoveRecent(term: string, e: React.MouseEvent) {
+    e.stopPropagation();
+    const updated = removeRecentSearch(term);
+    setRecentSearches(updated);
+  }
+
+  function handleClearAllRecent() {
+    clearRecentSearches();
+    setRecentSearches([]);
+  }
 
   // Fetch user's favourited artwork IDs once on mount
   useEffect(() => {
@@ -322,6 +411,12 @@ function BrowseContent() {
             setArtworks(rows);
           }
           if (json.count != null) setTotalCount(json.count);
+
+          // Save successful search to recent searches (only if results found)
+          if (!append && debouncedSearch.trim() && rows.length > 0) {
+            saveRecentSearch(debouncedSearch.trim());
+            setRecentSearches(getRecentSearches());
+          }
         } else {
           const errBody = await res.json().catch(() => ({}));
           console.error('[Browse] API error:', res.status, errBody);
@@ -360,8 +455,13 @@ function BrowseContent() {
   function handleSearchKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
     if (e.key === 'Enter') {
       e.preventDefault();
+      setShowSuggestions(false);
       // Immediate search — bypass debounce
       fetchArtworks(false);
+    }
+    if (e.key === 'Escape') {
+      setShowSuggestions(false);
+      (e.target as HTMLInputElement).blur();
     }
   }
 
@@ -497,23 +597,93 @@ function BrowseContent() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Search & Sort Bar */}
         <div className="flex flex-col sm:flex-row gap-3 mb-6">
-          <div className="relative flex-1">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-warm-gray" />
+          <div ref={searchWrapperRef} className="relative flex-1">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-warm-gray z-[1]" />
             <input
               type="text"
               placeholder="Search by title, artist, medium, or style..."
               value={searchInput}
-              onChange={(e) => setSearchInput(e.target.value)}
+              onChange={(e) => {
+                setSearchInput(e.target.value);
+                if (!e.target.value) setShowSuggestions(true);
+              }}
+              onFocus={() => setShowSuggestions(true)}
               onKeyDown={handleSearchKeyDown}
               className="w-full pl-11 pr-10 py-2.5 bg-white border border-border rounded-full text-sm placeholder:text-warm-gray focus:border-accent focus:ring-1 focus:ring-accent/20 transition-colors"
             />
             {searchInput && (
               <button
-                onClick={() => setSearchInput('')}
-                className="absolute right-4 top-1/2 -translate-y-1/2 text-warm-gray hover:text-foreground transition-colors"
+                onClick={() => {
+                  setSearchInput('');
+                  setShowSuggestions(true);
+                }}
+                className="absolute right-4 top-1/2 -translate-y-1/2 text-warm-gray hover:text-foreground transition-colors z-[1]"
               >
                 <X className="h-4 w-4" />
               </button>
+            )}
+
+            {/* Search suggestions dropdown */}
+            {showSuggestions && !searchInput.trim() && (
+              <div className="absolute top-full left-0 right-0 mt-1.5 bg-white border border-border rounded-xl shadow-lg z-30 overflow-hidden">
+                {/* Recent searches */}
+                {recentSearches.length > 0 && (
+                  <div className="px-4 pt-3 pb-2">
+                    <div className="flex items-center justify-between mb-2">
+                      <p className="text-[11px] font-semibold tracking-wide uppercase text-muted flex items-center gap-1.5">
+                        <Clock className="h-3 w-3" />
+                        Recent
+                      </p>
+                      <button
+                        onClick={handleClearAllRecent}
+                        className="text-[11px] text-accent-dark hover:underline"
+                      >
+                        Clear all
+                      </button>
+                    </div>
+                    {recentSearches.map((term) => (
+                      <button
+                        key={term}
+                        onClick={() => handleSuggestionClick(term)}
+                        className="flex items-center justify-between w-full px-2 py-1.5 rounded-lg text-sm text-foreground hover:bg-cream transition-colors group"
+                      >
+                        <span className="truncate">{term}</span>
+                        <span
+                          role="button"
+                          onClick={(e) => handleRemoveRecent(term, e)}
+                          className="text-warm-gray hover:text-foreground opacity-0 group-hover:opacity-100 transition-opacity p-0.5"
+                        >
+                          <X className="h-3 w-3" />
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+
+                {/* Divider between sections */}
+                {recentSearches.length > 0 && (
+                  <div className="border-t border-border" />
+                )}
+
+                {/* Popular searches */}
+                <div className="px-4 pt-3 pb-3">
+                  <p className="text-[11px] font-semibold tracking-wide uppercase text-muted flex items-center gap-1.5 mb-2">
+                    <TrendingUp className="h-3 w-3" />
+                    Popular
+                  </p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {POPULAR_SEARCHES.map((term) => (
+                      <button
+                        key={term}
+                        onClick={() => handleSuggestionClick(term)}
+                        className="px-3 py-1.5 bg-cream border border-border rounded-full text-xs text-muted hover:border-accent hover:text-accent-dark transition-colors"
+                      >
+                        {term}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
             )}
           </div>
           <div className="flex gap-2">
@@ -601,13 +771,41 @@ function BrowseContent() {
               </div>
             ) : artworks.length === 0 ? (
               <div className="text-center py-24">
-                {hasActiveFilters ? (
+                {debouncedSearch.trim() ? (
+                  <>
+                    <p className="font-editorial text-2xl text-foreground mb-2">
+                      No results for &ldquo;{debouncedSearch.trim()}&rdquo;
+                    </p>
+                    <p className="text-muted mb-6 text-sm max-w-md mx-auto">
+                      We couldn&apos;t find any artworks matching that search. Try one of these instead:
+                    </p>
+                    <div className="flex flex-wrap justify-center gap-2 mb-8">
+                      {['Abstract', 'Oil', 'Landscape', 'Contemporary'].map((term) => (
+                        <button
+                          key={term}
+                          onClick={() => {
+                            setSearchInput(term);
+                          }}
+                          className="px-4 py-2 bg-cream border border-border rounded-full text-sm text-muted hover:border-accent hover:text-accent-dark transition-colors"
+                        >
+                          {term}
+                        </button>
+                      ))}
+                    </div>
+                    <button
+                      onClick={clearAllFilters}
+                      className="text-sm text-accent-dark font-medium hover:underline"
+                    >
+                      Or browse all artwork &rarr;
+                    </button>
+                  </>
+                ) : hasActiveFilters ? (
                   <>
                     <p className="font-editorial text-2xl text-foreground mb-2">
                       No artworks match your filters
                     </p>
                     <p className="text-muted mb-6 text-sm">
-                      Try adjusting your search or removing some filters.
+                      Try adjusting your filters or removing some to see more results.
                     </p>
                     <button
                       onClick={clearAllFilters}
