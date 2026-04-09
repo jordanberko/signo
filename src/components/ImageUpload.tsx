@@ -1,8 +1,11 @@
 'use client';
 
 import { useCallback, useRef, useState } from 'react';
-import { ImagePlus, X, GripVertical, Loader2, AlertCircle, RotateCw } from 'lucide-react';
+import { ImagePlus, X, GripVertical, Loader2, AlertCircle, RotateCw, Pencil } from 'lucide-react';
 import Image from 'next/image';
+import dynamic from 'next/dynamic';
+
+const ImageEditor = dynamic(() => import('./ImageEditor'), { ssr: false });
 
 interface ImageItem {
   /** A unique key for React rendering and reordering. */
@@ -55,6 +58,7 @@ export default function ImageUpload({
   const [error, setError] = useState('');
   const [isDraggingOver, setIsDraggingOver] = useState(false);
   const [dragIndex, setDragIndex] = useState<number | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Are any images currently uploading?
@@ -121,6 +125,55 @@ export default function ImageUpload({
       }
     },
     [images, uploadSingleFile]
+  );
+
+  // Handle edited image — re-upload the corrected file
+  const handleEditApply = useCallback(
+    async (file: File) => {
+      const id = editingId;
+      if (!id) return;
+      setEditingId(null);
+
+      // Revoke old preview if any
+      const oldImg = images.find((i) => i.id === id);
+      if (oldImg?.preview) URL.revokeObjectURL(oldImg.preview);
+
+      // Set new local preview and start re-upload
+      const preview = URL.createObjectURL(file);
+      setImages((prev) =>
+        prev.map((img) =>
+          img.id === id
+            ? { ...img, file, preview, url: '', uploading: true, progress: 0, error: undefined }
+            : img
+        )
+      );
+
+      try {
+        const url = await uploadFile(file, (progress) => {
+          setImages((prev) =>
+            prev.map((img) => (img.id === id ? { ...img, progress } : img))
+          );
+        });
+
+        setImages((prev) => {
+          const updated = prev.map((img) =>
+            img.id === id
+              ? { ...img, url, uploading: false, progress: 100, error: undefined }
+              : img
+          );
+          notifyParent(updated);
+          return updated;
+        });
+      } catch (err) {
+        const message = err instanceof Error ? err.message : 'Upload failed';
+        setImages((prev) =>
+          prev.map((img) =>
+            img.id === id ? { ...img, uploading: false, error: message } : img
+          )
+        );
+      }
+    },
+    [editingId, images, uploadFile, notifyParent]
   );
 
   // Validate and add files
@@ -382,6 +435,19 @@ export default function ImageUpload({
                     <GripVertical className="h-3.5 w-3.5 text-muted" />
                   </div>
 
+                  {/* Edit button */}
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setEditingId(img.id);
+                    }}
+                    className="absolute bottom-2 left-2 flex items-center gap-1 px-2.5 py-1.5 bg-white/90 rounded-lg hover:bg-accent hover:text-white transition-colors shadow-sm text-xs font-medium"
+                  >
+                    <Pencil className="h-3 w-3" />
+                    Edit
+                  </button>
+
                   {/* Remove button */}
                   <button
                     type="button"
@@ -434,6 +500,20 @@ export default function ImageUpload({
           Drag images to reorder · The first image will be the main thumbnail
         </p>
       )}
+
+      {/* Image Editor modal */}
+      {editingId && (() => {
+        const img = images.find((i) => i.id === editingId);
+        const src = img?.preview || img?.url;
+        if (!src) return null;
+        return (
+          <ImageEditor
+            src={src}
+            onApply={handleEditApply}
+            onCancel={() => setEditingId(null)}
+          />
+        );
+      })()}
     </div>
   );
 }
