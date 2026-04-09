@@ -3,19 +3,15 @@
 import { useEffect, useRef, useCallback } from 'react';
 
 const PATHS = [
-  // Ribbon 1: top-left → curves through middle → exits right
-  'M-100,120 C100,80 200,220 350,200 C500,180 450,350 300,380 C150,410 80,500 200,550 C320,600 500,520 650,560 C800,600 850,480 750,420 C650,360 700,280 850,300 C1000,320 1050,200 1200,250 C1350,300 1400,180 1540,200',
-  // Ribbon 2: gentle middle flow
+  // Gentle middle flow
   'M-150,400 C50,350 150,450 300,420 C450,390 500,300 650,330 C800,360 900,450 1050,400 C1200,350 1300,430 1450,380 C1600,330 1550,450 1600,500',
 ];
 
 const RIBBON_TEXT = [
-  '$30/month \u2726 zero commission \u2726 your art, your rules \u2726 sell direct to collectors \u2726 keep 100% of every sale \u2726 ',
   'originals \u2726 prints \u2726 digital downloads \u2726 direct from the studio \u2726 art finds its people \u2726 ',
 ];
 
 const RIBBON_CONFIG = [
-  { duration: 50, direction: 1, fontClass: 'ribbon-serif', opacity: 0.08, fontSize: 18, strokeOpacity: 0.06 },
   { duration: 60, direction: -1, fontClass: 'ribbon-sans', opacity: 0.08, fontSize: 15, strokeOpacity: 0.06 },
 ];
 
