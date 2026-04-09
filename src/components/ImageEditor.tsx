@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect, useCallback, type PointerEvent as RPointerEvent } from 'react';
+import { createPortal } from 'react-dom';
 import { X, RotateCw, Crop, Check, RotateCcw } from 'lucide-react';
 
 // ── Types ──
@@ -416,16 +417,16 @@ export default function ImageEditor({ src, onApply, onCancel }: ImageEditorProps
 
   const hasChanges = rotation !== 0 || crop.x !== 0 || crop.y !== 0 || crop.w !== displaySize.w || crop.h !== displaySize.h;
 
-  return (
-    <div className="fixed inset-0 z-50 bg-[#111] flex flex-col">
+  const content = (
+    <div className="fixed inset-0 z-[9999] bg-[#111] flex flex-col">
       {/* ── Header ── */}
       <div className="flex items-center justify-between px-4 py-3 bg-[#1a1a1a] border-b border-white/10 flex-shrink-0">
         <button
           onClick={onCancel}
-          className="flex items-center gap-1.5 text-sm text-white/70 hover:text-white transition-colors"
+          className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-white/70 hover:text-white hover:bg-white/10 rounded-full transition-colors"
         >
           <X className="h-4 w-4" />
-          <span className="hidden sm:inline">Cancel</span>
+          Cancel
         </button>
 
         <div className="flex items-center gap-1 bg-white/10 rounded-full p-0.5">
@@ -561,4 +562,6 @@ export default function ImageEditor({ src, onApply, onCancel }: ImageEditorProps
       </div>
     </div>
   );
+
+  return createPortal(content, document.body);
 }
