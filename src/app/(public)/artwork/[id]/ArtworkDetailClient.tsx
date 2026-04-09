@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, type PointerEvent as RPointerEvent } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
@@ -71,6 +71,11 @@ interface Props {
 
 // ── Lightbox ──
 
+// ── Zoom constants ──
+const MIN_SCALE = 1;
+const MAX_SCALE = 5;
+const ZOOM_STEP = 0.3;
+
 function Lightbox({
   images,
   initialIndex,
@@ -83,16 +88,63 @@ function Lightbox({
   title: string;
 }) {
   const [index, setIndex] = useState(initialIndex);
+  const [scale, setScale] = useState(1);
+  const [translate, setTranslate] = useState({ x: 0, y: 0 });
 
+  // Drag (pan) state
+  const isDragging = useRef(false);
+  const dragStart = useRef({ x: 0, y: 0 });
+  const translateStart = useRef({ x: 0, y: 0 });
+
+  // Pinch state
+  const pointers = useRef<Map<number, { x: number; y: number }>>(new Map());
+  const pinchStartDist = useRef(0);
+  const pinchStartScale = useRef(1);
+
+  const imageContainerRef = useRef<HTMLDivElement>(null);
+
+  // Reset zoom when changing image
+  useEffect(() => {
+    setScale(1);
+    setTranslate({ x: 0, y: 0 });
+  }, [index]);
+
+  const isZoomed = scale > 1.05;
+
+  // Clamp translate so image doesn't fly off-screen
+  const clampTranslate = useCallback(
+    (tx: number, ty: number, s: number) => {
+      if (s <= 1) return { x: 0, y: 0 };
+      const el = imageContainerRef.current;
+      if (!el) return { x: tx, y: ty };
+      const rect = el.getBoundingClientRect();
+      const maxX = ((s - 1) * rect.width) / 2;
+      const maxY = ((s - 1) * rect.height) / 2;
+      return {
+        x: Math.max(-maxX, Math.min(maxX, tx)),
+        y: Math.max(-maxY, Math.min(maxY, ty)),
+      };
+    },
+    []
+  );
+
+  // ── Keyboard ──
   const handleKeyDown = useCallback(
     (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
-      if (e.key === 'ArrowLeft')
+      if (e.key === 'Escape') {
+        if (isZoomed) {
+          setScale(1);
+          setTranslate({ x: 0, y: 0 });
+        } else {
+          onClose();
+        }
+      }
+      if (e.key === 'ArrowLeft' && !isZoomed)
         setIndex((i) => (i === 0 ? images.length - 1 : i - 1));
-      if (e.key === 'ArrowRight')
+      if (e.key === 'ArrowRight' && !isZoomed)
         setIndex((i) => (i === images.length - 1 ? 0 : i + 1));
     },
-    [images.length, onClose]
+    [images.length, onClose, isZoomed]
   );
 
   useEffect(() => {
@@ -104,8 +156,151 @@ function Lightbox({
     };
   }, [handleKeyDown]);
 
+  // ── Scroll-to-zoom (desktop) ──
+  const handleWheel = useCallback(
+    (e: WheelEvent) => {
+      e.preventDefault();
+      const delta = e.deltaY > 0 ? -ZOOM_STEP : ZOOM_STEP;
+      setScale((prev) => {
+        const next = Math.max(MIN_SCALE, Math.min(MAX_SCALE, prev + delta));
+        if (next <= 1) setTranslate({ x: 0, y: 0 });
+        return next;
+      });
+    },
+    []
+  );
+
+  useEffect(() => {
+    const el = imageContainerRef.current;
+    if (!el) return;
+    el.addEventListener('wheel', handleWheel, { passive: false });
+    return () => el.removeEventListener('wheel', handleWheel);
+  }, [handleWheel]);
+
+  // ── Pointer events (drag + pinch) ──
+  function getDistance(pts: Map<number, { x: number; y: number }>) {
+    const arr = [...pts.values()];
+    if (arr.length < 2) return 0;
+    const dx = arr[1].x - arr[0].x;
+    const dy = arr[1].y - arr[0].y;
+    return Math.sqrt(dx * dx + dy * dy);
+  }
+
+  const handlePointerDown = useCallback(
+    (e: RPointerEvent<HTMLDivElement>) => {
+      pointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+      (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+
+      if (pointers.current.size === 2) {
+        // Start pinch
+        pinchStartDist.current = getDistance(pointers.current);
+        pinchStartScale.current = scale;
+      } else if (pointers.current.size === 1 && isZoomed) {
+        // Start drag
+        isDragging.current = true;
+        dragStart.current = { x: e.clientX, y: e.clientY };
+        translateStart.current = { ...translate };
+      }
+    },
+    [isZoomed, scale, translate]
+  );
+
+  const handlePointerMove = useCallback(
+    (e: RPointerEvent<HTMLDivElement>) => {
+      pointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+
+      if (pointers.current.size === 2) {
+        // Pinch zoom
+        const dist = getDistance(pointers.current);
+        if (pinchStartDist.current > 0) {
+          const ratio = dist / pinchStartDist.current;
+          const newScale = Math.max(
+            MIN_SCALE,
+            Math.min(MAX_SCALE, pinchStartScale.current * ratio)
+          );
+          setScale(newScale);
+          if (newScale <= 1) setTranslate({ x: 0, y: 0 });
+        }
+      } else if (isDragging.current && pointers.current.size === 1) {
+        // Pan
+        const dx = e.clientX - dragStart.current.x;
+        const dy = e.clientY - dragStart.current.y;
+        const newT = clampTranslate(
+          translateStart.current.x + dx,
+          translateStart.current.y + dy,
+          scale
+        );
+        setTranslate(newT);
+      }
+    },
+    [scale, clampTranslate]
+  );
+
+  const handlePointerUp = useCallback(
+    (e: RPointerEvent<HTMLDivElement>) => {
+      pointers.current.delete(e.pointerId);
+      if (pointers.current.size < 2) {
+        pinchStartDist.current = 0;
+      }
+      if (pointers.current.size === 0) {
+        isDragging.current = false;
+      }
+    },
+    []
+  );
+
+  // ── Double-tap / double-click to toggle zoom ──
+  const lastTap = useRef(0);
+  const handleDoubleAction = useCallback(() => {
+    if (isZoomed) {
+      setScale(1);
+      setTranslate({ x: 0, y: 0 });
+    } else {
+      setScale(3);
+    }
+  }, [isZoomed]);
+
+  const handleClick = useCallback(
+    (e: React.MouseEvent) => {
+      const now = Date.now();
+      if (now - lastTap.current < 300) {
+        e.preventDefault();
+        handleDoubleAction();
+      }
+      lastTap.current = now;
+    },
+    [handleDoubleAction]
+  );
+
+  // Click backdrop (outside image) to close — only when not zoomed
+  const handleBackdropClick = useCallback(
+    (e: React.MouseEvent) => {
+      if (e.target === e.currentTarget && !isZoomed) {
+        onClose();
+      }
+    },
+    [isZoomed, onClose]
+  );
+
+  function goTo(dir: 'prev' | 'next') {
+    if (isZoomed) return;
+    setIndex((i) =>
+      dir === 'prev'
+        ? i === 0
+          ? images.length - 1
+          : i - 1
+        : i === images.length - 1
+          ? 0
+          : i + 1
+    );
+  }
+
   return (
-    <div className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center">
+    <div
+      className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center"
+      onClick={handleBackdropClick}
+    >
+      {/* Close */}
       <button
         onClick={onClose}
         className="absolute top-4 right-4 p-2 text-white/70 hover:text-white transition-colors z-10"
@@ -114,20 +309,24 @@ function Lightbox({
         <X className="h-6 w-6" />
       </button>
 
-      {images.length > 1 && (
+      {/* Zoom hint */}
+      {!isZoomed && (
+        <div className="absolute top-5 left-1/2 -translate-x-1/2 text-white/50 text-xs tracking-wide pointer-events-none select-none z-10">
+          Scroll or pinch to zoom
+        </div>
+      )}
+
+      {/* Prev / Next */}
+      {images.length > 1 && !isZoomed && (
         <>
           <button
-            onClick={() =>
-              setIndex((i) => (i === 0 ? images.length - 1 : i - 1))
-            }
+            onClick={() => goTo('prev')}
             className="absolute left-4 top-1/2 -translate-y-1/2 p-3 text-white/70 hover:text-white bg-white/10 hover:bg-white/20 rounded-full transition-colors z-10"
           >
             <ChevronLeft className="h-6 w-6" />
           </button>
           <button
-            onClick={() =>
-              setIndex((i) => (i === images.length - 1 ? 0 : i + 1))
-            }
+            onClick={() => goTo('next')}
             className="absolute right-4 top-1/2 -translate-y-1/2 p-3 text-white/70 hover:text-white bg-white/10 hover:bg-white/20 rounded-full transition-colors z-10"
           >
             <ChevronRight className="h-6 w-6" />
@@ -135,16 +334,36 @@ function Lightbox({
         </>
       )}
 
-      <div className="relative max-w-[90vw] max-h-[90vh]">
+      {/* Image container — zoom & pan target */}
+      <div
+        ref={imageContainerRef}
+        className="relative max-w-[90vw] max-h-[90vh] touch-none select-none"
+        style={{
+          cursor: isZoomed ? 'grab' : 'zoom-in',
+        }}
+        onPointerDown={handlePointerDown}
+        onPointerMove={handlePointerMove}
+        onPointerUp={handlePointerUp}
+        onPointerCancel={handlePointerUp}
+        onClick={handleClick}
+      >
         <img
           src={images[index]}
           alt={`${title} — image ${index + 1}`}
-          className="max-w-full max-h-[90vh] object-contain"
+          className="max-w-full max-h-[90vh] object-contain pointer-events-none"
+          draggable={false}
+          style={{
+            transform: `scale(${scale}) translate(${translate.x / scale}px, ${translate.y / scale}px)`,
+            transition: isDragging.current || pointers.current.size >= 2
+              ? 'none'
+              : 'transform 200ms ease-out',
+          }}
         />
       </div>
 
-      {images.length > 1 && (
-        <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex gap-2">
+      {/* Dot indicators */}
+      {images.length > 1 && !isZoomed && (
+        <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex gap-2 z-10">
           {images.map((_, i) => (
             <button
               key={i}
