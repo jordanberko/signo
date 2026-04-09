@@ -9,6 +9,7 @@ import GuidedSearch from '@/components/ui/GuidedSearch';
 import TrustBar from '@/components/ui/TrustBar';
 import MeetOurArtists, { type SpotlightArtist } from '@/components/ui/MeetOurArtists';
 import Avatar from '@/components/ui/Avatar';
+import EntryAnimation from '@/components/EntryAnimation';
 
 interface FeaturedArtwork {
   id: string;
@@ -102,6 +103,7 @@ export default function HomePage() {
 
   return (
     <div>
+      <EntryAnimation />
       {/* ==================== HERO — MINIMAL ==================== */}
       <section className="bg-background pt-12 pb-8 md:pt-20 md:pb-12 relative overflow-x-clip">
         {/* Ribbon animation layer */}
