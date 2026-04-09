@@ -17,8 +17,8 @@ function getResend(): Resend {
 
 /**
  * From address.
- * Once signo.com.au is verified in Resend, change this to noreply@signo.com.au
- * TODO: Switch to noreply@signo.com.au after verifying the domain in Resend dashboard
+ * Set RESEND_FROM_ADDRESS=Signo <noreply@signoart.com.au> once the domain is verified in Resend.
+ * Falls back to Resend's sandbox address for development/testing.
  */
 const FROM_ADDRESS = process.env.RESEND_FROM_ADDRESS || 'Signo <onboarding@resend.dev>';
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://signo-tau.vercel.app';
