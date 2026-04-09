@@ -7,7 +7,7 @@
  * SETUP: Create these storage buckets in Supabase Dashboard → Storage:
  *
  * 1. "artwork-images" — Public: ON, File size limit: 50 MB, MIME: any
- * 2. "avatars" — Public: ON, File size limit: 2 MB, MIME: image/jpeg, image/png, image/webp
+ * 2. "avatars" — Public: ON, File size limit: 5 MB, MIME: image/jpeg, image/png, image/webp
  */
 
 import { getAuthToken } from './getAuthToken';
@@ -245,8 +245,8 @@ export async function uploadAvatar(
   if (!ACCEPTED_TYPES.includes(file.type)) {
     throw new Error('Please use JPG, PNG, or WebP.');
   }
-  if (file.size > 2 * 1024 * 1024) {
-    throw new Error('Avatar must be under 2MB.');
+  if (file.size > 10 * 1024 * 1024) {
+    throw new Error('Avatar must be under 10MB.');
   }
 
   onProgress?.(10);
