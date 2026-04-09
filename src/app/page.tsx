@@ -7,6 +7,7 @@ import ArtworkCard from '@/components/ui/ArtworkCard';
 import HeroRibbons from '@/components/ui/HeroRibbons';
 import GuidedSearch from '@/components/ui/GuidedSearch';
 import TrustBar from '@/components/ui/TrustBar';
+import MeetOurArtists, { type SpotlightArtist } from '@/components/ui/MeetOurArtists';
 
 interface FeaturedArtwork {
   id: string;
@@ -36,6 +37,7 @@ const PLACEHOLDER_CARDS = [
 export default function HomePage() {
   const [artworks, setArtworks] = useState<FeaturedArtwork[]>([]);
   const [newArrivals, setNewArrivals] = useState<FeaturedArtwork[]>([]);
+  const [spotlightArtists, setSpotlightArtists] = useState<SpotlightArtist[]>([]);
   const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
@@ -44,10 +46,11 @@ export default function HomePage() {
         const controller = new AbortController();
         const timeout = setTimeout(() => controller.abort(), 15000);
 
-        // Fetch featured (curated) and new arrivals (chronological) in parallel
-        const [featuredRes, arrivalsRes] = await Promise.all([
+        // Fetch featured, new arrivals, and artist spotlight in parallel
+        const [featuredRes, arrivalsRes, artistsRes] = await Promise.all([
           fetch('/api/artworks/featured?limit=8', { signal: controller.signal }),
           fetch('/api/artworks/browse?limit=6&sort=newest', { signal: controller.signal }),
+          fetch('/api/artists/spotlight?limit=10', { signal: controller.signal }),
         ]);
         clearTimeout(timeout);
 
@@ -74,6 +77,11 @@ export default function HomePage() {
             heightCm: (a.height_cm as number) || null,
           }));
           setNewArrivals(mapped);
+        }
+
+        if (artistsRes.ok) {
+          const json = await artistsRes.json();
+          setSpotlightArtists((json.data || []) as SpotlightArtist[]);
         }
       } catch (err) {
         console.error('[Home] Artwork fetch error:', err);
@@ -199,7 +207,7 @@ export default function HomePage() {
       <section className="py-16 md:py-24">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-12 md:gap-16 items-center">
-            {/* Visual — show featured artwork or attractive gradient */}
+            {/* Visual — featured artwork with secondary thumbnail */}
             <div className="relative">
               <div className="aspect-[4/3] rounded-2xl overflow-hidden">
                 {artworks.length > 0 ? (
@@ -224,12 +232,54 @@ export default function HomePage() {
                   </div>
                 )}
               </div>
-              {/* Accent block */}
-              <div className="absolute -bottom-4 -right-4 w-24 h-24 bg-accent rounded-xl -z-10" />
+              {/* Secondary artwork thumbnail — offset bottom-right */}
+              {artworks.length > 1 && (
+                <Link
+                  href={`/artwork/${artworks[1].id}`}
+                  className="absolute -bottom-6 -right-4 md:-right-6 w-28 h-36 md:w-36 md:h-44 rounded-xl overflow-hidden border-4 border-white shadow-lg group/thumb z-10"
+                >
+                  <img
+                    src={artworks[1].imageUrl}
+                    alt={artworks[1].title}
+                    className="w-full h-full object-cover group-hover/thumb:scale-105 transition-transform duration-500"
+                  />
+                </Link>
+              )}
+              {/* Accent block — behind secondary thumbnail */}
+              <div className="absolute -bottom-4 -right-4 w-24 h-24 bg-accent rounded-xl -z-[1]" />
             </div>
 
-            {/* Content */}
+            {/* Content — artist bio + CTA */}
             <div>
+              {/* Show artist bio if we have spotlight data for the featured artist */}
+              {spotlightArtists.length > 0 && artworks.length > 0 && (() => {
+                const artist = spotlightArtists.find((a) => a.id === artworks[0].artistId);
+                if (!artist?.bio) return null;
+                return (
+                  <div className="mb-8 pb-8 border-b border-border">
+                    <p className="text-accent-dark text-xs font-semibold tracking-[0.2em] uppercase mb-3">Artist Spotlight</p>
+                    <Link href={`/artists/${artist.id}`} className="group/artist">
+                      <h3 className="font-editorial text-2xl font-medium text-primary group-hover/artist:text-accent-dark transition-colors">
+                        {artist.fullName}
+                      </h3>
+                    </Link>
+                    {artist.location && (
+                      <p className="text-muted text-sm mt-1">{artist.location}</p>
+                    )}
+                    <p className="mt-3 text-muted text-sm leading-relaxed line-clamp-3">
+                      {artist.bio}
+                    </p>
+                    <Link
+                      href={`/artists/${artist.id}`}
+                      className="inline-flex items-center gap-1.5 text-sm font-medium text-accent-dark mt-3 hover:gap-2.5 transition-all"
+                    >
+                      View profile
+                      <ArrowRight className="h-3.5 w-3.5" />
+                    </Link>
+                  </div>
+                );
+              })()}
+
               <p className="text-accent-dark text-xs font-semibold tracking-[0.2em] uppercase mb-3">For Artists</p>
               <h2 className="font-editorial text-3xl md:text-4xl font-medium text-primary leading-snug">
                 Your art, your earnings.{' '}
@@ -258,6 +308,9 @@ export default function HomePage() {
           </div>
         </div>
       </section>
+
+      {/* ==================== MEET OUR ARTISTS ==================== */}
+      <MeetOurArtists artists={spotlightArtists} />
 
       {/* ==================== WHY SIGNO — 3 CARDS ==================== */}
       <section className="py-16 md:py-20 bg-cream">
