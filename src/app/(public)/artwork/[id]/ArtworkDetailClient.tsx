@@ -491,11 +491,19 @@ export default function ArtworkDetailClient({
               </div>
             </div>
 
-            {/* Favourite count */}
+            {/* Favourite count — social proof */}
             {favouriteCount > 0 && (
-              <p className="text-xs text-warm-gray flex items-center gap-1.5">
-                <Heart className="h-3 w-3" fill="#D85A30" stroke="#D85A30" />
-                {favouriteCount} {favouriteCount === 1 ? 'person has' : 'people have'} saved this
+              <p className={`text-xs flex items-center gap-1.5 ${isFavourited ? 'text-accent-dark' : 'text-warm-gray'}`}>
+                <Heart
+                  className="h-3 w-3"
+                  fill={isFavourited ? 'currentColor' : 'none'}
+                  stroke="currentColor"
+                />
+                {isFavourited
+                  ? favouriteCount === 1
+                    ? 'You favourited this'
+                    : `You and ${favouriteCount - 1} ${favouriteCount - 1 === 1 ? 'other' : 'others'} favourited this`
+                  : `${favouriteCount} ${favouriteCount === 1 ? 'favourite' : 'favourites'}`}
               </p>
             )}
 
