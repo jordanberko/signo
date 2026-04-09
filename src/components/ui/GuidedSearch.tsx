@@ -102,7 +102,7 @@ function Dropdown({
               }}
               className={`w-full text-left px-4 py-2.5 text-sm transition-colors ${
                 value === option.value
-                  ? 'bg-accent/10 text-accent-dark font-medium'
+                  ? 'bg-olive-light text-accent font-medium'
                   : 'text-foreground hover:bg-cream'
               }`}
             >
@@ -211,7 +211,7 @@ export default function GuidedSearch() {
           <button
             type="button"
             onClick={handleSearch}
-            className="flex-shrink-0 ml-1.5 inline-flex items-center gap-2 px-6 py-2.5 bg-accent text-primary text-sm font-semibold rounded-full hover:bg-accent-light transition-colors duration-200"
+            className="flex-shrink-0 ml-1.5 inline-flex items-center gap-2 px-6 py-2.5 bg-foreground text-white text-sm font-semibold rounded-full hover:bg-warm-black transition-colors duration-200"
           >
             Search
             <ArrowRight className="h-4 w-4" />
@@ -260,7 +260,7 @@ export default function GuidedSearch() {
           <button
             type="button"
             onClick={handleSearch}
-            className="w-full inline-flex items-center justify-center gap-2 py-3 bg-accent text-primary text-sm font-semibold rounded-full hover:bg-accent-light transition-colors duration-200"
+            className="w-full inline-flex items-center justify-center gap-2 py-3 bg-foreground text-white text-sm font-semibold rounded-full hover:bg-warm-black transition-colors duration-200"
           >
             Search Artwork
             <ArrowRight className="h-4 w-4" />
