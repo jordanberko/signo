@@ -21,7 +21,7 @@ export async function GET(request: NextRequest) {
     const { data: featuredData } = await supabase
       .from('artworks')
       .select(
-        'id, title, price_aud, images, medium, category, artist_id, is_featured, profiles!artworks_artist_id_fkey(id, full_name)',
+        'id, title, price_aud, images, medium, category, artist_id, width_cm, height_cm, is_featured, profiles!artworks_artist_id_fkey(id, full_name)',
       )
       .eq('status', 'approved')
       .eq('is_featured', true)
@@ -37,7 +37,7 @@ export async function GET(request: NextRequest) {
       const q = supabase
         .from('artworks')
         .select(
-          'id, title, price_aud, images, medium, category, artist_id, is_featured, profiles!artworks_artist_id_fkey(id, full_name)',
+          'id, title, price_aud, images, medium, category, artist_id, width_cm, height_cm, is_featured, profiles!artworks_artist_id_fkey(id, full_name)',
         )
         .eq('status', 'approved')
         .order('created_at', { ascending: false })
@@ -65,6 +65,8 @@ export async function GET(request: NextRequest) {
       imageUrl: ((a.images as string[]) || [])[0] || '',
       medium: a.medium as string,
       category: a.category as string,
+      widthCm: (a.width_cm as number) || null,
+      heightCm: (a.height_cm as number) || null,
     }));
 
     return NextResponse.json({ data: artworks });

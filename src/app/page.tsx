@@ -16,6 +16,8 @@ interface FeaturedArtwork {
   imageUrl: string;
   medium: string;
   category: 'original' | 'print' | 'digital';
+  widthCm?: number | null;
+  heightCm?: number | null;
 }
 
 // Placeholder cards shown while artwork loads or when DB is empty
@@ -67,6 +69,8 @@ export default function HomePage() {
             imageUrl: ((a.images as string[]) || [])[0] || '',
             medium: a.medium as string,
             category: a.category as 'original' | 'print' | 'digital',
+            widthCm: (a.width_cm as number) || null,
+            heightCm: (a.height_cm as number) || null,
           }));
           setNewArrivals(mapped);
         }

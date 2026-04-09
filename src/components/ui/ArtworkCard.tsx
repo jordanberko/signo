@@ -15,10 +15,10 @@ interface ArtworkCardProps {
   imageUrl: string;
   medium?: string | null;
   category?: 'original' | 'print' | 'digital';
+  widthCm?: number | null;
+  heightCm?: number | null;
   /** Hide the category badge (useful on filtered views) */
   hideBadge?: boolean;
-  /** Use natural aspect ratio for masonry layouts instead of fixed 3:4 */
-  masonry?: boolean;
   /** Pre-fill favourite state (e.g. on /favourites page) */
   initialFavourited?: boolean;
   /** Called after unfavouriting — used by /favourites page to remove from list */
@@ -34,8 +34,9 @@ export default function ArtworkCard({
   imageUrl,
   medium,
   category,
+  widthCm,
+  heightCm,
   hideBadge = false,
-  masonry = false,
   initialFavourited = false,
   onUnfavourite,
 }: ArtworkCardProps) {
@@ -46,6 +47,8 @@ export default function ArtworkCard({
   const categoryLabel = category
     ? { original: 'Original', print: 'Print', digital: 'Digital' }[category]
     : null;
+
+  const hasDimensions = widthCm && heightCm;
 
   const handleFavourite = useCallback(
     async (e: React.MouseEvent) => {
@@ -60,7 +63,6 @@ export default function ArtworkCard({
       const newState = !isFavourited;
       setIsFavourited(newState);
 
-      // Only animate the pop on favouriting, not unfavouriting
       if (newState) {
         setHeartAnimating(true);
         setTimeout(() => setHeartAnimating(false), 300);
@@ -73,10 +75,8 @@ export default function ArtworkCard({
           body: JSON.stringify({ artworkId: id }),
         });
         if (!res.ok) {
-          // Revert on error
           setIsFavourited(!newState);
         } else if (!newState && onUnfavourite) {
-          // Successfully unfavourited — notify parent
           onUnfavourite(id);
         }
       } catch {
@@ -88,32 +88,32 @@ export default function ArtworkCard({
 
   return (
     <div
-      className="group relative rounded-xl bg-[#FAFAF7] overflow-hidden transition-all duration-300 ease-out md:hover:-translate-y-1 md:hover:shadow-[0_8px_24px_rgba(0,0,0,0.08)]"
+      className="group relative rounded-[10px] bg-white border border-border overflow-hidden transition-all duration-[250ms] ease-out md:hover:-translate-y-1 md:hover:shadow-[0_12px_36px_rgba(0,0,0,0.1)]"
       style={{ minWidth: 0 }}
     >
-      {/* Image */}
+      {/* Image — 4:5 aspect ratio */}
       <Link
         href={`/artwork/${id}`}
-        className={`block overflow-hidden ${masonry ? '' : 'aspect-[3/4]'} bg-muted-bg`}
+        className="block overflow-hidden aspect-[4/5] bg-muted-bg relative"
       >
         {imageUrl ? (
-          <div className={`relative w-full ${masonry ? '' : 'h-full'}`}>
+          <>
             <img
               src={imageUrl}
               alt={title}
-              className={`block w-full ${masonry ? '' : 'h-full object-cover'} transition-transform duration-300 ease-out md:group-hover:scale-[1.03]`}
+              className="block w-full h-full object-cover transition-transform duration-[350ms] ease-out md:group-hover:scale-[1.04]"
               loading="lazy"
             />
-            {/* Hover overlay — desktop only */}
-            <div className="hidden md:flex absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-300 items-center justify-center">
-              <span className="inline-flex items-center gap-1.5 px-4 py-2 bg-white/90 backdrop-blur-sm rounded-full text-sm font-medium opacity-0 group-hover:opacity-100 translate-y-2 group-hover:translate-y-0 transition-all duration-300 shadow-sm">
+            {/* Quick View overlay — desktop only */}
+            <div className="hidden md:flex absolute inset-0 bg-black/0 group-hover:bg-black/5 transition-colors duration-300 items-end justify-center pb-4">
+              <span className="inline-flex items-center gap-1.5 px-4 py-2 bg-[rgba(26,26,26,0.85)] backdrop-blur-sm rounded-full text-xs font-semibold text-white opacity-0 group-hover:opacity-100 translate-y-2 group-hover:translate-y-0 transition-all duration-300">
                 <Eye className="h-3.5 w-3.5" />
-                View
+                Quick View
               </span>
             </div>
-          </div>
+          </>
         ) : (
-          <div className={`w-full ${masonry ? 'aspect-[3/4]' : 'h-full'} bg-gradient-to-br from-muted-bg to-border flex items-center justify-center`}>
+          <div className="w-full h-full bg-gradient-to-br from-muted-bg to-border flex items-center justify-center">
             <span className="text-warm-gray text-xs tracking-widest uppercase">
               No image
             </span>
@@ -121,13 +121,13 @@ export default function ArtworkCard({
         )}
       </Link>
 
-      {/* Favourite Button */}
+      {/* Favourite Heart — top right */}
       <button
         onClick={handleFavourite}
-        className={`absolute top-3 right-3 p-2.5 rounded-full transition-all duration-300 shadow-sm ${
+        className={`absolute top-3 right-3 w-9 h-9 flex items-center justify-center rounded-full transition-all duration-300 shadow-sm ${
           isFavourited
             ? 'bg-white opacity-100'
-            : 'bg-white/90 backdrop-blur-sm opacity-0 md:group-hover:opacity-100'
+            : 'bg-[rgba(255,255,255,0.92)] backdrop-blur-sm opacity-0 md:group-hover:opacity-100'
         } hover:scale-110`}
         aria-label={isFavourited ? 'Remove from favourites' : 'Add to favourites'}
         style={{
@@ -137,35 +137,50 @@ export default function ArtworkCard({
       >
         <Heart
           className="h-4 w-4 transition-colors duration-200"
-          fill={isFavourited ? '#D85A30' : 'none'}
-          stroke={isFavourited ? '#D85A30' : 'currentColor'}
+          fill={isFavourited ? '#dc2626' : 'none'}
+          stroke={isFavourited ? '#dc2626' : '#1a1a1a'}
         />
       </button>
 
-      {/* Category Badge */}
+      {/* Category Badge — top left */}
       {!hideBadge && categoryLabel && (
-        <span className="absolute top-3 left-3 px-2.5 py-1 bg-white/90 backdrop-blur-sm text-[11px] font-medium tracking-wide uppercase rounded-full shadow-sm">
+        <span className="absolute top-3 left-3 px-2.5 py-1 bg-[rgba(255,255,255,0.92)] backdrop-blur-sm text-[10.5px] font-bold tracking-wider uppercase rounded text-foreground">
           {categoryLabel}
         </span>
       )}
 
-      {/* Details */}
-      <div className="px-3.5 pt-3 pb-3.5 space-y-1">
+      {/* Info Section */}
+      <div className="p-4 space-y-1.5">
         <Link href={`/artwork/${id}`} className="block">
-          <h3 className="font-editorial font-medium text-foreground truncate hover:text-accent-dark transition-colors duration-300 text-sm">
+          <h3 className="font-editorial font-medium text-foreground truncate hover:text-accent transition-colors duration-200 text-[15px] leading-snug">
             {title}
           </h3>
         </Link>
+
         <Link
           href={`/artists/${artistId}`}
-          className="block text-xs text-muted hover:text-accent-dark transition-colors duration-300"
+          className="block text-[13px] text-muted hover:text-accent transition-colors duration-200"
         >
           {artistName}
         </Link>
-        {medium && (
-          <p className="text-[11px] text-warm-gray tracking-wide">{medium}</p>
+
+        {/* Medium + Dimensions pills */}
+        {(medium || hasDimensions) && (
+          <div className="flex flex-wrap gap-1.5 pt-0.5">
+            {medium && (
+              <span className="px-2 py-0.5 bg-sand rounded text-[11.5px] text-muted leading-relaxed">
+                {medium}
+              </span>
+            )}
+            {hasDimensions && (
+              <span className="px-2 py-0.5 bg-sand rounded text-[11.5px] text-muted leading-relaxed">
+                {Math.round(widthCm)} &times; {Math.round(heightCm)} cm
+              </span>
+            )}
+          </div>
         )}
-        <p className="font-medium text-foreground text-sm pt-0.5 tracking-wide">
+
+        <p className="font-semibold text-foreground text-lg pt-0.5 tracking-tight">
           {formatPrice(price)}
         </p>
       </div>

@@ -633,6 +633,8 @@ function BrowseContent() {
                       imageUrl={artwork.images?.[0] || ''}
                       medium={artwork.medium}
                       category={artwork.category}
+                      widthCm={artwork.width_cm}
+                      heightCm={artwork.height_cm}
                     />
                   ))}
                 </div>
