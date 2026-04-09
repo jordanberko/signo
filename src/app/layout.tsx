@@ -1,25 +1,26 @@
 import type { Metadata } from "next";
-import { Geist_Mono, Playfair_Display, Outfit } from "next/font/google";
+import { DM_Sans, Playfair_Display, JetBrains_Mono } from "next/font/google";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import { AuthProvider } from "@/components/providers/AuthProvider";
 import "./globals.css";
 
-const outfit = Outfit({
-  variable: "--font-outfit",
+const dmSans = DM_Sans({
+  variable: "--font-dm-sans",
   subsets: ["latin"],
-  weight: ["300", "400", "500", "600"],
+  weight: ["400", "500", "600", "700"],
 });
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
+const jetbrainsMono = JetBrains_Mono({
+  variable: "--font-jetbrains",
   subsets: ["latin"],
+  weight: ["400", "500", "700"],
 });
 
 const playfair = Playfair_Display({
   variable: "--font-playfair",
   subsets: ["latin"],
-  weight: ["400", "500", "600", "700", "800"],
+  weight: ["400", "500", "600"],
   style: ["normal", "italic"],
 });
 
@@ -54,7 +55,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${outfit.variable} ${geistMono.variable} ${playfair.variable} h-full antialiased`}
+      className={`${dmSans.variable} ${jetbrainsMono.variable} ${playfair.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
         <AuthProvider>

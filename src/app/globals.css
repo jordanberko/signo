@@ -1,27 +1,36 @@
 @import "tailwindcss";
 
 @theme inline {
-  --color-background: #F5F2ED;
+  /* ── Core palette: warm, earthy, gallery-like ── */
+  --color-background: #f5f2ed;
   --color-background-pure: #ffffff;
   --color-foreground: #1a1a1a;
-  --color-primary: #111111;
-  --color-primary-light: #2a2a2a;
-  --color-accent: #C8E600;
-  --color-accent-light: #D4E510;
-  --color-accent-subtle: #f3f9d0;
-  --color-accent-dark: #a8c200;
-  --color-muted: #78716c;
-  --color-muted-bg: #eee9e2;
-  --color-border: #ddd7ce;
+  --color-primary: #1a1a1a;
+  --color-primary-light: #2d2d2d;
+  --color-accent: #6b7c4e;
+  --color-accent-light: #8a9a6a;
+  --color-accent-subtle: #e8ecd9;
+  --color-accent-dark: #556640;
+  --color-muted: #7a7a72;
+  --color-muted-bg: #f0ece6;
+  --color-border: #e8e5df;
   --color-success: #16a34a;
   --color-error: #dc2626;
-  --color-cream: #FAF8F4;
+  --color-cream: #faf8f4;
   --color-warm-gray: #a8a29e;
-  --color-sand: #E8E2D9;
-  --color-off-white: #FAFAF7;
-  --font-sans: var(--font-outfit);
+  --color-sand: #f5f2ed;
+  --color-off-white: #fafaf7;
+
+  /* ── New tokens ── */
+  --color-olive-light: #e8ecd9;
+  --color-olive-muted: #8a9a6a;
+  --color-warm-black: #2d2d2d;
+  --color-accent-gold: #c4a55a;
+
+  /* ── Typography ── */
+  --font-sans: var(--font-dm-sans);
   --font-serif: var(--font-playfair);
-  --font-mono: var(--font-geist-mono);
+  --font-mono: var(--font-jetbrains);
 }
 
 /* Smooth scrolling */
@@ -201,7 +210,7 @@ body {
   font-weight: 400;
 }
 .ribbon-sans {
-  font-family: var(--font-outfit), var(--font-sans), Arial, Helvetica, sans-serif;
+  font-family: var(--font-dm-sans), var(--font-sans), Arial, Helvetica, sans-serif;
   font-weight: 500;
   letter-spacing: 1px;
 }
@@ -221,5 +230,5 @@ body {
 input:focus, select:focus, textarea:focus {
   outline: none;
   border-color: var(--color-accent) !important;
-  box-shadow: 0 0 0 3px rgba(200, 230, 0, 0.15);
+  box-shadow: 0 0 0 3px rgba(107, 124, 78, 0.15);
 }
