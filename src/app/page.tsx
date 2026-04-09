@@ -95,7 +95,7 @@ export default function HomePage() {
           <div className="max-w-2xl mx-auto text-center animate-fade-up">
             <h1 className="font-editorial text-4xl md:text-5xl lg:text-6xl font-medium leading-[1.1] tracking-tight text-primary">
               Where Art Finds{' '}
-              <span className="italic" style={{ color: '#B8965A' }}>
+              <span className="italic" style={{ color: '#c4a55a' }}>
                 Its People
               </span>
             </h1>

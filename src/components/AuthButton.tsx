@@ -95,7 +95,7 @@ export default function AuthButton() {
             width: 40,
             height: 40,
             borderRadius: '50%',
-            backgroundColor: '#E8E2D9',
+            backgroundColor: '#e8e5df',
           }}
         />
       </div>
@@ -124,8 +124,8 @@ export default function AuthButton() {
             padding: '8px 16px',
             fontSize: 14,
             fontWeight: 600,
-            color: '#1a1a1a',
-            backgroundColor: '#C8E600',
+            color: '#ffffff',
+            backgroundColor: '#6b7c4e',
             borderRadius: 999,
             textDecoration: 'none',
           }}
@@ -157,7 +157,7 @@ export default function AuthButton() {
             outline: 'none',
             cursor: 'pointer',
             padding: 0,
-            background: '#E8E2D9',
+            background: '#e8e5df',
             position: 'relative',
             zIndex: 50,
             flexShrink: 0,
@@ -213,7 +213,7 @@ export default function AuthButton() {
             minWidth: 240,
             width: 260,
             backgroundColor: '#FFFFFF',
-            border: '1px solid #E5E2DB',
+            border: '1px solid #e8e5df',
             borderRadius: 12,
             boxShadow: '0 10px 40px rgba(0,0,0,0.12), 0 2px 8px rgba(0,0,0,0.08)',
             zIndex: 9999,
@@ -221,11 +221,11 @@ export default function AuthButton() {
           }}
         >
           {/* User info */}
-          <div style={{ padding: '12px 16px', borderBottom: '1px solid #E5E2DB' }}>
+          <div style={{ padding: '12px 16px', borderBottom: '1px solid #e8e5df' }}>
             <p style={{ fontWeight: 600, fontSize: 14, margin: 0, color: '#1a1a1a' }}>
               {user.full_name || 'User'}
             </p>
-            <p style={{ fontSize: 12, color: '#8A8880', margin: '2px 0 0 0' }}>
+            <p style={{ fontSize: 12, color: '#7a7a72', margin: '2px 0 0 0' }}>
               {user.email}
             </p>
           </div>
@@ -239,7 +239,7 @@ export default function AuthButton() {
 
           {/* Artist links */}
           {isArtist && (
-            <div style={{ padding: '4px 0', borderTop: '1px solid #E5E2DB' }}>
+            <div style={{ padding: '4px 0', borderTop: '1px solid #e8e5df' }}>
               <DropdownLink href="/artist/dashboard" icon={Palette} label="Artist Dashboard" onClick={() => setMenuOpen(false)} />
               <DropdownLink href="/artist/artworks" icon={Images} label="My Artworks" onClick={() => setMenuOpen(false)} />
               <DropdownLink href="/artist/artworks/new" icon={ImagePlus} label="Upload Artwork" onClick={() => setMenuOpen(false)} />
@@ -249,13 +249,13 @@ export default function AuthButton() {
 
           {/* Admin link */}
           {isAdmin && (
-            <div style={{ padding: '4px 0', borderTop: '1px solid #E5E2DB' }}>
+            <div style={{ padding: '4px 0', borderTop: '1px solid #e8e5df' }}>
               <DropdownLink href="/admin/reviews" icon={Shield} label="Admin Panel" onClick={() => setMenuOpen(false)} />
             </div>
           )}
 
           {/* Sign out */}
-          <div style={{ borderTop: '1px solid #E5E2DB', padding: '4px 0' }}>
+          <div style={{ borderTop: '1px solid #e8e5df', padding: '4px 0' }}>
             <button
               type="button"
               onMouseDown={(e) => {
@@ -315,7 +315,7 @@ function DropdownLink({
       onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#FAF8F4'; }}
       onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; }}
     >
-      <Icon style={{ width: 16, height: 16, color: '#8A8880' }} />
+      <Icon style={{ width: 16, height: 16, color: '#7a7a72' }} />
       {label}
     </Link>
   );

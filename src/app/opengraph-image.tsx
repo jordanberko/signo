@@ -27,7 +27,7 @@ export default function OGImage() {
             left: 0,
             right: 0,
             height: 6,
-            background: '#C8E600',
+            background: '#6b7c4e',
           }}
         />
 
