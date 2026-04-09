@@ -39,6 +39,7 @@ export default function HomePage() {
   const [artworks, setArtworks] = useState<FeaturedArtwork[]>([]);
   const [newArrivals, setNewArrivals] = useState<FeaturedArtwork[]>([]);
   const [spotlightArtists, setSpotlightArtists] = useState<SpotlightArtist[]>([]);
+  const [favouriteIds, setFavouriteIds] = useState<Set<string>>(new Set());
   const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
@@ -47,11 +48,12 @@ export default function HomePage() {
         const controller = new AbortController();
         const timeout = setTimeout(() => controller.abort(), 15000);
 
-        // Fetch featured, new arrivals, and artist spotlight in parallel
-        const [featuredRes, arrivalsRes, artistsRes] = await Promise.all([
+        // Fetch featured, new arrivals, artist spotlight, and user favourites in parallel
+        const [featuredRes, arrivalsRes, artistsRes, favsRes] = await Promise.all([
           fetch('/api/artworks/featured?limit=8', { signal: controller.signal }),
           fetch('/api/artworks/browse?limit=6&sort=newest', { signal: controller.signal }),
           fetch('/api/artists/spotlight?limit=10', { signal: controller.signal }),
+          fetch('/api/favourites/ids', { signal: controller.signal }),
         ]);
         clearTimeout(timeout);
 
@@ -83,6 +85,11 @@ export default function HomePage() {
         if (artistsRes.ok) {
           const json = await artistsRes.json();
           setSpotlightArtists((json.data || []) as SpotlightArtist[]);
+        }
+
+        if (favsRes.ok) {
+          const json = await favsRes.json();
+          setFavouriteIds(new Set(json.ids || []));
         }
       } catch (err) {
         console.error('[Home] Artwork fetch error:', err);
@@ -141,7 +148,7 @@ export default function HomePage() {
           {artworks.length > 0 ? (
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-x-5 gap-y-10 stagger-children">
               {artworks.map((artwork) => (
-                <ArtworkCard key={artwork.id} {...artwork} />
+                <ArtworkCard key={artwork.id} {...artwork} initialFavourited={favouriteIds.has(artwork.id)} />
               ))}
             </div>
           ) : (
@@ -196,7 +203,7 @@ export default function HomePage() {
             <div className="flex gap-5 overflow-x-auto pb-4 -mx-4 px-4 sm:mx-0 sm:px-0 snap-x snap-mandatory scrollbar-hide">
               {newArrivals.map((artwork) => (
                 <div key={artwork.id} className="flex-shrink-0 w-[260px] sm:w-[280px] snap-start">
-                  <ArtworkCard {...artwork} />
+                  <ArtworkCard {...artwork} initialFavourited={favouriteIds.has(artwork.id)} />
                 </div>
               ))}
             </div>

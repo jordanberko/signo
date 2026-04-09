@@ -211,7 +211,24 @@ function BrowseContent() {
   const [loadingMore, setLoadingMore] = useState(false);
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
   const [fetchError, setFetchError] = useState<string | null>(null);
+  const [favouriteIds, setFavouriteIds] = useState<Set<string>>(new Set());
   const fetchIdRef = useRef(0);
+
+  // Fetch user's favourited artwork IDs once on mount
+  useEffect(() => {
+    async function fetchFavs() {
+      try {
+        const res = await fetch('/api/favourites/ids');
+        if (res.ok) {
+          const json = await res.json();
+          setFavouriteIds(new Set(json.ids || []));
+        }
+      } catch {
+        // Silently ignore — hearts will just show as unfavourited
+      }
+    }
+    fetchFavs();
+  }, []);
 
   function updateFilter<K extends keyof Filters>(key: K, value: Filters[K]) {
     setFilters((prev) => ({ ...prev, [key]: value }));
@@ -635,6 +652,7 @@ function BrowseContent() {
                       category={artwork.category}
                       widthCm={artwork.width_cm}
                       heightCm={artwork.height_cm}
+                      initialFavourited={favouriteIds.has(artwork.id)}
                     />
                   ))}
                 </div>
