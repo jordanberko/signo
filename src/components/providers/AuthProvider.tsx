@@ -24,17 +24,13 @@ function hasAuthCookies(): boolean {
   return document.cookie.split(';').some((c) => c.trim().startsWith('sb-'));
 }
 
-/** Fetch profile using the Supabase JS client (for post-init events). */
-async function fetchProfile(userId: string): Promise<Profile | null> {
+/** Fetch profile via server API (avoids browser client hanging from high-latency regions). */
+async function fetchProfile(_userId: string): Promise<Profile | null> {
   try {
-    const supabase = createClient();
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', userId)
-      .single();
-    if (error || !data) return null;
-    return data;
+    const res = await fetch('/api/auth/session');
+    if (!res.ok) return null;
+    const data = await res.json();
+    return data.user ?? null;
   } catch {
     return null;
   }
@@ -180,13 +176,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     });
 
-    // Safety timeout: 3 seconds. The server API should return in ~300ms.
+    // Safety timeout: 10 seconds. Allows for Vercel cold starts.
     // If both API and INITIAL_SESSION fail, resolve as anonymous.
     const timeout = setTimeout(() => {
       if (!resolved && mountedRef.current) {
         resolve(null);
       }
-    }, 3000);
+    }, 10000);
 
     return () => {
       mountedRef.current = false;
