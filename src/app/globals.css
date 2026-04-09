@@ -116,6 +116,29 @@ body {
   }
 }
 
+/* Logo wordmark animation — plays once on first page load */
+@keyframes logo-text-in {
+  from {
+    letter-spacing: -0.02em;
+    opacity: 0;
+  }
+  to {
+    letter-spacing: 0.1em;
+    opacity: 1;
+  }
+}
+
+@keyframes logo-dot-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 .animate-fade-up {
   animation: fade-up 0.7s ease-out forwards;
 }

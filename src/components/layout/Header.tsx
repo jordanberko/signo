@@ -1,12 +1,14 @@
 'use client';
 
 import Link from 'next/link';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { Search, Menu, X, MessageCircle, Heart } from 'lucide-react';
 import AuthButton from '@/components/AuthButton';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { createClient } from '@/lib/supabase/client';
+
+const SESSION_KEY = 'signo-logo-animated';
 
 export default function Header() {
   const router = useRouter();
@@ -15,6 +17,27 @@ export default function Header() {
   const [searchQuery, setSearchQuery] = useState('');
   const [scrolled, setScrolled] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
+
+  // Logo animation — only on first load per session
+  const [shouldAnimate, setShouldAnimate] = useState(false);
+  const [animationDone, setAnimationDone] = useState(false);
+  const logoRef = useRef<HTMLSpanElement>(null);
+
+  useEffect(() => {
+    try {
+      if (!sessionStorage.getItem(SESSION_KEY)) {
+        setShouldAnimate(true);
+        // Mark as animated and set done state after animation completes
+        const timer = setTimeout(() => {
+          sessionStorage.setItem(SESSION_KEY, '1');
+          setAnimationDone(true);
+        }, 1600); // 1.1s delay + 0.4s dot animation + buffer
+        return () => clearTimeout(timer);
+      }
+    } catch {
+      // sessionStorage unavailable — skip animation
+    }
+  }, []);
 
   // Scroll shadow
   useEffect(() => {
@@ -95,10 +118,43 @@ export default function Header() {
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
-          {/* Logo */}
-          <Link href="/" className="flex items-center gap-2 group">
-            <span className="text-2xl font-semibold tracking-wide text-primary group-hover:text-accent-dark transition-colors duration-300">
+          {/* Logo — animated wordmark */}
+          <Link
+            href="/"
+            className="flex items-center group"
+            style={{ minWidth: 120 }}
+          >
+            <span
+              ref={logoRef}
+              className="text-2xl text-primary group-hover:text-accent-dark transition-colors duration-300"
+              style={{
+                fontFamily: 'var(--font-eb-garamond), Georgia, serif',
+                fontWeight: 500,
+                letterSpacing: '0.1em',
+                ...(shouldAnimate && !animationDone
+                  ? {
+                      animation: 'logo-text-in 0.9s cubic-bezier(0.22, 1, 0.36, 1) forwards',
+                    }
+                  : {}),
+              }}
+            >
               SIGNO
+            </span>
+            <span
+              className="text-2xl italic"
+              style={{
+                fontFamily: 'var(--font-eb-garamond), Georgia, serif',
+                fontWeight: 500,
+                color: 'var(--color-accent, #6b7c4e)',
+                ...(shouldAnimate && !animationDone
+                  ? {
+                      animation: 'logo-dot-in 0.4s ease-out 1.1s forwards',
+                      opacity: 0,
+                    }
+                  : { opacity: 1 }),
+              }}
+            >
+              .
             </span>
           </Link>
 
