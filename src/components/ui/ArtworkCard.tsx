@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import Link from 'next/link';
 import { Heart, Eye } from 'lucide-react';
 import { formatPrice } from '@/lib/utils';
@@ -43,6 +43,11 @@ export default function ArtworkCard({
   const { user } = useAuth();
   const [isFavourited, setIsFavourited] = useState(initialFavourited);
   const [heartAnimating, setHeartAnimating] = useState(false);
+
+  // Sync favourite state when the prop updates (e.g. after async fetch completes)
+  useEffect(() => {
+    setIsFavourited(initialFavourited);
+  }, [initialFavourited]);
 
   const categoryLabel = category
     ? { original: 'Original', print: 'Print', digital: 'Digital' }[category]
