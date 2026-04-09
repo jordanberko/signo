@@ -110,37 +110,42 @@ export default function ImageEditor({ src, onApply, onCancel }: ImageEditorProps
     const img = fullImageRef.current;
     if (!canvas || !img || !displaySize.w) return;
 
-    canvas.width = displaySize.w;
-    canvas.height = displaySize.h;
+    // Account for Retina / HiDPI displays
+    const dpr = window.devicePixelRatio || 1;
+    canvas.width = Math.round(displaySize.w * dpr);
+    canvas.height = Math.round(displaySize.h * dpr);
 
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    // Scale all drawing ops by dpr so coordinates stay in CSS-pixel space
+    ctx.scale(dpr, dpr);
+
+    ctx.clearRect(0, 0, displaySize.w, displaySize.h);
     ctx.save();
 
     // Apply rotation around center
-    const cx = canvas.width / 2;
-    const cy = canvas.height / 2;
+    const cx = displaySize.w / 2;
+    const cy = displaySize.h / 2;
     ctx.translate(cx, cy);
     ctx.rotate((rotation * Math.PI) / 180);
     ctx.translate(-cx, -cy);
 
-    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+    ctx.drawImage(img, 0, 0, displaySize.w, displaySize.h);
     ctx.restore();
 
     // ── Draw crop overlay (only on crop tool) ──
     if (tool === 'crop') {
-      // Darken outside crop
+      // Darken outside crop (use displaySize since ctx is scaled by dpr)
       ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
       // Top
-      ctx.fillRect(0, 0, canvas.width, crop.y);
+      ctx.fillRect(0, 0, displaySize.w, crop.y);
       // Bottom
-      ctx.fillRect(0, crop.y + crop.h, canvas.width, canvas.height - crop.y - crop.h);
+      ctx.fillRect(0, crop.y + crop.h, displaySize.w, displaySize.h - crop.y - crop.h);
       // Left
       ctx.fillRect(0, crop.y, crop.x, crop.h);
       // Right
-      ctx.fillRect(crop.x + crop.w, crop.y, canvas.width - crop.x - crop.w, crop.h);
+      ctx.fillRect(crop.x + crop.w, crop.y, displaySize.w - crop.x - crop.w, crop.h);
 
       // Crop border
       ctx.strokeStyle = '#ffffff';
@@ -183,15 +188,15 @@ export default function ImageEditor({ src, onApply, onCancel }: ImageEditorProps
       ctx.lineWidth = 1;
       const lines = 6;
       for (let i = 1; i < lines; i++) {
-        const gx = (canvas.width * i) / lines;
-        const gy = (canvas.height * i) / lines;
+        const gx = (displaySize.w * i) / lines;
+        const gy = (displaySize.h * i) / lines;
         ctx.beginPath();
         ctx.moveTo(gx, 0);
-        ctx.lineTo(gx, canvas.height);
+        ctx.lineTo(gx, displaySize.h);
         ctx.stroke();
         ctx.beginPath();
         ctx.moveTo(0, gy);
-        ctx.lineTo(canvas.width, gy);
+        ctx.lineTo(displaySize.w, gy);
         ctx.stroke();
       }
     }
@@ -483,12 +488,10 @@ export default function ImageEditor({ src, onApply, onCancel }: ImageEditorProps
         ) : (
           <canvas
             ref={canvasRef}
-            width={displaySize.w}
-            height={displaySize.h}
             className="touch-none select-none"
             style={{
-              width: displaySize.w,
-              height: displaySize.h,
+              width: displaySize.w || undefined,
+              height: displaySize.h || undefined,
             }}
             onPointerDown={handlePointerDown}
             onPointerMove={handlePointerMove}
