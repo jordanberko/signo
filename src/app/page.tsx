@@ -213,118 +213,90 @@ export default function HomePage() {
         </section>
       )}
 
-      {/* ==================== ARTIST SPOTLIGHT ==================== */}
-      <section className="py-16 md:py-24">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-12 md:gap-16 items-center">
-            {/* Visual — featured artwork with secondary thumbnail */}
-            <div className="relative">
-              <div className="aspect-[4/3] rounded-2xl overflow-hidden">
-                {artworks.length > 0 ? (
-                  <Link href={`/artwork/${artworks[0].id}`} className="block w-full h-full group">
-                    <img
-                      src={artworks[0].imageUrl}
-                      alt={artworks[0].title}
-                      className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+      {/* ==================== ARTIST SPOTLIGHT — FULL WIDTH ==================== */}
+      {spotlightArtists.length > 0 && artworks.length > 0 && (() => {
+        const artist = spotlightArtists.find((a) => a.id === artworks[0].artistId);
+        if (!artist) return null;
+
+        // Grab up to 3 artworks by this artist for the visual row
+        const artistWorks = artworks.filter((a) => a.artistId === artist.id).slice(0, 3);
+
+        return (
+          <section className="py-16 md:py-24">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+              <p className="text-accent-dark text-xs font-semibold tracking-[0.2em] uppercase mb-8">Artist Spotlight</p>
+
+              <div className="grid grid-cols-1 md:grid-cols-12 gap-8 md:gap-12 items-start">
+                {/* Artist info — left column */}
+                <div className="md:col-span-4">
+                  <Link href={`/artists/${artist.id}`} className="group/artist flex items-center gap-3.5">
+                    <Avatar
+                      avatarUrl={artist.avatarUrl}
+                      name={artist.fullName}
+                      size={56}
                     />
-                    <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent p-6">
-                      <p className="text-white/70 text-xs font-semibold tracking-[0.15em] uppercase mb-1">Artist Spotlight</p>
-                      <p className="text-white font-editorial text-xl font-medium">{artworks[0].title}</p>
-                      <p className="text-white/80 text-sm mt-0.5">{artworks[0].artistName}</p>
+                    <div>
+                      <h3 className="font-editorial text-2xl font-medium text-primary group-hover/artist:text-accent-dark transition-colors">
+                        {artist.fullName}
+                      </h3>
+                      {artist.location && (
+                        <p className="text-muted text-sm">{artist.location}</p>
+                      )}
                     </div>
                   </Link>
-                ) : (
-                  <div className="w-full h-full bg-gradient-to-br from-stone-300 via-amber-100 to-stone-200 flex items-center justify-center">
-                    <div className="text-center">
-                      <Palette className="h-12 w-12 text-warm-gray/40 mx-auto mb-3" />
-                      <span className="text-warm-gray/60 text-sm tracking-wide">Artist Spotlight</span>
-                    </div>
-                  </div>
-                )}
-              </div>
-              {/* Secondary artwork thumbnail — offset bottom-right */}
-              {artworks.length > 1 && (
-                <Link
-                  href={`/artwork/${artworks[1].id}`}
-                  className="absolute -bottom-6 -right-4 md:-right-6 w-28 h-36 md:w-36 md:h-44 rounded-xl overflow-hidden border-4 border-white shadow-lg group/thumb z-10"
-                >
-                  <img
-                    src={artworks[1].imageUrl}
-                    alt={artworks[1].title}
-                    className="w-full h-full object-cover group-hover/thumb:scale-105 transition-transform duration-500"
-                  />
-                </Link>
-              )}
-              {/* Accent block — behind secondary thumbnail */}
-              <div className="absolute -bottom-4 -right-4 w-24 h-24 bg-accent rounded-xl -z-[1]" />
-            </div>
-
-            {/* Content — artist bio + CTA */}
-            <div>
-              {/* Show artist bio if we have spotlight data for the featured artist */}
-              {spotlightArtists.length > 0 && artworks.length > 0 && (() => {
-                const artist = spotlightArtists.find((a) => a.id === artworks[0].artistId);
-                if (!artist?.bio) return null;
-                return (
-                  <div className="mb-8 pb-8 border-b border-border">
-                    <p className="text-accent-dark text-xs font-semibold tracking-[0.2em] uppercase mb-3">Artist Spotlight</p>
-                    <Link href={`/artists/${artist.id}`} className="group/artist flex items-center gap-3">
-                      <Avatar
-                        avatarUrl={artist.avatarUrl}
-                        name={artist.fullName}
-                        size={48}
-                      />
-                      <div>
-                        <h3 className="font-editorial text-2xl font-medium text-primary group-hover/artist:text-accent-dark transition-colors">
-                          {artist.fullName}
-                        </h3>
-                        {artist.location && (
-                          <p className="text-muted text-sm">{artist.location}</p>
-                        )}
-                      </div>
-                    </Link>
-                    <p className="mt-3 text-muted text-sm leading-relaxed line-clamp-3">
+                  {artist.bio && (
+                    <p className="mt-4 text-muted text-sm leading-relaxed line-clamp-4">
                       {artist.bio}
                     </p>
-                    <Link
-                      href={`/artists/${artist.id}`}
-                      className="inline-flex items-center gap-1.5 text-sm font-medium text-accent-dark mt-3 hover:gap-2.5 transition-all"
-                    >
-                      View profile
-                      <ArrowRight className="h-3.5 w-3.5" />
-                    </Link>
-                  </div>
-                );
-              })()}
+                  )}
+                  <Link
+                    href={`/artists/${artist.id}`}
+                    className="inline-flex items-center gap-1.5 text-sm font-medium text-accent-dark mt-4 hover:gap-2.5 transition-all"
+                  >
+                    View profile
+                    <ArrowRight className="h-3.5 w-3.5" />
+                  </Link>
+                </div>
 
-              <p className="text-accent-dark text-xs font-semibold tracking-[0.2em] uppercase mb-3">For Artists</p>
-              <h2 className="font-editorial text-3xl md:text-4xl font-medium text-primary leading-snug">
-                Your art, your earnings.{' '}
-                <span className="italic">No commission.</span>
-              </h2>
-              <p className="mt-5 text-muted leading-relaxed">
-                Signo charges a flat $30/month subscription. You keep 100% of every sale —
-                the only deduction is Stripe&apos;s payment processing fee (~1.75% + 30c).
-              </p>
-              <div className="flex flex-col sm:flex-row gap-4 mt-8">
-                <Link
-                  href="/register"
-                  className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-accent text-primary font-semibold rounded-full hover:bg-accent-light transition-all duration-300"
-                >
-                  Start Selling
-                  <ArrowRight className="h-4 w-4" />
-                </Link>
-                <Link
-                  href="/how-it-works"
-                  className="inline-flex items-center justify-center px-6 py-3 border border-border text-primary font-medium rounded-full hover:bg-cream transition-all duration-300"
-                >
-                  How It Works
-                </Link>
+                {/* Artist works — right columns */}
+                <div className="md:col-span-8">
+                  <div className={`grid gap-4 ${
+                    artistWorks.length === 1
+                      ? 'grid-cols-1'
+                      : artistWorks.length === 2
+                        ? 'grid-cols-2'
+                        : 'grid-cols-2 md:grid-cols-3'
+                  }`}>
+                    {artistWorks.map((work, i) => (
+                      <Link
+                        key={work.id}
+                        href={`/artwork/${work.id}`}
+                        className={`group relative rounded-xl overflow-hidden ${
+                          artistWorks.length === 3 && i === 0 ? 'col-span-2 md:col-span-1' : ''
+                        }`}
+                      >
+                        <div className="aspect-[4/5]">
+                          <img
+                            src={work.imageUrl}
+                            alt={work.title}
+                            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                          />
+                        </div>
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                          <div className="absolute bottom-0 left-0 right-0 p-4">
+                            <p className="text-white font-medium text-sm">{work.title}</p>
+                            <p className="text-white/70 text-xs mt-0.5">{work.medium}</p>
+                          </div>
+                        </div>
+                      </Link>
+                    ))}
+                  </div>
+                </div>
               </div>
             </div>
-          </div>
-        </div>
-      </section>
+          </section>
+        );
+      })()}
 
       {/* ==================== MEET OUR ARTISTS ==================== */}
       <MeetOurArtists artists={spotlightArtists} />
@@ -368,6 +340,36 @@ export default function HomePage() {
                 <p className="text-muted text-sm leading-relaxed">{item.description}</p>
               </div>
             ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ==================== FOR ARTISTS — STANDALONE CTA ==================== */}
+      <section className="py-16 md:py-20 bg-accent/5">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+          <p className="text-accent-dark text-xs font-semibold tracking-[0.2em] uppercase mb-3">For Artists</p>
+          <h2 className="font-editorial text-3xl md:text-4xl font-medium text-primary leading-snug">
+            Your art, your earnings.{' '}
+            <span className="italic">No commission.</span>
+          </h2>
+          <p className="mt-5 text-muted leading-relaxed max-w-xl mx-auto">
+            Signo charges a flat $30/month subscription. You keep 100% of every sale —
+            the only deduction is Stripe&apos;s payment processing fee (~1.75% + 30c).
+          </p>
+          <div className="flex flex-col sm:flex-row gap-4 justify-center mt-8">
+            <Link
+              href="/register"
+              className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-accent text-white font-semibold rounded-full hover:bg-accent-dark transition-all duration-300"
+            >
+              Start Selling
+              <ArrowRight className="h-4 w-4" />
+            </Link>
+            <Link
+              href="/how-it-works"
+              className="inline-flex items-center justify-center px-6 py-3 border border-border text-primary font-medium rounded-full hover:bg-white transition-all duration-300"
+            >
+              How It Works
+            </Link>
           </div>
         </div>
       </section>
