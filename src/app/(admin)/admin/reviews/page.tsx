@@ -170,7 +170,7 @@ export default function AdminReviewsPage() {
                 <div className="text-right flex-shrink-0">
                   <p className="font-semibold text-sm">{formatPrice(artwork.price_aud)}</p>
                   <div className="flex items-center justify-end gap-1 mt-0.5">
-                    {(artwork as Record<string, unknown>).is_featured && (
+                    {!!(artwork as Record<string, unknown>).is_featured && (
                       <Star className="h-3 w-3 fill-amber-500 text-amber-500" />
                     )}
                     <p className="text-xs text-muted">

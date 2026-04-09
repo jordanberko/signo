@@ -53,12 +53,6 @@ export async function GET(request: NextRequest) {
     }
 
     const data = [...featured, ...recentData];
-    const error = null;
-
-    if (error) {
-      console.error('[API /artworks/featured] Query error:', error.message);
-      return NextResponse.json({ error: error.message }, { status: 500 });
-    }
 
     // Map to frontend-friendly shape
     const artworks = (data || []).map((a: Record<string, unknown>) => ({

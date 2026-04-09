@@ -108,6 +108,7 @@ export interface Database {
           depth_cm: number | null;
           price_aud: number;
           is_framed: boolean;
+          is_featured: boolean;
           status: ArtworkStatus;
           review_notes: string | null;
           ai_review_score: number | null;
@@ -131,6 +132,7 @@ export interface Database {
           depth_cm?: number | null;
           price_aud: number;
           is_framed?: boolean;
+          is_featured?: boolean;
           status?: ArtworkStatus;
           review_notes?: string | null;
           ai_review_score?: number | null;
@@ -154,6 +156,7 @@ export interface Database {
           depth_cm?: number | null;
           price_aud?: number;
           is_framed?: boolean;
+          is_featured?: boolean;
           status?: ArtworkStatus;
           review_notes?: string | null;
           ai_review_score?: number | null;
