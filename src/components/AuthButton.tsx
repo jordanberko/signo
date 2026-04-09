@@ -4,8 +4,7 @@ import Link from 'next/link';
 import { useState, useRef, useEffect } from 'react';
 import {
   LogOut,
-  Palette,
-  LayoutDashboard,
+  Heart,
   Shield,
   ShoppingBag,
   Settings,
@@ -183,15 +182,14 @@ export default function AuthButton() {
 
           {/* Common links */}
           <div style={{ padding: '4px 0' }}>
-            <DropdownLink href="/dashboard" icon={LayoutDashboard} label="Dashboard" onClick={() => setMenuOpen(false)} />
             <DropdownLink href="/orders" icon={ShoppingBag} label="My Orders" onClick={() => setMenuOpen(false)} />
+            <DropdownLink href="/favourites" icon={Heart} label="Favourites" onClick={() => setMenuOpen(false)} />
             <DropdownLink href="/settings" icon={Settings} label="Settings" onClick={() => setMenuOpen(false)} />
           </div>
 
           {/* Artist links */}
           {isArtist && (
             <div style={{ padding: '4px 0', borderTop: '1px solid #e8e5df' }}>
-              <DropdownLink href="/artist/dashboard" icon={Palette} label="Artist Dashboard" onClick={() => setMenuOpen(false)} />
               <DropdownLink href="/artist/artworks" icon={Images} label="My Artworks" onClick={() => setMenuOpen(false)} />
               <DropdownLink href="/artist/artworks/new" icon={ImagePlus} label="Upload Artwork" onClick={() => setMenuOpen(false)} />
               <DropdownLink href="/artist/earnings" icon={DollarSign} label="Earnings" onClick={() => setMenuOpen(false)} />
