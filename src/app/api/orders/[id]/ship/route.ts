@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { sendShippingConfirmation } from '@/lib/email';
 
 interface RouteContext {
   params: Promise<{ id: string }>;
@@ -62,6 +63,23 @@ export async function PUT(request: Request, context: RouteContext) {
 
     if (updateError) {
       return NextResponse.json({ error: updateError.message }, { status: 400 });
+    }
+
+    // ── Send shipping confirmation to buyer (fire-and-forget) ──
+    const [buyerResult, artworkResult] = await Promise.all([
+      supabase.from('profiles').select('email, full_name').eq('id', updated.buyer_id).single(),
+      supabase.from('artworks').select('title').eq('id', updated.artwork_id).single(),
+    ]);
+
+    if (buyerResult.data?.email) {
+      sendShippingConfirmation({
+        buyerEmail: buyerResult.data.email,
+        buyerName: buyerResult.data.full_name || '',
+        orderId: id,
+        artworkTitle: artworkResult.data?.title || 'Artwork',
+        trackingNumber: tracking_number.trim(),
+        carrier: carrier.trim(),
+      }).catch((err) => console.error('[Ship] Shipping confirmation email failed:', err));
     }
 
     return NextResponse.json({

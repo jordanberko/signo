@@ -105,12 +105,24 @@ function RegisterForm() {
 
       if (needsConfirmation) {
         // User created but they need to verify their email first
+        // Send welcome email in background (fire-and-forget)
+        fetch('/api/email/welcome', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, name: fullName, role }),
+        }).catch(() => {});
         setConfirmationSent(true);
         setLoading(false);
         return;
       }
 
       // Session exists — user is signed in immediately (email confirmation disabled)
+      // Send welcome email in background (fire-and-forget)
+      fetch('/api/email/welcome', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, name: fullName, role }),
+      }).catch(() => {});
       // Small delay to let the profile trigger complete in the database
       await new Promise((resolve) => setTimeout(resolve, 500));
       // Use window.location.href for full page reload — clears all cached state

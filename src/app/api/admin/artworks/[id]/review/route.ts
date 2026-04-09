@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { sendArtworkApproved, sendArtworkRejected } from '@/lib/email';
 
 interface RouteContext {
   params: Promise<{ id: string }>;
@@ -55,6 +56,31 @@ export async function PUT(request: Request, context: RouteContext) {
 
     if (!artwork) {
       return NextResponse.json({ error: 'Artwork not found' }, { status: 404 });
+    }
+
+    // ── Send email to artist (fire-and-forget) ──
+    const { data: artistProfile } = await supabase
+      .from('profiles')
+      .select('email, full_name')
+      .eq('id', artwork.artist_id)
+      .single();
+
+    if (artistProfile?.email) {
+      if (action === 'approved') {
+        sendArtworkApproved({
+          artistEmail: artistProfile.email,
+          artistName: artistProfile.full_name || '',
+          artworkId: id,
+          artworkTitle: artwork.title,
+        }).catch((err) => console.error('[Review] Artwork approved email failed:', err));
+      } else {
+        sendArtworkRejected({
+          artistEmail: artistProfile.email,
+          artistName: artistProfile.full_name || '',
+          artworkTitle: artwork.title,
+          reviewNotes: review_notes || undefined,
+        }).catch((err) => console.error('[Review] Artwork rejected email failed:', err));
+      }
     }
 
     return NextResponse.json({ data: artwork });

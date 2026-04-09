@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import { getStripe } from '@/lib/stripe/config';
 import { createClient } from '@supabase/supabase-js';
+import { sendOrderConfirmation, sendNewSaleNotification } from '@/lib/email';
 
 // Use service role client to bypass RLS (webhooks are server-to-server)
 function getServiceClient() {
@@ -139,11 +140,44 @@ export async function POST(request: Request) {
           `[Payment Webhook] Order created: ${order.id} | Artwork: ${artworkId} | Total: $${totalAud} | Artist receives: $${artistPayout}`
         );
 
-        // TODO: Send notification to artist (email / in-app)
-        // For now, just log it
-        console.log(
-          `[Payment Webhook] Artist ${artistId} should be notified of new sale`
-        );
+        // ── Send email notifications (fire-and-forget) ──
+        // Fetch buyer, artist, and artwork details for the emails
+        const [buyerResult, artistResult, artworkResult] = await Promise.all([
+          supabase.from('profiles').select('email, full_name').eq('id', buyerId).single(),
+          supabase.from('profiles').select('email, full_name').eq('id', artistId).single(),
+          supabase.from('artworks').select('title, images').eq('id', artworkId).single(),
+        ]);
+
+        const buyer = buyerResult.data;
+        const artist = artistResult.data;
+        const artwork = artworkResult.data;
+
+        // Order confirmation to buyer
+        if (buyer?.email) {
+          sendOrderConfirmation({
+            buyerEmail: buyer.email,
+            buyerName: buyer.full_name || '',
+            orderId: order.id,
+            artworkTitle: artwork?.title || 'Artwork',
+            artistName: artist?.full_name || 'Artist',
+            artworkImageUrl: artwork?.images?.[0] || undefined,
+            totalAmount: totalAud,
+          }).catch((err) => console.error('[Payment Webhook] Order confirmation email failed:', err));
+        }
+
+        // New sale notification to artist
+        if (artist?.email) {
+          sendNewSaleNotification({
+            artistEmail: artist.email,
+            artistName: artist.full_name || '',
+            orderId: order.id,
+            artworkTitle: artwork?.title || 'Artwork',
+            salePrice: totalAud,
+            artistPayout,
+            buyerCity: shippingAddress?.city,
+            buyerState: shippingAddress?.state,
+          }).catch((err) => console.error('[Payment Webhook] Sale notification email failed:', err));
+        }
 
         break;
       }

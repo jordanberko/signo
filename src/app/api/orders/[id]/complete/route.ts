@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { releaseFunds } from '@/lib/stripe/escrow';
+import { sendPayoutReleased } from '@/lib/email';
 
 interface RouteContext {
   params: Promise<{ id: string }>;
@@ -20,10 +21,10 @@ export async function PUT(_request: Request, context: RouteContext) {
       return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
     }
 
-    // Fetch order
+    // Fetch order with artist details for payout email
     const { data: order } = await supabase
       .from('orders')
-      .select('id, buyer_id, status')
+      .select('id, buyer_id, artist_id, artwork_id, artist_payout_aud, status')
       .eq('id', id)
       .single();
 
@@ -42,6 +43,22 @@ export async function PUT(_request: Request, context: RouteContext) {
 
     if (!result.success) {
       return NextResponse.json({ error: result.error }, { status: 500 });
+    }
+
+    // ── Send payout released email to artist (fire-and-forget) ──
+    const [artistResult, artworkResult] = await Promise.all([
+      supabase.from('profiles').select('email, full_name').eq('id', order.artist_id).single(),
+      supabase.from('artworks').select('title').eq('id', order.artwork_id).single(),
+    ]);
+
+    if (artistResult.data?.email) {
+      sendPayoutReleased({
+        artistEmail: artistResult.data.email,
+        artistName: artistResult.data.full_name || '',
+        orderId: id,
+        artworkTitle: artworkResult.data?.title || 'Artwork',
+        payoutAmount: order.artist_payout_aud || 0,
+      }).catch((err) => console.error('[Complete] Payout released email failed:', err));
     }
 
     return NextResponse.json(result);

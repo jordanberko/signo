@@ -1,6 +1,7 @@
 import { getStripe } from './config';
 import { createTransfer } from './connect';
 import { createClient } from '@supabase/supabase-js';
+import { sendPayoutReleased } from '@/lib/email';
 
 // Service role client — bypasses RLS for server-side operations
 function getServiceClient() {
@@ -187,7 +188,7 @@ export async function autoReleaseFunds(): Promise<{
 
   const { data: orders, error } = await supabase
     .from('orders')
-    .select('id')
+    .select('id, artist_id, artwork_id, artist_payout_aud')
     .eq('status', 'delivered')
     .lt('inspection_deadline', now)
     .is('payout_released_at', null);
@@ -212,6 +213,22 @@ export async function autoReleaseFunds(): Promise<{
     const result = await releaseFunds(order.id);
     if (result.success) {
       released++;
+
+      // Send payout released email (fire-and-forget)
+      const [artistResult, artworkResult] = await Promise.all([
+        supabase.from('profiles').select('email, full_name').eq('id', order.artist_id).single(),
+        supabase.from('artworks').select('title').eq('id', order.artwork_id).single(),
+      ]);
+
+      if (artistResult.data?.email) {
+        sendPayoutReleased({
+          artistEmail: artistResult.data.email,
+          artistName: artistResult.data.full_name || '',
+          orderId: order.id,
+          artworkTitle: artworkResult.data?.title || 'Artwork',
+          payoutAmount: order.artist_payout_aud || 0,
+        }).catch((err) => console.error(`[Escrow Auto-Release] Payout email failed for ${order.id}:`, err));
+      }
     } else {
       failed++;
       errors.push(`${order.id}: ${result.error}`);
@@ -292,6 +309,9 @@ export async function cancelUnshippedOrders(): Promise<{
       console.log(
         `[Cancel Unshipped] Cancelled order ${order.id}, re-listed artwork ${order.artwork_id}`
       );
+
+      // TODO: Send cancellation/refund email to buyer
+      // Need to build a sendOrderCancelled() email template and fetch buyer details here
     } else {
       failed++;
       errors.push(`${order.id}: ${result.error}`);
