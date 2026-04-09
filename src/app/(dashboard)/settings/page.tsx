@@ -143,6 +143,9 @@ export default function SettingsPage() {
   const [artistBio, setArtistBio] = useState(user?.bio || '');
   const [artistLocation, setArtistLocation] = useState(user?.location || '');
   const [instagramUrl, setInstagramUrl] = useState(user?.social_links?.instagram || '');
+  const [tiktokUrl, setTiktokUrl] = useState(user?.social_links?.tiktok || '');
+  const [facebookUrl, setFacebookUrl] = useState(user?.social_links?.facebook || '');
+  const [youtubeUrl, setYoutubeUrl] = useState(user?.social_links?.youtube || '')
   const [websiteUrl, setWebsiteUrl] = useState(user?.social_links?.website || '');
   const [artistSaving, setArtistSaving] = useState(false);
   const [artistStatus, setArtistStatus] = useState<{
@@ -323,6 +326,12 @@ export default function SettingsPage() {
       const socialLinks = { ...(user.social_links || {}) };
       if (instagramUrl.trim()) socialLinks.instagram = instagramUrl.trim();
       else delete socialLinks.instagram;
+      if (tiktokUrl.trim()) socialLinks.tiktok = tiktokUrl.trim();
+      else delete socialLinks.tiktok;
+      if (facebookUrl.trim()) socialLinks.facebook = facebookUrl.trim();
+      else delete socialLinks.facebook;
+      if (youtubeUrl.trim()) socialLinks.youtube = youtubeUrl.trim();
+      else delete socialLinks.youtube;
       if (websiteUrl.trim()) socialLinks.website = websiteUrl.trim();
       else delete socialLinks.website;
 
@@ -840,26 +849,59 @@ export default function SettingsPage() {
                   Social Links
                 </p>
                 <div>
-                  <label
-                    htmlFor="instagram"
-                    className="flex items-center gap-2 text-sm text-muted mb-2"
-                  >
+                  <label htmlFor="instagram" className="flex items-center gap-2 text-sm text-muted mb-2">
                     <AtSign className="h-4 w-4" /> Instagram
                   </label>
                   <input
                     id="instagram"
-                    type="url"
+                    type="text"
                     value={instagramUrl}
                     onChange={(e) => setInstagramUrl(e.target.value)}
                     className="w-full px-4 py-3 bg-white border border-border rounded-xl text-sm placeholder:text-warm-gray transition-colors focus:border-accent focus:ring-1 focus:ring-accent/20"
-                    placeholder="https://instagram.com/yourhandle"
+                    placeholder="@handle or https://instagram.com/handle"
                   />
                 </div>
                 <div>
-                  <label
-                    htmlFor="website"
-                    className="flex items-center gap-2 text-sm text-muted mb-2"
-                  >
+                  <label htmlFor="tiktok" className="flex items-center gap-2 text-sm text-muted mb-2">
+                    <AtSign className="h-4 w-4" /> TikTok
+                  </label>
+                  <input
+                    id="tiktok"
+                    type="text"
+                    value={tiktokUrl}
+                    onChange={(e) => setTiktokUrl(e.target.value)}
+                    className="w-full px-4 py-3 bg-white border border-border rounded-xl text-sm placeholder:text-warm-gray transition-colors focus:border-accent focus:ring-1 focus:ring-accent/20"
+                    placeholder="@handle or https://tiktok.com/@handle"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="facebook" className="flex items-center gap-2 text-sm text-muted mb-2">
+                    <AtSign className="h-4 w-4" /> Facebook
+                  </label>
+                  <input
+                    id="facebook"
+                    type="text"
+                    value={facebookUrl}
+                    onChange={(e) => setFacebookUrl(e.target.value)}
+                    className="w-full px-4 py-3 bg-white border border-border rounded-xl text-sm placeholder:text-warm-gray transition-colors focus:border-accent focus:ring-1 focus:ring-accent/20"
+                    placeholder="https://facebook.com/yourpage"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="youtube" className="flex items-center gap-2 text-sm text-muted mb-2">
+                    <AtSign className="h-4 w-4" /> YouTube
+                  </label>
+                  <input
+                    id="youtube"
+                    type="text"
+                    value={youtubeUrl}
+                    onChange={(e) => setYoutubeUrl(e.target.value)}
+                    className="w-full px-4 py-3 bg-white border border-border rounded-xl text-sm placeholder:text-warm-gray transition-colors focus:border-accent focus:ring-1 focus:ring-accent/20"
+                    placeholder="https://youtube.com/@channel"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="website" className="flex items-center gap-2 text-sm text-muted mb-2">
                     <Globe className="h-4 w-4" /> Website
                   </label>
                   <input

@@ -37,6 +37,31 @@ function InstagramIcon({ className }: { className?: string }) {
   );
 }
 
+function TikTokIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M9 12a4 4 0 1 0 4 4V4a5 5 0 0 0 5 5" />
+    </svg>
+  );
+}
+
+function FacebookIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z" />
+    </svg>
+  );
+}
+
+function YouTubeIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M2.5 17a24.12 24.12 0 0 1 0-10 2 2 0 0 1 1.4-1.4 49.56 49.56 0 0 1 16.2 0A2 2 0 0 1 21.5 7a24.12 24.12 0 0 1 0 10 2 2 0 0 1-1.4 1.4 49.55 49.55 0 0 1-16.2 0A2 2 0 0 1 2.5 17" />
+      <path d="m10 15 5-3-5-3z" />
+    </svg>
+  );
+}
+
 import { useAuth } from '@/components/providers/AuthProvider';
 import { useRequireAuth } from '@/lib/hooks/useRequireAuth';
 import AvatarUpload from '@/components/AvatarUpload';
@@ -80,6 +105,9 @@ interface OnboardingDraft {
   primaryMedium: string;
   selectedStyles: string[];
   instagram: string;
+  tiktok: string;
+  facebook: string;
+  youtube: string;
   website: string;
   agreedToTerms: boolean;
   // Artwork fields
@@ -150,6 +178,9 @@ export default function ArtistOnboardingPage() {
   const [primaryMedium, setPrimaryMedium] = useState(draft.primaryMedium ?? '');
   const [selectedStyles, setSelectedStyles] = useState<string[]>(draft.selectedStyles ?? []);
   const [instagram, setInstagram] = useState(draft.instagram ?? user?.social_links?.instagram ?? '');
+  const [tiktok, setTiktok] = useState(draft.tiktok ?? user?.social_links?.tiktok ?? '');
+  const [facebook, setFacebook] = useState(draft.facebook ?? user?.social_links?.facebook ?? '');
+  const [youtube, setYoutube] = useState(draft.youtube ?? user?.social_links?.youtube ?? '');
   const [website, setWebsite] = useState(draft.website ?? user?.social_links?.website ?? '');
 
   // Step 2 — Standards
@@ -179,6 +210,9 @@ export default function ArtistOnboardingPage() {
     if (!draft.location && user.location) setLocation(user.location);
     if (!draft.avatarUrl && user.avatar_url) setAvatarUrl(user.avatar_url);
     if (!draft.instagram && user.social_links?.instagram) setInstagram(user.social_links.instagram);
+    if (!draft.tiktok && user.social_links?.tiktok) setTiktok(user.social_links.tiktok);
+    if (!draft.facebook && user.social_links?.facebook) setFacebook(user.social_links.facebook);
+    if (!draft.youtube && user.social_links?.youtube) setYoutube(user.social_links.youtube);
     if (!draft.website && user.social_links?.website) setWebsite(user.social_links.website);
   }, [user, draft]);
 
@@ -193,13 +227,13 @@ export default function ArtistOnboardingPage() {
   useEffect(() => {
     saveDraft({
       fullName, bio, location, avatarUrl, primaryMedium, selectedStyles,
-      instagram, website, agreedToTerms, artworkId, artworkImages,
+      instagram, tiktok, facebook, youtube, website, agreedToTerms, artworkId, artworkImages,
       artworkTitle, artworkDescription, artworkMedium, artworkStyle,
       artworkCategory, artworkWidth, artworkHeight, artworkPrice,
     });
   }, [
     fullName, bio, location, avatarUrl, primaryMedium, selectedStyles,
-    instagram, website, agreedToTerms, artworkId, artworkImages,
+    instagram, tiktok, facebook, youtube, website, agreedToTerms, artworkId, artworkImages,
     artworkTitle, artworkDescription, artworkMedium, artworkStyle,
     artworkCategory, artworkWidth, artworkHeight, artworkPrice,
   ]);
@@ -265,6 +299,9 @@ export default function ArtistOnboardingPage() {
     try {
       const socialLinks: Record<string, string> = {};
       if (instagram.trim()) socialLinks.instagram = instagram.trim();
+      if (tiktok.trim()) socialLinks.tiktok = tiktok.trim();
+      if (facebook.trim()) socialLinks.facebook = facebook.trim();
+      if (youtube.trim()) socialLinks.youtube = youtube.trim();
       if (website.trim()) socialLinks.website = website.trim();
 
       const controller = new AbortController();
@@ -614,7 +651,7 @@ export default function ArtistOnboardingPage() {
             </div>
 
             {/* Social links */}
-            <div className="space-y-4 pt-2">
+            <div className="space-y-3 pt-2">
               <p className="text-xs font-medium tracking-wide uppercase text-muted">
                 Social Links <span className="text-warm-gray">(optional)</span>
               </p>
@@ -625,7 +662,37 @@ export default function ArtistOnboardingPage() {
                   value={instagram}
                   onChange={(e) => setInstagram(e.target.value)}
                   className="w-full pl-11 pr-4 py-3 bg-white border border-border rounded-xl text-sm placeholder:text-warm-gray transition-colors focus:border-accent focus:ring-1 focus:ring-accent/20"
-                  placeholder="@yourusername"
+                  placeholder="Instagram @handle or URL"
+                />
+              </div>
+              <div className="relative">
+                <TikTokIcon className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-warm-gray" />
+                <input
+                  type="text"
+                  value={tiktok}
+                  onChange={(e) => setTiktok(e.target.value)}
+                  className="w-full pl-11 pr-4 py-3 bg-white border border-border rounded-xl text-sm placeholder:text-warm-gray transition-colors focus:border-accent focus:ring-1 focus:ring-accent/20"
+                  placeholder="TikTok @handle or URL"
+                />
+              </div>
+              <div className="relative">
+                <FacebookIcon className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-warm-gray" />
+                <input
+                  type="text"
+                  value={facebook}
+                  onChange={(e) => setFacebook(e.target.value)}
+                  className="w-full pl-11 pr-4 py-3 bg-white border border-border rounded-xl text-sm placeholder:text-warm-gray transition-colors focus:border-accent focus:ring-1 focus:ring-accent/20"
+                  placeholder="Facebook page URL"
+                />
+              </div>
+              <div className="relative">
+                <YouTubeIcon className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-warm-gray" />
+                <input
+                  type="text"
+                  value={youtube}
+                  onChange={(e) => setYoutube(e.target.value)}
+                  className="w-full pl-11 pr-4 py-3 bg-white border border-border rounded-xl text-sm placeholder:text-warm-gray transition-colors focus:border-accent focus:ring-1 focus:ring-accent/20"
+                  placeholder="YouTube channel URL"
                 />
               </div>
               <div className="relative">
@@ -1019,11 +1086,26 @@ export default function ArtistOnboardingPage() {
               {bio && (
                 <p className="text-sm text-muted leading-relaxed line-clamp-3">{bio}</p>
               )}
-              {(instagram || website) && (
-                <div className="flex items-center gap-3 mt-3 pt-3 border-t border-border">
+              {(instagram || tiktok || facebook || youtube || website) && (
+                <div className="flex flex-wrap items-center gap-3 mt-3 pt-3 border-t border-border">
                   {instagram && (
                     <span className="text-xs text-muted flex items-center gap-1">
-                      <InstagramIcon className="h-3 w-3" /> {instagram}
+                      <InstagramIcon className="h-3 w-3" /> Instagram
+                    </span>
+                  )}
+                  {tiktok && (
+                    <span className="text-xs text-muted flex items-center gap-1">
+                      <TikTokIcon className="h-3 w-3" /> TikTok
+                    </span>
+                  )}
+                  {facebook && (
+                    <span className="text-xs text-muted flex items-center gap-1">
+                      <FacebookIcon className="h-3 w-3" /> Facebook
+                    </span>
+                  )}
+                  {youtube && (
+                    <span className="text-xs text-muted flex items-center gap-1">
+                      <YouTubeIcon className="h-3 w-3" /> YouTube
                     </span>
                   )}
                   {website && (

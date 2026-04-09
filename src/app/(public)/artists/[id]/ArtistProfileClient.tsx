@@ -30,6 +30,31 @@ function InstagramIcon({ className }: { className?: string }) {
   );
 }
 
+function TikTokIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M9 12a4 4 0 1 0 4 4V4a5 5 0 0 0 5 5" />
+    </svg>
+  );
+}
+
+function FacebookIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z" />
+    </svg>
+  );
+}
+
+function YouTubeIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M2.5 17a24.12 24.12 0 0 1 0-10 2 2 0 0 1 1.4-1.4 49.56 49.56 0 0 1 16.2 0A2 2 0 0 1 21.5 7a24.12 24.12 0 0 1 0 10 2 2 0 0 1-1.4 1.4 49.55 49.55 0 0 1-16.2 0A2 2 0 0 1 2.5 17" />
+      <path d="m10 15 5-3-5-3z" />
+    </svg>
+  );
+}
+
 // ── Star rating display ──
 
 function StarRating({ rating, size = 16 }: { rating: number; size?: number }) {
@@ -82,6 +107,9 @@ export default function ArtistProfileClient({
 
   const socialLinks = (artist.social_links ?? {}) as Record<string, string>;
   const instagram = socialLinks.instagram;
+  const tiktok = socialLinks.tiktok;
+  const facebook = socialLinks.facebook;
+  const youtube = socialLinks.youtube;
   const website = socialLinks.website;
 
   const memberSince = new Date(artist.created_at).toLocaleDateString('en-AU', {
@@ -154,8 +182,8 @@ export default function ArtistProfileClient({
               )}
 
               {/* Social links */}
-              {(instagram || website) && (
-                <div className="flex items-center justify-center md:justify-start gap-3">
+              {(instagram || tiktok || facebook || youtube || website) && (
+                <div className="flex flex-wrap items-center justify-center md:justify-start gap-3">
                   {instagram && (
                     <a
                       href={
@@ -168,7 +196,44 @@ export default function ArtistProfileClient({
                       className="flex items-center gap-1.5 text-sm text-muted hover:text-accent-dark transition-colors"
                     >
                       <InstagramIcon className="h-4 w-4" />
-                      <span className="link-underline">{instagram.startsWith('@') ? instagram : `@${instagram}`}</span>
+                      <span className="link-underline">Instagram</span>
+                    </a>
+                  )}
+                  {tiktok && (
+                    <a
+                      href={
+                        tiktok.startsWith('http')
+                          ? tiktok
+                          : `https://tiktok.com/@${tiktok.replace('@', '')}`
+                      }
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-1.5 text-sm text-muted hover:text-accent-dark transition-colors"
+                    >
+                      <TikTokIcon className="h-4 w-4" />
+                      <span className="link-underline">TikTok</span>
+                    </a>
+                  )}
+                  {facebook && (
+                    <a
+                      href={facebook.startsWith('http') ? facebook : `https://facebook.com/${facebook}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-1.5 text-sm text-muted hover:text-accent-dark transition-colors"
+                    >
+                      <FacebookIcon className="h-4 w-4" />
+                      <span className="link-underline">Facebook</span>
+                    </a>
+                  )}
+                  {youtube && (
+                    <a
+                      href={youtube.startsWith('http') ? youtube : `https://youtube.com/@${youtube.replace('@', '')}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-1.5 text-sm text-muted hover:text-accent-dark transition-colors"
+                    >
+                      <YouTubeIcon className="h-4 w-4" />
+                      <span className="link-underline">YouTube</span>
                     </a>
                   )}
                   {website && (
