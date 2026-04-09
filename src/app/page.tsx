@@ -38,25 +38,40 @@ export default function HomePage() {
   useEffect(() => {
     async function fetchArt() {
       try {
-        // Use server API route — bypasses browser client navigator.locks issues
         const controller = new AbortController();
-        const timeout = setTimeout(() => controller.abort(), 5000);
+        const timeout = setTimeout(() => controller.abort(), 15000);
 
-        const res = await fetch('/api/artworks/featured?limit=12', {
-          signal: controller.signal,
-        });
+        // Fetch featured (curated) and new arrivals (chronological) in parallel
+        const [featuredRes, arrivalsRes] = await Promise.all([
+          fetch('/api/artworks/featured?limit=8', { signal: controller.signal }),
+          fetch('/api/artworks/browse?limit=6&sort=newest', { signal: controller.signal }),
+        ]);
         clearTimeout(timeout);
 
-        if (res.ok) {
-          const json = await res.json();
+        if (featuredRes.ok) {
+          const json = await featuredRes.json();
           const mapped = (json.data || []) as FeaturedArtwork[];
-          if (mapped.length > 0) {
-            setArtworks(mapped.slice(0, 8));
-            setNewArrivals(mapped.slice(0, 6));
-          }
+          setArtworks(mapped);
+        }
+
+        if (arrivalsRes.ok) {
+          const json = await arrivalsRes.json();
+          const rows = (json.data || []) as Array<Record<string, unknown>>;
+          // Map browse response shape to FeaturedArtwork shape
+          const mapped: FeaturedArtwork[] = rows.map((a) => ({
+            id: a.id as string,
+            title: a.title as string,
+            artistName: (a.profiles as Record<string, string> | null)?.full_name || 'Unknown',
+            artistId: a.artist_id as string,
+            price: a.price_aud as number,
+            imageUrl: ((a.images as string[]) || [])[0] || '',
+            medium: a.medium as string,
+            category: a.category as 'original' | 'print' | 'digital',
+          }));
+          setNewArrivals(mapped);
         }
       } catch (err) {
-        console.error('[Home] Featured artwork fetch error:', err);
+        console.error('[Home] Artwork fetch error:', err);
       } finally {
         setLoaded(true);
       }

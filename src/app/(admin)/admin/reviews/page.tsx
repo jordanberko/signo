@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { Check, X, Eye, ChevronLeft, ChevronRight, Clock, MessageSquare } from 'lucide-react';
+import { Check, X, Eye, ChevronLeft, ChevronRight, Clock, MessageSquare, Star } from 'lucide-react';
 import { formatPrice } from '@/lib/utils';
 import { useRequireAuth } from '@/lib/hooks/useRequireAuth';
 import type { Artwork, User } from '@/types/database';
@@ -69,6 +69,29 @@ export default function AdminReviewsPage() {
     setSelectedImage(0);
     setActionLoading(false);
     fetchArtworks();
+  }
+
+  async function handleFeatureToggle(artworkId: string, currentlyFeatured: boolean) {
+    try {
+      const res = await fetch(`/api/admin/artworks/${artworkId}/feature`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ is_featured: !currentlyFeatured }),
+      });
+
+      if (res.ok) {
+        // Update local state immediately
+        const updated = !currentlyFeatured;
+        setArtworks((prev) =>
+          prev.map((a) => (a.id === artworkId ? { ...a, is_featured: updated } : a))
+        );
+        if (selectedArtwork?.id === artworkId) {
+          setSelectedArtwork((prev) => prev ? { ...prev, is_featured: updated } : prev);
+        }
+      }
+    } catch (err) {
+      console.error('[AdminReviews] Feature toggle error:', err);
+    }
   }
 
   function openReview(artwork: ReviewArtwork) {
@@ -146,9 +169,14 @@ export default function AdminReviewsPage() {
                 </div>
                 <div className="text-right flex-shrink-0">
                   <p className="font-semibold text-sm">{formatPrice(artwork.price_aud)}</p>
-                  <p className="text-xs text-muted">
-                    {new Date(artwork.created_at).toLocaleDateString('en-AU')}
-                  </p>
+                  <div className="flex items-center justify-end gap-1 mt-0.5">
+                    {(artwork as Record<string, unknown>).is_featured && (
+                      <Star className="h-3 w-3 fill-amber-500 text-amber-500" />
+                    )}
+                    <p className="text-xs text-muted">
+                      {new Date(artwork.created_at).toLocaleDateString('en-AU')}
+                    </p>
+                  </div>
                 </div>
               </button>
             ))
@@ -202,11 +230,29 @@ export default function AdminReviewsPage() {
 
             {/* Details */}
             <div>
-              <h2 className="text-xl font-bold">{selectedArtwork.title}</h2>
-              <Link href={`/artists/${selectedArtwork.artist_id}`} className="text-sm text-accent-dark hover:underline">
-                by {selectedArtwork.artist?.full_name}
-              </Link>
-              <p className="text-lg font-semibold mt-2">{formatPrice(selectedArtwork.price_aud)}</p>
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <h2 className="text-xl font-bold">{selectedArtwork.title}</h2>
+                  <Link href={`/artists/${selectedArtwork.artist_id}`} className="text-sm text-accent-dark hover:underline">
+                    by {selectedArtwork.artist?.full_name}
+                  </Link>
+                  <p className="text-lg font-semibold mt-2">{formatPrice(selectedArtwork.price_aud)}</p>
+                </div>
+                {filter === 'approved' && (
+                  <button
+                    onClick={() => handleFeatureToggle(selectedArtwork.id, !!(selectedArtwork as Record<string, unknown>).is_featured)}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
+                      (selectedArtwork as Record<string, unknown>).is_featured
+                        ? 'bg-amber-100 text-amber-800 border border-amber-300'
+                        : 'bg-muted-bg text-muted border border-border hover:border-amber-300 hover:text-amber-700'
+                    }`}
+                    title={(selectedArtwork as Record<string, unknown>).is_featured ? 'Remove from Featured' : 'Add to Featured'}
+                  >
+                    <Star className={`h-3.5 w-3.5 ${(selectedArtwork as Record<string, unknown>).is_featured ? 'fill-amber-500' : ''}`} />
+                    {(selectedArtwork as Record<string, unknown>).is_featured ? 'Featured' : 'Feature'}
+                  </button>
+                )}
+              </div>
             </div>
 
             <div className="grid grid-cols-2 gap-y-2 text-sm">

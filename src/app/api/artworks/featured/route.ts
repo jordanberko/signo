@@ -17,14 +17,43 @@ export async function GET(request: NextRequest) {
     );
     const supabase = await createClient();
 
-    const { data, error } = await supabase
+    // Fetch featured artworks first, then fill with recent approved
+    const { data: featuredData } = await supabase
       .from('artworks')
       .select(
-        'id, title, price_aud, images, medium, category, artist_id, profiles!artworks_artist_id_fkey(id, full_name)',
+        'id, title, price_aud, images, medium, category, artist_id, is_featured, profiles!artworks_artist_id_fkey(id, full_name)',
       )
       .eq('status', 'approved')
+      .eq('is_featured', true)
       .order('created_at', { ascending: false })
       .limit(limit);
+
+    const featured = featuredData || [];
+    const featuredIds = featured.map((a) => a.id);
+    const remaining = limit - featured.length;
+
+    let recentData: typeof featured = [];
+    if (remaining > 0) {
+      const q = supabase
+        .from('artworks')
+        .select(
+          'id, title, price_aud, images, medium, category, artist_id, is_featured, profiles!artworks_artist_id_fkey(id, full_name)',
+        )
+        .eq('status', 'approved')
+        .order('created_at', { ascending: false })
+        .limit(remaining);
+
+      // Exclude already-fetched featured artworks
+      if (featuredIds.length > 0) {
+        q.not('id', 'in', `(${featuredIds.join(',')})`);
+      }
+
+      const { data: rd } = await q;
+      recentData = rd || [];
+    }
+
+    const data = [...featured, ...recentData];
+    const error = null;
 
     if (error) {
       console.error('[API /artworks/featured] Query error:', error.message);
