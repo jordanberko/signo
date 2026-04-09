@@ -12,28 +12,44 @@ interface PageProps {
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { id } = await params;
   const supabase = await createClient();
-  const { data: artist } = await supabase
-    .from('profiles')
-    .select('full_name, bio, avatar_url')
-    .eq('id', id)
-    .single();
 
+  const [artistResult, artworkCountResult] = await Promise.all([
+    supabase.from('profiles').select('full_name, bio, avatar_url').eq('id', id).single(),
+    supabase.from('artworks').select('*', { count: 'exact', head: true }).eq('artist_id', id).eq('status', 'approved'),
+  ]);
+
+  const artist = artistResult.data;
   if (!artist) {
-    return { title: 'Artist Not Found — Signo' };
+    return { title: 'Artist Not Found' };
   }
 
   const name = artist.full_name ?? 'Artist';
-  const description = artist.bio
-    ? artist.bio.slice(0, 160)
-    : `Discover artwork by ${name} on Signo — Australia's curated art marketplace.`;
+  const count = artworkCountResult.count || 0;
+  const bioSnippet = artist.bio ? artist.bio.slice(0, 150) : '';
+  const description = bioSnippet
+    ? `${bioSnippet}${bioSnippet.length >= 150 ? '...' : ''}${count > 0 ? ` Browse ${count} original artwork${count === 1 ? '' : 's'}.` : ''}`
+    : `Discover artwork by ${name} on Signo — Australia\u2019s curated art marketplace.${count > 0 ? ` ${count} artwork${count === 1 ? '' : 's'} available.` : ''}`;
+
+  const title = `${name} \u2014 Artist on Signo`;
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://signo-tau.vercel.app';
+  const url = `${appUrl}/artists/${id}`;
 
   return {
-    title: `${name} — Signo`,
+    title,
     description,
+    alternates: { canonical: url },
     openGraph: {
-      title: `${name} — Signo`,
+      title,
       description,
-      ...(artist.avatar_url ? { images: [{ url: artist.avatar_url }] } : {}),
+      url,
+      type: 'profile',
+      ...(artist.avatar_url ? { images: [{ url: artist.avatar_url, alt: name }] } : {}),
+    },
+    twitter: {
+      card: artist.avatar_url ? 'summary_large_image' : 'summary',
+      title,
+      description,
+      ...(artist.avatar_url ? { images: [artist.avatar_url] } : {}),
     },
   };
 }

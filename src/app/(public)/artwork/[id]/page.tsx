@@ -33,28 +33,41 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const data = await getArtwork(id);
 
   if (!data) {
-    return { title: 'Artwork Not Found — Signo' };
+    return { title: 'Artwork Not Found' };
   }
 
   const artistName =
     (data.profiles as Record<string, string>)?.full_name || 'Unknown Artist';
-  const title = `${data.title} by ${artistName} — Signo`;
-  const description =
-    data.description?.slice(0, 160) ||
-    `${data.title} — ${data.category} artwork by ${artistName}. Available on Signo.`;
+  const title = `${data.title} by ${artistName}`;
+  const ogTitle = `${data.title} by ${artistName}`;
+
+  // Build a rich description: medium, dimensions, price, then description text
+  const parts: string[] = [];
+  if (data.medium) parts.push(`${data.medium} artwork`);
+  if (data.width_cm && data.height_cm) parts.push(`${Math.round(data.width_cm)}\u00d7${Math.round(data.height_cm)}cm`);
+  if (data.price_aud) parts.push(`$${Number(data.price_aud).toFixed(0)} AUD`);
+  const prefix = parts.length > 0 ? parts.join(', ') + '. ' : '';
+  const descBody = data.description?.slice(0, 120) || `Available on Signo.`;
+  const description = `${prefix}${descBody}`.slice(0, 200);
+
   const ogImage = (data.images as string[])?.[0];
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://signo-tau.vercel.app';
+  const url = `${appUrl}/artwork/${id}`;
 
   return {
     title,
     description,
+    alternates: { canonical: url },
     openGraph: {
-      title,
+      title: ogTitle,
       description,
-      ...(ogImage ? { images: [{ url: ogImage }] } : {}),
+      url,
+      type: 'website',
+      ...(ogImage ? { images: [{ url: ogImage, width: 1200, height: 1200, alt: data.title }] } : {}),
     },
     twitter: {
       card: 'summary_large_image',
-      title,
+      title: ogTitle,
       description,
       ...(ogImage ? { images: [ogImage] } : {}),
     },
@@ -239,12 +252,40 @@ export default async function ArtworkDetailPage({ params }: Props) {
     }
   }
 
+  // JSON-LD structured data for product (artwork)
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://signo-tau.vercel.app';
+  const jsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'Product',
+    name: artwork.title,
+    description: data.description || `${artwork.title} by ${artwork.artist.full_name}`,
+    image: artwork.images[0] || undefined,
+    url: `${appUrl}/artwork/${id}`,
+    brand: {
+      '@type': 'Person',
+      name: artwork.artist.full_name || 'Artist',
+    },
+    offers: {
+      '@type': 'Offer',
+      price: artwork.price_aud,
+      priceCurrency: 'AUD',
+      availability: 'https://schema.org/InStock',
+      url: `${appUrl}/artwork/${id}`,
+    },
+  };
+
   return (
-    <ArtworkDetailClient
-      artwork={artwork}
-      relatedArtworks={related}
-      suggestedArtworks={suggested}
-      artistArtworkCount={artistArtworkCount || 0}
-    />
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
+      <ArtworkDetailClient
+        artwork={artwork}
+        relatedArtworks={related}
+        suggestedArtworks={suggested}
+        artistArtworkCount={artistArtworkCount || 0}
+      />
+    </>
   );
 }

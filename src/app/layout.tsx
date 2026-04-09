@@ -32,6 +32,7 @@ const ebGaramond = EB_Garamond({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || "https://signo-tau.vercel.app"),
   title: {
     default: "Signo — Where Art Finds Its People",
     template: "%s — Signo",
@@ -51,6 +52,10 @@ export const metadata: Metadata = {
     title: "Signo — Where Art Finds Its People",
     description:
       "A curated Australian art marketplace. Zero commission. Artists keep 100% of every sale.",
+  },
+  robots: {
+    index: true,
+    follow: true,
   },
 };
 
