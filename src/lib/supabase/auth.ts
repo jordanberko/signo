@@ -21,12 +21,16 @@ export async function signIn(email: string, password: string) {
   return { data, error };
 }
 
-export async function signInWithGoogle() {
+export async function signInWithGoogle(role?: 'buyer' | 'artist') {
   const supabase = createClient();
+  const redirectUrl = new URL('/auth/callback', window.location.origin);
+  if (role) {
+    redirectUrl.searchParams.set('role', role);
+  }
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: 'google',
     options: {
-      redirectTo: `${window.location.origin}/auth/callback`,
+      redirectTo: redirectUrl.toString(),
     },
   });
   return { data, error };

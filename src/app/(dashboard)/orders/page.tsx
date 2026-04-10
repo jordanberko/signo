@@ -11,7 +11,7 @@ import {
   AlertCircle,
 } from 'lucide-react';
 import { useRequireAuth } from '@/lib/hooks/useRequireAuth';
-import { formatPrice } from '@/lib/utils';
+import { formatPrice, getStatusStyle, formatStatus } from '@/lib/utils';
 
 // ── Types ──
 
@@ -29,30 +29,6 @@ interface OrderRow {
   } | null;
 }
 
-// ── Helpers ──
-
-function statusStyle(status: string): string {
-  switch (status) {
-    case 'completed':
-      return 'bg-green-50 text-green-700';
-    case 'shipped':
-    case 'delivered':
-      return 'bg-blue-50 text-blue-700';
-    case 'paid':
-      return 'bg-amber-50 text-amber-700';
-    case 'disputed':
-      return 'bg-red-50 text-red-700';
-    case 'refunded':
-    case 'cancelled':
-      return 'bg-gray-100 text-gray-600';
-    default:
-      return 'bg-gray-50 text-gray-600';
-  }
-}
-
-function statusLabel(status: string): string {
-  return status.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
-}
 
 // ── Component ──
 
@@ -79,7 +55,6 @@ export default function OrdersPage() {
         }
 
         const data = await res.json();
-        console.log('[Orders] Fetched:', data.orders?.length, 'orders');
         setOrders(data.orders || []);
       } catch (err) {
         console.error('[Orders]', err);
@@ -192,9 +167,9 @@ export default function OrdersPage() {
                       {formatPrice(order.total_amount_aud)}
                     </span>
                     <span
-                      className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${statusStyle(order.status)}`}
+                      className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${getStatusStyle(order.status)}`}
                     >
-                      {statusLabel(order.status)}
+                      {formatStatus(order.status)}
                     </span>
                   </div>
                 </div>

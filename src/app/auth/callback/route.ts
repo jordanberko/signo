@@ -5,6 +5,7 @@ export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get('code');
   const next = searchParams.get('next') ?? '/';
+  const selectedRole = searchParams.get('role'); // from register page OAuth
 
   if (code) {
     const supabase = await createClient();
@@ -26,13 +27,22 @@ export async function GET(request: Request) {
 
           if (profile) {
             role = profile.role;
+            // If the user signed up via Google with a role selection, apply it
+            if (selectedRole === 'artist' && role !== 'artist') {
+              await supabase
+                .from('profiles')
+                .update({ role: 'artist' })
+                .eq('id', user.id);
+              role = 'artist';
+            }
             break;
           }
           // Short delay before retry
           await new Promise((resolve) => setTimeout(resolve, 300));
         }
 
-        const redirectPath = next;
+        // If the user just registered as an artist via Google, send to onboarding
+        const redirectPath = role === 'artist' && selectedRole === 'artist' ? '/artist/onboarding' : next;
         return NextResponse.redirect(`${origin}${redirectPath}`);
       }
 

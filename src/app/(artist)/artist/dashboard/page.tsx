@@ -15,7 +15,7 @@ import {
   Banknote,
   Palette,
 } from 'lucide-react';
-import { formatPrice } from '@/lib/utils';
+import { formatPrice, getStatusStyle, formatStatus } from '@/lib/utils';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { useRequireAuth } from '@/lib/hooks/useRequireAuth';
 
@@ -59,7 +59,6 @@ export default function ArtistDashboardPage() {
 
     async function fetchDashboard() {
       try {
-        console.log('[ArtistDashboard] Fetching from /api/artist/dashboard');
         const res = await fetch('/api/artist/dashboard', {
           signal: controller.signal,
         });
@@ -70,7 +69,6 @@ export default function ArtistDashboardPage() {
         }
 
         const data = await res.json();
-        console.log('[ArtistDashboard] API response:', data);
 
         // Update stats (they default to 0, so partial failure is fine)
         if (data.stats) {
@@ -142,25 +140,6 @@ export default function ArtistDashboardPage() {
     },
   ];
 
-  const statusStyle = (status: string) => {
-    switch (status) {
-      case 'completed':
-        return 'bg-green-50 text-green-700';
-      case 'shipped':
-      case 'delivered':
-        return 'bg-blue-50 text-blue-700';
-      case 'paid':
-        return 'bg-amber-50 text-amber-700';
-      case 'disputed':
-        return 'bg-red-50 text-red-700';
-      case 'refunded':
-      case 'cancelled':
-        return 'bg-gray-100 text-gray-600';
-      default:
-        return 'bg-gray-50 text-gray-600';
-    }
-  };
-
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       {/* Onboarding banner */}
@@ -182,7 +161,7 @@ export default function ArtistDashboardPage() {
 
       <div className="flex items-center justify-between mb-8">
         <div>
-          <h1 className="text-3xl font-bold">Seller Dashboard</h1>
+          <h1 className="font-editorial text-3xl md:text-4xl font-medium">Seller Dashboard</h1>
           <p className="text-muted mt-1">
             Manage your listings and sales
             {user ? `, ${user.full_name}` : ''}
@@ -373,9 +352,9 @@ export default function ArtistDashboardPage() {
                       </td>
                       <td className="p-4">
                         <span
-                          className={`text-xs px-2 py-1 rounded-full font-medium capitalize ${statusStyle(order.status)}`}
+                          className={`text-xs px-2 py-1 rounded-full font-medium ${getStatusStyle(order.status)}`}
                         >
-                          {order.status.replace('_', ' ')}
+                          {formatStatus(order.status)}
                         </span>
                       </td>
                       <td className="p-4 text-sm text-muted">{order.date}</td>
@@ -392,9 +371,9 @@ export default function ArtistDashboardPage() {
                   <div className="flex items-center justify-between">
                     <p className="font-medium text-sm">{order.title}</p>
                     <span
-                      className={`text-xs px-2 py-0.5 rounded-full font-medium capitalize ${statusStyle(order.status)}`}
+                      className={`text-xs px-2 py-0.5 rounded-full font-medium ${getStatusStyle(order.status)}`}
                     >
-                      {order.status.replace('_', ' ')}
+                      {formatStatus(order.status)}
                     </span>
                   </div>
                   <div className="flex items-center justify-between text-sm">

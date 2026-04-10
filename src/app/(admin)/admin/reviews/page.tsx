@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { Check, X, Eye, ChevronLeft, ChevronRight, Clock, MessageSquare, Star } from 'lucide-react';
 import { formatPrice } from '@/lib/utils';
 import { useRequireAuth } from '@/lib/hooks/useRequireAuth';
@@ -157,9 +158,9 @@ export default function AdminReviewsPage() {
                     : 'border-border hover:border-gray-300'
                 }`}
               >
-                <div className="w-16 h-16 rounded-lg bg-muted-bg flex-shrink-0 overflow-hidden">
+                <div className="w-16 h-16 rounded-lg bg-muted-bg flex-shrink-0 overflow-hidden relative">
                   {(artwork.images as string[])?.[0] && (
-                    <img src={(artwork.images as string[])[0]} alt={artwork.title} className="w-full h-full object-cover" />
+                    <Image src={(artwork.images as string[])[0]} alt={artwork.title} fill className="object-cover" sizes="64px" />
                   )}
                 </div>
                 <div className="flex-1 min-w-0">
@@ -190,7 +191,7 @@ export default function AdminReviewsPage() {
             <div className="space-y-3">
               <div className="relative aspect-[4/3] bg-muted-bg rounded-lg overflow-hidden">
                 {images[selectedImage] ? (
-                  <img src={images[selectedImage]} alt={selectedArtwork.title} className="w-full h-full object-contain" />
+                  <img src={images[selectedImage]} alt={selectedArtwork.title} className="w-full h-full object-contain" loading="lazy" />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center text-muted">No image</div>
                 )}
@@ -217,11 +218,11 @@ export default function AdminReviewsPage() {
                     <button
                       key={i}
                       onClick={() => setSelectedImage(i)}
-                      className={`flex-shrink-0 w-14 h-14 rounded overflow-hidden border-2 ${
+                      className={`relative flex-shrink-0 w-14 h-14 rounded overflow-hidden border-2 ${
                         selectedImage === i ? 'border-accent' : 'border-transparent'
                       }`}
                     >
-                      <img src={img} alt="" className="w-full h-full object-cover" />
+                      <Image src={img} alt="" fill className="object-cover" sizes="56px" />
                     </button>
                   ))}
                 </div>

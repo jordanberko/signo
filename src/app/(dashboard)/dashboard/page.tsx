@@ -18,7 +18,7 @@ import {
 import ArtworkCard from '@/components/ui/ArtworkCard';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { useRequireAuth } from '@/lib/hooks/useRequireAuth';
-import { formatPrice } from '@/lib/utils';
+import { formatPrice, getStatusStyle, formatStatus } from '@/lib/utils';
 
 // ── Types ──
 
@@ -30,31 +30,6 @@ interface RecentOrder {
   price: number;
   date: string;
   status: string;
-}
-
-// ── Helpers ──
-
-function statusStyle(status: string): string {
-  switch (status) {
-    case 'completed':
-      return 'bg-green-50 text-green-700';
-    case 'shipped':
-    case 'delivered':
-      return 'bg-blue-50 text-blue-700';
-    case 'paid':
-      return 'bg-amber-50 text-amber-700';
-    case 'disputed':
-      return 'bg-red-50 text-red-700';
-    case 'refunded':
-    case 'cancelled':
-      return 'bg-gray-100 text-gray-600';
-    default:
-      return 'bg-gray-50 text-gray-600';
-  }
-}
-
-function statusLabel(status: string): string {
-  return status.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
 // ── Component ──
@@ -98,7 +73,6 @@ function DashboardContent() {
 
     async function fetchOrders() {
       try {
-        console.log('[Dashboard] Fetching orders from /api/orders');
         const res = await fetch('/api/orders', { signal: controller.signal });
 
         if (!res.ok) {
@@ -107,7 +81,6 @@ function DashboardContent() {
         }
 
         const data = await res.json();
-        console.log('[Dashboard] Orders response:', data.orders?.length, 'orders');
 
         if (cancelled) return;
 
@@ -385,9 +358,9 @@ function DashboardContent() {
                       </td>
                       <td className="px-5 py-4">
                         <span
-                          className={`text-xs font-medium px-2.5 py-1 rounded-full ${statusStyle(order.status)}`}
+                          className={`text-xs font-medium px-2.5 py-1 rounded-full ${getStatusStyle(order.status)}`}
                         >
-                          {statusLabel(order.status)}
+                          {formatStatus(order.status)}
                         </span>
                       </td>
                       <td className="px-5 py-4 text-right">
@@ -439,9 +412,9 @@ function DashboardContent() {
                         {formatPrice(order.price)}
                       </span>
                       <span
-                        className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${statusStyle(order.status)}`}
+                        className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${getStatusStyle(order.status)}`}
                       >
-                        {statusLabel(order.status)}
+                        {formatStatus(order.status)}
                       </span>
                     </div>
                   </div>

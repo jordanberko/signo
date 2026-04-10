@@ -351,6 +351,7 @@ function Lightbox({
           src={images[index]}
           alt={`${title} — image ${index + 1}`}
           className="max-w-full max-h-[90vh] object-contain pointer-events-none"
+          loading="lazy"
           draggable={false}
           style={{
             transform: `scale(${scale}) translate(${translate.x / scale}px, ${translate.y / scale}px)`,
@@ -472,15 +473,11 @@ export default function ArtworkDetailClient({
   }
 
   async function handleMessageArtist() {
-    console.log('[Artwork] Message Artist clicked for artwork:', artwork.id);
-
     if (!user) {
-      console.log('[Artwork] User not logged in, redirecting to login');
       window.location.href = `/login?redirect=${encodeURIComponent(`/artwork/${artwork.id}`)}`;
       return;
     }
 
-    console.log('[Artwork] Creating conversation with artist:', artwork.artist.id);
     setMessagingLoading(true);
     try {
       const res = await fetch('/api/messages/conversations', {
@@ -495,8 +492,6 @@ export default function ArtworkDetailClient({
       const json = await res.json();
 
       if (res.ok) {
-        console.log('[Artwork] Conversation created/found:', json.data?.id);
-        console.log('[Artwork] Navigating to /messages/' + json.data?.id);
         router.push(`/messages/${json.data.id}`);
       } else {
         console.error('[Artwork] Failed to create conversation:', json.error);
@@ -618,16 +613,18 @@ export default function ArtworkDetailClient({
                   <button
                     key={i}
                     onClick={() => setSelectedImage(i)}
-                    className={`flex-shrink-0 w-20 h-20 rounded-lg overflow-hidden border-2 transition-all duration-200 ${
+                    className={`relative flex-shrink-0 w-20 h-20 rounded-lg overflow-hidden border-2 transition-all duration-200 ${
                       selectedImage === i
                         ? 'border-accent ring-1 ring-accent/30'
                         : 'border-transparent hover:border-warm-gray'
                     }`}
                   >
-                    <img
+                    <Image
                       src={img}
                       alt={`${artwork.title} — photo ${i + 1}`}
-                      className="w-full h-full object-cover"
+                      fill
+                      className="object-cover"
+                      sizes="80px"
                     />
                   </button>
                 ))}
@@ -660,12 +657,14 @@ export default function ArtworkDetailClient({
               href={`/artists/${artist.id}`}
               className="flex items-center gap-3.5 p-3 -mx-3 rounded-xl hover:bg-cream transition-colors group"
             >
-              <div className="w-11 h-11 rounded-full bg-muted-bg flex-shrink-0 overflow-hidden">
+              <div className="w-11 h-11 rounded-full bg-muted-bg flex-shrink-0 overflow-hidden relative">
                 {artist.avatar_url ? (
-                  <img
+                  <Image
                     src={artist.avatar_url}
                     alt={artist.full_name ?? ''}
-                    className="w-full h-full object-cover"
+                    fill
+                    className="object-cover"
+                    sizes="44px"
                   />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center text-xs font-bold text-muted">
@@ -917,13 +916,15 @@ export default function ArtworkDetailClient({
           <div className="flex flex-col sm:flex-row items-start gap-5 p-6 bg-cream rounded-2xl">
             <Link
               href={`/artists/${artist.id}`}
-              className="w-20 h-20 rounded-full bg-muted-bg flex-shrink-0 overflow-hidden"
+              className="w-20 h-20 rounded-full bg-muted-bg flex-shrink-0 overflow-hidden relative"
             >
               {artist.avatar_url ? (
-                <img
+                <Image
                   src={artist.avatar_url}
                   alt={artist.full_name ?? ''}
-                  className="w-full h-full object-cover"
+                  fill
+                  className="object-cover"
+                  sizes="80px"
                 />
               ) : (
                 <div className="w-full h-full flex items-center justify-center text-lg font-bold text-muted">

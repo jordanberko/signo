@@ -67,7 +67,7 @@ export default async function ArtistProfilePage({ params }: PageProps) {
     .eq('id', id)
     .single();
 
-  if (!artist) notFound();
+  if (!artist || artist.role !== 'artist') notFound();
 
   // Fetch approved artworks
   const { data: artworks } = await supabase
