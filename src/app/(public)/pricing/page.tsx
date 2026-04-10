@@ -1,6 +1,13 @@
+import type { Metadata } from 'next';
 import Link from 'next/link';
 import { ArrowRight, Check, X } from 'lucide-react';
 import { calculateStripeFee } from '@/lib/utils';
+
+export const metadata: Metadata = {
+  title: 'Pricing',
+  description:
+    'Signo pricing for artists: $30/month flat subscription, zero commission. See how much more you keep compared to galleries and other platforms.',
+};
 
 function calculatePayout(price: number) {
   const fee = calculateStripeFee(price);

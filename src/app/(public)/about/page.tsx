@@ -1,5 +1,12 @@
+import type { Metadata } from 'next';
 import Link from 'next/link';
 import { ArrowRight } from 'lucide-react';
+
+export const metadata: Metadata = {
+  title: 'About',
+  description:
+    'Learn about Signo — an Australian art marketplace where artists keep 100% of every sale. Zero commission, just a flat monthly subscription.',
+};
 
 export default function AboutPage() {
   return (

@@ -155,7 +155,7 @@ export async function POST(request: Request) {
             artistName: artist?.full_name || 'Artist',
             artworkImageUrl: artwork?.images?.[0] || undefined,
             totalAmount: totalAud,
-          }).catch((err) => console.error('[Payment Webhook] Order confirmation email failed:', err));
+          }).catch((err) => console.warn('[EMAIL_FAILED]', { type: 'order_confirmation', orderId: order.id, recipient: buyer.email, error: err?.message }));
         }
 
         // New sale notification to artist
@@ -169,7 +169,7 @@ export async function POST(request: Request) {
             artistPayout,
             buyerCity: shippingAddress?.city,
             buyerState: shippingAddress?.state,
-          }).catch((err) => console.error('[Payment Webhook] Sale notification email failed:', err));
+          }).catch((err) => console.warn('[EMAIL_FAILED]', { type: 'new_sale_notification', orderId: order.id, recipient: artist.email, error: err?.message }));
         }
 
         break;

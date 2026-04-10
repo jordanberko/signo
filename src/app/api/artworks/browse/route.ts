@@ -88,12 +88,19 @@ export async function GET(request: NextRequest) {
     // Size filter
     const size = params.get('size');
     if (size === 'small') {
-      query = query.lte('width_cm', 40).lte('height_cm', 40);
+      // Both dimensions < 40cm
+      query = query.lt('width_cm', 40).lt('height_cm', 40);
     } else if (size === 'medium') {
       // At least one dimension >= 40cm AND both dimensions <= 100cm
-      query = query.or('width_cm.gte.40,height_cm.gte.40');
-      query = query.lte('width_cm', 100).lte('height_cm', 100);
+      // .or() produces (width >= 40 OR height >= 40), chained .lte() calls
+      // add AND conditions, so the full filter is:
+      // (width >= 40 OR height >= 40) AND width <= 100 AND height <= 100
+      query = query
+        .or('width_cm.gte.40,height_cm.gte.40')
+        .lte('width_cm', 100)
+        .lte('height_cm', 100);
     } else if (size === 'large') {
+      // At least one dimension > 100cm
       query = query.or('width_cm.gt.100,height_cm.gt.100');
     }
 
