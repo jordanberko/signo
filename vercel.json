@@ -7,6 +7,10 @@
     {
       "path": "/api/cron/cancel-unshipped",
       "schedule": "0 6 * * *"
+    },
+    {
+      "path": "/api/cron/release-reservations",
+      "schedule": "*/15 * * * *"
     }
   ]
 }

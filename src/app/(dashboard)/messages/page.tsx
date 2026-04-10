@@ -47,7 +47,6 @@ export default function MessagesPage() {
   const [error, setError] = useState<string | null>(null);
 
   const loadConversations = useCallback(async () => {
-    console.log('[Messages] Fetching inbox...');
     setError(null);
 
     try {
@@ -61,20 +60,16 @@ export default function MessagesPage() {
 
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        console.error('[Messages] API error:', res.status, data.error);
         setError(data.error || `Failed to load messages (${res.status})`);
         return;
       }
 
       const json = await res.json();
-      console.log('[Messages] Loaded', json.data?.length ?? 0, 'conversations');
       setConversations(json.data || []);
     } catch (err) {
       if (err instanceof DOMException && err.name === 'AbortError') {
-        console.error('[Messages] Request timed out');
         setError('Could not load messages — request timed out.');
       } else {
-        console.error('[Messages] Fetch error:', err);
         setError('Could not load messages. Please try again.');
       }
     } finally {
@@ -92,7 +87,6 @@ export default function MessagesPage() {
     if (!loading) return;
     const t = setTimeout(() => {
       if (loading) {
-        console.error('[Messages] Safety timeout — forcing load complete');
         setLoading(false);
         setError('Could not load messages. Please try again.');
       }

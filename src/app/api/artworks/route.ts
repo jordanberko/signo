@@ -18,12 +18,20 @@ export async function POST(request: Request) {
     // Role check
     const { data: profile } = await supabase
       .from('profiles')
-      .select('role')
+      .select('role, onboarding_completed, stripe_account_id')
       .eq('id', user.id)
       .single();
 
     if (!profile || !['artist', 'admin'].includes(profile.role)) {
       return NextResponse.json({ error: 'Only artists can create artworks' }, { status: 403 });
+    }
+
+    // Onboarding gate — artists must complete Stripe Connect setup before uploading
+    if (profile.role === 'artist' && (!profile.onboarding_completed || !profile.stripe_account_id)) {
+      return NextResponse.json(
+        { error: 'Please complete your seller onboarding before uploading artworks.' },
+        { status: 403 },
+      );
     }
 
     const body = await request.json();

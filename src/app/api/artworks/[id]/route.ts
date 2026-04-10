@@ -54,7 +54,7 @@ export async function PUT(request: Request, context: RouteContext) {
     // Ownership check
     const { data: existing } = await supabase
       .from('artworks')
-      .select('artist_id, status')
+      .select('artist_id, status, review_notes')
       .eq('id', id)
       .single();
 
@@ -133,8 +133,14 @@ export async function PUT(request: Request, context: RouteContext) {
       status: newStatus,
     };
 
-    // Clear review notes if resubmitting
-    if (newStatus === 'pending_review') {
+    // Add resubmission audit trail when transitioning from rejected to pending_review
+    if (existing.status === 'rejected' && newStatus === 'pending_review') {
+      const previousNotes = existing.review_notes || '';
+      updateData.review_notes = previousNotes
+        ? `[Resubmission] ${previousNotes}`
+        : '[Resubmission]';
+    } else if (newStatus === 'pending_review') {
+      // Clear review notes for fresh submissions (not resubmissions)
       updateData.review_notes = null;
     }
 

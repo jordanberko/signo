@@ -142,12 +142,17 @@ export async function refundBuyer(orderId: string): Promise<{
 
   try {
     const stripe = getStripe();
-    const refund = await stripe.refunds.create({
-      payment_intent: order.stripe_payment_intent_id,
-      metadata: {
-        signo_order_id: orderId,
+    const refund = await stripe.refunds.create(
+      {
+        payment_intent: order.stripe_payment_intent_id,
+        metadata: {
+          signo_order_id: orderId,
+        },
       },
-    });
+      {
+        idempotencyKey: `refund_order_${orderId}`,
+      }
+    );
 
     // Update order status
     await supabase

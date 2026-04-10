@@ -34,25 +34,21 @@ export async function POST(request: Request, context: RouteContext) {
     if (order.buyer_id !== user.id) {
       return NextResponse.json({ error: 'You are not the buyer for this order' }, { status: 403 });
     }
-    if (order.status !== 'delivered') {
-      return NextResponse.json({ error: 'Order must be in delivered status to dispute' }, { status: 400 });
+    if (order.status !== 'shipped' && order.status !== 'delivered') {
+      return NextResponse.json({ error: 'Order must be in shipped or delivered status to dispute' }, { status: 400 });
     }
 
-    // Validate inspection deadline hasn't passed
-    if (!order.inspection_deadline || new Date(order.inspection_deadline) <= new Date()) {
-      return NextResponse.json({ error: 'Inspection deadline has passed' }, { status: 400 });
+    // For delivered orders, validate inspection deadline hasn't passed
+    if (order.status === 'delivered') {
+      if (!order.inspection_deadline || new Date(order.inspection_deadline) <= new Date()) {
+        return NextResponse.json({ error: 'Inspection deadline has passed' }, { status: 400 });
+      }
     }
 
-    // Check no existing dispute
-    const { data: existingDispute } = await supabase
-      .from('disputes')
-      .select('id')
-      .eq('order_id', id)
-      .single();
-
-    if (existingDispute) {
-      return NextResponse.json({ error: 'A dispute already exists for this order' }, { status: 409 });
-    }
+    // Note for disputes on shipped (not yet delivered) orders
+    const notDeliveredNote = order.status === 'shipped'
+      ? 'Note: Order has not been confirmed as delivered yet.'
+      : null;
 
     const body = await request.json();
     const { type, description, evidence_images } = body;
@@ -75,20 +71,32 @@ export async function POST(request: Request, context: RouteContext) {
       return NextResponse.json({ error: 'At least one evidence image is required for damaged items' }, { status: 400 });
     }
 
-    // Insert dispute
+    // Insert dispute atomically — rely on unique constraint on (order_id) to
+    // prevent duplicates instead of a non-atomic check-then-insert pattern.
+    const fullDescription = notDeliveredNote
+      ? `[${notDeliveredNote}]\n\n${description.trim()}`
+      : description.trim();
+
     const { data: dispute, error: insertError } = await supabase
       .from('disputes')
       .insert({
         order_id: id,
         raised_by: user.id,
         type,
-        description: description.trim(),
+        description: fullDescription,
         evidence_images: evidence_images || [],
       })
       .select()
       .single();
 
     if (insertError) {
+      // Unique constraint violation — a dispute already exists for this order
+      if (insertError.code === '23505') {
+        return NextResponse.json(
+          { error: 'A dispute already exists for this order' },
+          { status: 409 }
+        );
+      }
       return NextResponse.json({ error: insertError.message }, { status: 400 });
     }
 

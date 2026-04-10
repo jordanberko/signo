@@ -37,24 +37,33 @@ export async function GET(request: Request) {
       );
     }
 
-    // Fetch buyer's saved address from profile
+    // Fetch buyer's saved address from profile (stored in social_links._shipping_address)
     const { data: profile } = await supabase
       .from('profiles')
-      .select('*')
+      .select('social_links')
       .eq('id', user.id)
       .single();
 
+    let address = null;
+    const socialLinks = profile?.social_links as Record<string, string> | null;
+    if (socialLinks?._shipping_address) {
+      try {
+        const saved = JSON.parse(socialLinks._shipping_address);
+        address = {
+          street: saved.street || '',
+          city: saved.city || '',
+          state: saved.state || '',
+          postcode: saved.postcode || '',
+          country: saved.country || 'Australia',
+        };
+      } catch {
+        // Ignore malformed JSON — treat as no saved address
+      }
+    }
+
     return NextResponse.json({
       artwork,
-      address: profile
-        ? {
-            street: (profile as Record<string, unknown>).street_address || '',
-            city: (profile as Record<string, unknown>).city || '',
-            state: (profile as Record<string, unknown>).state || '',
-            postcode: (profile as Record<string, unknown>).postcode || '',
-            country: (profile as Record<string, unknown>).country || 'Australia',
-          }
-        : null,
+      address,
     });
   } catch (err) {
     console.error('[API checkout/artwork]', err);

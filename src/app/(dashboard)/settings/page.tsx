@@ -191,8 +191,6 @@ export default function SettingsPage() {
       clearTimeout(timeout);
 
       const result = await res.json();
-      console.log('[Settings] Profile save result:', result);
-
       if (!res.ok) {
         setProfileStatus({
           type: 'error',
@@ -203,7 +201,6 @@ export default function SettingsPage() {
         setProfileStatus({ type: 'success', message: 'Profile updated.' });
       }
     } catch (err) {
-      console.error('[Settings] Profile save error:', err);
       setProfileStatus({
         type: 'error',
         message: (err as Error).name === 'AbortError'
@@ -240,8 +237,6 @@ export default function SettingsPage() {
       clearTimeout(timeout);
 
       const result = await res.json();
-      console.log('[Settings] Address save result:', result);
-
       if (!res.ok) {
         setAddressStatus({
           type: 'error',
@@ -255,7 +250,6 @@ export default function SettingsPage() {
         });
       }
     } catch (err) {
-      console.error('[Settings] Address save error:', err);
       setAddressStatus({
         type: 'error',
         message: (err as Error).name === 'AbortError'
@@ -329,7 +323,6 @@ export default function SettingsPage() {
         message: 'Password updated successfully.',
       });
     } catch (err) {
-      console.error('[Settings] Password change error:', err);
       setPasswordStatus({
         type: 'error',
         message:
@@ -377,14 +370,11 @@ export default function SettingsPage() {
       clearTimeout(timeout);
 
       const result = await res.json();
-      console.log('[Settings] Artist profile save result:', result);
-
       if (!res.ok) throw new Error(result.error || 'Failed to update artist profile.');
 
       await refreshUser();
       setArtistStatus({ type: 'success', message: 'Artist profile updated.' });
     } catch (err) {
-      console.error('[Settings] Artist save error:', err);
       setArtistStatus({
         type: 'error',
         message: 'Failed to update artist profile. Please try again.',

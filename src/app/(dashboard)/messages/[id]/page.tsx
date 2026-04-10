@@ -106,7 +106,6 @@ export default function ConversationPage({
   // Resolve params
   useEffect(() => {
     params.then((p) => {
-      console.log('[Chat] Resolved conversation ID:', p.id);
       setConversationId(p.id);
     });
   }, [params]);
@@ -118,7 +117,6 @@ export default function ConversationPage({
   // Load conversation data via server API route
   const loadConversation = useCallback(
     async (convoId: string) => {
-      console.log('[Chat] Fetching conversation:', convoId);
       setError(null);
 
       try {
@@ -132,18 +130,12 @@ export default function ConversationPage({
 
         if (!res.ok) {
           const data = await res.json().catch(() => ({}));
-          console.error('[Chat] API error:', res.status, data.error);
           setError(data.error || `Failed to load conversation (${res.status})`);
           setLoading(false);
           return;
         }
 
         const json = await res.json();
-        console.log(
-          '[Chat] Loaded conversation. Messages:',
-          json.messages?.length ?? 0
-        );
-
         setOtherUser(json.otherUser);
         setArtwork(json.artwork);
         setMessages(json.messages || []);
@@ -156,10 +148,8 @@ export default function ConversationPage({
         }).catch(() => {});
       } catch (err) {
         if (err instanceof DOMException && err.name === 'AbortError') {
-          console.error('[Chat] Request timed out');
           setError('Could not load conversation — request timed out.');
         } else {
-          console.error('[Chat] Fetch error:', err);
           setError('Could not load conversation. Please try again.');
         }
       } finally {
@@ -179,7 +169,6 @@ export default function ConversationPage({
     if (!loading) return;
     const t = setTimeout(() => {
       if (loading) {
-        console.error('[Chat] Safety timeout — forcing load complete');
         setLoading(false);
         setError('Could not load conversation. Please try again.');
       }
@@ -210,7 +199,6 @@ export default function ConversationPage({
           filter: `conversation_id=eq.${conversationId}`,
         } as unknown as Record<string, unknown>,
         (payload: { new: MessageRow }) => {
-          console.log('[Chat] Real-time: new message received');
           setMessages((prev) => {
             if (prev.some((m) => m.id === payload.new.id)) return prev;
             return [...prev, payload.new];
@@ -263,7 +251,6 @@ export default function ConversationPage({
   async function handleSend() {
     if (!newMessage.trim() || sending || sendCooldown || !conversationId) return;
 
-    console.log('[Chat] Sending message...');
     setSending(true);
     setSendCooldown(true);
 
@@ -279,7 +266,6 @@ export default function ConversationPage({
 
       if (res.ok) {
         const { data } = await res.json();
-        console.log('[Chat] Message sent:', data?.id);
         setNewMessage('');
         if (textareaRef.current) {
           textareaRef.current.style.height = 'auto';
@@ -293,10 +279,9 @@ export default function ConversationPage({
         }
       } else {
         const data = await res.json().catch(() => ({}));
-        console.error('[Chat] Send error:', data.error);
+        // Send failed silently — user sees no new message appear
       }
     } catch (err) {
-      console.error('[Chat] Send error:', err);
     } finally {
       setSending(false);
       setTimeout(() => setSendCooldown(false), 500);

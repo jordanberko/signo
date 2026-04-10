@@ -691,13 +691,12 @@ function OrderContent({
           Continue Browsing
         </Link>
         {order.status === 'completed' && (
-          <Link
-            href="#"
-            className="flex-1 py-3 border border-border font-medium rounded-full hover:bg-cream transition-colors text-center flex items-center justify-center gap-2"
+          <span
+            className="flex-1 py-3 border border-border font-medium rounded-full text-center flex items-center justify-center gap-2 text-muted cursor-not-allowed opacity-60"
           >
             <Star className="h-4 w-4" />
-            Leave a Review
-          </Link>
+            Reviews coming soon
+          </span>
         )}
       </div>
     </div>

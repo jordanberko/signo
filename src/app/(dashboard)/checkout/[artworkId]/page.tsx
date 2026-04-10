@@ -101,8 +101,6 @@ export default function CheckoutPage({
         clearTimeout(timeout);
 
         const data = await res.json();
-        console.log('[Checkout] Data loaded:', data);
-
         if (!res.ok) {
           setError(data.error || 'This artwork is not available for purchase.');
           setLoading(false);
@@ -136,7 +134,6 @@ export default function CheckoutPage({
           });
         }
       } catch (err) {
-        console.error('[Checkout] Load error:', err);
         setError(
           (err as Error).name === 'AbortError'
             ? 'Request timed out. Please refresh the page.'

@@ -276,6 +276,33 @@ export default function NewArtworkPage() {
 
   if (authLoading) return <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '60vh' }}><div style={{ width: 32, height: 32, border: '3px solid #E5E2DB', borderTopColor: '#2C2C2A', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} /><style>{'@keyframes spin { to { transform: rotate(360deg) } }'}</style></div>;
 
+  // Onboarding gate — artists must complete Stripe Connect setup before uploading
+  if (user && (!user.onboarding_completed || !user.stripe_account_id)) {
+    return (
+      <div className="max-w-lg mx-auto px-4 sm:px-6 py-16 text-center">
+        <div className="rounded-xl border border-border bg-surface p-8">
+          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-amber-100">
+            <Lightbulb className="h-6 w-6 text-amber-600" />
+          </div>
+          <h1 className="font-editorial text-xl md:text-2xl font-medium mb-2">
+            Complete your seller setup first
+          </h1>
+          <p className="text-sm text-muted mb-6">
+            Before you can upload and sell artworks on Signo, you need to set up your payment account through Stripe.
+            This only takes a few minutes and ensures you can receive payments for your sales.
+          </p>
+          <Link
+            href="/artist/onboarding"
+            className="inline-flex items-center gap-2 rounded-lg bg-primary px-5 py-2.5 text-sm font-medium text-white hover:bg-primary/90 transition-colors"
+          >
+            Complete onboarding
+            <ArrowRight className="h-4 w-4" />
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="max-w-2xl mx-auto px-4 sm:px-6 py-8 pb-20">
       {/* ── Header ── */}
