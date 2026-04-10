@@ -11,6 +11,7 @@ import {
   ImagePlus,
   Images,
   DollarSign,
+  Palette,
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { useAuth } from '@/components/providers/AuthProvider';
@@ -190,6 +191,7 @@ export default function AuthButton() {
           {/* Artist links */}
           {isArtist && (
             <div style={{ padding: '4px 0', borderTop: '1px solid #e8e5df' }}>
+              <DropdownLink href="/artist/dashboard" icon={Palette} label="Seller Dashboard" onClick={() => setMenuOpen(false)} />
               <DropdownLink href="/artist/artworks" icon={Images} label="My Artworks" onClick={() => setMenuOpen(false)} />
               <DropdownLink href="/artist/artworks/new" icon={ImagePlus} label="Upload Artwork" onClick={() => setMenuOpen(false)} />
               <DropdownLink href="/artist/earnings" icon={DollarSign} label="Earnings" onClick={() => setMenuOpen(false)} />

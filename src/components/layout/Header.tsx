@@ -187,10 +187,10 @@ export default function Header() {
               How It Works
             </Link>
 
-            {/* Dashboard link — role-based destination */}
+            {/* Dashboard link — all logged-in users */}
             {user && (
               <Link
-                href={user.role === 'artist' || user.role === 'admin' ? '/artist/dashboard' : '/dashboard'}
+                href="/dashboard"
                 className="px-3 py-2 text-sm font-medium text-foreground hover:text-accent-dark transition-colors rounded-lg hover:bg-cream"
               >
                 Dashboard
@@ -265,7 +265,7 @@ export default function Header() {
             <MobileLink href="/browse" label="Browse Art" onClick={() => setMobileMenuOpen(false)} />
             <MobileLink href="/how-it-works" label="How It Works" onClick={() => setMobileMenuOpen(false)} />
             {user && (
-              <MobileLink href={user.role === 'artist' || user.role === 'admin' ? '/artist/dashboard' : '/dashboard'} label="Dashboard" onClick={() => setMobileMenuOpen(false)} />
+              <MobileLink href="/dashboard" label="Dashboard" onClick={() => setMobileMenuOpen(false)} />
             )}
             {user && (
               <>
