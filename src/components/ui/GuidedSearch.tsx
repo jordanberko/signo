@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { ChevronDown, ArrowRight, Search } from 'lucide-react';
+import { ChevronDown, ArrowRight } from 'lucide-react';
 
 // ── Filter options ──
 
@@ -125,7 +125,7 @@ export default function GuidedSearch() {
   const [size, setSize] = useState('');
   const [budget, setBudget] = useState('');
   const [medium, setMedium] = useState('');
-  const [textSearch, setTextSearch] = useState('');
+
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
   const barRef = useRef<HTMLDivElement>(null);
 
@@ -149,15 +149,6 @@ export default function GuidedSearch() {
 
     const qs = params.toString();
     window.location.href = `/browse${qs ? `?${qs}` : ''}`;
-  }
-
-  function handleTextSearch(e: React.FormEvent) {
-    e.preventDefault();
-    if (textSearch.trim()) {
-      window.location.href = `/browse?q=${encodeURIComponent(textSearch.trim())}`;
-    } else {
-      window.location.href = '/browse';
-    }
   }
 
   function toggleDropdown(name: string) {
@@ -268,19 +259,6 @@ export default function GuidedSearch() {
         </div>
       </div>
 
-      {/* ── Text search ── */}
-      <form onSubmit={handleTextSearch} className="mt-4 max-w-lg mx-auto">
-        <div className="relative">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-warm-gray" />
-          <input
-            type="text"
-            placeholder="Or search by title, artist, or keyword..."
-            value={textSearch}
-            onChange={(e) => setTextSearch(e.target.value)}
-            className="w-full pl-11 pr-4 py-2.5 bg-transparent border border-border/60 rounded-full text-sm placeholder:text-warm-gray/70 focus:bg-white focus:border-accent transition-all"
-          />
-        </div>
-      </form>
     </div>
   );
 }
