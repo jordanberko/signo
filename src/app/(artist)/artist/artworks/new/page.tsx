@@ -238,6 +238,7 @@ export default function NewArtworkPage() {
           price_aud: price,
           is_framed: form.is_framed,
           shipping_weight_kg: form.shipping_weight_kg ? parseFloat(form.shipping_weight_kg) : null,
+          shipping_cost: form.includeShipping ? 0 : (form.shipping_cost ? parseFloat(form.shipping_cost) : 0),
           images: form.images,
           tags: form.tags,
           status,

@@ -388,7 +388,47 @@ export async function sendPayoutReleased(data: PayoutReleasedData) {
 }
 
 // ════════════════════════════════════════════════════════════════════
-// 6. WELCOME EMAIL (to new users)
+// 6. ORDER CANCELLED / REFUND (to buyer)
+// ════════════════════════════════════════════════════════════════════
+
+export interface OrderCancelledData {
+  buyerEmail: string;
+  buyerName: string;
+  artworkTitle: string;
+  orderId: string;
+  reason: string;
+}
+
+export async function sendOrderCancelled(data: OrderCancelledData) {
+  const html = emailWrapper(`
+    <h1 style="font-family:Georgia,'Times New Roman',serif;font-size:24px;font-weight:500;color:#1a1a1a;margin:0 0 8px 0;">Order cancelled</h1>
+    <p style="font-size:14px;color:#7a7a72;margin:0 0 24px 0;line-height:1.6;">
+      Hi ${escapeHtml(data.buyerName || 'there')}, your order for "<strong style="color:#1a1a1a;">${escapeHtml(data.artworkTitle)}</strong>" has been cancelled. A full refund has been issued to your original payment method. Refunds typically appear within 5–10 business days.
+    </p>
+
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="font-size:14px;color:#1a1a1a;line-height:1.8;">
+      <tr><td style="color:#7a7a72;padding-right:12px;white-space:nowrap;">Order ID</td><td style="font-family:monospace;font-size:12px;">${escapeHtml(data.orderId)}</td></tr>
+      <tr><td style="color:#7a7a72;padding-right:12px;white-space:nowrap;">Reason</td><td>${escapeHtml(data.reason)}</td></tr>
+    </table>
+
+    ${divider()}
+
+    <p style="font-size:13px;color:#7a7a72;margin:0;line-height:1.6;">
+      If you have any questions, please reply to this email and we'll be happy to help.
+    </p>
+
+    ${ctaButton('Browse Artwork', `${APP_URL}/browse`)}
+  `);
+
+  return safeSend({
+    to: data.buyerEmail,
+    subject: `Order cancelled — ${escapeHtml(data.artworkTitle)}`,
+    html,
+  });
+}
+
+// ════════════════════════════════════════════════════════════════════
+// 7. WELCOME EMAIL (to new users)
 // ════════════════════════════════════════════════════════════════════
 
 export interface WelcomeEmailData {

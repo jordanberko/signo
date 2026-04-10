@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useState, useEffect, useRef } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { Search, Menu, X, MessageCircle, Heart } from 'lucide-react';
 import AuthButton from '@/components/AuthButton';
 import { useAuth } from '@/components/providers/AuthProvider';
@@ -12,6 +12,7 @@ const SESSION_KEY = 'signo-logo-animated';
 
 export default function Header() {
   const router = useRouter();
+  const pathname = usePathname();
   const { user } = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -176,13 +177,21 @@ export default function Header() {
           <nav className="hidden md:flex items-center gap-1">
             <Link
               href="/browse"
-              className="px-3 py-2 text-sm font-medium text-foreground hover:text-accent-dark transition-colors rounded-lg hover:bg-cream"
+              className={`px-3 py-2 text-sm font-medium transition-colors rounded-lg ${
+                pathname === '/browse' || pathname?.startsWith('/browse/')
+                  ? 'text-accent-dark underline underline-offset-4'
+                  : 'text-foreground hover:text-accent-dark hover:bg-cream'
+              }`}
             >
               Browse
             </Link>
             <Link
               href="/how-it-works"
-              className="px-3 py-2 text-sm font-medium text-foreground hover:text-accent-dark transition-colors rounded-lg hover:bg-cream"
+              className={`px-3 py-2 text-sm font-medium transition-colors rounded-lg ${
+                pathname === '/how-it-works'
+                  ? 'text-accent-dark underline underline-offset-4'
+                  : 'text-foreground hover:text-accent-dark hover:bg-cream'
+              }`}
             >
               How It Works
             </Link>
@@ -191,7 +200,11 @@ export default function Header() {
             {user && (
               <Link
                 href="/dashboard"
-                className="px-3 py-2 text-sm font-medium text-foreground hover:text-accent-dark transition-colors rounded-lg hover:bg-cream"
+                className={`px-3 py-2 text-sm font-medium transition-colors rounded-lg ${
+                  pathname === '/dashboard' || pathname?.startsWith('/dashboard/')
+                    ? 'text-accent-dark underline underline-offset-4'
+                    : 'text-foreground hover:text-accent-dark hover:bg-cream'
+                }`}
               >
                 Dashboard
               </Link>
@@ -262,16 +275,16 @@ export default function Header() {
           </form>
 
           <nav className="px-4 pb-5 space-y-1">
-            <MobileLink href="/browse" label="Browse Art" onClick={() => setMobileMenuOpen(false)} />
-            <MobileLink href="/how-it-works" label="How It Works" onClick={() => setMobileMenuOpen(false)} />
+            <MobileLink href="/browse" label="Browse Art" pathname={pathname} onClick={() => setMobileMenuOpen(false)} />
+            <MobileLink href="/how-it-works" label="How It Works" pathname={pathname} onClick={() => setMobileMenuOpen(false)} />
             {user && (
-              <MobileLink href="/dashboard" label="Dashboard" onClick={() => setMobileMenuOpen(false)} />
+              <MobileLink href="/dashboard" label="Dashboard" pathname={pathname} onClick={() => setMobileMenuOpen(false)} />
             )}
             {user && (
               <>
-                <MobileLink href="/favourites" label="Favourites" onClick={() => setMobileMenuOpen(false)} />
+                <MobileLink href="/favourites" label="Favourites" pathname={pathname} onClick={() => setMobileMenuOpen(false)} />
                 <div className="relative">
-                  <MobileLink href="/messages" label="Messages" onClick={() => setMobileMenuOpen(false)} />
+                  <MobileLink href="/messages" label="Messages" pathname={pathname} onClick={() => setMobileMenuOpen(false)} />
                   {unreadCount > 0 && (
                     <span className="absolute right-3 top-1/2 -translate-y-1/2 min-w-[18px] h-[18px] bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center leading-none px-1">
                       {unreadCount > 9 ? '9+' : unreadCount}
@@ -313,17 +326,24 @@ export default function Header() {
 function MobileLink({
   href,
   label,
+  pathname,
   onClick,
 }: {
   href: string;
   label: string;
+  pathname: string;
   onClick: () => void;
 }) {
+  const isActive = pathname === href || pathname?.startsWith(href + '/');
   return (
     <Link
       href={href}
       onClick={onClick}
-      className="block py-2.5 px-3 text-sm font-medium text-foreground hover:text-accent-dark hover:bg-cream rounded-lg transition-colors"
+      className={`block py-2.5 px-3 text-sm font-medium rounded-lg transition-colors ${
+        isActive
+          ? 'text-accent-dark bg-cream'
+          : 'text-foreground hover:text-accent-dark hover:bg-cream'
+      }`}
     >
       {label}
     </Link>

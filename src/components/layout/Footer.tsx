@@ -13,17 +13,7 @@ export default function Footer() {
               A curated Australian art marketplace built on fairness.
               Artists keep 100% of every sale.
             </p>
-            <div className="flex gap-5 pt-2">
-              <a href="#" className="text-warm-gray hover:text-accent-dark transition-colors text-sm link-underline" aria-label="Instagram">
-                Instagram
-              </a>
-              <a href="#" className="text-warm-gray hover:text-accent-dark transition-colors text-sm link-underline" aria-label="Twitter">
-                Twitter
-              </a>
-              <a href="#" className="text-warm-gray hover:text-accent-dark transition-colors text-sm link-underline" aria-label="Facebook">
-                Facebook
-              </a>
-            </div>
+            {/* TODO: Add social links once accounts are created */}
           </div>
 
           {/* Explore */}

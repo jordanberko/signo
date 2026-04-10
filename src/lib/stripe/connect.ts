@@ -1,4 +1,5 @@
 import { getStripe } from './config';
+import { calculateStripeFee } from '@/lib/utils';
 
 // ── Stripe Connect (Express Accounts) ──
 
@@ -124,7 +125,7 @@ export async function createTransfer(
  * Stripe AU domestic cards: 1.75% + $0.30 AUD
  */
 export function calculateTransferAmount(salePriceDollars: number) {
-  const stripeFee = Math.round((salePriceDollars * 0.0175 + 0.30) * 100) / 100;
+  const stripeFee = calculateStripeFee(salePriceDollars);
   const artistReceives = Math.round((salePriceDollars - stripeFee) * 100) / 100;
   const artistReceivesCents = Math.round(artistReceives * 100);
 

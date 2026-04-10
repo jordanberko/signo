@@ -81,15 +81,8 @@ export default function AuthButton() {
   // --- Loading state ---
   if (loading) {
     return (
-      <div style={{ marginLeft: 16, flexShrink: 0 }}>
-        <div
-          style={{
-            width: 40,
-            height: 40,
-            borderRadius: '50%',
-            backgroundColor: '#e8e5df',
-          }}
-        />
+      <div className="ml-4 shrink-0">
+        <div className="w-10 h-10 rounded-full bg-border" />
       </div>
     );
   }
@@ -97,30 +90,16 @@ export default function AuthButton() {
   // --- Not logged in ---
   if (!user) {
     return (
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginLeft: 16, flexShrink: 0 }}>
+      <div className="flex items-center gap-2 ml-4 shrink-0">
         <Link
           href="/login"
-          style={{
-            padding: '8px 16px',
-            fontSize: 14,
-            fontWeight: 500,
-            color: '#1a1a1a',
-            textDecoration: 'none',
-          }}
+          className="px-4 py-2 text-sm font-medium text-foreground no-underline"
         >
           Sign In
         </Link>
         <Link
           href="/register"
-          style={{
-            padding: '8px 16px',
-            fontSize: 14,
-            fontWeight: 600,
-            color: '#ffffff',
-            backgroundColor: '#6b7c4e',
-            borderRadius: 999,
-            textDecoration: 'none',
-          }}
+          className="px-4 py-2 text-sm font-semibold text-white bg-accent rounded-full no-underline"
         >
           Join Signo
         </Link>
@@ -130,21 +109,12 @@ export default function AuthButton() {
 
   // --- Logged in ---
   return (
-    <div ref={menuRef} style={{ position: 'relative', marginLeft: 16, flexShrink: 0, zIndex: 50 }}>
+    <div ref={menuRef} className="relative ml-4 shrink-0 z-50">
       {/* Avatar button */}
       <button
         type="button"
         onClick={() => setMenuOpen(!menuOpen)}
-        style={{
-          border: 'none',
-          outline: 'none',
-          cursor: 'pointer',
-          padding: 0,
-          background: 'none',
-          position: 'relative',
-          zIndex: 50,
-          flexShrink: 0,
-        }}
+        className="border-none outline-none cursor-pointer p-0 bg-transparent relative z-50 shrink-0"
       >
         <Avatar
           avatarUrl={user.avatar_url}
@@ -155,34 +125,19 @@ export default function AuthButton() {
 
       {/* Dropdown menu */}
       {menuOpen && (
-        <div
-          style={{
-            position: 'absolute',
-            top: '100%',
-            right: 0,
-            marginTop: 8,
-            minWidth: 240,
-            width: 260,
-            backgroundColor: '#FFFFFF',
-            border: '1px solid #e8e5df',
-            borderRadius: 12,
-            boxShadow: '0 10px 40px rgba(0,0,0,0.12), 0 2px 8px rgba(0,0,0,0.08)',
-            zIndex: 9999,
-            overflow: 'hidden',
-          }}
-        >
+        <div className="absolute top-full right-0 mt-2 min-w-[240px] w-[260px] bg-white border border-border rounded-xl shadow-[0_10px_40px_rgba(0,0,0,0.12),0_2px_8px_rgba(0,0,0,0.08)] z-[9999] overflow-hidden">
           {/* User info */}
-          <div style={{ padding: '12px 16px', borderBottom: '1px solid #e8e5df' }}>
-            <p style={{ fontWeight: 600, fontSize: 14, margin: 0, color: '#1a1a1a' }}>
+          <div className="px-4 py-3 border-b border-border">
+            <p className="font-semibold text-sm m-0 text-foreground">
               {user.full_name || 'User'}
             </p>
-            <p style={{ fontSize: 12, color: '#7a7a72', margin: '2px 0 0 0' }}>
+            <p className="text-xs text-muted mt-0.5 mb-0">
               {user.email}
             </p>
           </div>
 
           {/* Common links */}
-          <div style={{ padding: '4px 0' }}>
+          <div className="py-1">
             <DropdownLink href="/orders" icon={ShoppingBag} label="My Orders" onClick={() => setMenuOpen(false)} />
             <DropdownLink href="/favourites" icon={Heart} label="Favourites" onClick={() => setMenuOpen(false)} />
             <DropdownLink href="/settings" icon={Settings} label="Settings" onClick={() => setMenuOpen(false)} />
@@ -190,7 +145,7 @@ export default function AuthButton() {
 
           {/* Artist links */}
           {isArtist && (
-            <div style={{ padding: '4px 0', borderTop: '1px solid #e8e5df' }}>
+            <div className="py-1 border-t border-border">
               <DropdownLink href="/artist/dashboard" icon={Palette} label="Seller Dashboard" onClick={() => setMenuOpen(false)} />
               <DropdownLink href="/artist/artworks" icon={Images} label="My Artworks" onClick={() => setMenuOpen(false)} />
               <DropdownLink href="/artist/artworks/new" icon={ImagePlus} label="Upload Artwork" onClick={() => setMenuOpen(false)} />
@@ -200,13 +155,13 @@ export default function AuthButton() {
 
           {/* Admin link */}
           {isAdmin && (
-            <div style={{ padding: '4px 0', borderTop: '1px solid #e8e5df' }}>
+            <div className="py-1 border-t border-border">
               <DropdownLink href="/admin/reviews" icon={Shield} label="Admin Panel" onClick={() => setMenuOpen(false)} />
             </div>
           )}
 
           {/* Sign out */}
-          <div style={{ borderTop: '1px solid #e8e5df', padding: '4px 0' }}>
+          <div className="border-t border-border py-1">
             <button
               type="button"
               onMouseDown={(e) => {
@@ -214,21 +169,9 @@ export default function AuthButton() {
                 e.stopPropagation();
                 handleSignOut();
               }}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 12,
-                padding: '10px 16px',
-                fontSize: 14,
-                color: '#dc2626',
-                background: 'none',
-                border: 'none',
-                cursor: 'pointer',
-                width: '100%',
-                textAlign: 'left',
-              }}
+              className="flex items-center gap-3 px-4 py-2.5 text-sm text-error bg-transparent border-none cursor-pointer w-full text-left"
             >
-              <LogOut style={{ width: 16, height: 16 }} />
+              <LogOut className="w-4 h-4" />
               Sign Out
             </button>
           </div>
@@ -238,7 +181,7 @@ export default function AuthButton() {
   );
 }
 
-/* ── Dropdown link — inline styles ── */
+/* ── Dropdown link — Tailwind classes ── */
 function DropdownLink({
   href,
   icon: Icon,
@@ -246,7 +189,7 @@ function DropdownLink({
   onClick,
 }: {
   href: string;
-  icon: React.ComponentType<{ style?: React.CSSProperties }>;
+  icon: React.ComponentType<{ className?: string }>;
   label: string;
   onClick: () => void;
 }) {
@@ -254,19 +197,9 @@ function DropdownLink({
     <Link
       href={href}
       onClick={onClick}
-      style={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: 12,
-        padding: '10px 16px',
-        fontSize: 14,
-        color: '#1a1a1a',
-        textDecoration: 'none',
-      }}
-      onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#FAF8F4'; }}
-      onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; }}
+      className="flex items-center gap-3 px-4 py-2.5 text-sm text-foreground no-underline hover:bg-cream transition-colors"
     >
-      <Icon style={{ width: 16, height: 16, color: '#7a7a72' }} />
+      <Icon className="w-4 h-4 text-muted" />
       {label}
     </Link>
   );

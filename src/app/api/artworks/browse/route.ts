@@ -32,7 +32,15 @@ export async function GET(request: NextRequest) {
     // Search — match artwork fields + artist name
     const search = params.get('q');
     if (search && search.trim()) {
-      const term = search.trim();
+      // Sanitize for PostgREST: escape special pattern characters and limit length
+      const term = search
+        .trim()
+        .slice(0, 200)
+        .replace(/\\/g, '\\\\')
+        .replace(/%/g, '\\%')
+        .replace(/_/g, '\\_')
+        .replace(/,/g, '')
+        .replace(/[()]/g, '');
 
       // First search artwork fields directly
       // Also find artist IDs matching the name so we can include their works
@@ -82,10 +90,11 @@ export async function GET(request: NextRequest) {
     if (size === 'small') {
       query = query.lte('width_cm', 40).lte('height_cm', 40);
     } else if (size === 'medium') {
+      // At least one dimension >= 40cm AND both dimensions <= 100cm
       query = query.or('width_cm.gte.40,height_cm.gte.40');
-      query = query.or('width_cm.lte.100,height_cm.lte.100');
+      query = query.lte('width_cm', 100).lte('height_cm', 100);
     } else if (size === 'large') {
-      query = query.or('width_cm.gte.100,height_cm.gte.100');
+      query = query.or('width_cm.gt.100,height_cm.gt.100');
     }
 
     // Sort

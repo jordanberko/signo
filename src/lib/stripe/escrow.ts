@@ -1,7 +1,7 @@
 import { getStripe } from './config';
 import { createTransfer } from './connect';
 import { createClient } from '@supabase/supabase-js';
-import { sendPayoutReleased } from '@/lib/email';
+import { sendPayoutReleased, sendOrderCancelled } from '@/lib/email';
 
 // Service role client — bypasses RLS for server-side operations
 function getServiceClient() {
@@ -265,7 +265,7 @@ export async function cancelUnshippedOrders(): Promise<{
 
   const { data: orders, error } = await supabase
     .from('orders')
-    .select('id, artwork_id')
+    .select('id, artwork_id, buyer_id')
     .eq('status', 'paid')
     .lt('created_at', cutoffIso);
 
@@ -310,8 +310,21 @@ export async function cancelUnshippedOrders(): Promise<{
         `[Cancel Unshipped] Cancelled order ${order.id}, re-listed artwork ${order.artwork_id}`
       );
 
-      // TODO: Send cancellation/refund email to buyer
-      // Need to build a sendOrderCancelled() email template and fetch buyer details here
+      // Send cancellation email to buyer (fire-and-forget)
+      const [buyerResult, artworkResult] = await Promise.all([
+        supabase.from('profiles').select('email, full_name').eq('id', order.buyer_id).single(),
+        supabase.from('artworks').select('title').eq('id', order.artwork_id).single(),
+      ]);
+
+      if (buyerResult.data?.email) {
+        sendOrderCancelled({
+          buyerEmail: buyerResult.data.email,
+          buyerName: buyerResult.data.full_name || '',
+          orderId: order.id,
+          artworkTitle: artworkResult.data?.title || 'Artwork',
+          reason: 'The artwork was not shipped within the required timeframe.',
+        }).catch((err) => console.error(`[Cancel Unshipped] Cancellation email failed for ${order.id}:`, err));
+      }
     } else {
       failed++;
       errors.push(`${order.id}: ${result.error}`);

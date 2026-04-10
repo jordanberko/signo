@@ -3,6 +3,7 @@ import Stripe from 'stripe';
 import { getStripe } from '@/lib/stripe/config';
 import { createClient } from '@supabase/supabase-js';
 import { sendOrderConfirmation, sendNewSaleNotification } from '@/lib/email';
+import { calculateStripeFee } from '@/lib/utils';
 
 // Use service role client to bypass RLS (webhooks are server-to-server)
 function getServiceClient() {
@@ -10,14 +11,6 @@ function getServiceClient() {
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!
   );
-}
-
-/**
- * Calculate Stripe processing fee for AU domestic cards.
- * Rate: 1.75% + $0.30 AUD
- */
-function calculateStripeFee(amountAud: number): number {
-  return Math.round((amountAud * 0.0175 + 0.30) * 100) / 100;
 }
 
 // ── Webhook handler ──

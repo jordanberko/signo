@@ -1,8 +1,9 @@
 import Link from 'next/link';
 import { ArrowRight, Check, X } from 'lucide-react';
+import { calculateStripeFee } from '@/lib/utils';
 
 function calculatePayout(price: number) {
-  const fee = Math.round((price * 0.0175 + 0.30) * 100) / 100;
+  const fee = calculateStripeFee(price);
   const payout = Math.round((price - fee) * 100) / 100;
   const percent = ((payout / price) * 100).toFixed(1);
   return { fee, payout, percent };
