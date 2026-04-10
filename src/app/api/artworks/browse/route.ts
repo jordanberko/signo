@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { rateLimit } from '@/lib/rate-limit';
 import type { ArtworkCategory } from '@/lib/types/database';
 
 /**
@@ -12,6 +13,15 @@ import type { ArtworkCategory } from '@/lib/types/database';
  */
 export async function GET(request: NextRequest) {
   try {
+    // Rate limit: 60 requests per minute per IP
+    const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
+    const { success } = rateLimit(`browse:${ip}`, { max: 60, windowMs: 60_000 });
+    if (!success) {
+      return NextResponse.json(
+        { error: 'Too many requests. Please try again later.' },
+        { status: 429 },
+      );
+    }
     const params = request.nextUrl.searchParams;
     const supabase = await createClient();
 

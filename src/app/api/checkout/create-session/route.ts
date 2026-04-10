@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { getStripe } from '@/lib/stripe/config';
+import { rateLimit } from '@/lib/rate-limit';
 
 /**
  * POST /api/checkout/create-session
@@ -19,6 +20,15 @@ export async function POST(request: Request) {
 
     if (!user) {
       return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
+    }
+
+    // Rate limit: 10 requests per hour per user ID
+    const { success } = rateLimit(`checkout:${user.id}`, { max: 10, windowMs: 60 * 60_000 });
+    if (!success) {
+      return NextResponse.json(
+        { error: 'Too many requests. Please try again later.' },
+        { status: 429 },
+      );
     }
 
     const body = await request.json();
