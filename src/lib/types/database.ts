@@ -14,6 +14,7 @@ export type ArtworkStatus =
   | 'pending_review'
   | 'approved'
   | 'rejected'
+  | 'reserved'
   | 'sold'
   | 'paused';
 

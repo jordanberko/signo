@@ -193,6 +193,29 @@ export async function POST(request: Request) {
         break;
       }
 
+      // ── Checkout session expired (buyer abandoned checkout) ──
+      case 'checkout.session.expired': {
+        const expiredSession = event.data.object as Stripe.Checkout.Session;
+        const expiredArtworkId = expiredSession.metadata?.signo_artwork_id;
+
+        if (expiredArtworkId) {
+          // Release the reservation — only if still reserved (not already sold)
+          const { data: reverted } = await supabase
+            .from('artworks')
+            .update({ status: 'approved' })
+            .eq('id', expiredArtworkId)
+            .eq('status', 'reserved')
+            .select('id');
+
+          if (reverted && reverted.length > 0) {
+            console.log(
+              `[Payment Webhook] Released reservation for artwork: ${expiredArtworkId}`
+            );
+          }
+        }
+        break;
+      }
+
       default:
         console.log(
           `[Payment Webhook] Unhandled event type: ${event.type}`

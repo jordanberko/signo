@@ -23,6 +23,18 @@ function getResend(): Resend {
 const FROM_ADDRESS = process.env.RESEND_FROM_ADDRESS || 'Signo <onboarding@resend.dev>';
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://signo-tau.vercel.app';
 
+// ── HTML Escaping ──
+
+/** Escape user-supplied strings before interpolating into HTML templates. */
+function escapeHtml(str: string): string {
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
 // ── Shared HTML Template ──
 
 function emailWrapper(content: string): string {
@@ -146,22 +158,22 @@ export interface OrderConfirmationData {
 
 export async function sendOrderConfirmation(data: OrderConfirmationData) {
   const imageBlock = data.artworkImageUrl
-    ? `<img src="${data.artworkImageUrl}" alt="${data.artworkTitle}" style="width:100%;max-width:480px;border-radius:12px;margin-bottom:24px;display:block;" />`
+    ? `<img src="${data.artworkImageUrl}" alt="${escapeHtml(data.artworkTitle)}" style="width:100%;max-width:480px;border-radius:12px;margin-bottom:24px;display:block;" />`
     : '';
 
   const html = emailWrapper(`
     <h1 style="font-family:Georgia,'Times New Roman',serif;font-size:24px;font-weight:500;color:#1a1a1a;margin:0 0 8px 0;">Order confirmed</h1>
     <p style="font-size:14px;color:#7a7a72;margin:0 0 24px 0;line-height:1.6;">
-      Thank you for your purchase, ${data.buyerName || 'there'}. Here are the details.
+      Thank you for your purchase, ${escapeHtml(data.buyerName || 'there')}. Here are the details.
     </p>
 
     ${imageBlock}
 
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="font-size:14px;color:#1a1a1a;line-height:1.8;">
-      <tr><td style="color:#7a7a72;padding-right:12px;white-space:nowrap;">Artwork</td><td style="font-weight:500;">${data.artworkTitle}</td></tr>
-      <tr><td style="color:#7a7a72;padding-right:12px;white-space:nowrap;">Artist</td><td>${data.artistName}</td></tr>
+      <tr><td style="color:#7a7a72;padding-right:12px;white-space:nowrap;">Artwork</td><td style="font-weight:500;">${escapeHtml(data.artworkTitle)}</td></tr>
+      <tr><td style="color:#7a7a72;padding-right:12px;white-space:nowrap;">Artist</td><td>${escapeHtml(data.artistName)}</td></tr>
       <tr><td style="color:#7a7a72;padding-right:12px;white-space:nowrap;">Total paid</td><td style="font-weight:600;">${formatCurrency(data.totalAmount)}</td></tr>
-      <tr><td style="color:#7a7a72;padding-right:12px;white-space:nowrap;">Order ID</td><td style="font-family:monospace;font-size:12px;">${data.orderId}</td></tr>
+      <tr><td style="color:#7a7a72;padding-right:12px;white-space:nowrap;">Order ID</td><td style="font-family:monospace;font-size:12px;">${escapeHtml(data.orderId)}</td></tr>
     </table>
 
     ${divider()}
@@ -175,7 +187,7 @@ export async function sendOrderConfirmation(data: OrderConfirmationData) {
 
   return safeSend({
     to: data.buyerEmail,
-    subject: `Order confirmed — ${data.artworkTitle}`,
+    subject: `Order confirmed — ${escapeHtml(data.artworkTitle)}`,
     html,
   });
 }
@@ -197,17 +209,17 @@ export interface NewSaleData {
 
 export async function sendNewSaleNotification(data: NewSaleData) {
   const locationLine = data.buyerCity || data.buyerState
-    ? `<tr><td style="color:#7a7a72;padding-right:12px;white-space:nowrap;">Ships to</td><td>${[data.buyerCity, data.buyerState].filter(Boolean).join(', ')}</td></tr>`
+    ? `<tr><td style="color:#7a7a72;padding-right:12px;white-space:nowrap;">Ships to</td><td>${[data.buyerCity, data.buyerState].filter((s): s is string => Boolean(s)).map(escapeHtml).join(', ')}</td></tr>`
     : '';
 
   const html = emailWrapper(`
     <h1 style="font-family:Georgia,'Times New Roman',serif;font-size:24px;font-weight:500;color:#1a1a1a;margin:0 0 8px 0;">You made a sale!</h1>
     <p style="font-size:14px;color:#7a7a72;margin:0 0 24px 0;line-height:1.6;">
-      Congratulations, ${data.artistName || 'there'}. Your artwork has been purchased.
+      Congratulations, ${escapeHtml(data.artistName || 'there')}. Your artwork has been purchased.
     </p>
 
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="font-size:14px;color:#1a1a1a;line-height:1.8;">
-      <tr><td style="color:#7a7a72;padding-right:12px;white-space:nowrap;">Artwork</td><td style="font-weight:500;">${data.artworkTitle}</td></tr>
+      <tr><td style="color:#7a7a72;padding-right:12px;white-space:nowrap;">Artwork</td><td style="font-weight:500;">${escapeHtml(data.artworkTitle)}</td></tr>
       <tr><td style="color:#7a7a72;padding-right:12px;white-space:nowrap;">Sale price</td><td style="font-weight:600;">${formatCurrency(data.salePrice)}</td></tr>
       <tr><td style="color:#7a7a72;padding-right:12px;white-space:nowrap;">Your payout</td><td style="font-weight:600;color:#6b7c4e;">${formatCurrency(data.artistPayout)}</td></tr>
       ${locationLine}
@@ -225,7 +237,7 @@ export async function sendNewSaleNotification(data: NewSaleData) {
 
   return safeSend({
     to: data.artistEmail,
-    subject: `New sale — "${data.artworkTitle}"`,
+    subject: `New sale — "${escapeHtml(data.artworkTitle)}"`,
     html,
   });
 }
@@ -245,7 +257,7 @@ export async function sendArtworkApproved(data: ArtworkApprovedData) {
   const html = emailWrapper(`
     <h1 style="font-family:Georgia,'Times New Roman',serif;font-size:24px;font-weight:500;color:#1a1a1a;margin:0 0 8px 0;">Your artwork is live</h1>
     <p style="font-size:14px;color:#7a7a72;margin:0 0 24px 0;line-height:1.6;">
-      Great news, ${data.artistName || 'there'}. Your artwork "<strong style="color:#1a1a1a;">${data.artworkTitle}</strong>" has been reviewed and approved. It's now visible to collectors on Signo.
+      Great news, ${escapeHtml(data.artistName || 'there')}. Your artwork "<strong style="color:#1a1a1a;">${escapeHtml(data.artworkTitle)}</strong>" has been reviewed and approved. It's now visible to collectors on Signo.
     </p>
 
     ${ctaButton('View Your Artwork', `${APP_URL}/artwork/${data.artworkId}`)}
@@ -253,7 +265,7 @@ export async function sendArtworkApproved(data: ArtworkApprovedData) {
 
   return safeSend({
     to: data.artistEmail,
-    subject: `Approved — "${data.artworkTitle}" is now live on Signo`,
+    subject: `Approved — "${escapeHtml(data.artworkTitle)}" is now live on Signo`,
     html,
   });
 }
@@ -273,14 +285,14 @@ export async function sendArtworkRejected(data: ArtworkRejectedData) {
   const notesBlock = data.reviewNotes
     ? `<div style="background-color:#faf8f4;border-radius:8px;padding:16px;margin:16px 0;">
         <p style="font-size:12px;color:#7a7a72;margin:0 0 4px 0;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;">Review Notes</p>
-        <p style="font-size:14px;color:#1a1a1a;margin:0;line-height:1.6;">${data.reviewNotes}</p>
+        <p style="font-size:14px;color:#1a1a1a;margin:0;line-height:1.6;">${escapeHtml(data.reviewNotes)}</p>
       </div>`
     : '';
 
   const html = emailWrapper(`
     <h1 style="font-family:Georgia,'Times New Roman',serif;font-size:24px;font-weight:500;color:#1a1a1a;margin:0 0 8px 0;">Artwork needs changes</h1>
     <p style="font-size:14px;color:#7a7a72;margin:0 0 16px 0;line-height:1.6;">
-      Hi ${data.artistName || 'there'}, your artwork "<strong style="color:#1a1a1a;">${data.artworkTitle}</strong>" wasn't approved this time. Please review the notes below and re-submit when ready.
+      Hi ${escapeHtml(data.artistName || 'there')}, your artwork "<strong style="color:#1a1a1a;">${escapeHtml(data.artworkTitle)}</strong>" wasn't approved this time. Please review the notes below and re-submit when ready.
     </p>
 
     ${notesBlock}
@@ -290,7 +302,7 @@ export async function sendArtworkRejected(data: ArtworkRejectedData) {
 
   return safeSend({
     to: data.artistEmail,
-    subject: `Update needed — "${data.artworkTitle}"`,
+    subject: `Update needed — "${escapeHtml(data.artworkTitle)}"`,
     html,
   });
 }
@@ -311,15 +323,15 @@ export interface ShippingConfirmationData {
 export async function sendShippingConfirmation(data: ShippingConfirmationData) {
   const trackingBlock = data.trackingNumber
     ? `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="font-size:14px;color:#1a1a1a;line-height:1.8;margin-top:16px;">
-        <tr><td style="color:#7a7a72;padding-right:12px;white-space:nowrap;">Carrier</td><td>${data.carrier || 'Not specified'}</td></tr>
-        <tr><td style="color:#7a7a72;padding-right:12px;white-space:nowrap;">Tracking</td><td style="font-family:monospace;font-size:13px;font-weight:500;">${data.trackingNumber}</td></tr>
+        <tr><td style="color:#7a7a72;padding-right:12px;white-space:nowrap;">Carrier</td><td>${escapeHtml(data.carrier || 'Not specified')}</td></tr>
+        <tr><td style="color:#7a7a72;padding-right:12px;white-space:nowrap;">Tracking</td><td style="font-family:monospace;font-size:13px;font-weight:500;">${escapeHtml(data.trackingNumber)}</td></tr>
       </table>`
     : '';
 
   const html = emailWrapper(`
     <h1 style="font-family:Georgia,'Times New Roman',serif;font-size:24px;font-weight:500;color:#1a1a1a;margin:0 0 8px 0;">Your artwork is on its way</h1>
     <p style="font-size:14px;color:#7a7a72;margin:0 0 16px 0;line-height:1.6;">
-      Hi ${data.buyerName || 'there'}, "<strong style="color:#1a1a1a;">${data.artworkTitle}</strong>" has been shipped.
+      Hi ${escapeHtml(data.buyerName || 'there')}, "<strong style="color:#1a1a1a;">${escapeHtml(data.artworkTitle)}</strong>" has been shipped.
     </p>
 
     ${trackingBlock}
@@ -335,7 +347,7 @@ export async function sendShippingConfirmation(data: ShippingConfirmationData) {
 
   return safeSend({
     to: data.buyerEmail,
-    subject: `Shipped — "${data.artworkTitle}" is on its way`,
+    subject: `Shipped — "${escapeHtml(data.artworkTitle)}" is on its way`,
     html,
   });
 }
@@ -356,7 +368,7 @@ export async function sendPayoutReleased(data: PayoutReleasedData) {
   const html = emailWrapper(`
     <h1 style="font-family:Georgia,'Times New Roman',serif;font-size:24px;font-weight:500;color:#1a1a1a;margin:0 0 8px 0;">Payment released</h1>
     <p style="font-size:14px;color:#7a7a72;margin:0 0 24px 0;line-height:1.6;">
-      Hi ${data.artistName || 'there'}, the buyer has confirmed receipt of "<strong style="color:#1a1a1a;">${data.artworkTitle}</strong>".
+      Hi ${escapeHtml(data.artistName || 'there')}, the buyer has confirmed receipt of "<strong style="color:#1a1a1a;">${escapeHtml(data.artworkTitle)}</strong>".
     </p>
 
     <div style="background-color:#f0f4eb;border-radius:12px;padding:24px;text-align:center;margin-bottom:16px;">
@@ -370,7 +382,7 @@ export async function sendPayoutReleased(data: PayoutReleasedData) {
 
   return safeSend({
     to: data.artistEmail,
-    subject: `Payment released — ${formatCurrency(data.payoutAmount)} for "${data.artworkTitle}"`,
+    subject: `Payment released — ${formatCurrency(data.payoutAmount)} for "${escapeHtml(data.artworkTitle)}"`,
     html,
   });
 }
@@ -407,7 +419,7 @@ export async function sendWelcomeEmail(data: WelcomeEmailData) {
   const html = emailWrapper(`
     <h1 style="font-family:Georgia,'Times New Roman',serif;font-size:24px;font-weight:500;color:#1a1a1a;margin:0 0 8px 0;">Welcome to Signo</h1>
     <p style="font-size:14px;color:#7a7a72;margin:0 0 20px 0;line-height:1.6;">
-      Hi ${data.name || 'there'}, thanks for joining. Signo is a curated marketplace for Australian artists — where quality matters and creativity thrives.
+      Hi ${escapeHtml(data.name || 'there')}, thanks for joining. Signo is a curated marketplace for Australian artists — where quality matters and creativity thrives.
     </p>
 
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="font-size:13px;color:#7a7a72;line-height:1.8;">
