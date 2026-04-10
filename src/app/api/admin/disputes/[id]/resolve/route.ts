@@ -55,21 +55,7 @@ export async function PUT(request: Request, context: RouteContext) {
       return NextResponse.json({ error: 'Dispute not found' }, { status: 404 });
     }
 
-    // Update dispute
-    const { error: updateError } = await supabase
-      .from('disputes')
-      .update({
-        status: resolution,
-        resolution_notes: resolution_notes || null,
-        resolved_at: new Date().toISOString(),
-      })
-      .eq('id', id);
-
-    if (updateError) {
-      return NextResponse.json({ error: updateError.message }, { status: 400 });
-    }
-
-    // Handle resolution actions
+    // Perform financial operation FIRST, before updating dispute status
     if (resolution === 'resolved_refund' || resolution === 'resolved_return') {
       const result = await refundBuyer(dispute.order_id);
       if (!result.success) {
@@ -85,6 +71,20 @@ export async function PUT(request: Request, context: RouteContext) {
       if (!result.success) {
         return NextResponse.json({ error: result.error }, { status: 500 });
       }
+    }
+
+    // Only update dispute status after financial operation succeeds
+    const { error: updateError } = await supabase
+      .from('disputes')
+      .update({
+        status: resolution,
+        resolution_notes: resolution_notes || null,
+        resolved_at: new Date().toISOString(),
+      })
+      .eq('id', id);
+
+    if (updateError) {
+      return NextResponse.json({ error: updateError.message }, { status: 400 });
     }
 
     return NextResponse.json({ success: true });

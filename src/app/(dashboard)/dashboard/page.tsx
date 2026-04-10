@@ -213,7 +213,7 @@ function DashboardContent() {
         </Link>
 
         <Link
-          href="/dashboard"
+          href="/orders"
           className="flex items-center gap-4 p-5 bg-white border border-border rounded-xl hover:border-accent/40 hover:shadow-sm transition-all duration-300 group"
         >
           <div className="w-10 h-10 bg-muted-bg rounded-full flex items-center justify-center group-hover:bg-accent-subtle transition-colors duration-300">

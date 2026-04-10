@@ -5,7 +5,7 @@ interface RouteContext {
   params: Promise<{ id: string }>;
 }
 
-// ── PUT: Mark order as delivered (admin or artist) ──
+// ── PUT: Mark order as delivered (admin or buyer) ──
 
 export async function PUT(_request: Request, context: RouteContext) {
   try {
@@ -22,7 +22,7 @@ export async function PUT(_request: Request, context: RouteContext) {
     // Fetch order
     const { data: order } = await supabase
       .from('orders')
-      .select('id, artist_id, status')
+      .select('id, buyer_id, status')
       .eq('id', id)
       .single();
 
@@ -33,7 +33,7 @@ export async function PUT(_request: Request, context: RouteContext) {
       return NextResponse.json({ error: 'Order must be in shipped status to deliver' }, { status: 400 });
     }
 
-    // Check user is admin or the artist
+    // Check user is admin or the buyer (only the buyer should confirm delivery)
     const { data: profile } = await supabase
       .from('profiles')
       .select('role')
@@ -41,7 +41,7 @@ export async function PUT(_request: Request, context: RouteContext) {
       .single();
 
     const isAdmin = profile?.role === 'admin';
-    if (!isAdmin && user.id !== order.artist_id) {
+    if (!isAdmin && user.id !== order.buyer_id) {
       return NextResponse.json({ error: 'Not authorized to mark this order as delivered' }, { status: 403 });
     }
 

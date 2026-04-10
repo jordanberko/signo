@@ -393,6 +393,7 @@ export default function ArtworkDetailClient({
   const [isFavourited, setIsFavourited] = useState(false);
   const [favouriteCount, setFavouriteCount] = useState(0);
   const [heartAnimating, setHeartAnimating] = useState(false);
+  const [shareCopied, setShareCopied] = useState(false);
   const router = useRouter();
   const { user } = useAuth();
 
@@ -697,13 +698,15 @@ export default function ArtworkDetailClient({
 
             {/* CTA Buttons */}
             <div className="space-y-3">
-              <Link
-                ref={buyButtonRef}
-                href={`/checkout/${artwork.id}`}
-                className="block w-full py-3.5 bg-primary text-white font-semibold rounded-full hover:bg-accent transition-colors duration-300 text-center text-lg"
-              >
-                Buy Now
-              </Link>
+              {!isOwnArtwork && (
+                <Link
+                  ref={buyButtonRef}
+                  href={`/checkout/${artwork.id}`}
+                  className="block w-full py-3.5 bg-primary text-white font-semibold rounded-full hover:bg-accent transition-colors duration-300 text-center text-lg"
+                >
+                  Buy Now
+                </Link>
+              )}
               <div className="flex gap-3">
                 {!isOwnArtwork && (
                   <button
@@ -739,10 +742,25 @@ export default function ArtworkDetailClient({
                   />
                 </button>
                 <button
+                  onClick={async () => {
+                    const url = window.location.href;
+                    if (navigator.share) {
+                      try {
+                        await navigator.share({ title: artwork.title, url });
+                      } catch {}
+                    } else {
+                      try {
+                        await navigator.clipboard.writeText(url);
+                        setShareCopied(true);
+                        setTimeout(() => setShareCopied(false), 2000);
+                      } catch {}
+                    }
+                  }}
                   className="py-2.5 px-4 border-2 border-border rounded-full flex items-center justify-center gap-2 hover:border-accent hover:text-accent-dark transition-colors text-sm font-medium"
                   aria-label="Share"
                 >
                   <Share2 className="h-4 w-4" />
+                  {shareCopied && <span className="text-xs">Copied!</span>}
                 </button>
               </div>
             </div>
@@ -1023,37 +1041,39 @@ export default function ArtworkDetailClient({
       <div className="h-20 md:hidden" />
 
       {/* ── Sticky Buy Bar (mobile only) ── */}
-      <div
-        className="fixed bottom-0 left-0 right-0 z-40 md:hidden"
-        style={{
-          transform: showStickyBar ? 'translateY(0)' : 'translateY(100%)',
-          transition: 'transform 300ms cubic-bezier(0.4, 0, 0.2, 1)',
-        }}
-      >
+      {!isOwnArtwork && (
         <div
-          className="bg-white border-t border-border flex items-center justify-between gap-4"
+          className="fixed bottom-0 left-0 right-0 z-40 md:hidden"
           style={{
-            padding: '12px 16px',
-            paddingBottom: 'calc(12px + env(safe-area-inset-bottom, 0px))',
-            boxShadow: '0 -2px 8px rgba(0,0,0,0.06)',
+            transform: showStickyBar ? 'translateY(0)' : 'translateY(100%)',
+            transition: 'transform 300ms cubic-bezier(0.4, 0, 0.2, 1)',
           }}
         >
-          <div className="min-w-0 flex-1">
-            <p className="text-lg font-bold text-foreground leading-tight">
-              {formatPrice(artwork.price_aud)}
-            </p>
-            <p className="text-[13px] text-stone truncate leading-tight mt-0.5">
-              {artwork.title}
-            </p>
-          </div>
-          <Link
-            href={`/checkout/${artwork.id}`}
-            className="flex-shrink-0 px-6 py-2.5 bg-accent text-white font-semibold rounded-full text-sm hover:bg-accent-dark transition-colors"
+          <div
+            className="bg-white border-t border-border flex items-center justify-between gap-4"
+            style={{
+              padding: '12px 16px',
+              paddingBottom: 'calc(12px + env(safe-area-inset-bottom, 0px))',
+              boxShadow: '0 -2px 8px rgba(0,0,0,0.06)',
+            }}
           >
-            Buy Now
-          </Link>
+            <div className="min-w-0 flex-1">
+              <p className="text-lg font-bold text-foreground leading-tight">
+                {formatPrice(artwork.price_aud)}
+              </p>
+              <p className="text-[13px] text-stone truncate leading-tight mt-0.5">
+                {artwork.title}
+              </p>
+            </div>
+            <Link
+              href={`/checkout/${artwork.id}`}
+              className="flex-shrink-0 px-6 py-2.5 bg-accent text-white font-semibold rounded-full text-sm hover:bg-accent-dark transition-colors"
+            >
+              Buy Now
+            </Link>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Lightbox */}
       {lightboxOpen && images.length > 0 && (

@@ -735,11 +735,11 @@ export default function SettingsPage() {
                   Email Notifications
                 </h2>
                 <p className="text-sm text-muted mt-1">
-                  Choose what emails you&apos;d like to receive.
+                  Email notification preferences coming soon.
                 </p>
               </div>
 
-              <div className="space-y-4">
+              <div className="space-y-4 opacity-50 pointer-events-none">
                 {[
                   {
                     key: 'orderUpdates' as const,
@@ -759,7 +759,7 @@ export default function SettingsPage() {
                 ].map((pref) => (
                   <label
                     key={pref.key}
-                    className="flex items-start justify-between gap-4 p-4 border border-border rounded-xl cursor-pointer hover:border-warm-gray transition-colors"
+                    className="flex items-start justify-between gap-4 p-4 border border-border rounded-xl"
                   >
                     <div className="flex-1">
                       <p className="text-sm font-medium">{pref.label}</p>
@@ -771,12 +771,7 @@ export default function SettingsPage() {
                       <input
                         type="checkbox"
                         checked={emailPrefs[pref.key]}
-                        onChange={(e) =>
-                          setEmailPrefs((prev) => ({
-                            ...prev,
-                            [pref.key]: e.target.checked,
-                          }))
-                        }
+                        disabled
                         className="sr-only peer"
                       />
                       <div className="w-11 h-6 bg-border rounded-full peer-checked:bg-accent transition-colors" />
@@ -787,8 +782,7 @@ export default function SettingsPage() {
               </div>
 
               <p className="text-xs text-warm-gray">
-                Email notification preferences are saved automatically. Actual
-                email delivery will be enabled in a future update.
+                These preferences will become functional in a future update.
               </p>
             </div>
           )}
