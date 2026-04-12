@@ -15,60 +15,100 @@ export default function OGImage() {
           flexDirection: 'column',
           alignItems: 'center',
           justifyContent: 'center',
-          background: '#F5F2ED',
-          fontFamily: 'Georgia, serif',
+          background: '#f5f2ed',
         }}
       >
-        {/* Accent bar at top */}
+        {/* Favicon icon */}
         <div
           style={{
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            right: 0,
-            height: 6,
+            width: 120,
+            height: 120,
+            borderRadius: 27,
             background: '#6b7c4e',
-          }}
-        />
-
-        <div
-          style={{
-            fontSize: 72,
-            fontWeight: 700,
-            color: '#111111',
-            letterSpacing: 8,
-            marginBottom: 24,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            position: 'relative',
+            marginBottom: 36,
           }}
         >
-          SIGNO
+          {/* Outer frame */}
+          <div
+            style={{
+              position: 'absolute',
+              top: 28,
+              left: 28,
+              width: 64,
+              height: 64,
+              borderRadius: 5,
+              border: '4.7px solid #faf8f4',
+            }}
+          />
+          {/* Inner frame */}
+          <div
+            style={{
+              position: 'absolute',
+              top: 37,
+              left: 37,
+              width: 46,
+              height: 46,
+              borderRadius: 3,
+              border: '2px solid rgba(250, 248, 244, 0.35)',
+            }}
+          />
+          {/* Center dot */}
+          <div
+            style={{
+              width: 18,
+              height: 18,
+              borderRadius: '50%',
+              background: '#faf8f4',
+            }}
+          />
         </div>
 
+        {/* SIGNO. wordmark */}
         <div
           style={{
-            fontSize: 32,
-            color: '#111111',
-            fontStyle: 'normal',
             display: 'flex',
-            gap: 8,
+            alignItems: 'baseline',
+            marginBottom: 16,
           }}
         >
-          <span>Where Art Finds</span>
-          <span style={{ fontStyle: 'italic', color: '#B8965A' }}>
-            Its People
+          <span
+            style={{
+              fontFamily: 'Georgia, serif',
+              fontSize: 48,
+              fontWeight: 500,
+              color: '#1a1a1a',
+              letterSpacing: '0.08em',
+            }}
+          >
+            SIGNO
+          </span>
+          <span
+            style={{
+              fontFamily: 'Georgia, serif',
+              fontSize: 48,
+              fontWeight: 500,
+              color: '#6b7c4e',
+              fontStyle: 'italic',
+            }}
+          >
+            .
           </span>
         </div>
 
+        {/* Subtitle */}
         <div
           style={{
+            fontFamily: 'Arial, Helvetica, sans-serif',
             fontSize: 18,
-            color: '#78716c',
-            marginTop: 20,
-            maxWidth: 600,
-            textAlign: 'center',
-            fontFamily: 'Arial, sans-serif',
+            color: '#7a7a72',
+            letterSpacing: '0.05em',
           }}
         >
-          A curated Australian art marketplace. Zero commission.
+          Curated Australian Art
         </div>
       </div>
     ),

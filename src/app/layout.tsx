@@ -39,6 +39,11 @@ export const metadata: Metadata = {
   },
   description:
     "Discover extraordinary art from Australian creators. A curated marketplace where artists keep 100% of every sale.",
+  icons: {
+    icon: { url: "/icon.svg", type: "image/svg+xml" },
+    apple: "/apple-touch-icon.png",
+  },
+  manifest: "/manifest.json",
   openGraph: {
     type: "website",
     siteName: "Signo",
