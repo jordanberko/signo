@@ -23,7 +23,7 @@ export default function ReturnsPage() {
             <h2 className="font-editorial text-xl font-medium mb-4">How escrow protects you</h2>
             <p className="text-sm text-muted leading-relaxed">
               When you purchase artwork on Signo, your payment is held securely by Stripe — our payment processor.
-              The artist doesn&apos;t receive the funds until you confirm delivery and the 48-hour inspection window closes.
+              The artist receives the funds when you confirm delivery, or automatically once the 48-hour inspection window closes without a dispute.
               If anything goes wrong, your money is safe.
             </p>
           </div>

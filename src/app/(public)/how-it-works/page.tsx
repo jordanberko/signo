@@ -48,7 +48,7 @@ export default function HowItWorksPage() {
               {
                 step: '04',
                 title: 'Get Paid',
-                desc: 'When your artwork sells, you keep 100%. Funds are released automatically after the buyer confirms delivery.',
+                desc: 'When your artwork sells, you keep 100%. Funds released when the buyer confirms delivery, or automatically after the 48-hour inspection window.',
               },
             ].map((item) => (
               <div key={item.step} className="group">

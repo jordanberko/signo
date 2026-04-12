@@ -393,7 +393,7 @@ export default function HomePage() {
                 { step: 'Upload', desc: 'Add photos, set your price, describe your work.' },
                 { step: 'Review', desc: 'Our team reviews quality within 24-48 hours.' },
                 { step: 'Sell', desc: 'Your art goes live. When it sells, you keep 100%.' },
-                { step: 'Get paid', desc: 'Funds released after buyer confirms delivery.' },
+                { step: 'Get paid', desc: 'Funds released when the buyer confirms delivery, or automatically after the 48-hour inspection window.' },
               ].map((item, i) => (
                 <div key={i} className="flex gap-4 group">
                   <div className="flex-shrink-0 w-8 h-8 rounded-full border border-border flex items-center justify-center text-xs font-medium text-muted group-hover:border-accent group-hover:text-accent-dark group-hover:bg-accent/5 transition-all">
