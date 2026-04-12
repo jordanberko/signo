@@ -10,6 +10,7 @@ import TrustBar from '@/components/ui/TrustBar';
 import MeetOurArtists, { type SpotlightArtist } from '@/components/ui/MeetOurArtists';
 import Avatar from '@/components/ui/Avatar';
 import EntryAnimation from '@/components/EntryAnimation';
+import ScrollReveal from '@/components/ui/ScrollReveal';
 
 interface FeaturedArtwork {
   id: string;
@@ -113,19 +114,19 @@ export default function HomePage() {
     <div>
       <EntryAnimation />
       {/* ==================== HERO — MINIMAL ==================== */}
-      <section className="bg-background pt-12 pb-8 md:pt-20 md:pb-12 relative overflow-x-clip">
+      <section className="bg-background pt-16 pb-12 md:pt-28 md:pb-20 relative overflow-x-clip">
         {/* Ribbon animation layer */}
         <HeroRibbons />
 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
           <div className="max-w-2xl mx-auto text-center animate-fade-up">
-            <h1 className="font-editorial text-4xl md:text-5xl lg:text-6xl font-medium leading-[1.1] tracking-tight text-primary">
+            <h1 className="font-editorial text-5xl md:text-7xl lg:text-8xl font-medium leading-[0.95] tracking-tight text-primary">
               Where Art Finds{' '}
               <span className="italic text-accent">
                 Its People
               </span>
             </h1>
-            <p className="mt-4 text-lg text-muted max-w-md mx-auto leading-relaxed">
+            <p className="mt-6 text-xl text-muted max-w-md mx-auto leading-relaxed">
               A curated marketplace for Australian artists. Zero commission. You keep everything you earn.
             </p>
           </div>
@@ -139,7 +140,7 @@ export default function HomePage() {
       <TrustBar />
 
       {/* ==================== FEATURED ARTWORK GRID ==================== */}
-      <section className="pb-16 md:pb-24 pt-8">
+      <section className="pb-20 md:pb-28 pt-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-end justify-between mb-8">
             <div>
@@ -195,7 +196,7 @@ export default function HomePage() {
 
       {/* ==================== NEW ARRIVALS — HORIZONTAL SCROLL ==================== */}
       {newArrivals.length > 0 && (
-        <section className="py-16 md:py-20 bg-cream">
+        <section className="py-20 md:py-28 bg-cream">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="flex items-end justify-between mb-8">
               <div>
@@ -230,13 +231,15 @@ export default function HomePage() {
         const artistWorks = artworks.filter((a) => a.artistId === artist.id).slice(0, 3);
 
         return (
-          <section className="py-16 md:py-24">
+          <section className="py-20 md:py-28">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-              <p className="text-accent-dark text-xs font-semibold tracking-[0.2em] uppercase mb-8">Artist Spotlight</p>
+              <ScrollReveal>
+                <p className="text-accent-dark text-xs font-semibold tracking-[0.2em] uppercase mb-8">Artist Spotlight</p>
+              </ScrollReveal>
 
               <div className="grid grid-cols-1 md:grid-cols-12 gap-8 md:gap-12 items-start">
                 {/* Artist info — left column */}
-                <div className="md:col-span-4">
+                <ScrollReveal delay={100} className="md:col-span-4">
                   <Link href={`/artists/${artist.id}`} className="group/artist flex items-center gap-3.5">
                     <Avatar
                       avatarUrl={artist.avatarUrl}
@@ -264,10 +267,10 @@ export default function HomePage() {
                     View profile
                     <ArrowRight className="h-3.5 w-3.5" />
                   </Link>
-                </div>
+                </ScrollReveal>
 
                 {/* Artist works — right columns */}
-                <div className="md:col-span-8">
+                <ScrollReveal delay={200} className="md:col-span-8">
                   <div className={`grid gap-4 ${
                     artistWorks.length === 1
                       ? 'grid-cols-1'
@@ -287,7 +290,7 @@ export default function HomePage() {
                           <img
                             src={work.imageUrl}
                             alt={work.title}
-                            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                            className="w-full h-full object-cover transition-transform duration-[600ms] ease-out group-hover:scale-[1.03]"
                           />
                         </div>
                         <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300">
@@ -299,7 +302,7 @@ export default function HomePage() {
                       </Link>
                     ))}
                   </div>
-                </div>
+                </ScrollReveal>
               </div>
             </div>
           </section>
@@ -310,14 +313,16 @@ export default function HomePage() {
       <MeetOurArtists artists={spotlightArtists} />
 
       {/* ==================== WHY SIGNO — 3 CARDS ==================== */}
-      <section className="py-16 md:py-20 bg-cream">
+      <section className="py-20 md:py-28 bg-cream">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-12">
-            <p className="text-accent-dark text-xs font-semibold tracking-[0.2em] uppercase mb-3">Why Signo</p>
-            <h2 className="font-editorial text-3xl md:text-4xl font-medium text-primary">
-              Built for artists, loved by collectors
-            </h2>
-          </div>
+          <ScrollReveal>
+            <div className="text-center mb-12">
+              <p className="text-accent-dark text-xs font-semibold tracking-[0.2em] uppercase mb-3">Why Signo</p>
+              <h2 className="font-editorial text-3xl md:text-5xl font-medium text-primary">
+                Built for artists, loved by collectors
+              </h2>
+            </div>
+          </ScrollReveal>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {[
@@ -336,144 +341,153 @@ export default function HomePage() {
                 title: 'Curated Quality',
                 description: 'Every piece is reviewed before listing. Sell originals, prints, and digital downloads from one storefront.',
               },
-            ].map((item) => (
-              <div
-                key={item.title}
-                className="bg-white rounded-2xl p-8 border border-border hover:border-accent/40 hover:shadow-md transition-all duration-300 group"
-              >
-                <div className="w-12 h-12 rounded-xl bg-accent/10 flex items-center justify-center mb-5 group-hover:bg-accent/20 transition-colors">
-                  <item.icon className="h-6 w-6 text-accent-dark" />
+            ].map((item, i) => (
+              <ScrollReveal key={item.title} delay={i * 150}>
+                <div
+                  className="bg-white rounded-2xl p-8 border border-border hover:border-accent/40 hover:-translate-y-1 hover:shadow-md transition-all duration-300 group"
+                >
+                  <div className="w-12 h-12 rounded-xl bg-accent/10 flex items-center justify-center mb-5 group-hover:bg-accent/20 transition-colors">
+                    <item.icon className="h-6 w-6 text-accent-dark" />
+                  </div>
+                  <h3 className="font-editorial text-xl font-medium text-primary mb-2">{item.title}</h3>
+                  <p className="text-muted text-sm leading-relaxed">{item.description}</p>
                 </div>
-                <h3 className="font-editorial text-xl font-medium text-primary mb-2">{item.title}</h3>
-                <p className="text-muted text-sm leading-relaxed">{item.description}</p>
-              </div>
+              </ScrollReveal>
             ))}
           </div>
         </div>
       </section>
 
       {/* ==================== FOR ARTISTS — STANDALONE CTA ==================== */}
-      <section className="py-16 md:py-20 bg-accent/5">
+      <section className="py-20 md:py-28 bg-accent/5">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <p className="text-accent-dark text-xs font-semibold tracking-[0.2em] uppercase mb-3">For Artists</p>
-          <h2 className="font-editorial text-3xl md:text-4xl font-medium text-primary leading-snug">
-            Your art, your earnings.{' '}
-            <span className="italic">No commission.</span>
-          </h2>
-          <p className="mt-5 text-muted leading-relaxed max-w-xl mx-auto">
-            List for free. Your $30/month subscription starts only after your first sale. You keep 100% of every sale —
-            the only deduction is Stripe&apos;s payment processing fee (~1.75% + 30c).
-          </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center mt-8">
-            <Link
-              href="/register"
-              className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-accent text-white font-semibold rounded-full hover:bg-accent-dark transition-all duration-300"
-            >
-              Start Selling
-              <ArrowRight className="h-4 w-4" />
-            </Link>
-            <Link
-              href="/how-it-works"
-              className="inline-flex items-center justify-center px-6 py-3 border border-border text-primary font-medium rounded-full hover:bg-white transition-all duration-300"
-            >
-              How It Works
-            </Link>
-          </div>
+          <ScrollReveal>
+            <p className="text-accent-dark text-xs font-semibold tracking-[0.2em] uppercase mb-3">For Artists</p>
+            <h2 className="font-editorial text-3xl md:text-5xl font-medium text-primary leading-snug">
+              Your art, your earnings.{' '}
+              <span className="italic">No commission.</span>
+            </h2>
+            <p className="mt-5 text-muted leading-relaxed max-w-xl mx-auto">
+              List for free. Your $30/month subscription starts only after your first sale. You keep 100% of every sale —
+              the only deduction is Stripe&apos;s payment processing fee (~1.75% + 30c).
+            </p>
+            <div className="flex flex-col sm:flex-row gap-4 justify-center mt-8">
+              <Link
+                href="/register"
+                className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-accent text-white font-semibold rounded-full hover:bg-accent-dark hover:scale-[0.98] active:scale-[0.96] transition-all duration-200 ease-out"
+              >
+                Start Selling
+                <ArrowRight className="h-4 w-4" />
+              </Link>
+              <Link
+                href="/how-it-works"
+                className="inline-flex items-center justify-center px-6 py-3 border border-border text-primary font-medium rounded-full hover:bg-white hover:scale-[0.98] active:scale-[0.96] transition-all duration-200 ease-out"
+              >
+                How It Works
+              </Link>
+            </div>
+          </ScrollReveal>
         </div>
       </section>
 
       {/* ==================== HOW IT WORKS — CONDENSED ==================== */}
-      <section className="py-16 md:py-24">
+      <section className="py-20 md:py-32">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-14">
-            <p className="text-accent-dark text-xs font-semibold tracking-[0.2em] uppercase mb-3">How It Works</p>
-            <h2 className="font-editorial text-3xl md:text-4xl font-medium text-primary">Simple for everyone</h2>
-          </div>
+          <ScrollReveal>
+            <div className="text-center mb-14">
+              <p className="text-accent-dark text-xs font-semibold tracking-[0.2em] uppercase mb-3">How It Works</p>
+              <h2 className="font-editorial text-3xl md:text-5xl font-medium text-primary">Simple for everyone</h2>
+            </div>
+          </ScrollReveal>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-12 md:gap-16">
             {/* Selling */}
-            <div className="space-y-6">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="h-0.5 w-10 bg-accent" />
-                <h3 className="font-editorial text-lg font-medium text-primary">Selling</h3>
-              </div>
-              {[
-                { step: 'Upload', desc: 'Add photos, set your price, describe your work.' },
-                { step: 'Review', desc: 'Our team reviews quality within 24-48 hours.' },
-                { step: 'Sell', desc: 'Your art goes live. When it sells, you keep 100%.' },
-                { step: 'Get paid', desc: 'Funds released when the buyer confirms delivery, or automatically after the 48-hour inspection window.' },
-              ].map((item, i) => (
-                <div key={i} className="flex gap-4 group">
-                  <div className="flex-shrink-0 w-8 h-8 rounded-full border border-border flex items-center justify-center text-xs font-medium text-muted group-hover:border-accent group-hover:text-accent-dark group-hover:bg-accent/5 transition-all">
-                    {i + 1}
-                  </div>
-                  <div>
-                    <p className="font-medium text-sm text-primary">{item.step}</p>
-                    <p className="text-sm text-muted mt-0.5">{item.desc}</p>
-                  </div>
+            <ScrollReveal delay={100}>
+              <div className="space-y-6">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="h-0.5 w-10 bg-accent" />
+                  <h3 className="font-editorial text-lg font-medium text-primary">Selling</h3>
                 </div>
-              ))}
-            </div>
+                {[
+                  { step: 'Upload', desc: 'Add photos, set your price, describe your work.' },
+                  { step: 'Review', desc: 'Our team reviews quality within 24-48 hours.' },
+                  { step: 'Sell', desc: 'Your art goes live. When it sells, you keep 100%.' },
+                  { step: 'Get paid', desc: 'Funds released when the buyer confirms delivery, or automatically after the 48-hour inspection window.' },
+                ].map((item, i) => (
+                  <div key={i} className="flex gap-4 group">
+                    <div className="flex-shrink-0 w-8 h-8 rounded-full border border-border flex items-center justify-center text-xs font-medium text-muted group-hover:border-accent group-hover:text-accent-dark group-hover:bg-accent/5 transition-all">
+                      {i + 1}
+                    </div>
+                    <div>
+                      <p className="font-medium text-sm text-primary">{item.step}</p>
+                      <p className="text-sm text-muted mt-0.5">{item.desc}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </ScrollReveal>
 
             {/* Buying */}
-            <div className="space-y-6">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="h-0.5 w-10 bg-accent" />
-                <h3 className="font-editorial text-lg font-medium text-primary">Buying</h3>
-              </div>
-              {[
-                { step: 'Discover', desc: 'Browse by style, medium, price, or artist.' },
-                { step: 'Purchase', desc: 'Secure checkout. Payment held in escrow.' },
-                { step: 'Receive', desc: 'Tracked shipping within 7 days.' },
-                { step: 'Enjoy', desc: '48-hour inspection window. Full buyer protection.' },
-              ].map((item, i) => (
-                <div key={i} className="flex gap-4 group">
-                  <div className="flex-shrink-0 w-8 h-8 rounded-full border border-border flex items-center justify-center text-xs font-medium text-muted group-hover:border-accent group-hover:text-accent-dark group-hover:bg-accent/5 transition-all">
-                    {i + 1}
-                  </div>
-                  <div>
-                    <p className="font-medium text-sm text-primary">{item.step}</p>
-                    <p className="text-sm text-muted mt-0.5">{item.desc}</p>
-                  </div>
+            <ScrollReveal delay={250}>
+              <div className="space-y-6">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="h-0.5 w-10 bg-accent" />
+                  <h3 className="font-editorial text-lg font-medium text-primary">Buying</h3>
                 </div>
-              ))}
-            </div>
+                {[
+                  { step: 'Discover', desc: 'Browse by style, medium, price, or artist.' },
+                  { step: 'Purchase', desc: 'Secure checkout. Payment held in escrow.' },
+                  { step: 'Receive', desc: 'Tracked shipping within 7 days.' },
+                  { step: 'Enjoy', desc: '48-hour inspection window. Full buyer protection.' },
+                ].map((item, i) => (
+                  <div key={i} className="flex gap-4 group">
+                    <div className="flex-shrink-0 w-8 h-8 rounded-full border border-border flex items-center justify-center text-xs font-medium text-muted group-hover:border-accent group-hover:text-accent-dark group-hover:bg-accent/5 transition-all">
+                      {i + 1}
+                    </div>
+                    <div>
+                      <p className="font-medium text-sm text-primary">{item.step}</p>
+                      <p className="text-sm text-muted mt-0.5">{item.desc}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </ScrollReveal>
           </div>
         </div>
       </section>
 
       {/* ==================== CTA BANNER ==================== */}
-      <section className="py-16 md:py-20">
+      <section className="py-20 md:py-28">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="bg-primary rounded-3xl px-8 py-16 md:px-16 md:py-20 text-center relative overflow-hidden">
+          <div className="bg-primary rounded-3xl px-8 py-20 md:px-16 md:py-28 text-center relative overflow-hidden">
             {/* Accent glow */}
             <div className="absolute top-0 right-0 w-64 h-64 bg-accent/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
             <div className="absolute bottom-0 left-0 w-48 h-48 bg-accent/5 rounded-full blur-3xl translate-y-1/2 -translate-x-1/2" />
 
-            <div className="relative z-10">
-              <h2 className="font-editorial text-3xl md:text-5xl font-medium text-white leading-tight max-w-2xl mx-auto">
+            <ScrollReveal className="relative z-10">
+              <h2 className="font-editorial text-4xl md:text-6xl font-medium text-white leading-tight max-w-2xl mx-auto">
                 Ready to discover your next{' '}
                 <span className="italic text-accent">favourite piece?</span>
               </h2>
-              <p className="text-gray-400 mt-5 text-lg max-w-lg mx-auto">
+              <p className="text-gray-400 mt-5 text-xl max-w-lg mx-auto">
                 Join a community that values artists and celebrates creativity.
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center mt-10">
                 <Link
                   href="/browse"
-                  className="group inline-flex items-center justify-center gap-3 px-8 py-4 bg-accent text-primary font-semibold rounded-full hover:bg-accent-light transition-all duration-300 text-lg"
+                  className="group inline-flex items-center justify-center gap-3 px-8 py-4 bg-accent text-primary font-semibold rounded-full hover:bg-accent-light hover:scale-[0.98] active:scale-[0.96] transition-all duration-200 ease-out text-lg"
                 >
                   Browse Artwork
                   <ArrowRight className="h-5 w-5 group-hover:translate-x-1 transition-transform" />
                 </Link>
                 <Link
                   href="/register"
-                  className="inline-flex items-center justify-center gap-2 px-8 py-4 border border-white/30 text-white font-semibold rounded-full hover:bg-white hover:text-primary transition-all duration-300 text-lg"
+                  className="inline-flex items-center justify-center gap-2 px-8 py-4 border border-white/30 text-white font-semibold rounded-full hover:bg-white hover:text-primary hover:scale-[0.98] active:scale-[0.96] transition-all duration-200 ease-out text-lg"
                 >
                   Join Signo
                 </Link>
               </div>
-            </div>
+            </ScrollReveal>
           </div>
         </div>
       </section>

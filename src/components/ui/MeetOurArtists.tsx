@@ -24,7 +24,7 @@ export default function MeetOurArtists({ artists }: { artists: SpotlightArtist[]
   if (artists.length < 3) return null;
 
   return (
-    <section className="py-16 md:py-20">
+    <section className="py-20 md:py-28">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-end justify-between mb-8">
           <div>
@@ -52,7 +52,7 @@ export default function MeetOurArtists({ artists }: { artists: SpotlightArtist[]
               href={`/artists/${artist.id}`}
               className="flex-shrink-0 w-[240px] sm:w-[260px] snap-start group"
             >
-              <div className="bg-white border border-border rounded-2xl overflow-hidden hover:border-accent/40 hover:shadow-md transition-all duration-300">
+              <div className="bg-white border border-border rounded-2xl overflow-hidden hover:border-accent/40 hover:-translate-y-1 hover:shadow-lg transition-all duration-300">
                 {/* Sample artwork as card header */}
                 <div className="aspect-[3/2] bg-sand relative overflow-hidden">
                   {artist.sampleImages[0] ? (

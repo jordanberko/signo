@@ -202,7 +202,7 @@ export default function GuidedSearch() {
           <button
             type="button"
             onClick={handleSearch}
-            className="flex-shrink-0 ml-1.5 inline-flex items-center gap-2 px-6 py-2.5 bg-foreground text-white text-sm font-semibold rounded-full hover:bg-warm-black transition-colors duration-200"
+            className="flex-shrink-0 ml-1.5 inline-flex items-center gap-2 px-6 py-2.5 bg-foreground text-white text-sm font-semibold rounded-full hover:bg-warm-black hover:scale-[0.98] active:scale-[0.96] transition-all duration-200 ease-out"
           >
             Search
             <ArrowRight className="h-4 w-4" />
@@ -251,7 +251,7 @@ export default function GuidedSearch() {
           <button
             type="button"
             onClick={handleSearch}
-            className="w-full inline-flex items-center justify-center gap-2 py-3 bg-foreground text-white text-sm font-semibold rounded-full hover:bg-warm-black transition-colors duration-200"
+            className="w-full inline-flex items-center justify-center gap-2 py-3 bg-foreground text-white text-sm font-semibold rounded-full hover:bg-warm-black hover:scale-[0.98] active:scale-[0.96] transition-all duration-200 ease-out"
           >
             Search Artwork
             <ArrowRight className="h-4 w-4" />

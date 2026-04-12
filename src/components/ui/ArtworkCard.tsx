@@ -93,7 +93,7 @@ export default function ArtworkCard({
 
   return (
     <div
-      className="group relative rounded-[10px] bg-white border border-border overflow-hidden transition-all duration-[250ms] ease-out md:hover:-translate-y-1 md:hover:shadow-[0_12px_36px_rgba(0,0,0,0.1)]"
+      className="group relative rounded-[10px] bg-white border border-border overflow-hidden transition-all duration-300 ease-out md:hover:-translate-y-1 md:hover:shadow-[0_16px_48px_rgba(0,0,0,0.08)]"
       style={{ minWidth: 0 }}
     >
       {/* Image — 4:5 aspect ratio */}
@@ -106,7 +106,7 @@ export default function ArtworkCard({
             <img
               src={imageUrl}
               alt={title}
-              className="block w-full h-full object-cover transition-transform duration-[350ms] ease-out md:group-hover:scale-[1.04]"
+              className="block w-full h-full object-cover transition-transform duration-500 ease-out md:group-hover:scale-[1.03]"
               loading="lazy"
             />
             {/* Quick View overlay — desktop only */}
