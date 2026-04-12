@@ -15,9 +15,13 @@ import {
   ArrowLeft,
   Sparkles,
   AlertCircle,
+  AlertTriangle,
+  Clock,
+  CheckCircle2,
 } from 'lucide-react';
 import { Suspense } from 'react';
 import { useRequireAuth } from '@/lib/hooks/useRequireAuth';
+import { useAuth } from '@/components/providers/AuthProvider';
 
 // ── Feature list ──
 
@@ -36,10 +40,17 @@ const FEATURES = [
 function SubscribeContent() {
   const searchParams = useSearchParams();
   const cancelled = searchParams.get('cancelled') === 'true';
+  const { user } = useAuth();
+
+  const subscriptionStatus = user?.subscription_status || 'trial';
+  const gracePeriodDeadline = user?.grace_period_deadline || null;
+
+  const daysRemaining = gracePeriodDeadline
+    ? Math.max(0, Math.ceil((new Date(gracePeriodDeadline).getTime() - Date.now()) / (1000 * 60 * 60 * 24)))
+    : 0;
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [launchPeriod, setLaunchPeriod] = useState(false);
 
   async function handleSubscribe() {
     setLoading(true);
@@ -55,11 +66,6 @@ function SubscribeContent() {
       const data = await res.json();
 
       if (!res.ok) {
-        if (data.launch_period) {
-          setLaunchPeriod(true);
-          setLoading(false);
-          return;
-        }
         throw new Error(data.error || 'Failed to start checkout');
       }
 
@@ -92,14 +98,24 @@ function SubscribeContent() {
         {/* Header */}
         <div className="text-center mb-8">
           <h1 className="font-editorial text-3xl md:text-4xl font-medium">
-            Signo for Artists
+            {subscriptionStatus === 'trial' && 'Signo for Artists'}
+            {subscriptionStatus === 'pending_activation' && 'Complete Your Subscription'}
+            {subscriptionStatus === 'active' && 'Your Subscription'}
+            {subscriptionStatus === 'past_due' && 'Update Payment Method'}
+            {subscriptionStatus === 'paused' && 'Reactivate Your Subscription'}
+            {subscriptionStatus === 'cancelled' && 'Resubscribe to Signo'}
           </h1>
           <p className="text-muted mt-2">
-            One simple plan. Zero commission. Keep everything you earn.
+            {subscriptionStatus === 'trial' && 'One simple plan. Zero commission. Keep everything you earn.'}
+            {subscriptionStatus === 'pending_activation' && 'Set up your $30/month subscription to keep selling.'}
+            {subscriptionStatus === 'active' && 'Manage your $30/month artist subscription.'}
+            {subscriptionStatus === 'past_due' && 'Update your payment to keep your listings live.'}
+            {subscriptionStatus === 'paused' && 'Subscribe to make your listings visible again.'}
+            {subscriptionStatus === 'cancelled' && 'Resubscribe to get your listings back.'}
           </p>
         </div>
 
-        {/* Cancelled notice */}
+        {/* Cancelled checkout notice */}
         {cancelled && (
           <div className="flex items-center gap-2 p-3.5 bg-amber-50 border border-amber-200 text-amber-800 text-sm rounded-xl mb-6 animate-fade-in">
             <AlertCircle className="h-4 w-4 flex-shrink-0" />
@@ -108,108 +124,299 @@ function SubscribeContent() {
           </div>
         )}
 
-        {/* Launch period banner */}
-        {launchPeriod && (
-          <div className="flex items-start gap-3 p-4 bg-green-50 border border-green-200 text-green-800 text-sm rounded-xl mb-6 animate-fade-in">
-            <Sparkles className="h-5 w-5 flex-shrink-0 mt-0.5" />
-            <div>
-              <p className="font-medium">
-                You already have free access!
+        {/* ── TRIAL ── */}
+        {subscriptionStatus === 'trial' && (
+          <>
+            <div className="flex items-start gap-3 p-5 bg-accent-subtle/50 border border-accent/10 rounded-2xl mb-6">
+              <Sparkles className="h-5 w-5 text-accent-dark flex-shrink-0 mt-0.5" />
+              <div>
+                <p className="font-medium text-sm">You&apos;re on the free plan</p>
+                <p className="text-sm text-muted mt-1">
+                  No payment needed until your first sale. Once you make your first sale,
+                  your $30/month subscription begins. We&apos;ll give you time to set up
+                  your payment method.
+                </p>
+              </div>
+            </div>
+
+            {/* Plan card (informational) */}
+            <div className="bg-white border-2 border-accent rounded-2xl overflow-hidden">
+              <div className="p-6 text-center border-b border-border">
+                <p className="font-editorial text-4xl font-semibold text-accent-dark">
+                  $30
+                  <span className="text-lg text-muted font-normal">/month</span>
+                </p>
+                <p className="text-sm text-muted mt-1.5">
+                  Starts after your first sale. Cancel anytime.
+                </p>
+              </div>
+
+              <div className="p-6 space-y-3">
+                <p className="text-xs font-medium tracking-wide uppercase text-muted">
+                  What&apos;s included
+                </p>
+                {FEATURES.map((item, i) => (
+                  <div key={i} className="flex items-center gap-3">
+                    <div className="w-8 h-8 bg-accent-subtle rounded-full flex items-center justify-center flex-shrink-0">
+                      <item.icon className="h-4 w-4 text-accent-dark" />
+                    </div>
+                    <span className="text-sm">{item.text}</span>
+                  </div>
+                ))}
+              </div>
+
+              <div className="px-6 pb-2">
+                <div className="h-px bg-border" />
+              </div>
+              <div className="px-6 pb-6 text-center">
+                <p className="text-sm text-muted">
+                  You keep 100% of every sale (minus Stripe payment processing
+                  fees of ~1.75% + 30c)
+                </p>
+              </div>
+            </div>
+          </>
+        )}
+
+        {/* ── PENDING ACTIVATION ── */}
+        {subscriptionStatus === 'pending_activation' && (
+          <>
+            <div className="flex items-start gap-3 p-5 bg-amber-50 border border-amber-200 rounded-2xl mb-6">
+              <Clock className="h-5 w-5 text-amber-700 flex-shrink-0 mt-0.5" />
+              <div>
+                <p className="font-medium text-sm text-amber-900">
+                  Your first sale completed!
+                </p>
+                <p className="text-sm text-amber-800 mt-1">
+                  Set up your $30/month subscription to keep your listings visible.
+                  {daysRemaining > 0 && (
+                    <> You have <strong>{daysRemaining} day{daysRemaining !== 1 ? 's' : ''}</strong> to add a payment method.</>
+                  )}
+                </p>
+              </div>
+            </div>
+
+            <div className="bg-white border-2 border-amber-300 rounded-2xl overflow-hidden">
+              <div className="p-6 text-center border-b border-border">
+                <p className="font-editorial text-4xl font-semibold text-accent-dark">
+                  $30
+                  <span className="text-lg text-muted font-normal">/month</span>
+                </p>
+                <p className="text-sm text-muted mt-1.5">
+                  Billed monthly in AUD. Cancel anytime.
+                </p>
+              </div>
+
+              <div className="p-6 space-y-3">
+                <p className="text-xs font-medium tracking-wide uppercase text-muted">
+                  What&apos;s included
+                </p>
+                {FEATURES.map((item, i) => (
+                  <div key={i} className="flex items-center gap-3">
+                    <div className="w-8 h-8 bg-accent-subtle rounded-full flex items-center justify-center flex-shrink-0">
+                      <item.icon className="h-4 w-4 text-accent-dark" />
+                    </div>
+                    <span className="text-sm">{item.text}</span>
+                  </div>
+                ))}
+              </div>
+
+              <div className="px-6 pb-6">
+                {error && (
+                  <div className="flex items-center gap-2 p-3 bg-error/5 border border-error/20 text-error text-sm rounded-xl mb-4 animate-fade-in">
+                    <AlertCircle className="h-4 w-4 flex-shrink-0" />
+                    {error}
+                  </div>
+                )}
+
+                <button
+                  type="button"
+                  onClick={handleSubscribe}
+                  disabled={loading}
+                  className="w-full py-3.5 bg-amber-600 text-white font-semibold rounded-full hover:bg-amber-700 transition-colors duration-300 disabled:opacity-50 flex items-center justify-center gap-2 text-lg"
+                >
+                  {loading ? (
+                    <>
+                      <Loader2 className="h-5 w-5 animate-spin" />
+                      Redirecting to Stripe...
+                    </>
+                  ) : (
+                    <>
+                      <CreditCard className="h-5 w-5" />
+                      Add Payment Method
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          </>
+        )}
+
+        {/* ── ACTIVE ── */}
+        {subscriptionStatus === 'active' && (
+          <div className="bg-white border-2 border-green-200 rounded-2xl overflow-hidden">
+            <div className="p-6 border-b border-border">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
+                  <CheckCircle2 className="h-5 w-5 text-green-700" />
+                </div>
+                <div>
+                  <p className="font-semibold">Your subscription is active</p>
+                  <p className="text-sm text-muted">$30/month &mdash; billed monthly in AUD</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="p-6 space-y-3">
+              <p className="text-xs font-medium tracking-wide uppercase text-muted">
+                What&apos;s included
               </p>
-              <p className="mt-1 text-green-700">
-                Subscriptions aren&apos;t being charged yet — all artists
-                get free access during our launch period. We&apos;ll notify
-                you before billing begins.
+              {FEATURES.map((item, i) => (
+                <div key={i} className="flex items-center gap-3">
+                  <div className="w-8 h-8 bg-accent-subtle rounded-full flex items-center justify-center flex-shrink-0">
+                    <item.icon className="h-4 w-4 text-accent-dark" />
+                  </div>
+                  <span className="text-sm">{item.text}</span>
+                </div>
+              ))}
+            </div>
+
+            <div className="px-6 pb-6">
+              <div className="h-px bg-border mb-6" />
+              <p className="text-sm text-muted text-center mb-4">
+                To cancel your subscription or update billing details, please contact us at{' '}
+                <a href="mailto:support@signo.art" className="text-accent-dark hover:underline">support@signo.art</a>.
               </p>
-              <Link
-                href="/artist/dashboard"
-                className="inline-flex items-center gap-1 mt-3 text-sm font-medium text-green-800 hover:underline"
-              >
-                Go to your dashboard →
-              </Link>
             </div>
           </div>
         )}
 
-        {/* Plan card */}
-        <div className="bg-white border-2 border-accent rounded-2xl overflow-hidden">
-          {/* Price header */}
-          <div className="p-6 text-center border-b border-border">
-            <p className="font-editorial text-4xl font-semibold text-accent-dark">
-              $30
-              <span className="text-lg text-muted font-normal">/month</span>
-            </p>
-            <p className="text-sm text-muted mt-1.5">
-              Billed monthly in AUD. Cancel anytime.
-            </p>
-          </div>
-
-          {/* Features */}
-          <div className="p-6 space-y-3">
-            <p className="text-xs font-medium tracking-wide uppercase text-muted">
-              What&apos;s included
-            </p>
-            {FEATURES.map((item, i) => (
-              <div key={i} className="flex items-center gap-3">
-                <div className="w-8 h-8 bg-accent-subtle rounded-full flex items-center justify-center flex-shrink-0">
-                  <item.icon className="h-4 w-4 text-accent-dark" />
-                </div>
-                <span className="text-sm">{item.text}</span>
+        {/* ── PAST DUE ── */}
+        {subscriptionStatus === 'past_due' && (
+          <>
+            <div className="flex items-start gap-3 p-5 bg-red-50 border border-red-200 rounded-2xl mb-6">
+              <AlertTriangle className="h-5 w-5 text-red-600 flex-shrink-0 mt-0.5" />
+              <div>
+                <p className="font-medium text-sm text-red-900">Your payment failed</p>
+                <p className="text-sm text-red-700 mt-1">
+                  Update your payment method to keep your listings live and continue selling.
+                </p>
               </div>
-            ))}
-          </div>
+            </div>
 
-          {/* Stripe fees note */}
-          <div className="px-6 pb-2">
-            <div className="h-px bg-border" />
-          </div>
-          <div className="px-6 pb-6 text-center">
-            <p className="text-sm text-muted">
-              You keep 100% of every sale (minus Stripe payment processing
-              fees of ~1.75% + 30c)
-            </p>
-          </div>
-
-          {/* CTA */}
-          <div className="px-6 pb-6">
-            {error && (
-              <div className="flex items-center gap-2 p-3 bg-error/5 border border-error/20 text-error text-sm rounded-xl mb-4 animate-fade-in">
-                <AlertCircle className="h-4 w-4 flex-shrink-0" />
-                {error}
+            <div className="bg-white border-2 border-red-200 rounded-2xl overflow-hidden">
+              <div className="p-6 text-center border-b border-border">
+                <p className="font-editorial text-4xl font-semibold text-accent-dark">
+                  $30
+                  <span className="text-lg text-muted font-normal">/month</span>
+                </p>
               </div>
-            )}
 
-            <button
-              type="button"
-              onClick={handleSubscribe}
-              disabled={loading || launchPeriod}
-              className="w-full py-3.5 bg-primary text-white font-semibold rounded-full hover:bg-accent transition-colors duration-300 disabled:opacity-50 flex items-center justify-center gap-2 text-lg"
-            >
-              {loading ? (
-                <>
-                  <Loader2 className="h-5 w-5 animate-spin" />
-                  Redirecting to Stripe...
-                </>
-              ) : (
-                <>
-                  <CreditCard className="h-5 w-5" />
-                  Subscribe — $30/month
-                </>
-              )}
-            </button>
-          </div>
-        </div>
+              <div className="px-6 py-6">
+                {error && (
+                  <div className="flex items-center gap-2 p-3 bg-error/5 border border-error/20 text-error text-sm rounded-xl mb-4 animate-fade-in">
+                    <AlertCircle className="h-4 w-4 flex-shrink-0" />
+                    {error}
+                  </div>
+                )}
 
-        {/* Early access note */}
-        <div className="mt-6 p-4 bg-accent-subtle/50 border border-accent/10 rounded-xl text-center">
-          <p className="text-sm font-medium text-foreground mb-1">
-            Early access: Free during launch
-          </p>
-          <p className="text-xs text-muted">
-            We&apos;ll notify you before billing begins. No credit card
-            required right now.
-          </p>
-        </div>
+                <button
+                  type="button"
+                  onClick={handleSubscribe}
+                  disabled={loading}
+                  className="w-full py-3.5 bg-red-600 text-white font-semibold rounded-full hover:bg-red-700 transition-colors duration-300 disabled:opacity-50 flex items-center justify-center gap-2 text-lg"
+                >
+                  {loading ? (
+                    <>
+                      <Loader2 className="h-5 w-5 animate-spin" />
+                      Redirecting to Stripe...
+                    </>
+                  ) : (
+                    <>
+                      <CreditCard className="h-5 w-5" />
+                      Update Payment Method
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          </>
+        )}
+
+        {/* ── PAUSED / CANCELLED ── */}
+        {(subscriptionStatus === 'paused' || subscriptionStatus === 'cancelled') && (
+          <>
+            <div className="flex items-start gap-3 p-5 bg-gray-50 border border-gray-200 rounded-2xl mb-6">
+              <AlertCircle className="h-5 w-5 text-gray-600 flex-shrink-0 mt-0.5" />
+              <div>
+                <p className="font-medium text-sm text-gray-900">
+                  {subscriptionStatus === 'paused'
+                    ? 'Your listings are hidden'
+                    : 'Your subscription was cancelled'}
+                </p>
+                <p className="text-sm text-gray-600 mt-1">
+                  {subscriptionStatus === 'paused'
+                    ? 'Subscribe to reactivate your listings and start selling again.'
+                    : 'Resubscribe to get your listings back and continue selling.'}
+                </p>
+              </div>
+            </div>
+
+            <div className="bg-white border-2 border-accent rounded-2xl overflow-hidden">
+              <div className="p-6 text-center border-b border-border">
+                <p className="font-editorial text-4xl font-semibold text-accent-dark">
+                  $30
+                  <span className="text-lg text-muted font-normal">/month</span>
+                </p>
+                <p className="text-sm text-muted mt-1.5">
+                  Billed monthly in AUD. Cancel anytime.
+                </p>
+              </div>
+
+              <div className="p-6 space-y-3">
+                <p className="text-xs font-medium tracking-wide uppercase text-muted">
+                  What&apos;s included
+                </p>
+                {FEATURES.map((item, i) => (
+                  <div key={i} className="flex items-center gap-3">
+                    <div className="w-8 h-8 bg-accent-subtle rounded-full flex items-center justify-center flex-shrink-0">
+                      <item.icon className="h-4 w-4 text-accent-dark" />
+                    </div>
+                    <span className="text-sm">{item.text}</span>
+                  </div>
+                ))}
+              </div>
+
+              <div className="px-6 pb-6">
+                {error && (
+                  <div className="flex items-center gap-2 p-3 bg-error/5 border border-error/20 text-error text-sm rounded-xl mb-4 animate-fade-in">
+                    <AlertCircle className="h-4 w-4 flex-shrink-0" />
+                    {error}
+                  </div>
+                )}
+
+                <button
+                  type="button"
+                  onClick={handleSubscribe}
+                  disabled={loading}
+                  className="w-full py-3.5 bg-primary text-white font-semibold rounded-full hover:bg-accent transition-colors duration-300 disabled:opacity-50 flex items-center justify-center gap-2 text-lg"
+                >
+                  {loading ? (
+                    <>
+                      <Loader2 className="h-5 w-5 animate-spin" />
+                      Redirecting to Stripe...
+                    </>
+                  ) : (
+                    <>
+                      <CreditCard className="h-5 w-5" />
+                      {subscriptionStatus === 'paused' ? 'Reactivate' : 'Resubscribe'} &mdash; $30/month
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          </>
+        )}
 
         {/* Fine print */}
         <p className="text-xs text-warm-gray text-center mt-6">

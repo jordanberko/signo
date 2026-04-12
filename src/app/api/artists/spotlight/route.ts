@@ -29,6 +29,14 @@ export async function GET(request: NextRequest) {
     );
     const supabase = await createClient();
 
+    // Hide artists with paused/cancelled subscriptions
+    const { data: hiddenArtists } = await supabase
+      .from('profiles')
+      .select('id')
+      .in('subscription_status', ['paused', 'cancelled']);
+
+    const hiddenIds = new Set((hiddenArtists || []).map((a: { id: string }) => a.id));
+
     // Step 1: Get all approved artworks grouped by artist
     // We fetch artist_id + first image for each approved artwork
     const { data: artworkRows, error: artworkError } = await supabase
@@ -72,7 +80,12 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    const artistIds = Array.from(artistMap.keys());
+    // Filter out paused/cancelled subscription artists
+    const artistIds = Array.from(artistMap.keys()).filter((id) => !hiddenIds.has(id));
+
+    if (artistIds.length === 0) {
+      return NextResponse.json({ data: [] });
+    }
 
     // Step 3: Fetch profile data for these artists
     const { data: profiles, error: profileError } = await supabase

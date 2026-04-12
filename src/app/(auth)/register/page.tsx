@@ -274,7 +274,7 @@ function RegisterForm() {
                 )}
                 <Palette className={`h-6 w-6 mx-auto mb-2 ${role === 'artist' ? 'text-accent' : 'text-muted'}`} />
                 <p className="font-medium text-sm">Sell Art</p>
-                <p className="text-xs text-muted mt-1">Upload & earn</p>
+                <p className="text-xs text-muted mt-1">Free until first sale</p>
               </button>
             </div>
             <p className="text-xs text-warm-gray mt-2.5 text-center">Everyone on Signo can buy and sell</p>

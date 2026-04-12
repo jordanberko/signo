@@ -1,7 +1,7 @@
 import { getStripe } from './config';
 import { createTransfer } from './connect';
 import { createClient } from '@supabase/supabase-js';
-import { sendPayoutReleased, sendOrderCancelled } from '@/lib/email';
+import { sendPayoutReleased, sendOrderCancelled, sendFirstSaleActivation } from '@/lib/email';
 
 // Service role client — bypasses RLS for server-side operations
 function getServiceClient() {
@@ -93,6 +93,66 @@ export async function releaseFunds(orderId: string): Promise<{
     console.log(
       `[Escrow] Released $${payoutAmountAud} to ${connectAccountId} for order ${orderId} (transfer: ${transfer.id})`
     );
+
+    // ── First Sale Detection ──
+    // Check if the artist is still on trial and trigger subscription activation
+    try {
+      const { data: artistProfile } = await supabase
+        .from('profiles')
+        .select('id, email, full_name, subscription_status')
+        .eq('id', order.artist_id)
+        .single();
+
+      if (artistProfile?.subscription_status === 'trial') {
+        // Atomic update: the eq on subscription_status prevents race conditions
+        // if two sales complete simultaneously
+        const { error: updateError } = await supabase
+          .from('profiles')
+          .update({
+            subscription_status: 'pending_activation',
+            grace_period_deadline: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString(),
+            first_sale_completed_at: new Date().toISOString(),
+          })
+          .eq('id', order.artist_id)
+          .eq('subscription_status', 'trial');
+
+        if (!updateError && artistProfile.email) {
+          // Resolve artwork title from order's artwork_id
+          let artworkTitle = 'your artwork';
+          const { data: orderData } = await supabase
+            .from('orders')
+            .select('artwork_id')
+            .eq('id', orderId)
+            .single();
+
+          if (orderData?.artwork_id) {
+            const { data: artworkData } = await supabase
+              .from('artworks')
+              .select('title')
+              .eq('id', orderData.artwork_id)
+              .single();
+            if (artworkData?.title) artworkTitle = artworkData.title;
+          }
+
+          sendFirstSaleActivation({
+            email: artistProfile.email,
+            artistName: artistProfile.full_name || '',
+            artworkTitle,
+            saleAmount: order.total_amount_aud ?? 0,
+            payoutAmount: payoutAmountAud,
+          }).catch((err) =>
+            console.error(`[Escrow] First sale activation email failed for artist ${order.artist_id}:`, err)
+          );
+        }
+
+        if (updateError) {
+          console.error(`[Escrow] Failed to update subscription status for artist ${order.artist_id}:`, updateError);
+        }
+      }
+    } catch (err) {
+      // First sale detection must never block the payout flow
+      console.error(`[Escrow] First sale detection error for artist ${order.artist_id}:`, err);
+    }
 
     return { success: true, transferId: transfer.id };
   } catch (err) {

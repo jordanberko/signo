@@ -763,8 +763,8 @@ export default function ArtistOnboardingPage() {
                   <CreditCard className="h-4 w-4 text-accent-dark" />
                 </div>
                 <div>
-                  <p className="text-sm font-medium">$30/month subscription — free during launch</p>
-                  <p className="text-xs text-muted mt-0.5">0% commission. You keep 100% of every sale.</p>
+                  <p className="text-sm font-medium">Free until your first sale — then $30/month</p>
+                  <p className="text-xs text-muted mt-0.5">0% commission. You keep 100% of every sale. No payment needed to get started.</p>
                 </div>
               </div>
               <p className="text-xs text-warm-gray">

@@ -14,6 +14,11 @@ import {
   Loader2,
   Banknote,
   Palette,
+  AlertTriangle,
+  Clock,
+  CheckCircle2,
+  PauseCircle,
+  XCircle,
 } from 'lucide-react';
 import { formatPrice, getStatusStyle, formatStatus } from '@/lib/utils';
 import { useAuth } from '@/components/providers/AuthProvider';
@@ -41,6 +46,10 @@ export default function ArtistDashboardPage() {
   const [totalEarnings, setTotalEarnings] = useState(0);
   const [activeListings, setActiveListings] = useState(0);
   const [pendingReview, setPendingReview] = useState(0);
+
+  // Subscription
+  const [subscriptionStatus, setSubscriptionStatus] = useState<string>(user?.subscription_status || 'trial');
+  const [gracePeriodDeadline, setGracePeriodDeadline] = useState<string | null>(user?.grace_period_deadline || null);
 
   // Orders: separate loaded flag with 5s safety timeout
   const [recentOrders, setRecentOrders] = useState<RecentOrder[]>([]);
@@ -76,6 +85,14 @@ export default function ArtistDashboardPage() {
           setTotalEarnings(data.stats.totalEarnings ?? 0);
           setActiveListings(data.stats.activeListings ?? 0);
           setPendingReview(data.stats.pendingReview ?? 0);
+        }
+
+        // Update subscription status
+        if (data.subscription_status) {
+          setSubscriptionStatus(data.subscription_status);
+        }
+        if (data.grace_period_deadline !== undefined) {
+          setGracePeriodDeadline(data.grace_period_deadline);
         }
 
         // Update orders
@@ -197,31 +214,163 @@ export default function ArtistDashboardPage() {
       </div>
 
       {/* Subscription Status Card */}
-      <div className="bg-gradient-to-r from-accent/5 to-accent/10 border border-accent/20 rounded-lg p-5 mb-10 flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <div className="w-10 h-10 bg-accent/15 rounded-full flex items-center justify-center">
-            <CreditCard className="h-5 w-5 text-accent-dark" />
-          </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <p className="font-semibold">Subscription</p>
-              <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-green-100 text-green-700 flex items-center gap-1">
-                <Sparkles className="h-3 w-3" />
-                Early Access
-              </span>
+      {(() => {
+        const daysRemaining = gracePeriodDeadline
+          ? Math.max(0, Math.ceil((new Date(gracePeriodDeadline).getTime() - Date.now()) / (1000 * 60 * 60 * 24)))
+          : 0;
+
+        if (subscriptionStatus === 'trial') {
+          return (
+            <div className="bg-gradient-to-r from-accent/5 to-accent/10 border border-accent/20 rounded-lg p-5 mb-10 flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <div className="w-10 h-10 bg-accent/15 rounded-full flex items-center justify-center">
+                  <Sparkles className="h-5 w-5 text-accent-dark" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <p className="font-semibold">Free Plan</p>
+                    <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-accent-subtle text-accent-dark">
+                      Active
+                    </span>
+                  </div>
+                  <p className="text-sm text-muted mt-0.5">
+                    Your $30/month subscription starts after your first sale. No payment needed right now.
+                  </p>
+                </div>
+              </div>
+              <div className="hidden sm:block text-right">
+                <p className="text-xs text-muted">Your plan</p>
+                <p className="text-sm font-semibold text-accent-dark">Free</p>
+                <p className="text-xs text-muted">Until first sale</p>
+              </div>
             </div>
-            <p className="text-sm text-muted mt-0.5">
-              Free during our launch period &mdash; $30/mo starts later.
-              Zero commission, keep 100% of every sale.
-            </p>
+          );
+        }
+
+        if (subscriptionStatus === 'pending_activation') {
+          return (
+            <div className="bg-gradient-to-r from-amber-50 to-amber-100/50 border border-amber-300 rounded-lg p-5 mb-10 flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <div className="w-10 h-10 bg-amber-100 rounded-full flex items-center justify-center">
+                  <Clock className="h-5 w-5 text-amber-700" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <p className="font-semibold">Subscription Required</p>
+                    <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-amber-100 text-amber-800">
+                      {daysRemaining} day{daysRemaining !== 1 ? 's' : ''} remaining
+                    </span>
+                  </div>
+                  <p className="text-sm text-muted mt-0.5">
+                    Congratulations on your first sale! Add a payment method within {daysRemaining} day{daysRemaining !== 1 ? 's' : ''} to keep your listings live.
+                  </p>
+                </div>
+              </div>
+              <Link
+                href="/artist/subscribe"
+                className="hidden sm:inline-flex items-center gap-2 px-4 py-2 bg-amber-600 text-white text-sm font-medium rounded-lg hover:bg-amber-700 transition-colors flex-shrink-0"
+              >
+                <CreditCard className="h-4 w-4" />
+                Add Payment
+              </Link>
+            </div>
+          );
+        }
+
+        if (subscriptionStatus === 'active') {
+          return (
+            <div className="bg-gradient-to-r from-green-50 to-green-100/30 border border-green-200 rounded-lg p-5 mb-10 flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
+                  <CheckCircle2 className="h-5 w-5 text-green-700" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <p className="font-semibold">Subscription</p>
+                    <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-green-100 text-green-700">
+                      Active
+                    </span>
+                  </div>
+                  <p className="text-sm text-muted mt-0.5">
+                    Active &mdash; $30/month. Your listings are live.
+                  </p>
+                </div>
+              </div>
+              <Link
+                href="/artist/subscribe"
+                className="hidden sm:inline-flex items-center gap-1.5 text-sm text-accent-dark hover:underline flex-shrink-0"
+              >
+                Manage Subscription <ArrowRight className="h-3.5 w-3.5" />
+              </Link>
+            </div>
+          );
+        }
+
+        if (subscriptionStatus === 'past_due') {
+          return (
+            <div className="bg-gradient-to-r from-red-50 to-red-100/30 border border-red-300 rounded-lg p-5 mb-10 flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center">
+                  <AlertTriangle className="h-5 w-5 text-red-600" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <p className="font-semibold">Payment Failed</p>
+                    <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-red-100 text-red-700">
+                      Past Due
+                    </span>
+                  </div>
+                  <p className="text-sm text-muted mt-0.5">
+                    Your payment failed. Please update your payment method to keep your listings visible.
+                  </p>
+                </div>
+              </div>
+              <Link
+                href="/artist/subscribe"
+                className="hidden sm:inline-flex items-center gap-2 px-4 py-2 bg-red-600 text-white text-sm font-medium rounded-lg hover:bg-red-700 transition-colors flex-shrink-0"
+              >
+                <CreditCard className="h-4 w-4" />
+                Update Payment
+              </Link>
+            </div>
+          );
+        }
+
+        // paused or cancelled
+        return (
+          <div className="bg-gradient-to-r from-gray-50 to-gray-100/30 border border-gray-300 rounded-lg p-5 mb-10 flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <div className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center">
+                {subscriptionStatus === 'paused' ? (
+                  <PauseCircle className="h-5 w-5 text-gray-600" />
+                ) : (
+                  <XCircle className="h-5 w-5 text-gray-600" />
+                )}
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <p className="font-semibold">Subscription {subscriptionStatus === 'paused' ? 'Paused' : 'Cancelled'}</p>
+                  <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-gray-100 text-gray-600">
+                    {subscriptionStatus === 'paused' ? 'Paused' : 'Cancelled'}
+                  </span>
+                </div>
+                <p className="text-sm text-muted mt-0.5">
+                  {subscriptionStatus === 'paused'
+                    ? 'Your listings are paused. Add a payment method to reactivate.'
+                    : 'Your subscription was cancelled. Resubscribe to get your listings back.'}
+                </p>
+              </div>
+            </div>
+            <Link
+              href="/artist/subscribe"
+              className="hidden sm:inline-flex items-center gap-2 px-4 py-2 bg-primary text-white text-sm font-medium rounded-lg hover:bg-primary-light transition-colors flex-shrink-0"
+            >
+              <CreditCard className="h-4 w-4" />
+              Reactivate
+            </Link>
           </div>
-        </div>
-        <div className="hidden sm:block text-right">
-          <p className="text-xs text-muted">Your plan</p>
-          <p className="text-sm font-semibold text-accent-dark">$30/mo</p>
-          <p className="text-xs text-green-600 font-medium">Free now</p>
-        </div>
-      </div>
+        );
+      })()}
 
       {/* Quick Actions */}
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 mb-10">

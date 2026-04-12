@@ -446,7 +446,7 @@ export async function sendWelcomeEmail(data: WelcomeEmailData) {
           <td style="background-color:#faf8f4;border-radius:8px;padding:16px;">
             <p style="font-size:13px;color:#1a1a1a;margin:0 0 4px 0;font-weight:600;">Ready to sell?</p>
             <p style="font-size:13px;color:#7a7a72;margin:0;line-height:1.6;">
-              Complete your artist onboarding to upload your first artwork. Signo charges a flat $30/month — you keep 100% of every sale.
+              Complete your artist onboarding to upload your first artwork. Your account is completely free until your first sale. After that, it's just $30/month — zero commission.
             </p>
           </td>
         </tr>
@@ -482,6 +482,114 @@ export async function sendWelcomeEmail(data: WelcomeEmailData) {
   return safeSend({
     to: data.email,
     subject: `Welcome to Signo${isArtist ? ' — let\'s get your art online' : ''}`,
+    html,
+  });
+}
+
+// ════════════════════════════════════════════════════════════════════
+// 8. FIRST SALE ACTIVATION (to artist — subscription begins)
+// ════════════════════════════════════════════════════════════════════
+
+export interface FirstSaleActivationData {
+  email: string;
+  artistName: string;
+  artworkTitle: string;
+  saleAmount: number;
+  payoutAmount: number;
+}
+
+export async function sendFirstSaleActivation(data: FirstSaleActivationData) {
+  const html = emailWrapper(`
+    <h1 style="font-family:Georgia,'Times New Roman',serif;font-size:24px;font-weight:500;color:#1a1a1a;margin:0 0 8px 0;">Congratulations on your first sale!</h1>
+    <p style="font-size:14px;color:#7a7a72;margin:0 0 24px 0;line-height:1.6;">
+      Amazing news, ${escapeHtml(data.artistName || 'there')}! Your artwork "<strong style="color:#1a1a1a;">${escapeHtml(data.artworkTitle)}</strong>" has been sold.
+    </p>
+
+    <div style="background-color:#f0f4eb;border-radius:12px;padding:24px;margin-bottom:24px;">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="font-size:14px;color:#1a1a1a;line-height:1.8;">
+        <tr><td style="color:#7a7a72;padding-right:12px;white-space:nowrap;">Sale amount</td><td style="font-weight:600;">${formatCurrency(data.saleAmount)}</td></tr>
+        <tr><td style="color:#7a7a72;padding-right:12px;white-space:nowrap;">Your payout</td><td style="font-weight:600;color:#6b7c4e;">${formatCurrency(data.payoutAmount)}</td></tr>
+      </table>
+    </div>
+
+    ${divider()}
+
+    <p style="font-size:14px;color:#1a1a1a;margin:0 0 8px 0;font-weight:600;">What happens next</p>
+    <p style="font-size:14px;color:#7a7a72;margin:0 0 16px 0;line-height:1.6;">
+      Now that you've made your first sale, your Signo subscription ($30/month) will begin. Add a payment method within 14 days to keep your listings live.
+    </p>
+
+    ${ctaButton('Add Payment Method', `${APP_URL}/artist/subscribe`)}
+
+    <p style="font-size:12px;color:#a0a0a0;margin:16px 0 0 0;line-height:1.6;">
+      If you don't add a payment method within 14 days, your listings will be paused (not deleted). You can reactivate anytime.
+    </p>
+  `);
+
+  return safeSend({
+    to: data.email,
+    subject: 'Congratulations on your first sale! \u{1F389}',
+    html,
+  });
+}
+
+// ════════════════════════════════════════════════════════════════════
+// 9. LISTINGS PAUSED (to artist — grace period expired)
+// ════════════════════════════════════════════════════════════════════
+
+export interface ListingsPausedData {
+  email: string;
+  artistName: string;
+}
+
+export async function sendListingsPaused(data: ListingsPausedData) {
+  const html = emailWrapper(`
+    <h1 style="font-family:Georgia,'Times New Roman',serif;font-size:24px;font-weight:500;color:#1a1a1a;margin:0 0 8px 0;">Your Signo listings have been paused</h1>
+    <p style="font-size:14px;color:#7a7a72;margin:0 0 24px 0;line-height:1.6;">
+      Hi ${escapeHtml(data.artistName || 'there')}, your 14-day grace period has ended. Your listings are hidden from buyers until you add a payment method.
+    </p>
+
+    <p style="font-size:14px;color:#7a7a72;margin:0 0 24px 0;line-height:1.6;">
+      Your artworks haven't been deleted — they'll go live again as soon as you subscribe.
+    </p>
+
+    ${ctaButton('Reactivate Your Listings', `${APP_URL}/artist/subscribe`)}
+  `);
+
+  return safeSend({
+    to: data.email,
+    subject: 'Your Signo listings have been paused',
+    html,
+  });
+}
+
+// ════════════════════════════════════════════════════════════════════
+// 10. GRACE PERIOD REMINDER (to artist — approaching deadline)
+// ════════════════════════════════════════════════════════════════════
+
+export interface GracePeriodReminderData {
+  email: string;
+  artistName: string;
+  daysRemaining: number;
+}
+
+export async function sendGracePeriodReminder(data: GracePeriodReminderData) {
+  const html = emailWrapper(`
+    <h1 style="font-family:Georgia,'Times New Roman',serif;font-size:24px;font-weight:500;color:#1a1a1a;margin:0 0 8px 0;">Friendly reminder</h1>
+    <p style="font-size:14px;color:#7a7a72;margin:0 0 24px 0;line-height:1.6;">
+      Hi ${escapeHtml(data.artistName || 'there')}, you have <strong style="color:#1a1a1a;">${data.daysRemaining} day${data.daysRemaining === 1 ? '' : 's'}</strong> left to add a payment method for your Signo subscription.
+    </p>
+
+    <p style="font-size:14px;color:#7a7a72;margin:0 0 24px 0;line-height:1.6;">
+      If you don't add a payment method before the deadline, your listings will be paused and hidden from buyers. Don't worry — your artworks won't be deleted and you can reactivate anytime.
+    </p>
+
+    ${ctaButton('Add Payment Method', `${APP_URL}/artist/subscribe`)}
+  `);
+
+  return safeSend({
+    to: data.email,
+    subject: `Reminder: Add your payment method \u2014 ${data.daysRemaining} day${data.daysRemaining === 1 ? '' : 's'} left`,
     html,
   });
 }

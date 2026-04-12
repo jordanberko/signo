@@ -6,7 +6,7 @@ import { calculateStripeFee } from '@/lib/utils';
 export const metadata: Metadata = {
   title: 'Pricing',
   description:
-    'Signo pricing for artists: $30/month flat subscription, zero commission. See how much more you keep compared to galleries and other platforms.',
+    'Signo pricing for artists: free until your first sale, then $30/month. Zero commission. See how much more you keep compared to galleries and other platforms.',
 };
 
 function calculatePayout(price: number) {
@@ -28,7 +28,7 @@ export default function PricingPage() {
       <section className="bg-cream border-b border-border">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-16 md:py-24 text-center">
           <div className="inline-block px-4 py-1.5 bg-accent/10 text-accent-dark text-xs font-semibold tracking-wider uppercase rounded-full mb-6">
-            Free during launch
+            Free until your first sale
           </div>
           <h1 className="font-editorial text-4xl md:text-5xl lg:text-6xl font-medium leading-tight">
             Simple, honest{' '}
@@ -52,7 +52,8 @@ export default function PricingPage() {
                 <span className="font-editorial text-5xl font-semibold">$30</span>
                 <span className="text-muted text-lg">/month</span>
               </div>
-              <p className="text-sm text-muted mt-2">Cancel anytime. No lock-in contracts.</p>
+              <p className="text-sm font-medium text-accent-dark mt-2">Starts after your first sale</p>
+              <p className="text-sm text-muted mt-1">Cancel anytime. No lock-in contracts.</p>
             </div>
 
             <div className="space-y-3 mb-8">
@@ -78,12 +79,12 @@ export default function PricingPage() {
               href="/register"
               className="group w-full inline-flex items-center justify-center gap-3 px-7 py-3.5 bg-accent text-primary font-semibold rounded-full hover:bg-accent-light transition-all duration-300"
             >
-              Start Selling
+              Start Selling Free
               <ArrowRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
             </Link>
 
             <p className="text-xs text-center text-warm-gray mt-4">
-              Free during our launch period — no credit card required to start.
+              No payment method needed to sign up. Your subscription begins only after you complete your first sale.
             </p>
           </div>
 
@@ -160,11 +161,11 @@ export default function PricingPage() {
                   },
                   {
                     feature: 'Monthly Fee',
-                    signo: '$30/mo',
+                    signo: 'Free → $30/mo after first sale',
                     bluethumb: 'Free',
                     gallery: 'Varies',
                     etsy: 'Free + $0.20/listing',
-                    signoHighlight: false,
+                    signoHighlight: true,
                   },
                   {
                     feature: 'Artist keeps (on $500 sale)',
@@ -248,14 +249,14 @@ export default function PricingPage() {
             <span className="italic text-accent-dark">earn</span>
           </h2>
           <p className="text-gray-400 mt-6 max-w-md mx-auto">
-            $30/month. Zero commission. The maths speaks for itself.
+            List for free. $30/month only after your first sale. Zero commission.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center mt-10">
             <Link
               href="/register"
               className="group inline-flex items-center justify-center gap-3 px-7 py-3.5 bg-accent text-primary font-semibold rounded-full hover:bg-accent-light transition-all duration-300"
             >
-              Start Selling Today
+              Start Selling Free
               <ArrowRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
             </Link>
             <Link

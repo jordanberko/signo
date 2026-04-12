@@ -7,6 +7,14 @@
 
 export type UserRole = 'buyer' | 'artist' | 'admin';
 
+export type SubscriptionStatus =
+  | 'trial'
+  | 'pending_activation'
+  | 'active'
+  | 'past_due'
+  | 'paused'
+  | 'cancelled';
+
 export type ArtworkCategory = 'original' | 'print' | 'digital';
 
 export type ArtworkStatus =
@@ -57,6 +65,10 @@ export interface Database {
           location: string | null;
           social_links: Record<string, string>;
           stripe_account_id: string | null;
+          stripe_customer_id: string | null;
+          subscription_status: SubscriptionStatus;
+          grace_period_deadline: string | null;
+          first_sale_completed_at: string | null;
           is_verified: boolean;
           onboarding_completed: boolean;
           created_at: string;
@@ -72,6 +84,10 @@ export interface Database {
           location?: string | null;
           social_links?: Record<string, string>;
           stripe_account_id?: string | null;
+          stripe_customer_id?: string | null;
+          subscription_status?: SubscriptionStatus;
+          grace_period_deadline?: string | null;
+          first_sale_completed_at?: string | null;
           is_verified?: boolean;
           onboarding_completed?: boolean;
           created_at?: string;
@@ -87,6 +103,10 @@ export interface Database {
           location?: string | null;
           social_links?: Record<string, string>;
           stripe_account_id?: string | null;
+          stripe_customer_id?: string | null;
+          subscription_status?: SubscriptionStatus;
+          grace_period_deadline?: string | null;
+          first_sale_completed_at?: string | null;
           is_verified?: boolean;
           onboarding_completed?: boolean;
           created_at?: string;

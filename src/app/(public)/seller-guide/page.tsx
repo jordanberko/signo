@@ -342,11 +342,11 @@ export default function SellerGuidePage() {
             {[
               {
                 q: 'How much does it cost to sell on Signo?',
-                a: '$30/month flat subscription. No listing fees, no commission, no hidden charges. The only deduction from sales is Stripe\'s payment processing fee (~1.75% + 30c).',
+                a: 'Free until your first sale. After you make your first sale, it\'s $30/month — no listing fees, no commission, no hidden charges. No payment method is needed to sign up. The only deduction from sales is Stripe\'s payment processing fee (~1.75% + 30c).',
               },
               {
                 q: 'Can I cancel my subscription?',
-                a: 'Yes, cancel anytime. Your listings will be paused (not deleted) when your subscription ends. Reactivate anytime to make them live again.',
+                a: 'Yes, cancel anytime. Your $30/month subscription only starts after your first sale, so there\'s nothing to cancel before then. If you do cancel later, your listings will be paused (not deleted). Reactivate anytime to make them live again.',
               },
               {
                 q: 'How long does the review process take?',

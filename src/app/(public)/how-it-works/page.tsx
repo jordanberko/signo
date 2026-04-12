@@ -81,7 +81,7 @@ export default function HowItWorksPage() {
                 <span className="font-editorial text-2xl font-semibold text-accent-dark">$490.95</span>
               </div>
               <p className="text-xs text-warm-gray text-center pt-3">
-                Signo charges a flat $30/month subscription with zero commission. The only deduction from your sales is Stripe&apos;s payment processing fee.
+                Signo is free until your first sale — then $30/month with zero commission. The only deduction from your sales is Stripe&apos;s payment processing fee.
               </p>
             </div>
           </div>

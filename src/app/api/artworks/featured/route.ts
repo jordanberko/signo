@@ -27,8 +27,16 @@ export async function GET(request: NextRequest) {
     );
     const supabase = await createClient();
 
+    // Hide artworks from paused/cancelled artists
+    const { data: hiddenArtists } = await supabase
+      .from('profiles')
+      .select('id')
+      .in('subscription_status', ['paused', 'cancelled']);
+
+    const hiddenIds = (hiddenArtists || []).map((a: { id: string }) => a.id);
+
     // Fetch featured artworks first, then fill with recent approved
-    const { data: featuredData } = await supabase
+    let featuredQuery = supabase
       .from('artworks')
       .select(
         'id, title, price_aud, images, medium, category, artist_id, width_cm, height_cm, is_featured, profiles!artworks_artist_id_fkey(id, full_name)',
@@ -38,13 +46,20 @@ export async function GET(request: NextRequest) {
       .order('created_at', { ascending: false })
       .limit(limit);
 
+    // Exclude artworks from paused/cancelled subscription artists
+    if (hiddenIds.length > 0) {
+      featuredQuery = featuredQuery.not('artist_id', 'in', `(${hiddenIds.join(',')})`);
+    }
+
+    const { data: featuredData } = await featuredQuery;
+
     const featured = featuredData || [];
     const featuredIds = featured.map((a) => a.id);
     const remaining = limit - featured.length;
 
     let recentData: typeof featured = [];
     if (remaining > 0) {
-      const q = supabase
+      let q = supabase
         .from('artworks')
         .select(
           'id, title, price_aud, images, medium, category, artist_id, width_cm, height_cm, is_featured, profiles!artworks_artist_id_fkey(id, full_name)',
@@ -55,7 +70,12 @@ export async function GET(request: NextRequest) {
 
       // Exclude already-fetched featured artworks
       if (featuredIds.length > 0) {
-        q.not('id', 'in', `(${featuredIds.join(',')})`);
+        q = q.not('id', 'in', `(${featuredIds.join(',')})`);
+      }
+
+      // Exclude artworks from paused/cancelled subscription artists
+      if (hiddenIds.length > 0) {
+        q = q.not('artist_id', 'in', `(${hiddenIds.join(',')})`);
       }
 
       const { data: rd } = await q;

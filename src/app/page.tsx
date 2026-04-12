@@ -324,7 +324,7 @@ export default function HomePage() {
               {
                 icon: DollarSign,
                 title: 'Zero Commission',
-                description: 'Artists keep 100% of every sale. Just a flat $30/month subscription to list on the platform.',
+                description: 'Artists keep 100% of every sale. Free until your first sale. Then just $30/month to keep your listings live.',
               },
               {
                 icon: ShieldCheck,
@@ -361,7 +361,7 @@ export default function HomePage() {
             <span className="italic">No commission.</span>
           </h2>
           <p className="mt-5 text-muted leading-relaxed max-w-xl mx-auto">
-            Signo charges a flat $30/month subscription. You keep 100% of every sale —
+            List for free. Your $30/month subscription starts only after your first sale. You keep 100% of every sale —
             the only deduction is Stripe&apos;s payment processing fee (~1.75% + 30c).
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center mt-8">

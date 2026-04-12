@@ -978,59 +978,115 @@ export default function SettingsPage() {
           )}
 
           {/* ═══════ Subscription ═══════ */}
-          {activeTab === 'subscription' && isArtist && (
-            <div className="bg-white border border-border rounded-2xl p-6 md:p-8 space-y-6">
-              <div>
-                <h2 className="font-semibold text-lg">Subscription</h2>
-                <p className="text-sm text-muted mt-1">
-                  Your current plan and billing details.
-                </p>
-              </div>
+          {activeTab === 'subscription' && isArtist && (() => {
+            const subStatus = user?.subscription_status || 'trial';
+            const statusLabel: Record<string, string> = {
+              trial: 'Free Plan',
+              pending_activation: 'Pending Activation',
+              active: 'Active — $30/mo',
+              past_due: 'Past Due',
+              paused: 'Paused',
+              cancelled: 'Cancelled',
+            };
+            const statusColor: Record<string, string> = {
+              trial: 'bg-accent text-white',
+              pending_activation: 'bg-amber-500 text-white',
+              active: 'bg-green-500 text-white',
+              past_due: 'bg-red-500 text-white',
+              paused: 'bg-gray-400 text-white',
+              cancelled: 'bg-gray-400 text-white',
+            };
+            const dotColor: Record<string, string> = {
+              trial: 'bg-accent',
+              pending_activation: 'bg-amber-500',
+              active: 'bg-green-500',
+              past_due: 'bg-red-500',
+              paused: 'bg-gray-400',
+              cancelled: 'bg-gray-400',
+            };
+            const statusDescription: Record<string, string> = {
+              trial: 'Your $30/month subscription starts after your first sale. No payment needed right now.',
+              pending_activation: 'Your first sale completed! Add a payment method to keep your listings live.',
+              active: 'Your subscription is active. Your listings are live.',
+              past_due: 'Your payment failed. Please update your payment method.',
+              paused: 'Your listings are paused. Add a payment method to reactivate.',
+              cancelled: 'Your subscription was cancelled. Resubscribe to get your listings back.',
+            };
 
-              <div className="p-5 bg-accent-subtle border border-accent/10 rounded-xl">
-                <div className="flex items-center gap-3 mb-2">
-                  <div className="w-2.5 h-2.5 bg-accent rounded-full" />
-                  <p className="font-semibold text-sm">Free — Launch Period</p>
+            return (
+              <div className="bg-white border border-border rounded-2xl p-6 md:p-8 space-y-6">
+                <div>
+                  <h2 className="font-semibold text-lg">Subscription</h2>
+                  <p className="text-sm text-muted mt-1">
+                    Your current plan and billing details.
+                  </p>
                 </div>
-                <p className="text-sm text-muted ml-5.5">
-                  You&apos;re on the free launch plan. Zero commission on all sales.
-                  We&apos;ll notify you before any changes to pricing.
-                </p>
-              </div>
 
-              <div className="border border-border rounded-xl divide-y divide-border">
-                <div className="flex items-center justify-between p-4">
-                  <span className="text-sm text-muted">Plan</span>
-                  <span className="text-sm font-medium">Free (Launch)</span>
+                <div className={`p-5 rounded-xl ${
+                  subStatus === 'past_due' ? 'bg-red-50 border border-red-200' :
+                  subStatus === 'pending_activation' ? 'bg-amber-50 border border-amber-200' :
+                  subStatus === 'active' ? 'bg-green-50 border border-green-200' :
+                  'bg-accent-subtle border border-accent/10'
+                }`}>
+                  <div className="flex items-center gap-3 mb-2">
+                    <div className={`w-2.5 h-2.5 rounded-full ${dotColor[subStatus] || 'bg-accent'}`} />
+                    <p className="font-semibold text-sm">{statusLabel[subStatus] || subStatus}</p>
+                  </div>
+                  <p className="text-sm text-muted ml-5.5">
+                    {statusDescription[subStatus]}
+                  </p>
                 </div>
-                <div className="flex items-center justify-between p-4">
-                  <span className="text-sm text-muted">Commission rate</span>
-                  <span className="text-sm font-medium">0%</span>
-                </div>
-                <div className="flex items-center justify-between p-4">
-                  <span className="text-sm text-muted">Next billing date</span>
-                  <span className="text-sm font-medium text-muted">N/A</span>
-                </div>
-                <div className="flex items-center justify-between p-4">
-                  <span className="text-sm text-muted">Payout setup</span>
-                  <span className="text-sm font-medium">
-                    {user?.stripe_account_id ? (
-                      <span className="text-green-600">Connected</span>
-                    ) : (
-                      <Link href="/artist/settings/payouts" className="text-accent-dark hover:underline">
-                        Set up payouts
-                      </Link>
-                    )}
-                  </span>
-                </div>
-              </div>
 
-              <p className="text-xs text-warm-gray">
-                When paid plans are introduced, you&apos;ll be able to manage your
-                subscription and billing here.
-              </p>
-            </div>
-          )}
+                <div className="border border-border rounded-xl divide-y divide-border">
+                  <div className="flex items-center justify-between p-4">
+                    <span className="text-sm text-muted">Status</span>
+                    <span className={`text-xs font-medium px-2.5 py-1 rounded-full ${statusColor[subStatus] || 'bg-gray-100 text-gray-600'}`}>
+                      {statusLabel[subStatus] || subStatus}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between p-4">
+                    <span className="text-sm text-muted">Price</span>
+                    <span className="text-sm font-medium">
+                      {subStatus === 'trial' ? 'Free (until first sale)' : '$30/month'}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between p-4">
+                    <span className="text-sm text-muted">Commission rate</span>
+                    <span className="text-sm font-medium">0%</span>
+                  </div>
+                  <div className="flex items-center justify-between p-4">
+                    <span className="text-sm text-muted">Payout setup</span>
+                    <span className="text-sm font-medium">
+                      {user?.stripe_account_id ? (
+                        <span className="text-green-600">Connected</span>
+                      ) : (
+                        <Link href="/artist/settings/payouts" className="text-accent-dark hover:underline">
+                          Set up payouts
+                        </Link>
+                      )}
+                    </span>
+                  </div>
+                </div>
+
+                {subStatus !== 'trial' && (
+                  <Link
+                    href="/artist/subscribe"
+                    className="inline-flex items-center gap-2 px-5 py-2.5 bg-primary text-white text-sm font-semibold rounded-full hover:bg-accent transition-colors"
+                  >
+                    <CreditCard className="h-4 w-4" />
+                    {subStatus === 'active' ? 'Manage Subscription' : 'Go to Subscription'}
+                  </Link>
+                )}
+
+                {subStatus === 'trial' && (
+                  <p className="text-xs text-warm-gray">
+                    Your subscription will start after your first sale. You&apos;ll have
+                    time to set up your payment method.
+                  </p>
+                )}
+              </div>
+            );
+          })()}
 
           {/* ═══════ Danger Zone ═══════ */}
           {activeTab === 'danger' && (

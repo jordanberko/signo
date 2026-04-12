@@ -25,6 +25,14 @@ export async function GET(request: NextRequest) {
     const params = request.nextUrl.searchParams;
     const supabase = await createClient();
 
+    // Hide artworks from paused/cancelled artists
+    const { data: hiddenArtists } = await supabase
+      .from('profiles')
+      .select('id')
+      .in('subscription_status', ['paused', 'cancelled']);
+
+    const hiddenIds = (hiddenArtists || []).map((a: { id: string }) => a.id);
+
     let query = supabase
       .from('artworks')
       .select(
@@ -32,6 +40,11 @@ export async function GET(request: NextRequest) {
         { count: 'exact' },
       )
       .eq('status', 'approved');
+
+    // Exclude artworks from paused/cancelled subscription artists
+    if (hiddenIds.length > 0) {
+      query = query.not('artist_id', 'in', `(${hiddenIds.join(',')})`);
+    }
 
     // Category filter
     const category = params.get('category');

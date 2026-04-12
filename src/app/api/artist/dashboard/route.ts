@@ -13,7 +13,7 @@ export async function GET() {
     }
 
     // Run all queries in parallel
-    const [activeRes, pendingRes, ordersRes] = await Promise.allSettled([
+    const [activeRes, pendingRes, ordersRes, profileRes] = await Promise.allSettled([
       supabase
         .from('artworks')
         .select('*', { count: 'exact', head: true })
@@ -32,6 +32,11 @@ export async function GET() {
         .eq('artist_id', user.id)
         .in('status', ['paid', 'shipped', 'delivered', 'completed'])
         .order('created_at', { ascending: false }),
+      supabase
+        .from('profiles')
+        .select('subscription_status, grace_period_deadline')
+        .eq('id', user.id)
+        .single(),
     ]);
 
     const activeListings =
@@ -48,6 +53,9 @@ export async function GET() {
         sum + ((o.artist_payout_aud as number) || 0),
       0
     );
+
+    const profile =
+      profileRes.status === 'fulfilled' ? profileRes.value.data : null;
 
     // Recent 5 orders for the table
     const recentOrders = allOrders.slice(0, 5).map((o: Record<string, unknown>) => {
@@ -69,6 +77,8 @@ export async function GET() {
     return NextResponse.json({
       stats: { totalSales, totalEarnings, activeListings, pendingReview },
       recentOrders,
+      subscription_status: profile?.subscription_status ?? 'trial',
+      grace_period_deadline: profile?.grace_period_deadline ?? null,
     });
   } catch (err) {
     console.error('[API artist/dashboard]', err);

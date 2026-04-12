@@ -170,9 +170,9 @@ export default function EarningsPage() {
           </div>
           <div className="flex items-center gap-1.5">
             <Sparkles className="h-4 w-4 text-green-600" />
-            <p className="text-sm font-semibold text-green-700">Free — Launch period</p>
+            <p className="text-sm font-semibold text-green-700">Free until first sale</p>
           </div>
-          <p className="text-xs text-muted mt-1">$30/mo after launch</p>
+          <p className="text-xs text-muted mt-1">Then $30/mo — zero commission</p>
         </div>
       </div>
 

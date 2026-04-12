@@ -1,9 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
-import {
-  ARTIST_SUBSCRIPTION_PRICE_ID,
-  ENFORCE_SUBSCRIPTIONS,
-} from '@/lib/stripe/config';
+import { ARTIST_SUBSCRIPTION_PRICE_ID } from '@/lib/stripe/config';
 import {
   getOrCreateCustomer,
   createSubscriptionCheckoutSession,
@@ -21,10 +18,10 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
     }
 
-    // Get profile
+    // Get profile (including subscription_status)
     const { data: profile } = await supabase
       .from('profiles')
-      .select('full_name, email, role')
+      .select('full_name, email, role, subscription_status')
       .eq('id', user.id)
       .single();
 
@@ -35,15 +32,31 @@ export async function POST(request: Request) {
       );
     }
 
-    if (!ENFORCE_SUBSCRIPTIONS) {
+    // Gate based on subscription_status
+    const status = profile.subscription_status;
+
+    if (status === 'trial') {
       return NextResponse.json(
         {
-          error: 'Subscriptions are not yet enforced. You have free access during the launch period.',
-          launch_period: true,
+          error: "Your subscription starts after your first sale. Keep listing!",
+          trial_period: true,
         },
         { status: 400 }
       );
     }
+
+    if (status === 'active') {
+      return NextResponse.json(
+        {
+          error: 'You already have an active subscription.',
+          already_subscribed: true,
+        },
+        { status: 400 }
+      );
+    }
+
+    // Allow checkout for: pending_activation, paused, cancelled, or null/undefined (new artists)
+    // These are artists who need to start or restart their subscription.
 
     // Get or create Stripe customer
     const email = profile.email || user.email || '';
@@ -53,7 +66,7 @@ export async function POST(request: Request) {
     // Store customer ID in profile if not already there
     await supabase
       .from('profiles')
-      .update({ stripe_account_id: customerId })
+      .update({ stripe_customer_id: customerId })
       .eq('id', user.id);
 
     // Parse request for URLs

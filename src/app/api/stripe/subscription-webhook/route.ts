@@ -55,14 +55,16 @@ export async function POST(request: Request) {
           break;
         }
 
+        const customerId =
+          typeof subscription.customer === 'string'
+            ? subscription.customer
+            : subscription.customer.id;
+
         await supabase.from('subscriptions').upsert(
           {
             artist_id: userId,
             stripe_subscription_id: subscription.id,
-            stripe_customer_id:
-              typeof subscription.customer === 'string'
-                ? subscription.customer
-                : subscription.customer.id,
+            stripe_customer_id: customerId,
             status: mapStripeStatus(subscription.status),
             current_period_start: new Date(
               subscription.items.data[0]?.current_period_start * 1000
@@ -74,6 +76,18 @@ export async function POST(request: Request) {
           },
           { onConflict: 'artist_id' }
         );
+
+        // Sync profile subscription status
+        if (subscription.status === 'active') {
+          await supabase
+            .from('profiles')
+            .update({
+              subscription_status: 'active',
+              grace_period_deadline: null,
+              stripe_customer_id: customerId,
+            })
+            .eq('id', userId);
+        }
 
         console.log(
           `[Stripe Webhook] Subscription created for user ${userId}: ${subscription.id}`
@@ -102,6 +116,22 @@ export async function POST(request: Request) {
           })
           .eq('artist_id', userId);
 
+        // Sync profile subscription status
+        if (subscription.status === 'active') {
+          await supabase
+            .from('profiles')
+            .update({
+              subscription_status: 'active',
+              grace_period_deadline: null,
+            })
+            .eq('id', userId);
+        } else if (subscription.status === 'past_due') {
+          await supabase
+            .from('profiles')
+            .update({ subscription_status: 'past_due' })
+            .eq('id', userId);
+        }
+
         console.log(
           `[Stripe Webhook] Subscription updated for user ${userId}: ${subscription.status}`
         );
@@ -123,6 +153,12 @@ export async function POST(request: Request) {
           })
           .eq('artist_id', userId);
 
+        // Sync profile subscription status
+        await supabase
+          .from('profiles')
+          .update({ subscription_status: 'cancelled' })
+          .eq('id', userId);
+
         console.log(
           `[Stripe Webhook] Subscription cancelled for user ${userId}`
         );
@@ -143,9 +179,60 @@ export async function POST(request: Request) {
           .update({ status: 'past_due' })
           .eq('stripe_subscription_id', subscriptionId);
 
+        // Sync profile subscription status via the subscriptions table lookup
+        const { data: sub } = await supabase
+          .from('subscriptions')
+          .select('artist_id')
+          .eq('stripe_subscription_id', subscriptionId)
+          .single();
+
+        if (sub?.artist_id) {
+          await supabase
+            .from('profiles')
+            .update({ subscription_status: 'past_due' })
+            .eq('id', sub.artist_id);
+        }
+
         console.log(
           `[Stripe Webhook] Payment failed for subscription ${subscriptionId}`
         );
+        break;
+      }
+
+      // ── Payment succeeded (recover from past_due) ──
+      case 'invoice.payment_succeeded': {
+        const invoice = event.data.object as Stripe.Invoice;
+        const subscriptionId =
+          invoice.parent?.subscription_details?.subscription ??
+          null;
+
+        if (!subscriptionId) break;
+
+        // Check if the subscription was past_due before this payment
+        const { data: sub } = await supabase
+          .from('subscriptions')
+          .select('artist_id, status')
+          .eq('stripe_subscription_id', subscriptionId)
+          .single();
+
+        if (sub?.artist_id && sub.status === 'past_due') {
+          await supabase
+            .from('subscriptions')
+            .update({ status: 'active' })
+            .eq('stripe_subscription_id', subscriptionId);
+
+          await supabase
+            .from('profiles')
+            .update({
+              subscription_status: 'active',
+              grace_period_deadline: null,
+            })
+            .eq('id', sub.artist_id);
+
+          console.log(
+            `[Stripe Webhook] Payment succeeded, recovered from past_due for user ${sub.artist_id}`
+          );
+        }
         break;
       }
 
