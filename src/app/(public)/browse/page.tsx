@@ -392,7 +392,7 @@ function BrowseContent() {
 
         // 15-second timeout (allows for Vercel cold starts)
         const controller = new AbortController();
-        const timeout = setTimeout(() => controller.abort(), 15000);
+        const timeout = setTimeout(() => controller.abort(), 10000);
 
         const res = await fetch(`/api/artworks/browse?${params.toString()}`, {
           signal: controller.signal,

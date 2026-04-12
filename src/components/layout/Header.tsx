@@ -259,6 +259,13 @@ export default function Header() {
 
       {/* Mobile Menu */}
       {mobileMenuOpen && (
+        <>
+          {/* Click-outside overlay */}
+          <div
+            className="fixed inset-0 z-[-1] md:hidden"
+            onClick={() => setMobileMenuOpen(false)}
+            aria-hidden="true"
+          />
         <div className="md:hidden border-t border-border bg-background animate-fade-in">
           {/* Search */}
           <form onSubmit={handleSearch} className="px-4 py-3">
@@ -317,6 +324,7 @@ export default function Header() {
             )}
           </nav>
         </div>
+        </>
       )}
     </header>
   );

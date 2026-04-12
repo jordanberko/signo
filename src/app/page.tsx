@@ -47,7 +47,7 @@ export default function HomePage() {
     async function fetchArt() {
       try {
         const controller = new AbortController();
-        const timeout = setTimeout(() => controller.abort(), 15000);
+        const timeout = setTimeout(() => controller.abort(), 10000);
 
         // Fetch featured, new arrivals, artist spotlight, and user favourites in parallel
         const [featuredRes, arrivalsRes, artistsRes, favsRes] = await Promise.all([
@@ -62,6 +62,8 @@ export default function HomePage() {
           const json = await featuredRes.json();
           const mapped = (json.data || []) as FeaturedArtwork[];
           setArtworks(mapped);
+        } else {
+          console.error('[Home] Featured artwork fetch failed:', featuredRes.status);
         }
 
         if (arrivalsRes.ok) {
@@ -81,16 +83,22 @@ export default function HomePage() {
             heightCm: (a.height_cm as number) || null,
           }));
           setNewArrivals(mapped);
+        } else {
+          console.error('[Home] New arrivals fetch failed:', arrivalsRes.status);
         }
 
         if (artistsRes.ok) {
           const json = await artistsRes.json();
           setSpotlightArtists((json.data || []) as SpotlightArtist[]);
+        } else {
+          console.error('[Home] Artist spotlight fetch failed:', artistsRes.status);
         }
 
         if (favsRes.ok) {
           const json = await favsRes.json();
           setFavouriteIds(new Set(json.ids || []));
+        } else {
+          console.error('[Home] Favourites fetch failed:', favsRes.status);
         }
       } catch (err) {
         console.error('[Home] Artwork fetch error:', err);

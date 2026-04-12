@@ -1,4 +1,11 @@
+import type { Metadata } from 'next';
 import Link from 'next/link';
+
+export const metadata: Metadata = {
+  title: 'Terms of Service',
+  description:
+    "Read Signo's terms of service covering artwork listings, purchases, escrow payments, and dispute resolution.",
+};
 
 export default function TermsPage() {
   return (

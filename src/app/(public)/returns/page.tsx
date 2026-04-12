@@ -1,4 +1,11 @@
+import type { Metadata } from 'next';
 import Link from 'next/link';
+
+export const metadata: Metadata = {
+  title: 'Returns & Refunds',
+  description:
+    "Signo's returns and refunds policy including escrow protection, inspection windows, and dispute resolution.",
+};
 
 export default function ReturnsPage() {
   return (

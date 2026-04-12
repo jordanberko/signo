@@ -1,5 +1,12 @@
+import type { Metadata } from 'next';
 import Link from 'next/link';
 import { ArrowRight, Camera, FileText, DollarSign, Package, CheckCircle, Banknote } from 'lucide-react';
+
+export const metadata: Metadata = {
+  title: 'Seller Guide',
+  description:
+    'Everything artists need to know about selling on Signo — pricing, shipping, payouts, and best practices.',
+};
 
 export default function SellerGuidePage() {
   return (

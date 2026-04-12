@@ -252,27 +252,38 @@ export default async function ArtworkDetailPage({ params }: Props) {
     }
   }
 
-  // JSON-LD structured data for product (artwork)
+  // JSON-LD structured data for artwork (VisualArtwork schema)
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://signo-tau.vercel.app';
-  const jsonLd = {
+  const jsonLdRaw = {
     '@context': 'https://schema.org',
-    '@type': 'Product',
+    '@type': 'VisualArtwork',
     name: artwork.title,
     description: data.description || `${artwork.title} by ${artwork.artist.full_name}`,
     image: artwork.images[0] || undefined,
     url: `${appUrl}/artwork/${id}`,
-    brand: {
+    artist: {
       '@type': 'Person',
       name: artwork.artist.full_name || 'Artist',
     },
+    artMedium: artwork.medium || undefined,
+    width: artwork.width_cm
+      ? { '@type': 'Distance', name: `${artwork.width_cm} cm` }
+      : undefined,
+    height: artwork.height_cm
+      ? { '@type': 'Distance', name: `${artwork.height_cm} cm` }
+      : undefined,
     offers: {
       '@type': 'Offer',
       price: artwork.price_aud,
       priceCurrency: 'AUD',
-      availability: 'https://schema.org/InStock',
+      availability: data.status === 'approved'
+        ? 'https://schema.org/InStock'
+        : 'https://schema.org/SoldOut',
       url: `${appUrl}/artwork/${id}`,
     },
   };
+  // Strip undefined values for clean JSON-LD output
+  const jsonLd = JSON.parse(JSON.stringify(jsonLdRaw));
 
   return (
     <>
