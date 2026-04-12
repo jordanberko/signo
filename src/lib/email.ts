@@ -499,30 +499,44 @@ export interface FirstSaleActivationData {
 }
 
 export async function sendFirstSaleActivation(data: FirstSaleActivationData) {
+  const firstName = (data.artistName || 'there').split(' ')[0];
+
   const html = emailWrapper(`
-    <h1 style="font-family:Georgia,'Times New Roman',serif;font-size:24px;font-weight:500;color:#1a1a1a;margin:0 0 8px 0;">Congratulations on your first sale!</h1>
-    <p style="font-size:14px;color:#7a7a72;margin:0 0 24px 0;line-height:1.6;">
-      Amazing news, ${escapeHtml(data.artistName || 'there')}! Your artwork "<strong style="color:#1a1a1a;">${escapeHtml(data.artworkTitle)}</strong>" has been sold.
+    <h1 style="font-family:Georgia,'Times New Roman',serif;font-size:28px;font-weight:500;color:#1a1a1a;margin:0 0 24px 0;text-align:center;">Your first sale is complete!</h1>
+
+    <p style="font-size:15px;color:#1a1a1a;margin:0 0 16px 0;line-height:1.7;">
+      Hey ${escapeHtml(firstName)},
     </p>
 
-    <div style="background-color:#f0f4eb;border-radius:12px;padding:24px;margin-bottom:24px;">
-      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="font-size:14px;color:#1a1a1a;line-height:1.8;">
-        <tr><td style="color:#7a7a72;padding-right:12px;white-space:nowrap;">Sale amount</td><td style="font-weight:600;">${formatCurrency(data.saleAmount)}</td></tr>
-        <tr><td style="color:#7a7a72;padding-right:12px;white-space:nowrap;">Your payout</td><td style="font-weight:600;color:#6b7c4e;">${formatCurrency(data.payoutAmount)}</td></tr>
+    <p style="font-size:15px;color:#1a1a1a;margin:0 0 24px 0;line-height:1.7;">
+      You just sold <strong>${escapeHtml(data.artworkTitle)}</strong> for ${formatCurrency(data.saleAmount)}! The funds are on their way to your bank account. This is a big moment &mdash; congratulations.
+    </p>
+
+    <p style="font-size:15px;color:#1a1a1a;margin:0 0 28px 0;line-height:1.7;">
+      Because you&rsquo;ve been listing for free on Signo, your $30/month subscription will now begin. If you don&rsquo;t add a payment method within 14 days, your listings will be automatically paused &mdash; not deleted. You can reactivate anytime.
+    </p>
+
+    ${ctaButton('Add Payment Method', `${APP_URL}/artist/subscribe`)}
+
+    <!-- What happens next box -->
+    <div style="background-color:#faf8f4;border:1px solid #e8e6e1;border-radius:12px;padding:24px;margin:28px 0 0 0;">
+      <p style="font-size:14px;font-weight:600;color:#1a1a1a;margin:0 0 16px 0;">What happens next:</p>
+      <table role="presentation" cellpadding="0" cellspacing="0" style="font-size:14px;color:#4a4a4a;line-height:2;">
+        <tr><td style="padding-right:10px;vertical-align:top;color:#6b7c4e;">&#10003;</td><td>Your artwork stays on Signo (nothing is deleted)</td></tr>
+        <tr><td style="padding-right:10px;vertical-align:top;color:#6b7c4e;">&#10003;</td><td>You keep 100% of this sale minus Stripe fees</td></tr>
+        <tr><td style="padding-right:10px;vertical-align:top;color:#6b7c4e;">&#10003;</td><td>$30/month subscription begins when you add payment</td></tr>
+        <tr><td style="padding-right:10px;vertical-align:top;color:#6b7c4e;">&#10003;</td><td>Cancel anytime &mdash; your listings just get paused</td></tr>
+        <tr><td style="padding-right:10px;vertical-align:top;color:#b08d3e;">&#9203;</td><td>14 days to add a payment method before listings pause</td></tr>
       </table>
     </div>
 
     ${divider()}
 
-    <p style="font-size:14px;color:#1a1a1a;margin:0 0 8px 0;font-weight:600;">What happens next</p>
-    <p style="font-size:14px;color:#7a7a72;margin:0 0 16px 0;line-height:1.6;">
-      Now that you've made your first sale, your Signo subscription ($30/month) will begin. Add a payment method within 14 days to keep your listings live.
+    <p style="font-size:14px;color:#7a7a72;margin:0 0 4px 0;line-height:1.6;">
+      Thanks for being part of Signo. We&rsquo;re excited to see what you create next.
     </p>
-
-    ${ctaButton('Add Payment Method', `${APP_URL}/artist/subscribe`)}
-
-    <p style="font-size:12px;color:#a0a0a0;margin:16px 0 0 0;line-height:1.6;">
-      If you don't add a payment method within 14 days, your listings will be paused (not deleted). You can reactivate anytime.
+    <p style="font-size:14px;color:#7a7a72;margin:0;line-height:1.6;">
+      &mdash; The Signo Team
     </p>
   `);
 
