@@ -89,7 +89,7 @@ const STYLES = [
 
 const COMMITMENTS = [
   { icon: Package, text: 'I will ship all physical items with tracked shipping' },
-  { icon: Clock, text: 'I will ship within 5 business days of a sale' },
+  { icon: Clock, text: 'I will ship within 7 days of a sale' },
   { icon: Camera, text: 'I will photograph packaging before shipping' },
   { icon: ShieldCheck, text: 'For orders over $500, I will use insured shipping with signature on delivery' },
   { icon: Palette, text: 'All work I upload is my own original creation' },

@@ -179,7 +179,7 @@ export async function sendOrderConfirmation(data: OrderConfirmationData) {
     ${divider()}
 
     <p style="font-size:13px;color:#7a7a72;margin:0;line-height:1.6;">
-      Your payment is held securely until delivery is confirmed. The artist will ship your artwork within 5 business days. You'll receive a tracking notification once it's on its way.
+      Your payment is held securely until delivery is confirmed. The artist will ship your artwork within 7 days. You'll receive a tracking notification once it's on its way.
     </p>
 
     ${ctaButton('View Order', `${APP_URL}/orders/${data.orderId}`)}
@@ -229,7 +229,7 @@ export async function sendNewSaleNotification(data: NewSaleData) {
 
     <p style="font-size:13px;color:#1a1a1a;margin:0 0 4px 0;font-weight:600;">What to do next</p>
     <p style="font-size:13px;color:#7a7a72;margin:0;line-height:1.6;">
-      Package the artwork carefully and ship it within <strong style="color:#1a1a1a;">5 business days</strong>. Once shipped, update the order with the tracking number so the buyer can follow along.
+      Package the artwork carefully and ship it within <strong style="color:#1a1a1a;">7 days</strong>. Once shipped, update the order with the tracking number so the buyer can follow along.
     </p>
 
     ${ctaButton('View Order & Ship', `${APP_URL}/artist/orders`)}

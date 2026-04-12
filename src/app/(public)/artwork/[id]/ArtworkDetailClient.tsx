@@ -864,7 +864,7 @@ export default function ArtworkDetailClient({
                   <div>
                     <p className="text-xs font-medium">Tracked Shipping</p>
                     <p className="text-xs text-muted mt-0.5">
-                      Ships within 5 business days
+                      Ships within 7 days
                     </p>
                   </div>
                 </div>

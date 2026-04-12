@@ -67,7 +67,7 @@ export default function TermsPage() {
                 },
                 {
                   title: 'Ship within 7 days',
-                  detail: 'Once an order is placed, you must ship the artwork with tracked postage within 7 calendar days. Orders not shipped within this window are automatically cancelled and the buyer is refunded.',
+                  detail: 'Once an order is placed, you must ship the artwork with tracked postage within 7 days. Orders not shipped within this window are automatically cancelled and the buyer is refunded.',
                 },
                 {
                   title: 'Professional packaging',

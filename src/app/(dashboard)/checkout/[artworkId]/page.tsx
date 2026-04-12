@@ -460,7 +460,7 @@ export default function CheckoutPage({
               ) : (
                 <>
                   <Truck className="h-4 w-4 text-muted flex-shrink-0" />
-                  <span className="text-xs text-muted">Tracked shipping within 5 days</span>
+                  <span className="text-xs text-muted">Tracked shipping within 7 days</span>
                 </>
               )}
             </div>

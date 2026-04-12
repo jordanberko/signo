@@ -214,7 +214,7 @@ export default function SellerGuidePage() {
           <div className="mt-8 p-6 bg-accent/5 rounded-xl border border-accent/20">
             <p className="text-sm font-medium mb-1">Ship within 7 days</p>
             <p className="text-sm text-muted leading-relaxed">
-              Orders that aren&apos;t shipped within 7 calendar days are automatically cancelled and the buyer is refunded.
+              Orders that aren&apos;t shipped within 7 days are automatically cancelled and the buyer is refunded.
               Mark your order as shipped and add the tracking number as soon as you drop off the package.
             </p>
           </div>

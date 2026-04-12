@@ -114,7 +114,7 @@ export default function HowItWorksPage() {
               {
                 step: '03',
                 title: 'Tracked Delivery',
-                desc: 'Artists ship with tracked postage within 5 business days. Follow your artwork in real time.',
+                desc: 'Artists ship with tracked postage within 7 days. Follow your artwork in real time.',
               },
               {
                 step: '04',

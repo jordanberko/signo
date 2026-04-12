@@ -416,7 +416,7 @@ export default function HomePage() {
               {[
                 { step: 'Discover', desc: 'Browse by style, medium, price, or artist.' },
                 { step: 'Purchase', desc: 'Secure checkout. Payment held in escrow.' },
-                { step: 'Receive', desc: 'Tracked shipping within 5 business days.' },
+                { step: 'Receive', desc: 'Tracked shipping within 7 days.' },
                 { step: 'Enjoy', desc: '48-hour inspection window. Full buyer protection.' },
               ].map((item, i) => (
                 <div key={i} className="flex gap-4 group">
