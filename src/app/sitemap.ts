@@ -9,7 +9,7 @@ function getServiceClient() {
 }
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://signo-tau.vercel.app';
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://signoart.com.au';
   const supabase = getServiceClient();
 
   // Static pages

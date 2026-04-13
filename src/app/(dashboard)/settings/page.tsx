@@ -1133,7 +1133,7 @@ export default function SettingsPage() {
                         className="px-5 py-2 bg-error text-white text-sm font-semibold rounded-full hover:bg-error/90 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                         onClick={() => {
                           // Placeholder — actual deletion logic to come
-                          alert('Account deletion is not yet implemented. Contact support@signo.art for assistance.');
+                          alert('Account deletion is not yet implemented. Contact support@signoart.com.au for assistance.');
                         }}
                       >
                         Permanently delete

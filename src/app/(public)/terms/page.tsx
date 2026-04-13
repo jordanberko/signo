@@ -194,7 +194,7 @@ export default function TermsPage() {
               <p>
                 Our dispute decisions are made in good faith based on the evidence provided.
                 If you disagree with a decision, you can request a review by contacting{' '}
-                <a href="mailto:disputes@signo.com.au" className="text-accent-dark hover:underline">disputes@signo.com.au</a>.
+                <a href="mailto:disputes@signoart.com.au" className="text-accent-dark hover:underline">disputes@signoart.com.au</a>.
               </p>
               <p>
                 For disputes we cannot resolve internally, Australian Consumer Law and the relevant

@@ -73,8 +73,8 @@ export default function ContactPage() {
                 </div>
                 <div>
                   <h3 className="font-medium text-sm mb-1">Email</h3>
-                  <a href="mailto:hello@signo.com.au" className="text-sm text-accent-dark hover:underline">
-                    hello@signo.com.au
+                  <a href="mailto:hello@signoart.com.au" className="text-sm text-accent-dark hover:underline">
+                    hello@signoart.com.au
                   </a>
                 </div>
               </div>

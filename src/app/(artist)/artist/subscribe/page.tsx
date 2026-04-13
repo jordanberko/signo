@@ -285,7 +285,7 @@ function SubscribeContent() {
               <div className="h-px bg-border mb-6" />
               <p className="text-sm text-muted text-center mb-4">
                 To cancel your subscription or update billing details, please contact us at{' '}
-                <a href="mailto:support@signo.art" className="text-accent-dark hover:underline">support@signo.art</a>.
+                <a href="mailto:support@signoart.com.au" className="text-accent-dark hover:underline">support@signoart.com.au</a>.
               </p>
             </div>
           </div>

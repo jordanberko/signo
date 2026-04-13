@@ -133,7 +133,7 @@ export async function POST(request: Request) {
 
     // Use server-side origin only — never trust client-supplied origin
     const appOrigin =
-      process.env.NEXT_PUBLIC_APP_URL || 'https://signo-tau.vercel.app';
+      process.env.NEXT_PUBLIC_APP_URL || 'https://signoart.com.au';
 
     const thumbnail = (artwork.images as string[])?.[0];
     const artistProfile = artwork.profiles as Record<string, string> | null;

@@ -31,7 +31,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     : `Discover artwork by ${name} on Signo — Australia\u2019s curated art marketplace.${count > 0 ? ` ${count} artwork${count === 1 ? '' : 's'} available.` : ''}`;
 
   const title = `${name} \u2014 Artist on Signo`;
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://signo-tau.vercel.app';
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://signoart.com.au';
   const url = `${appUrl}/artists/${id}`;
 
   return {

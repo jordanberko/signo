@@ -51,7 +51,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const description = `${prefix}${descBody}`.slice(0, 200);
 
   const ogImage = (data.images as string[])?.[0];
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://signo-tau.vercel.app';
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://signoart.com.au';
   const url = `${appUrl}/artwork/${id}`;
 
   return {
@@ -253,7 +253,7 @@ export default async function ArtworkDetailPage({ params }: Props) {
   }
 
   // JSON-LD structured data for artwork (VisualArtwork schema)
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://signo-tau.vercel.app';
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://signoart.com.au';
   const jsonLdRaw = {
     '@context': 'https://schema.org',
     '@type': 'VisualArtwork',

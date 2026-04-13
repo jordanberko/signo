@@ -222,8 +222,8 @@ export default function PrivacyPage() {
               contact us at:
             </p>
             <p className="text-sm">
-              <a href="mailto:privacy@signo.com.au" className="text-accent-dark hover:underline">
-                privacy@signo.com.au
+              <a href="mailto:privacy@signoart.com.au" className="text-accent-dark hover:underline">
+                privacy@signoart.com.au
               </a>
             </p>
             <p className="text-sm text-muted mt-4">

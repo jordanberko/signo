@@ -21,7 +21,7 @@ function getResend(): Resend {
  * Falls back to Resend's sandbox address for development/testing.
  */
 const FROM_ADDRESS = process.env.RESEND_FROM_ADDRESS || 'Signo <onboarding@resend.dev>';
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://signo-tau.vercel.app';
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://signoart.com.au';
 
 // ── HTML Escaping ──
 

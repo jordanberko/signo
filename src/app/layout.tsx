@@ -32,7 +32,7 @@ const ebGaramond = EB_Garamond({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || "https://signo-tau.vercel.app"),
+  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || "https://signoart.com.au"),
   title: {
     default: "Signo — Where Art Finds Its People",
     template: "%s — Signo",
