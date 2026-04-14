@@ -76,6 +76,8 @@ export interface Database {
           is_verified: boolean;
           onboarding_completed: boolean;
           accepts_commissions: boolean;
+          state: string | null;
+          featured_artworks: string[];
           created_at: string;
           updated_at: string;
         };
@@ -96,6 +98,8 @@ export interface Database {
           is_verified?: boolean;
           onboarding_completed?: boolean;
           accepts_commissions?: boolean;
+          state?: string | null;
+          featured_artworks?: string[];
           created_at?: string;
           updated_at?: string;
         };
@@ -116,6 +120,8 @@ export interface Database {
           is_verified?: boolean;
           onboarding_completed?: boolean;
           accepts_commissions?: boolean;
+          state?: string | null;
+          featured_artworks?: string[];
           created_at?: string;
           updated_at?: string;
         };
@@ -603,6 +609,177 @@ export interface Database {
         };
         Relationships: [];
       };
+
+      studio_posts: {
+        Row: {
+          id: string;
+          artist_id: string;
+          image_url: string;
+          caption: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          artist_id: string;
+          image_url: string;
+          caption?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          artist_id?: string;
+          image_url?: string;
+          caption?: string | null;
+          created_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'studio_posts_artist_id_fkey';
+            columns: ['artist_id'];
+            isOneToOne: false;
+            referencedRelation: 'profiles';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+
+      collections: {
+        Row: {
+          id: string;
+          title: string;
+          description: string | null;
+          slug: string;
+          cover_image_url: string | null;
+          curator_note: string | null;
+          is_published: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          title: string;
+          description?: string | null;
+          slug: string;
+          cover_image_url?: string | null;
+          curator_note?: string | null;
+          is_published?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          title?: string;
+          description?: string | null;
+          slug?: string;
+          cover_image_url?: string | null;
+          curator_note?: string | null;
+          is_published?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+
+      collection_artworks: {
+        Row: {
+          id: string;
+          collection_id: string;
+          artwork_id: string;
+          position: number;
+        };
+        Insert: {
+          id?: string;
+          collection_id: string;
+          artwork_id: string;
+          position?: number;
+        };
+        Update: {
+          id?: string;
+          collection_id?: string;
+          artwork_id?: string;
+          position?: number;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'collection_artworks_collection_id_fkey';
+            columns: ['collection_id'];
+            isOneToOne: false;
+            referencedRelation: 'collections';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'collection_artworks_artwork_id_fkey';
+            columns: ['artwork_id'];
+            isOneToOne: false;
+            referencedRelation: 'artworks';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+
+      profile_views: {
+        Row: {
+          id: string;
+          profile_id: string;
+          viewer_id: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          profile_id: string;
+          viewer_id?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          profile_id?: string;
+          viewer_id?: string | null;
+          created_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'profile_views_profile_id_fkey';
+            columns: ['profile_id'];
+            isOneToOne: false;
+            referencedRelation: 'profiles';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'profile_views_viewer_id_fkey';
+            columns: ['viewer_id'];
+            isOneToOne: false;
+            referencedRelation: 'profiles';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+
+      artwork_impressions: {
+        Row: {
+          id: string;
+          artwork_id: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          artwork_id: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          artwork_id?: string;
+          created_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'artwork_impressions_artwork_id_fkey';
+            columns: ['artwork_id'];
+            isOneToOne: false;
+            referencedRelation: 'artworks';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
     };
     Views: Record<string, never>;
     Functions: Record<string, never>;
@@ -648,6 +825,26 @@ export type ArtworkNotificationUpdate = Database['public']['Tables']['artwork_no
 export type TradeEnquiry = Database['public']['Tables']['trade_enquiries']['Row'];
 export type TradeEnquiryInsert = Database['public']['Tables']['trade_enquiries']['Insert'];
 export type TradeEnquiryUpdate = Database['public']['Tables']['trade_enquiries']['Update'];
+
+export type StudioPost = Database['public']['Tables']['studio_posts']['Row'];
+export type StudioPostInsert = Database['public']['Tables']['studio_posts']['Insert'];
+export type StudioPostUpdate = Database['public']['Tables']['studio_posts']['Update'];
+
+export type Collection = Database['public']['Tables']['collections']['Row'];
+export type CollectionInsert = Database['public']['Tables']['collections']['Insert'];
+export type CollectionUpdate = Database['public']['Tables']['collections']['Update'];
+
+export type CollectionArtwork = Database['public']['Tables']['collection_artworks']['Row'];
+export type CollectionArtworkInsert = Database['public']['Tables']['collection_artworks']['Insert'];
+export type CollectionArtworkUpdate = Database['public']['Tables']['collection_artworks']['Update'];
+
+export type ProfileView = Database['public']['Tables']['profile_views']['Row'];
+export type ProfileViewInsert = Database['public']['Tables']['profile_views']['Insert'];
+export type ProfileViewUpdate = Database['public']['Tables']['profile_views']['Update'];
+
+export type ArtworkImpression = Database['public']['Tables']['artwork_impressions']['Row'];
+export type ArtworkImpressionInsert = Database['public']['Tables']['artwork_impressions']['Insert'];
+export type ArtworkImpressionUpdate = Database['public']['Tables']['artwork_impressions']['Update'];
 
 // Backward-compatible alias — older code imports "User"
 export type User = Profile;

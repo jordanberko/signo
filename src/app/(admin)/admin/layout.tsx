@@ -2,13 +2,14 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, Image, Users, AlertTriangle, Shield } from 'lucide-react';
+import { LayoutDashboard, Image, Users, AlertTriangle, Shield, FolderOpen } from 'lucide-react';
 import { useAuth } from '@/components/providers/AuthProvider';
 
 const NAV_ITEMS = [
   { href: '/admin/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/admin/reviews', label: 'Artwork Reviews', icon: Image },
   { href: '/admin/users', label: 'Users', icon: Users },
+  { href: '/admin/collections', label: 'Collections', icon: FolderOpen },
   { href: '/admin/disputes', label: 'Disputes', icon: AlertTriangle },
 ];
 

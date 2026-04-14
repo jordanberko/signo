@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { ArrowRight, ShieldCheck, Palette, DollarSign } from 'lucide-react';
 import ArtworkCard from '@/components/ui/ArtworkCard';
+import { formatPrice } from '@/lib/utils';
 import HeroRibbons from '@/components/ui/HeroRibbons';
 import GuidedSearch from '@/components/ui/GuidedSearch';
 import TrustBar from '@/components/ui/TrustBar';
@@ -25,6 +26,41 @@ interface FeaturedArtwork {
   heightCm?: number | null;
 }
 
+interface HomeCollection {
+  id: string;
+  title: string;
+  slug: string;
+  description: string | null;
+  cover_image_url: string | null;
+  artwork_count: number;
+}
+
+interface JustSoldItem {
+  artworkId: string;
+  title: string;
+  imageUrl: string;
+  medium: string | null;
+  widthCm: number | null;
+  heightCm: number | null;
+  price: number;
+  artistName: string;
+  artistId: string;
+  soldAt: string;
+}
+
+function timeAgo(dateString: string): string {
+  const now = Date.now();
+  const then = new Date(dateString).getTime();
+  const seconds = Math.floor((now - then) / 1000);
+  if (seconds < 60) return 'Just now';
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return `${minutes}m ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  return `${days}d ago`;
+}
+
 // Placeholder cards shown while artwork loads or when DB is empty
 const PLACEHOLDER_CARDS = [
   { id: 'p1', ratio: 'aspect-[3/4]', color: 'from-stone-200 to-stone-300' },
@@ -40,7 +76,9 @@ const PLACEHOLDER_CARDS = [
 export default function HomePage() {
   const [artworks, setArtworks] = useState<FeaturedArtwork[]>([]);
   const [newArrivals, setNewArrivals] = useState<FeaturedArtwork[]>([]);
+  const [justSold, setJustSold] = useState<JustSoldItem[]>([]);
   const [spotlightArtists, setSpotlightArtists] = useState<SpotlightArtist[]>([]);
+  const [collections, setCollections] = useState<HomeCollection[]>([]);
   const [favouriteIds, setFavouriteIds] = useState<Set<string>>(new Set());
   const [loaded, setLoaded] = useState(false);
 
@@ -50,12 +88,14 @@ export default function HomePage() {
         const controller = new AbortController();
         const timeout = setTimeout(() => controller.abort(), 10000);
 
-        // Fetch featured, new arrivals, artist spotlight, and user favourites in parallel
-        const [featuredRes, arrivalsRes, artistsRes, favsRes] = await Promise.all([
+        // Fetch featured, new arrivals, just sold, artist spotlight, and user favourites in parallel
+        const [featuredRes, arrivalsRes, justSoldRes, artistsRes, favsRes, collectionsRes] = await Promise.all([
           fetch('/api/artworks/featured?limit=8', { signal: controller.signal }),
           fetch('/api/artworks/browse?limit=6&sort=newest', { signal: controller.signal }),
+          fetch('/api/artworks/just-sold?limit=4', { signal: controller.signal }),
           fetch('/api/artists/spotlight?limit=10', { signal: controller.signal }),
           fetch('/api/favourites/ids', { signal: controller.signal }),
+          fetch('/api/collections?minArtworks=3', { signal: controller.signal }),
         ]);
         clearTimeout(timeout);
 
@@ -88,6 +128,13 @@ export default function HomePage() {
           console.error('[Home] New arrivals fetch failed:', arrivalsRes.status);
         }
 
+        if (justSoldRes.ok) {
+          const json = await justSoldRes.json();
+          setJustSold((json.data || []) as JustSoldItem[]);
+        } else {
+          console.error('[Home] Just sold fetch failed:', justSoldRes.status);
+        }
+
         if (artistsRes.ok) {
           const json = await artistsRes.json();
           setSpotlightArtists((json.data || []) as SpotlightArtist[]);
@@ -100,6 +147,13 @@ export default function HomePage() {
           setFavouriteIds(new Set(json.ids || []));
         } else {
           console.error('[Home] Favourites fetch failed:', favsRes.status);
+        }
+
+        if (collectionsRes.ok) {
+          const json = await collectionsRes.json();
+          setCollections((json.data || []).slice(0, 2) as HomeCollection[]);
+        } else {
+          console.error('[Home] Collections fetch failed:', collectionsRes.status);
         }
       } catch (err) {
         console.error('[Home] Artwork fetch error:', err);
@@ -133,6 +187,20 @@ export default function HomePage() {
 
           {/* Guided Search */}
           <GuidedSearch />
+        </div>
+      </section>
+
+      {/* ==================== ART ADVISORY CTA ==================== */}
+      <section className="bg-cream border-y border-border/40">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5 flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-4 text-center">
+          <span className="text-sm text-muted">Not sure where to start?</span>
+          <Link
+            href="/art-advisory"
+            className="inline-flex items-center gap-1.5 text-sm font-semibold text-accent-dark hover:text-accent transition-colors group"
+          >
+            Take our art advisory quiz
+            <ArrowRight className="h-3.5 w-3.5 group-hover:translate-x-0.5 transition-transform" />
+          </Link>
         </div>
       </section>
 
@@ -217,6 +285,150 @@ export default function HomePage() {
                   <ArtworkCard {...artwork} initialFavourited={favouriteIds.has(artwork.id)} />
                 </div>
               ))}
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* ==================== JUST SOLD — SOCIAL PROOF ==================== */}
+      {justSold.length > 0 && (
+        <section className="py-20 md:py-28">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <ScrollReveal>
+              <div className="flex items-end justify-between mb-8">
+                <div>
+                  <p className="text-accent-dark text-xs font-semibold tracking-[0.2em] uppercase mb-2">Recent Sales</p>
+                  <h2 className="font-editorial text-2xl md:text-3xl font-medium text-primary">Just Sold</h2>
+                </div>
+                <Link
+                  href="/just-sold"
+                  className="hidden sm:inline-flex items-center gap-2 text-sm font-medium text-primary hover:text-accent-dark transition-colors group"
+                >
+                  View all
+                  <ArrowRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
+                </Link>
+              </div>
+            </ScrollReveal>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-x-5 gap-y-10">
+              {justSold.map((item) => (
+                <ScrollReveal key={item.artworkId}>
+                  <div className="group relative rounded-[10px] bg-white border border-border overflow-hidden transition-all duration-300 ease-out md:hover:-translate-y-1 md:hover:shadow-[0_16px_48px_rgba(0,0,0,0.08)]">
+                    <Link
+                      href={`/artwork/${item.artworkId}`}
+                      className="block overflow-hidden aspect-[4/5] bg-muted-bg relative"
+                    >
+                      {item.imageUrl ? (
+                        <img
+                          src={item.imageUrl}
+                          alt={item.title}
+                          className="block w-full h-full object-cover transition-transform duration-500 ease-out md:group-hover:scale-[1.03]"
+                          loading="lazy"
+                        />
+                      ) : (
+                        <div className="w-full h-full bg-gradient-to-br from-muted-bg to-border flex items-center justify-center">
+                          <span className="text-warm-gray text-xs tracking-widest uppercase">No image</span>
+                        </div>
+                      )}
+                      <span className="absolute top-3 left-3 bg-black/60 text-white text-xs font-medium px-2 py-0.5 rounded-full">
+                        Sold
+                      </span>
+                    </Link>
+                    <div className="p-4 space-y-1.5">
+                      <Link href={`/artwork/${item.artworkId}`} className="block">
+                        <h3 className="font-editorial font-medium text-foreground truncate hover:text-accent transition-colors duration-200 text-[15px] leading-snug">
+                          {item.title}
+                        </h3>
+                      </Link>
+                      <Link
+                        href={`/artists/${item.artistId}`}
+                        className="block text-[13px] text-muted hover:text-accent transition-colors duration-200"
+                      >
+                        {item.artistName}
+                      </Link>
+                      <p className="font-semibold text-foreground text-sm pt-0.5 tracking-tight">
+                        Sold for {formatPrice(item.price)}
+                      </p>
+                      <p className="text-xs text-muted">{timeAgo(item.soldAt)}</p>
+                    </div>
+                  </div>
+                </ScrollReveal>
+              ))}
+            </div>
+
+            <div className="sm:hidden text-center mt-8">
+              <Link
+                href="/just-sold"
+                className="inline-flex items-center gap-2 text-sm font-semibold text-primary hover:text-accent-dark transition-colors"
+              >
+                View all sold artwork <ArrowRight className="h-4 w-4" />
+              </Link>
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* ==================== CURATED COLLECTIONS ==================== */}
+      {collections.length > 0 && (
+        <section className="py-20 md:py-28 bg-cream">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <ScrollReveal>
+              <div className="flex items-end justify-between mb-8">
+                <div>
+                  <p className="text-accent-dark text-xs font-semibold tracking-[0.2em] uppercase mb-2">Handpicked</p>
+                  <h2 className="font-editorial text-2xl md:text-3xl font-medium text-primary">Curated Collections</h2>
+                </div>
+                <Link
+                  href="/collections"
+                  className="hidden sm:inline-flex items-center gap-2 text-sm font-medium text-primary hover:text-accent-dark transition-colors group"
+                >
+                  View all
+                  <ArrowRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
+                </Link>
+              </div>
+            </ScrollReveal>
+
+            <div className="flex gap-5 overflow-x-auto pb-4 -mx-4 px-4 sm:mx-0 sm:px-0 snap-x snap-mandatory scrollbar-hide">
+              {collections.map((collection, i) => (
+                <ScrollReveal key={collection.id} delay={i * 150}>
+                  <Link
+                    href={`/collections/${collection.slug}`}
+                    className="group flex-shrink-0 w-[340px] sm:w-[400px] snap-start block rounded-2xl border border-border overflow-hidden bg-white transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_16px_48px_rgba(0,0,0,0.08)]"
+                  >
+                    <div className="aspect-[16/10] bg-muted-bg relative overflow-hidden">
+                      {collection.cover_image_url ? (
+                        <img
+                          src={collection.cover_image_url}
+                          alt={collection.title}
+                          className="w-full h-full object-cover transition-transform duration-500 ease-out group-hover:scale-[1.03]"
+                          loading="lazy"
+                        />
+                      ) : (
+                        <div className="w-full h-full bg-gradient-to-br from-stone-200 to-stone-300" />
+                      )}
+                      {/* Overlay */}
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent" />
+                      <div className="absolute bottom-0 left-0 right-0 p-5">
+                        <h3 className="font-editorial text-xl font-medium text-white">
+                          {collection.title}
+                        </h3>
+                        <p className="text-white/70 text-sm mt-1">
+                          {collection.artwork_count} {collection.artwork_count === 1 ? 'work' : 'works'}
+                        </p>
+                      </div>
+                    </div>
+                  </Link>
+                </ScrollReveal>
+              ))}
+            </div>
+
+            <div className="sm:hidden text-center mt-6">
+              <Link
+                href="/collections"
+                className="inline-flex items-center gap-2 text-sm font-semibold text-primary hover:text-accent-dark transition-colors"
+              >
+                View all collections <ArrowRight className="h-4 w-4" />
+              </Link>
             </div>
           </div>
         </section>

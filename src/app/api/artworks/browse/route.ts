@@ -33,11 +33,19 @@ export async function GET(request: NextRequest) {
 
     const hiddenIds = (hiddenArtists || []).map((a: { id: string }) => a.id);
 
+    // Read orientation and state params early — they are applied as post-query JS filters
+    const orientation = params.get('orientation'); // 'landscape' | 'portrait' | 'square'
+    const stateFilter = params.get('state'); // e.g. 'VIC'
+    const needsPostFilter = !!orientation || !!stateFilter;
+
     let query = supabase
       .from('artworks')
       .select(
-        'id, title, price_aud, images, medium, style, category, artist_id, width_cm, height_cm, availability, available_from, profiles!artworks_artist_id_fkey(id, full_name)',
-        { count: 'exact' },
+        'id, title, price_aud, images, medium, style, category, artist_id, width_cm, height_cm, availability, available_from, profiles!artworks_artist_id_fkey(id, full_name, state)',
+        // When post-filtering is needed we fetch all matching rows and paginate in JS,
+        // so we skip Supabase-level count/pagination. This is fine at current scale but
+        // could be moved to a DB function for better performance later.
+        { count: needsPostFilter ? undefined : 'exact' },
       )
       .eq('status', 'approved');
 
@@ -149,7 +157,11 @@ export async function GET(request: NextRequest) {
     // Pagination
     const offset = parseInt(params.get('offset') || '0', 10);
     const limit = parseInt(params.get('limit') || '24', 10);
-    query = query.range(offset, offset + limit - 1);
+
+    // When post-filtering is needed, fetch all rows (no range) and slice in JS
+    if (!needsPostFilter) {
+      query = query.range(offset, offset + limit - 1);
+    }
 
     const { data, error, count } = await query;
 
@@ -161,9 +173,37 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    let results = data || [];
+
+    // Post-query orientation filter (column-to-column comparison not supported by PostgREST)
+    if (orientation) {
+      results = results.filter((row: { width_cm: number | null; height_cm: number | null }) => {
+        const w = row.width_cm;
+        const h = row.height_cm;
+        if (w == null || h == null || w <= 0 || h <= 0) return false;
+        if (orientation === 'landscape') return w > h * 1.1;
+        if (orientation === 'portrait') return h > w * 1.1;
+        if (orientation === 'square') return w <= h * 1.1 && h <= w * 1.1;
+        return true;
+      });
+    }
+
+    // Post-query state/location filter (filter by artist's profile state)
+    if (stateFilter) {
+      results = results.filter((row: { profiles: { state?: string | null } | null }) => {
+        return row.profiles?.state === stateFilter;
+      });
+    }
+
+    // When post-filtering, compute count and apply pagination in JS
+    const totalCount = needsPostFilter ? results.length : (count ?? 0);
+    if (needsPostFilter) {
+      results = results.slice(offset, offset + limit);
+    }
+
     return NextResponse.json({
-      data: data || [],
-      count: count ?? 0,
+      data: results,
+      count: totalCount,
     }, {
       headers: { 'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=300' },
     });

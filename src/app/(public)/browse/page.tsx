@@ -157,6 +157,23 @@ interface ArtworkRow {
   profiles: { id: string; full_name: string } | null;
 }
 
+const ORIENTATIONS = [
+  { value: 'landscape', label: 'Landscape', w: 36, h: 24 },
+  { value: 'portrait', label: 'Portrait', w: 24, h: 36 },
+  { value: 'square', label: 'Square', w: 28, h: 28 },
+] as const;
+
+const AU_STATES = [
+  { value: 'VIC', label: 'VIC — Victoria' },
+  { value: 'NSW', label: 'NSW — New South Wales' },
+  { value: 'QLD', label: 'QLD — Queensland' },
+  { value: 'SA', label: 'SA — South Australia' },
+  { value: 'WA', label: 'WA — Western Australia' },
+  { value: 'TAS', label: 'TAS — Tasmania' },
+  { value: 'NT', label: 'NT — Northern Territory' },
+  { value: 'ACT', label: 'ACT — Australian Capital Territory' },
+];
+
 interface Filters {
   category: ArtworkCategory | 'all';
   mediums: string[];
@@ -165,6 +182,8 @@ interface Filters {
   priceMin: string;
   priceMax: string;
   size: string; // '' | 'small' | 'medium' | 'large'
+  orientation: string; // '' | 'landscape' | 'portrait' | 'square'
+  state: string; // '' | 'VIC' | 'NSW' | etc.
   sort: string;
 }
 
@@ -259,6 +278,8 @@ function BrowseContent() {
   const initialSize = searchParams.get('size') || '';
   const initialBudget = searchParams.get('budget') || '';
   const initialSort = searchParams.get('sort') || 'newest';
+  const initialOrientation = searchParams.get('orientation') || '';
+  const initialState = searchParams.get('state') || '';
   const initialColors = searchParams.get('colors');
   const initColors = initialColors ? initialColors.split(',').filter(Boolean) : [];
 
@@ -279,6 +300,8 @@ function BrowseContent() {
     priceMin: initPriceMin,
     priceMax: initPriceMax,
     size: initialSize,
+    orientation: initialOrientation,
+    state: initialState,
     sort: initialSort,
   });
 
@@ -365,6 +388,8 @@ function BrowseContent() {
       priceMin: '',
       priceMax: '',
       size: '',
+      orientation: '',
+      state: '',
       sort: 'newest',
     });
   }
@@ -377,6 +402,8 @@ function BrowseContent() {
     filters.priceMin !== '' ||
     filters.priceMax !== '' ||
     filters.size !== '' ||
+    filters.orientation !== '' ||
+    filters.state !== '' ||
     debouncedSearch.trim() !== '';
 
   const activeFilterCount =
@@ -385,7 +412,9 @@ function BrowseContent() {
     filters.styles.length +
     filters.colors.length +
     (filters.priceMin || filters.priceMax ? 1 : 0) +
-    (filters.size ? 1 : 0);
+    (filters.size ? 1 : 0) +
+    (filters.orientation ? 1 : 0) +
+    (filters.state ? 1 : 0);
 
   // Build and execute query via server API route
   const fetchArtworks = useCallback(
@@ -411,6 +440,8 @@ function BrowseContent() {
         if (filters.priceMin) params.set('priceMin', filters.priceMin);
         if (filters.priceMax) params.set('priceMax', filters.priceMax);
         if (filters.size) params.set('size', filters.size);
+        if (filters.orientation) params.set('orientation', filters.orientation);
+        if (filters.state) params.set('state', filters.state);
         if (filters.sort !== 'newest') params.set('sort', filters.sort);
 
         const offset = append ? artworks.length : 0;
@@ -609,6 +640,59 @@ function BrowseContent() {
             />
           ))}
         </div>
+      </FilterSection>
+
+      {/* Orientation */}
+      <FilterSection title="Orientation">
+        <div className="flex gap-3">
+          {ORIENTATIONS.map((o) => (
+            <button
+              key={o.value}
+              type="button"
+              onClick={() =>
+                updateFilter(
+                  'orientation',
+                  filters.orientation === o.value ? '' : o.value
+                )
+              }
+              className="flex flex-col items-center gap-1.5 group"
+            >
+              <div
+                className={`rounded-md border-2 transition-colors ${
+                  filters.orientation === o.value
+                    ? 'border-accent bg-accent/10'
+                    : 'border-border group-hover:border-warm-gray'
+                }`}
+                style={{ width: o.w, height: o.h }}
+              />
+              <span
+                className={`text-[11px] transition-colors ${
+                  filters.orientation === o.value
+                    ? 'text-accent-dark font-medium'
+                    : 'text-muted group-hover:text-foreground'
+                }`}
+              >
+                {o.label}
+              </span>
+            </button>
+          ))}
+        </div>
+      </FilterSection>
+
+      {/* Location */}
+      <FilterSection title="Location">
+        <select
+          value={filters.state}
+          onChange={(e) => updateFilter('state', e.target.value)}
+          className="w-full px-3 py-2 bg-white border border-border rounded-lg text-sm appearance-none cursor-pointer hover:border-accent transition-colors focus:border-accent focus:ring-1 focus:ring-accent/20"
+        >
+          <option value="">All locations</option>
+          {AU_STATES.map((s) => (
+            <option key={s.value} value={s.value}>
+              {s.label}
+            </option>
+          ))}
+        </select>
       </FilterSection>
 
       {/* Clear all */}

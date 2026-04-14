@@ -103,6 +103,39 @@ export default async function ArtistProfilePage({ params }: PageProps) {
     .select('*', { count: 'exact', head: true })
     .eq('followed_id', id);
 
+  // Fetch featured artworks if the artist has any selected
+  let featuredArtworks: typeof artworks = [];
+  const featuredIds = (artist.featured_artworks as string[]) || [];
+  if (featuredIds.length > 0) {
+    const { data: featuredData } = await supabase
+      .from('artworks')
+      .select('*')
+      .in('id', featuredIds)
+      .eq('status', 'approved');
+
+    // Maintain the order from the featured_artworks array
+    if (featuredData && featuredData.length > 0) {
+      const artworkMap = new Map(featuredData.map((a) => [a.id, a]));
+      featuredArtworks = featuredIds
+        .map((fid) => artworkMap.get(fid))
+        .filter(Boolean) as typeof artworks;
+    }
+  }
+
+  // Fetch studio posts for "In The Studio" section
+  const { data: studioPosts } = await supabase
+    .from('studio_posts')
+    .select('*')
+    .eq('artist_id', id)
+    .order('created_at', { ascending: false })
+    .limit(12);
+
+  // Fire-and-forget profile view tracking
+  supabase
+    .from('profile_views')
+    .insert({ profile_id: id })
+    .then(() => {});
+
   return (
     <ArtistProfileClient
       artist={artist}
@@ -111,6 +144,8 @@ export default async function ArtistProfilePage({ params }: PageProps) {
       salesCount={salesCount ?? 0}
       avgRating={avgRating}
       initialFollowerCount={followerCount ?? 0}
+      featuredArtworks={(featuredArtworks ?? []) as typeof artworks & { images: string[] }[]}
+      studioPosts={studioPosts ?? []}
     />
   );
 }

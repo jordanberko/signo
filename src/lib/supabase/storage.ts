@@ -263,6 +263,52 @@ export async function uploadAvatar(
 }
 
 /**
+ * Upload a studio post image.
+ *
+ * Same pattern as artwork images but stored under artwork-images/studio-posts/ path.
+ * Compressed to 1600px max, 85% quality.
+ */
+export async function uploadStudioImage(
+  file: File,
+  userId: string,
+  onProgress?: (progress: number) => void,
+): Promise<string> {
+  if (!ACCEPTED_TYPES.includes(file.type)) {
+    throw new Error(`"${file.name}" is not supported. Use JPG, PNG, WebP, or HEIC.`);
+  }
+  if (file.size > 15 * 1024 * 1024) {
+    throw new Error(`"${file.name}" is too large (${(file.size / 1024 / 1024).toFixed(1)}MB). Max 15MB.`);
+  }
+
+  const fileId = crypto.randomUUID();
+  const path = `studio-posts/${userId}/${fileId}.jpg`;
+
+  onProgress?.(5);
+  const compressed = await compressImage(file, 1600, 0.85);
+  onProgress?.(40);
+
+  onProgress?.(45);
+  try {
+    const { url } = await uploadToStorage('artwork-images', path, compressed);
+    onProgress?.(100);
+    return url;
+  } catch (firstErr) {
+    console.warn('[Upload] Studio image first attempt failed:', (firstErr as Error).message);
+    onProgress?.(50);
+    const aggressive = await compressImage(file, 1000, 0.7);
+    onProgress?.(60);
+    try {
+      const { url } = await uploadToStorage('artwork-images', path, aggressive);
+      onProgress?.(100);
+      return url;
+    } catch (retryErr) {
+      console.error('[Upload] Studio image retry failed:', (retryErr as Error).message);
+      throw new Error('Upload failed. Please try a smaller image or check your internet connection.');
+    }
+  }
+}
+
+/**
  * Get the public URL for a stored file.
  */
 export function getPublicUrl(path: string, bucket: string): string {

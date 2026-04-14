@@ -186,6 +186,26 @@ export default function Header() {
               Browse
             </Link>
             <Link
+              href="/collections"
+              className={`px-3 py-2 text-sm font-medium transition-colors rounded-lg ${
+                pathname === '/collections' || pathname?.startsWith('/collections/')
+                  ? 'text-accent-dark underline underline-offset-4'
+                  : 'text-foreground hover:text-accent-dark hover:bg-cream'
+              }`}
+            >
+              Collections
+            </Link>
+            <Link
+              href="/just-sold"
+              className={`px-3 py-2 text-sm font-medium transition-colors rounded-lg ${
+                pathname === '/just-sold'
+                  ? 'text-accent-dark underline underline-offset-4'
+                  : 'text-foreground hover:text-accent-dark hover:bg-cream'
+              }`}
+            >
+              Just Sold
+            </Link>
+            <Link
               href="/how-it-works"
               className={`px-3 py-2 text-sm font-medium transition-colors rounded-lg ${
                 pathname === '/how-it-works'
@@ -194,6 +214,16 @@ export default function Header() {
               }`}
             >
               How It Works
+            </Link>
+            <Link
+              href="/art-advisory"
+              className={`px-3 py-2 text-sm font-medium transition-colors rounded-lg ${
+                pathname === '/art-advisory'
+                  ? 'text-accent-dark underline underline-offset-4'
+                  : 'text-foreground hover:text-accent-dark hover:bg-cream'
+              }`}
+            >
+              Find Your Art
             </Link>
 
             {/* Dashboard link — all logged-in users */}
@@ -283,7 +313,10 @@ export default function Header() {
 
           <nav className="px-4 pb-5 space-y-1">
             <MobileLink href="/browse" label="Browse Art" pathname={pathname} onClick={() => setMobileMenuOpen(false)} />
+            <MobileLink href="/collections" label="Collections" pathname={pathname} onClick={() => setMobileMenuOpen(false)} />
+            <MobileLink href="/just-sold" label="Just Sold" pathname={pathname} onClick={() => setMobileMenuOpen(false)} />
             <MobileLink href="/how-it-works" label="How It Works" pathname={pathname} onClick={() => setMobileMenuOpen(false)} />
+            <MobileLink href="/art-advisory" label="Find Your Art" pathname={pathname} onClick={() => setMobileMenuOpen(false)} />
             {user && (
               <MobileLink href="/dashboard" label="Dashboard" pathname={pathname} onClick={() => setMobileMenuOpen(false)} />
             )}

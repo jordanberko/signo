@@ -29,6 +29,7 @@ export async function PUT(request: Request) {
       postcode,
       country,
       accepts_commissions,
+      featured_artworks,
     } = body;
 
     // Validate full_name if provided
@@ -55,6 +56,12 @@ export async function PUT(request: Request) {
     if (postcode !== undefined) updateData.postcode = postcode?.trim() || null;
     if (country !== undefined) updateData.country = country?.trim() || null;
     if (accepts_commissions !== undefined) updateData.accepts_commissions = !!accepts_commissions;
+    if (featured_artworks !== undefined) {
+      if (!Array.isArray(featured_artworks) || featured_artworks.length > 5) {
+        return NextResponse.json({ error: 'featured_artworks must be an array of up to 5 artwork IDs' }, { status: 400 });
+      }
+      updateData.featured_artworks = featured_artworks;
+    }
 
     // Role upgrade: only allow buyer → artist (never downgrade or escalate to admin)
     if (role === 'artist') {

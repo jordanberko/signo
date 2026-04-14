@@ -1,7 +1,8 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useState } from 'react';
+import Image from 'next/image';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import {
   DollarSign,
   Package,
@@ -19,10 +20,15 @@ import {
   CheckCircle2,
   PauseCircle,
   XCircle,
+  Camera,
+  Trash2,
+  ImageIcon,
 } from 'lucide-react';
 import { formatPrice, getStatusStyle, formatStatus } from '@/lib/utils';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { useRequireAuth } from '@/lib/hooks/useRequireAuth';
+import { uploadStudioImage } from '@/lib/supabase/storage';
+import type { StudioPost } from '@/lib/types/database';
 
 interface RecentOrder {
   id: string;
@@ -54,6 +60,18 @@ export default function ArtistDashboardPage() {
   // Orders: separate loaded flag with 5s safety timeout
   const [recentOrders, setRecentOrders] = useState<RecentOrder[]>([]);
   const [ordersLoaded, setOrdersLoaded] = useState(false);
+
+  // Studio posts
+  const [studioPosts, setStudioPosts] = useState<StudioPost[]>([]);
+  const [studioLoaded, setStudioLoaded] = useState(false);
+  const [showStudioForm, setShowStudioForm] = useState(false);
+  const [studioCaption, setStudioCaption] = useState('');
+  const [studioUploading, setStudioUploading] = useState(false);
+  const [studioImageFile, setStudioImageFile] = useState<File | null>(null);
+  const [studioImagePreview, setStudioImagePreview] = useState<string | null>(null);
+  const [studioError, setStudioError] = useState<string | null>(null);
+  const [deletingPostId, setDeletingPostId] = useState<string | null>(null);
+  const studioFileRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (!user) {
@@ -127,6 +145,102 @@ export default function ArtistDashboardPage() {
       controller.abort();
     };
   }, [user]);
+
+  // Fetch studio posts
+  const fetchStudioPosts = useCallback(async () => {
+    if (!user) return;
+    try {
+      const res = await fetch(`/api/studio-posts?artistId=${user.id}`);
+      if (res.ok) {
+        const data = await res.json();
+        setStudioPosts(data.posts ?? []);
+      }
+    } catch (err) {
+      console.error('[Studio] Fetch error:', err);
+    } finally {
+      setStudioLoaded(true);
+    }
+  }, [user]);
+
+  useEffect(() => {
+    fetchStudioPosts();
+  }, [fetchStudioPosts]);
+
+  // Handle studio image selection
+  const handleStudioImageSelect = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setStudioImageFile(file);
+    setStudioImagePreview(URL.createObjectURL(file));
+    setStudioError(null);
+  }, []);
+
+  // Handle studio post submission
+  const handleStudioSubmit = useCallback(async () => {
+    if (!user || !studioImageFile) return;
+    setStudioUploading(true);
+    setStudioError(null);
+
+    try {
+      const imageUrl = await uploadStudioImage(studioImageFile, user.id);
+
+      const res = await fetch('/api/studio-posts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          imageUrl,
+          caption: studioCaption.trim() || undefined,
+        }),
+      });
+
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || 'Failed to create post');
+      }
+
+      // Reset form and refresh
+      setStudioCaption('');
+      setStudioImageFile(null);
+      setStudioImagePreview(null);
+      setShowStudioForm(false);
+      if (studioFileRef.current) studioFileRef.current.value = '';
+      await fetchStudioPosts();
+    } catch (err) {
+      setStudioError(err instanceof Error ? err.message : 'Something went wrong');
+    } finally {
+      setStudioUploading(false);
+    }
+  }, [user, studioImageFile, studioCaption, fetchStudioPosts]);
+
+  // Handle studio post deletion
+  const handleStudioDelete = useCallback(async (postId: string) => {
+    if (!confirm('Delete this studio post?')) return;
+    setDeletingPostId(postId);
+    try {
+      const res = await fetch(`/api/studio-posts?postId=${postId}`, { method: 'DELETE' });
+      if (res.ok) {
+        setStudioPosts((prev) => prev.filter((p) => p.id !== postId));
+      }
+    } catch (err) {
+      console.error('[Studio] Delete error:', err);
+    } finally {
+      setDeletingPostId(null);
+    }
+  }, []);
+
+  // Relative time helper
+  const timeAgo = useCallback((dateStr: string) => {
+    const seconds = Math.floor((Date.now() - new Date(dateStr).getTime()) / 1000);
+    if (seconds < 60) return 'Just now';
+    const minutes = Math.floor(seconds / 60);
+    if (minutes < 60) return `${minutes}m ago`;
+    const hours = Math.floor(minutes / 60);
+    if (hours < 24) return `${hours}h ago`;
+    const days = Math.floor(hours / 24);
+    if (days < 30) return `${days}d ago`;
+    const months = Math.floor(days / 30);
+    return `${months}mo ago`;
+  }, []);
 
   if (authLoading) return <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '60vh' }}><div style={{ width: 32, height: 32, border: '3px solid #E5E2DB', borderTopColor: '#2C2C2A', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} /><style>{'@keyframes spin { to { transform: rotate(360deg) } }'}</style></div>;
 
@@ -417,6 +531,20 @@ export default function ArtistDashboardPage() {
           </div>
         </Link>
         <Link
+          href="/artist/analytics"
+          className="flex items-center gap-4 p-5 border border-border rounded-lg hover:border-accent hover:bg-accent/5 transition-colors"
+        >
+          <div className="w-10 h-10 bg-accent/10 rounded-full flex items-center justify-center">
+            <TrendingUp className="h-5 w-5 text-accent-dark" />
+          </div>
+          <div>
+            <p className="font-semibold text-sm">Analytics</p>
+            <p className="text-xs text-muted">
+              Performance &amp; insights
+            </p>
+          </div>
+        </Link>
+        <Link
           href="/artist/settings/payouts"
           className="flex items-center gap-4 p-5 border border-border rounded-lg hover:border-accent hover:bg-accent/5 transition-colors"
         >
@@ -548,6 +676,185 @@ export default function ArtistDashboardPage() {
       <p className="text-xs text-muted text-center mt-4">
         Earnings reflect 100% of sale price minus Stripe processing fees (~1.75% + 30c). Zero commission.
       </p>
+
+      {/* ═══════════════════════════════════════════
+          IN THE STUDIO
+      ═══════════════════════════════════════════ */}
+      <div className="border border-border rounded-lg mt-10">
+        <div className="flex items-center justify-between p-5 border-b border-border">
+          <div className="flex items-center gap-3">
+            <h2 className="font-semibold text-lg">In The Studio</h2>
+            <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-accent-subtle text-accent-dark">
+              {studioPosts.length}/20
+            </span>
+          </div>
+          {studioPosts.length < 20 && (
+            <button
+              onClick={() => {
+                setShowStudioForm(!showStudioForm);
+                setStudioError(null);
+              }}
+              className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-accent-dark hover:bg-accent/5 rounded-lg transition-colors"
+            >
+              <Camera className="h-4 w-4" />
+              {showStudioForm ? 'Cancel' : 'Add Post'}
+            </button>
+          )}
+        </div>
+
+        {/* Add Post Form */}
+        {showStudioForm && (
+          <div className="p-5 border-b border-border bg-cream/50">
+            <div className="max-w-lg space-y-4">
+              {/* Image upload */}
+              <div>
+                <input
+                  ref={studioFileRef}
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp,image/heic,image/heif"
+                  onChange={handleStudioImageSelect}
+                  className="hidden"
+                  id="studio-image-upload"
+                />
+                {studioImagePreview ? (
+                  <div className="relative inline-block">
+                    <Image
+                      src={studioImagePreview}
+                      alt="Preview"
+                      width={280}
+                      height={280}
+                      className="rounded-xl object-cover w-52 h-52 border border-border"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setStudioImageFile(null);
+                        setStudioImagePreview(null);
+                        if (studioFileRef.current) studioFileRef.current.value = '';
+                      }}
+                      className="absolute top-2 right-2 w-6 h-6 bg-white/90 rounded-full flex items-center justify-center shadow hover:bg-white transition-colors"
+                    >
+                      <Trash2 className="h-3 w-3 text-red-500" />
+                    </button>
+                  </div>
+                ) : (
+                  <label
+                    htmlFor="studio-image-upload"
+                    className="flex flex-col items-center justify-center w-52 h-52 border-2 border-dashed border-border rounded-xl cursor-pointer hover:border-accent hover:bg-accent/5 transition-colors"
+                  >
+                    <ImageIcon className="h-8 w-8 text-muted mb-2" />
+                    <span className="text-sm text-muted">Choose photo</span>
+                    <span className="text-xs text-warm-gray mt-1">JPG, PNG, WebP</span>
+                  </label>
+                )}
+              </div>
+
+              {/* Caption */}
+              <div>
+                <textarea
+                  value={studioCaption}
+                  onChange={(e) => setStudioCaption(e.target.value.slice(0, 500))}
+                  rows={2}
+                  placeholder="Add a caption (optional)"
+                  className="w-full px-4 py-3 bg-white border border-border rounded-xl text-sm placeholder:text-warm-gray transition-colors focus:border-accent focus:ring-1 focus:ring-accent/20 resize-none"
+                />
+                <p className="text-xs text-warm-gray text-right mt-1">
+                  {studioCaption.length}/500
+                </p>
+              </div>
+
+              {studioError && (
+                <p className="text-sm text-red-600">{studioError}</p>
+              )}
+
+              {/* Actions */}
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={handleStudioSubmit}
+                  disabled={!studioImageFile || studioUploading}
+                  className="inline-flex items-center gap-2 px-5 py-2.5 bg-primary text-white text-sm font-medium rounded-lg hover:bg-primary-light transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {studioUploading ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Posting...
+                    </>
+                  ) : (
+                    'Post'
+                  )}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowStudioForm(false);
+                    setStudioCaption('');
+                    setStudioImageFile(null);
+                    setStudioImagePreview(null);
+                    setStudioError(null);
+                    if (studioFileRef.current) studioFileRef.current.value = '';
+                  }}
+                  disabled={studioUploading}
+                  className="px-4 py-2.5 text-sm text-muted hover:text-foreground transition-colors"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Posts grid or empty state */}
+        {!studioLoaded ? (
+          <div className="p-10 flex items-center justify-center">
+            <Loader2 className="h-5 w-5 animate-spin text-muted" />
+          </div>
+        ) : studioPosts.length === 0 ? (
+          <div className="p-10 text-center">
+            <Camera className="h-10 w-10 text-muted mx-auto mb-3" />
+            <p className="font-medium mb-1">No studio posts yet</p>
+            <p className="text-sm text-muted max-w-md mx-auto">
+              Share behind-the-scenes photos from your studio. Followers love seeing your creative process.
+            </p>
+          </div>
+        ) : (
+          <div className="p-5 grid grid-cols-2 md:grid-cols-3 gap-4">
+            {studioPosts.map((post) => (
+              <div
+                key={post.id}
+                className="group relative bg-white border border-border rounded-xl overflow-hidden hover:shadow-md transition-shadow"
+              >
+                <div className="relative aspect-square">
+                  <Image
+                    src={post.image_url}
+                    alt={post.caption || 'Studio post'}
+                    fill
+                    className="object-cover"
+                    sizes="(max-width: 768px) 50vw, 33vw"
+                  />
+                  <button
+                    onClick={() => handleStudioDelete(post.id)}
+                    disabled={deletingPostId === post.id}
+                    className="absolute top-2 right-2 w-7 h-7 bg-white/90 rounded-full flex items-center justify-center shadow opacity-0 group-hover:opacity-100 transition-opacity hover:bg-white"
+                  >
+                    {deletingPostId === post.id ? (
+                      <Loader2 className="h-3.5 w-3.5 animate-spin text-muted" />
+                    ) : (
+                      <Trash2 className="h-3.5 w-3.5 text-red-500" />
+                    )}
+                  </button>
+                </div>
+                <div className="p-3">
+                  {post.caption && (
+                    <p className="text-sm text-muted line-clamp-2 mb-1">{post.caption}</p>
+                  )}
+                  <p className="text-xs text-warm-gray">{timeAgo(post.created_at)}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 }

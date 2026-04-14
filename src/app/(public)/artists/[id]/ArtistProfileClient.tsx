@@ -10,6 +10,8 @@ import {
   Globe,
   Heart,
   ChevronDown,
+  ChevronLeft,
+  ChevronRight,
   MessageCircle,
   UserPlus,
   UserCheck,
@@ -18,11 +20,12 @@ import {
   Loader2,
   X,
   Check,
+  Camera,
 } from 'lucide-react';
 import { formatPrice } from '@/lib/utils';
 import Avatar from '@/components/ui/Avatar';
 import { useAuth } from '@/components/providers/AuthProvider';
-import type { Profile, Artwork, Review } from '@/lib/types/database';
+import type { Profile, Artwork, Review, StudioPost } from '@/lib/types/database';
 import ArtworkCard from '@/components/ui/ArtworkCard';
 
 // ── Instagram icon (not in this lucide version) ──
@@ -99,6 +102,8 @@ interface ArtistProfileClientProps {
   salesCount: number;
   avgRating: number;
   initialFollowerCount?: number;
+  featuredArtworks?: Artwork[];
+  studioPosts?: StudioPost[];
 }
 
 // ── Component ──
@@ -110,6 +115,8 @@ export default function ArtistProfileClient({
   salesCount,
   avgRating,
   initialFollowerCount = 0,
+  featuredArtworks = [],
+  studioPosts = [],
 }: ArtistProfileClientProps) {
   const { user } = useAuth();
   const [sort, setSort] = useState<SortKey>('newest');
@@ -121,6 +128,32 @@ export default function ArtistProfileClient({
   const [followLoading, setFollowLoading] = useState(false);
   const [followHovered, setFollowHovered] = useState(false);
   const isOwnProfile = user?.id === artist.id;
+
+  // Carousel state
+  const [carouselIndex, setCarouselIndex] = useState(0);
+  const [carouselPaused, setCarouselPaused] = useState(false);
+  const hasFeatured = featuredArtworks.length > 0;
+
+  // Auto-advance carousel
+  useEffect(() => {
+    if (!hasFeatured || carouselPaused || featuredArtworks.length <= 1) return;
+    const interval = setInterval(() => {
+      setCarouselIndex((prev) => (prev + 1) % featuredArtworks.length);
+    }, 5000);
+    return () => clearInterval(interval);
+  }, [hasFeatured, carouselPaused, featuredArtworks.length]);
+
+  const goToSlide = useCallback((index: number) => {
+    setCarouselIndex(index);
+  }, []);
+
+  const goPrev = useCallback(() => {
+    setCarouselIndex((prev) => (prev - 1 + featuredArtworks.length) % featuredArtworks.length);
+  }, [featuredArtworks.length]);
+
+  const goNext = useCallback(() => {
+    setCarouselIndex((prev) => (prev + 1) % featuredArtworks.length);
+  }, [featuredArtworks.length]);
 
   // Fetch follow status on mount
   useEffect(() => {
@@ -259,6 +292,23 @@ export default function ArtistProfileClient({
     }
   }, [user, artist.id, commissionDescription, commissionSize, commissionBudget, commissionTimeline]);
 
+  // Lightbox state for studio posts
+  const [lightboxImage, setLightboxImage] = useState<string | null>(null);
+
+  // Relative time helper
+  const timeAgo = useCallback((dateStr: string) => {
+    const seconds = Math.floor((Date.now() - new Date(dateStr).getTime()) / 1000);
+    if (seconds < 60) return 'Just now';
+    const minutes = Math.floor(seconds / 60);
+    if (minutes < 60) return `${minutes}m ago`;
+    const hours = Math.floor(minutes / 60);
+    if (hours < 24) return `${hours}h ago`;
+    const days = Math.floor(hours / 24);
+    if (days < 30) return `${days}d ago`;
+    const months = Math.floor(days / 30);
+    return `${months}mo ago`;
+  }, []);
+
   const socialLinks = (artist.social_links ?? {}) as Record<string, string>;
   const instagram = socialLinks.instagram;
   const tiktok = socialLinks.tiktok;
@@ -290,6 +340,96 @@ export default function ArtistProfileClient({
 
   return (
     <div className="min-h-screen">
+      {/* ═══════════════════════════════════════════
+          FEATURED ARTWORKS CAROUSEL
+      ═══════════════════════════════════════════ */}
+      {hasFeatured && (
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 md:pt-12">
+          <div
+            className="relative w-full overflow-hidden rounded-xl md:rounded-2xl bg-warm-gray/10"
+            style={{ maxHeight: 600 }}
+            onMouseEnter={() => setCarouselPaused(true)}
+            onMouseLeave={() => setCarouselPaused(false)}
+          >
+            {/* Slides */}
+            <div
+              className="flex transition-transform duration-500 ease-in-out"
+              style={{ transform: `translateX(-${carouselIndex * 100}%)` }}
+            >
+              {featuredArtworks.map((artwork) => (
+                <Link
+                  key={artwork.id}
+                  href={`/artwork/${artwork.id}`}
+                  className="relative w-full flex-shrink-0 block"
+                  style={{ minWidth: '100%' }}
+                >
+                  <div className="relative w-full h-[300px] sm:h-[400px] md:h-[500px] lg:h-[600px]">
+                    <Image
+                      src={(artwork.images as string[])?.[0] || '/placeholder.jpg'}
+                      alt={artwork.title}
+                      fill
+                      className="object-cover"
+                      sizes="(max-width: 1152px) 100vw, 1152px"
+                      priority={carouselIndex === 0}
+                    />
+                    {/* Gradient overlay */}
+                    <div className="absolute inset-x-0 bottom-0 h-[30%] bg-gradient-to-t from-black/50 to-transparent" />
+                    {/* Title & price */}
+                    <div className="absolute bottom-0 inset-x-0 p-5 md:p-8">
+                      <h3 className="text-white font-editorial text-lg md:text-2xl font-medium drop-shadow-sm">
+                        {artwork.title}
+                      </h3>
+                      <p className="text-white/90 text-sm md:text-base mt-1 drop-shadow-sm">
+                        {formatPrice(artwork.price_aud)}
+                      </p>
+                    </div>
+                  </div>
+                </Link>
+              ))}
+            </div>
+
+            {/* Prev / Next arrows */}
+            {featuredArtworks.length > 1 && (
+              <>
+                <button
+                  type="button"
+                  onClick={(e) => { e.preventDefault(); goPrev(); }}
+                  className="absolute left-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/80 hover:bg-white flex items-center justify-center shadow-md transition-colors z-10"
+                  aria-label="Previous slide"
+                >
+                  <ChevronLeft className="h-5 w-5 text-primary" />
+                </button>
+                <button
+                  type="button"
+                  onClick={(e) => { e.preventDefault(); goNext(); }}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/80 hover:bg-white flex items-center justify-center shadow-md transition-colors z-10"
+                  aria-label="Next slide"
+                >
+                  <ChevronRight className="h-5 w-5 text-primary" />
+                </button>
+              </>
+            )}
+
+            {/* Dot indicators */}
+            {featuredArtworks.length > 1 && (
+              <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex items-center gap-2 z-10">
+                {featuredArtworks.map((_, i) => (
+                  <button
+                    key={i}
+                    type="button"
+                    onClick={() => goToSlide(i)}
+                    className={`w-2 h-2 rounded-full transition-colors ${
+                      i === carouselIndex ? 'bg-white' : 'bg-white/50'
+                    }`}
+                    aria-label={`Go to slide ${i + 1}`}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* ═══════════════════════════════════════════
           ARTIST HEADER
       ═══════════════════════════════════════════ */}
@@ -568,6 +708,71 @@ export default function ArtistProfileClient({
           </div>
         )}
       </div>
+
+      {/* ═══════════════════════════════════════════
+          IN THE STUDIO
+      ═══════════════════════════════════════════ */}
+      {studioPosts.length > 0 && (
+        <div className="border-t border-border">
+          <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12 md:py-16">
+            <div className="flex items-center gap-3 mb-8">
+              <Camera className="h-5 w-5 text-accent-dark" />
+              <h2 className="font-editorial text-xl md:text-2xl font-medium">In The Studio</h2>
+            </div>
+
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+              {studioPosts.map((post) => (
+                <div
+                  key={post.id}
+                  className="group cursor-pointer"
+                  onClick={() => setLightboxImage(post.image_url)}
+                >
+                  <div className="relative aspect-square rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow">
+                    <Image
+                      src={post.image_url}
+                      alt={post.caption || 'Studio post'}
+                      fill
+                      className="object-cover group-hover:scale-105 transition-transform duration-300"
+                      sizes="(max-width: 768px) 50vw, 33vw"
+                    />
+                  </div>
+                  {post.caption && (
+                    <p className="text-sm text-muted mt-2 line-clamp-3">{post.caption}</p>
+                  )}
+                  <p className="text-xs text-warm-gray mt-1">{timeAgo(post.created_at)}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ═══════════════════════════════════════════
+          STUDIO LIGHTBOX
+      ═══════════════════════════════════════════ */}
+      {lightboxImage && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70"
+          onClick={() => setLightboxImage(null)}
+        >
+          <div className="relative max-w-3xl max-h-[85vh] w-full">
+            <button
+              type="button"
+              onClick={() => setLightboxImage(null)}
+              className="absolute -top-10 right-0 text-white/80 hover:text-white transition-colors"
+            >
+              <X className="h-6 w-6" />
+            </button>
+            <Image
+              src={lightboxImage}
+              alt="Studio post"
+              width={1200}
+              height={1200}
+              className="w-full h-auto max-h-[85vh] object-contain rounded-xl"
+            />
+          </div>
+        </div>
+      )}
 
       {/* ═══════════════════════════════════════════
           COMMISSION ENQUIRY MODAL

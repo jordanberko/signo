@@ -3,6 +3,7 @@
 import { useState, useCallback, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import Image from 'next/image';
 import {
   User,
   MapPin,
@@ -10,6 +11,8 @@ import {
   Bell,
   Palette,
   ArrowRight,
+  ArrowUp,
+  ArrowDown,
   Check,
   Loader2,
   AlertCircle,
@@ -18,7 +21,12 @@ import {
   AtSign,
   Globe,
   ExternalLink,
+  Plus,
+  X,
+  Search,
+  ImageIcon,
 } from 'lucide-react';
+import { formatPrice } from '@/lib/utils';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { useRequireAuth } from '@/lib/hooks/useRequireAuth';
 import { createClient } from '@/lib/supabase/client';
@@ -144,12 +152,25 @@ export default function SettingsPage() {
   // Artist profile state
   const [artistBio, setArtistBio] = useState(user?.bio || '');
   const [artistLocation, setArtistLocation] = useState(user?.location || '');
+  const [artistState, setArtistState] = useState((userAny?.state as string) || '');
   const [instagramUrl, setInstagramUrl] = useState(user?.social_links?.instagram || '');
   const [tiktokUrl, setTiktokUrl] = useState(user?.social_links?.tiktok || '');
   const [facebookUrl, setFacebookUrl] = useState(user?.social_links?.facebook || '');
   const [youtubeUrl, setYoutubeUrl] = useState(user?.social_links?.youtube || '')
   const [websiteUrl, setWebsiteUrl] = useState(user?.social_links?.website || '');
   const [acceptsCommissions, setAcceptsCommissions] = useState(user?.accepts_commissions ?? false);
+
+  // Featured works state
+  const [featuredArtworkIds, setFeaturedArtworkIds] = useState<string[]>(
+    (user?.featured_artworks as string[]) || []
+  );
+  const [myArtworks, setMyArtworks] = useState<
+    { id: string; title: string; price_aud: number; images: string[]; status: string }[]
+  >([]);
+  const [myArtworksLoaded, setMyArtworksLoaded] = useState(false);
+  const [showArtworkPicker, setShowArtworkPicker] = useState(false);
+  const [artworkSearch, setArtworkSearch] = useState('');
+
   const [artistSaving, setArtistSaving] = useState(false);
   const [artistStatus, setArtistStatus] = useState<{
     type: 'success' | 'error';
@@ -165,6 +186,31 @@ export default function SettingsPage() {
   const router = useRouter();
 
   const isArtist = user?.role === 'artist' || user?.role === 'admin';
+
+  // Fetch artist's artworks for featured works picker
+  useEffect(() => {
+    if (!isArtist || myArtworksLoaded) return;
+    fetch('/api/artworks/mine')
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.artworks) setMyArtworks(data.artworks);
+        setMyArtworksLoaded(true);
+      })
+      .catch(() => setMyArtworksLoaded(true));
+  }, [isArtist, myArtworksLoaded]);
+
+  // Derived: featured artwork objects in order
+  const featuredArtworkObjects = featuredArtworkIds
+    .map((id) => myArtworks.find((a) => a.id === id))
+    .filter(Boolean) as typeof myArtworks;
+
+  // Artworks available to add (approved, not already selected)
+  const availableArtworks = myArtworks
+    .filter((a) => a.status === 'approved' && !featuredArtworkIds.includes(a.id))
+    .filter((a) =>
+      !artworkSearch.trim() ||
+      a.title.toLowerCase().includes(artworkSearch.toLowerCase())
+    );
 
   // Fetch artist stats when delete modal opens
   useEffect(() => {
@@ -385,8 +431,10 @@ export default function SettingsPage() {
         body: JSON.stringify({
           bio: artistBio.trim() || null,
           location: artistLocation.trim() || null,
+          state: artistState || null,
           social_links: socialLinks,
           accepts_commissions: acceptsCommissions,
+          featured_artworks: featuredArtworkIds,
         }),
       });
       clearTimeout(timeout);
@@ -893,6 +941,32 @@ export default function SettingsPage() {
                 />
               </div>
 
+              {/* State */}
+              <div>
+                <label
+                  htmlFor="artistState"
+                  className="block text-xs font-medium tracking-wide uppercase text-muted mb-2"
+                >
+                  State
+                </label>
+                <select
+                  id="artistState"
+                  value={artistState}
+                  onChange={(e) => setArtistState(e.target.value)}
+                  className="w-full px-4 py-3 bg-white border border-border rounded-xl text-sm transition-colors appearance-none focus:border-accent focus:ring-1 focus:ring-accent/20"
+                >
+                  <option value="">Select state</option>
+                  <option value="VIC">VIC</option>
+                  <option value="NSW">NSW</option>
+                  <option value="QLD">QLD</option>
+                  <option value="SA">SA</option>
+                  <option value="WA">WA</option>
+                  <option value="TAS">TAS</option>
+                  <option value="NT">NT</option>
+                  <option value="ACT">ACT</option>
+                </select>
+              </div>
+
               {/* Social Links */}
               <div className="space-y-4">
                 <p className="text-xs font-medium tracking-wide uppercase text-muted">
@@ -963,6 +1037,169 @@ export default function SettingsPage() {
                     placeholder="https://yourwebsite.com"
                   />
                 </div>
+              </div>
+
+              {/* Featured Works */}
+              <div className="space-y-4 pt-2 border-t border-border">
+                <div>
+                  <p className="text-sm font-medium">Featured Works</p>
+                  <p className="text-xs text-warm-gray mt-0.5">
+                    Select up to 5 artworks to showcase at the top of your profile
+                  </p>
+                </div>
+
+                {/* Selected featured artworks */}
+                {featuredArtworkObjects.length > 0 && (
+                  <div className="flex flex-wrap gap-3">
+                    {featuredArtworkObjects.map((artwork, index) => (
+                      <div
+                        key={artwork.id}
+                        className="relative group border border-border rounded-xl overflow-hidden"
+                        style={{ width: 120 }}
+                      >
+                        <div className="relative w-full h-20">
+                          <Image
+                            src={(artwork.images as string[])?.[0] || '/placeholder.jpg'}
+                            alt={artwork.title}
+                            fill
+                            className="object-cover"
+                            sizes="120px"
+                          />
+                        </div>
+                        <div className="p-1.5">
+                          <p className="text-[11px] font-medium truncate">{artwork.title}</p>
+                          <p className="text-[10px] text-muted">{formatPrice(artwork.price_aud)}</p>
+                        </div>
+                        {/* Remove button */}
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setFeaturedArtworkIds((ids) =>
+                              ids.filter((id) => id !== artwork.id)
+                            )
+                          }
+                          className="absolute top-1 right-1 w-5 h-5 rounded-full bg-black/60 hover:bg-black/80 flex items-center justify-center transition-colors"
+                          aria-label={`Remove ${artwork.title}`}
+                        >
+                          <X className="h-3 w-3 text-white" />
+                        </button>
+                        {/* Reorder buttons */}
+                        <div className="absolute top-1 left-1 flex flex-col gap-0.5">
+                          {index > 0 && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setFeaturedArtworkIds((ids) => {
+                                  const newIds = [...ids];
+                                  [newIds[index - 1], newIds[index]] = [newIds[index], newIds[index - 1]];
+                                  return newIds;
+                                });
+                              }}
+                              className="w-5 h-5 rounded-full bg-black/60 hover:bg-black/80 flex items-center justify-center transition-colors"
+                              aria-label="Move up"
+                            >
+                              <ArrowUp className="h-3 w-3 text-white" />
+                            </button>
+                          )}
+                          {index < featuredArtworkObjects.length - 1 && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setFeaturedArtworkIds((ids) => {
+                                  const newIds = [...ids];
+                                  [newIds[index], newIds[index + 1]] = [newIds[index + 1], newIds[index]];
+                                  return newIds;
+                                });
+                              }}
+                              className="w-5 h-5 rounded-full bg-black/60 hover:bg-black/80 flex items-center justify-center transition-colors"
+                              aria-label="Move down"
+                            >
+                              <ArrowDown className="h-3 w-3 text-white" />
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Add artwork button */}
+                {featuredArtworkIds.length < 5 && (
+                  <div className="relative">
+                    <button
+                      type="button"
+                      onClick={() => setShowArtworkPicker(!showArtworkPicker)}
+                      className="inline-flex items-center gap-2 px-4 py-2 border border-dashed border-border rounded-xl text-sm text-muted hover:border-accent hover:text-accent transition-colors"
+                    >
+                      <Plus className="h-4 w-4" />
+                      Add artwork ({featuredArtworkIds.length}/5)
+                    </button>
+
+                    {showArtworkPicker && (
+                      <>
+                        <div className="fixed inset-0 z-10" onClick={() => { setShowArtworkPicker(false); setArtworkSearch(''); }} />
+                        <div className="absolute left-0 top-full mt-2 z-20 w-80 bg-white border border-border rounded-xl shadow-lg overflow-hidden animate-scale-in origin-top-left">
+                          {/* Search */}
+                          <div className="p-3 border-b border-border">
+                            <div className="relative">
+                              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted" />
+                              <input
+                                type="text"
+                                value={artworkSearch}
+                                onChange={(e) => setArtworkSearch(e.target.value)}
+                                placeholder="Search your artworks..."
+                                className="w-full pl-9 pr-3 py-2 bg-muted-bg border border-border rounded-lg text-sm placeholder:text-warm-gray focus:border-accent focus:ring-1 focus:ring-accent/20"
+                                autoFocus
+                              />
+                            </div>
+                          </div>
+
+                          {/* Artwork list */}
+                          <div className="max-h-64 overflow-y-auto">
+                            {availableArtworks.length === 0 ? (
+                              <div className="p-4 text-center text-sm text-muted">
+                                <ImageIcon className="h-6 w-6 mx-auto mb-2 text-border" />
+                                {artworkSearch.trim()
+                                  ? 'No matching artworks found'
+                                  : 'No approved artworks available'}
+                              </div>
+                            ) : (
+                              availableArtworks.map((artwork) => (
+                                <button
+                                  key={artwork.id}
+                                  type="button"
+                                  onClick={() => {
+                                    setFeaturedArtworkIds((ids) => [...ids, artwork.id]);
+                                    if (featuredArtworkIds.length + 1 >= 5) {
+                                      setShowArtworkPicker(false);
+                                      setArtworkSearch('');
+                                    }
+                                  }}
+                                  className="flex items-center gap-3 w-full px-3 py-2.5 text-left hover:bg-muted-bg transition-colors"
+                                >
+                                  <div className="relative w-12 h-12 rounded-lg overflow-hidden flex-shrink-0 bg-muted-bg">
+                                    <Image
+                                      src={(artwork.images as string[])?.[0] || '/placeholder.jpg'}
+                                      alt={artwork.title}
+                                      fill
+                                      className="object-cover"
+                                      sizes="48px"
+                                    />
+                                  </div>
+                                  <div className="flex-1 min-w-0">
+                                    <p className="text-sm font-medium truncate">{artwork.title}</p>
+                                    <p className="text-xs text-muted">{formatPrice(artwork.price_aud)}</p>
+                                  </div>
+                                  <Plus className="h-4 w-4 text-muted flex-shrink-0" />
+                                </button>
+                              ))
+                            )}
+                          </div>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                )}
               </div>
 
               {/* Commissions toggle */}
