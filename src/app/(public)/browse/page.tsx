@@ -58,6 +58,25 @@ const STYLES = [
   'Geometric',
 ];
 
+const COLOUR_PALETTE = [
+  { name: 'Red', value: 'red', hex: '#DC2626' },
+  { name: 'Orange', value: 'orange', hex: '#EA580C' },
+  { name: 'Yellow', value: 'yellow', hex: '#EAB308' },
+  { name: 'Green', value: 'green', hex: '#16A34A' },
+  { name: 'Blue', value: 'blue', hex: '#2563EB' },
+  { name: 'Purple', value: 'purple', hex: '#9333EA' },
+  { name: 'Pink', value: 'pink', hex: '#EC4899' },
+  { name: 'Brown', value: 'brown', hex: '#92400E' },
+  { name: 'Black', value: 'black', hex: '#1a1a1a' },
+  { name: 'White', value: 'white', hex: '#FAFAFA' },
+  { name: 'Grey', value: 'grey', hex: '#6B7280' },
+  { name: 'Gold', value: 'gold', hex: '#CA8A04' },
+  { name: 'Silver', value: 'silver', hex: '#94A3B8' },
+  { name: 'Teal', value: 'teal', hex: '#0D9488' },
+  { name: 'Navy', value: 'navy', hex: '#1E3A5A' },
+  { name: 'Cream/Beige', value: 'cream', hex: '#D4C5A9' },
+];
+
 const SORT_OPTIONS = [
   { value: 'newest', label: 'Newest' },
   { value: 'price-low', label: 'Price: Low to High' },
@@ -142,6 +161,7 @@ interface Filters {
   category: ArtworkCategory | 'all';
   mediums: string[];
   styles: string[];
+  colors: string[];
   priceMin: string;
   priceMax: string;
   size: string; // '' | 'small' | 'medium' | 'large'
@@ -239,6 +259,8 @@ function BrowseContent() {
   const initialSize = searchParams.get('size') || '';
   const initialBudget = searchParams.get('budget') || '';
   const initialSort = searchParams.get('sort') || 'newest';
+  const initialColors = searchParams.get('colors');
+  const initColors = initialColors ? initialColors.split(',').filter(Boolean) : [];
 
   // Parse budget param (e.g. "200-500") into priceMin/priceMax
   let initPriceMin = '';
@@ -253,6 +275,7 @@ function BrowseContent() {
     category: 'all',
     mediums: initialMedium ? [initialMedium] : [],
     styles: initialStyle ? [initialStyle] : [],
+    colors: initColors,
     priceMin: initPriceMin,
     priceMax: initPriceMax,
     size: initialSize,
@@ -323,7 +346,7 @@ function BrowseContent() {
     setFilters((prev) => ({ ...prev, [key]: value }));
   }
 
-  function toggleArrayFilter(key: 'mediums' | 'styles', value: string) {
+  function toggleArrayFilter(key: 'mediums' | 'styles' | 'colors', value: string) {
     setFilters((prev) => ({
       ...prev,
       [key]: prev[key].includes(value)
@@ -338,6 +361,7 @@ function BrowseContent() {
       category: 'all',
       mediums: [],
       styles: [],
+      colors: [],
       priceMin: '',
       priceMax: '',
       size: '',
@@ -349,6 +373,7 @@ function BrowseContent() {
     filters.category !== 'all' ||
     filters.mediums.length > 0 ||
     filters.styles.length > 0 ||
+    filters.colors.length > 0 ||
     filters.priceMin !== '' ||
     filters.priceMax !== '' ||
     filters.size !== '' ||
@@ -358,6 +383,7 @@ function BrowseContent() {
     (filters.category !== 'all' ? 1 : 0) +
     filters.mediums.length +
     filters.styles.length +
+    filters.colors.length +
     (filters.priceMin || filters.priceMax ? 1 : 0) +
     (filters.size ? 1 : 0);
 
@@ -381,6 +407,7 @@ function BrowseContent() {
         if (debouncedSearch.trim()) params.set('q', debouncedSearch.trim());
         if (filters.mediums.length > 0) params.set('mediums', filters.mediums.join(','));
         if (filters.styles.length > 0) params.set('styles', filters.styles.join(','));
+        if (filters.colors.length > 0) params.set('colors', filters.colors.join(','));
         if (filters.priceMin) params.set('priceMin', filters.priceMin);
         if (filters.priceMax) params.set('priceMax', filters.priceMax);
         if (filters.size) params.set('size', filters.size);
@@ -508,6 +535,26 @@ function BrowseContent() {
             onChange={() => toggleArrayFilter('styles', s)}
           />
         ))}
+      </FilterSection>
+
+      {/* Colour */}
+      <FilterSection title="Colour">
+        <div className="flex flex-wrap gap-2">
+          {COLOUR_PALETTE.map((colour) => (
+            <button
+              key={colour.value}
+              type="button"
+              title={colour.name}
+              onClick={() => toggleArrayFilter('colors', colour.value)}
+              className={`w-7 h-7 rounded-full border transition-all ${
+                filters.colors.includes(colour.value)
+                  ? 'ring-2 ring-accent-dark ring-offset-1'
+                  : ''
+              } ${colour.value === 'white' ? 'border-gray-300' : 'border-transparent'}`}
+              style={{ backgroundColor: colour.hex }}
+            />
+          ))}
+        </div>
       </FilterSection>
 
       {/* Price Range */}

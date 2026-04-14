@@ -314,7 +314,7 @@ function OrderContent({
             <p className="text-sm text-green-700 mt-1">
               {isDigital
                 ? 'Your download link will be available shortly.'
-                : 'The artist will ship your artwork within 5 business days. You\u2019ll receive tracking information once it ships.'}
+                : 'The artist will ship your artwork within 7 days. You\u2019ll receive tracking information once it ships.'}
             </p>
           </div>
         </div>

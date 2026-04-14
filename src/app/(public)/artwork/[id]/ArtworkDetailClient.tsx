@@ -20,6 +20,9 @@ import {
   ArrowRight,
   Frame,
   Loader2,
+  Bell,
+  Check,
+  Clock,
 } from 'lucide-react';
 import { formatPrice } from '@/lib/utils';
 import { useAuth } from '@/components/providers/AuthProvider';
@@ -42,6 +45,8 @@ export interface ArtworkDetail {
   images: string[];
   tags: string[];
   shipping_weight_kg: number | null;
+  availability: 'available' | 'coming_soon' | 'enquire_only';
+  available_from: string | null;
   artist: {
     id: string;
     full_name: string | null;
@@ -395,11 +400,47 @@ export default function ArtworkDetailClient({
   const [favouriteCount, setFavouriteCount] = useState(0);
   const [heartAnimating, setHeartAnimating] = useState(false);
   const [shareCopied, setShareCopied] = useState(false);
+  const [notifyEmail, setNotifyEmail] = useState('');
+  const [notifyLoading, setNotifyLoading] = useState(false);
+  const [notifySuccess, setNotifySuccess] = useState(false);
   const router = useRouter();
   const { user } = useAuth();
 
   const isOwnArtwork = user?.id === artwork.artist.id;
-  const buyButtonRef = useRef<HTMLAnchorElement>(null);
+
+  // Availability helpers
+  const isComingSoon = artwork.availability === 'coming_soon';
+  const isEnquireOnly = artwork.availability === 'enquire_only';
+  const isAvailable = artwork.availability === 'available';
+
+  const availableFromDate = artwork.available_from ? new Date(artwork.available_from) : null;
+  const isAvailableFromFuture = availableFromDate && availableFromDate > new Date();
+
+  async function handleNotifyMe() {
+    const email = user?.email || notifyEmail;
+    if (!email) return;
+
+    setNotifyLoading(true);
+    try {
+      const res = await fetch('/api/artworks/notify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ artworkId: artwork.id, email }),
+      });
+      if (res.ok) {
+        setNotifySuccess(true);
+      }
+    } catch {
+      // silently fail
+    } finally {
+      setNotifyLoading(false);
+    }
+  }
+
+  function handleEnquire() {
+    handleMessageArtist();
+  }
+  const buyButtonRef = useRef<HTMLElement>(null);
   const [showStickyBar, setShowStickyBar] = useState(false);
 
   // Intersection Observer — show sticky bar when main Buy Now scrolls out of view
@@ -697,17 +738,84 @@ export default function ArtworkDetailClient({
 
             {/* CTA Buttons */}
             <div className="space-y-3">
-              {!isOwnArtwork && (
+              {!isOwnArtwork && isAvailable && (
                 <Link
-                  ref={buyButtonRef}
+                  ref={buyButtonRef as React.RefObject<HTMLAnchorElement | null>}
                   href={`/checkout/${artwork.id}`}
                   className="block w-full py-3.5 bg-primary text-white font-semibold rounded-full hover:bg-accent transition-colors duration-300 text-center text-lg"
                 >
                   Buy Now
                 </Link>
               )}
+
+              {/* Coming Soon CTA */}
+              {!isOwnArtwork && isComingSoon && (
+                <div ref={buyButtonRef as React.RefObject<HTMLDivElement | null>} className="space-y-3">
+                  <div className="flex items-center gap-2 text-blue-700 bg-blue-50 rounded-xl px-4 py-3">
+                    <Clock className="h-5 w-5 flex-shrink-0" />
+                    <p className="text-sm font-medium">
+                      {isAvailableFromFuture
+                        ? `Available from ${availableFromDate!.toLocaleDateString('en-AU', { day: 'numeric', month: 'long', year: 'numeric' })}`
+                        : 'Coming Soon'}
+                    </p>
+                  </div>
+                  {notifySuccess ? (
+                    <button
+                      disabled
+                      className="w-full py-3 border-2 border-green-200 text-green-700 font-semibold rounded-full flex items-center justify-center gap-2 text-sm"
+                    >
+                      <Check className="h-4 w-4" />
+                      You&apos;ll be notified
+                    </button>
+                  ) : (
+                    <div className="space-y-2">
+                      {!user && (
+                        <input
+                          type="email"
+                          placeholder="Enter your email"
+                          value={notifyEmail}
+                          onChange={(e) => setNotifyEmail(e.target.value)}
+                          className="w-full px-4 py-2.5 border-2 border-border rounded-full text-sm focus:outline-none focus:border-accent transition-colors"
+                        />
+                      )}
+                      <button
+                        onClick={handleNotifyMe}
+                        disabled={notifyLoading || (!user && !notifyEmail)}
+                        className="w-full py-3 border-2 border-accent text-accent-dark font-semibold rounded-full flex items-center justify-center gap-2 hover:bg-accent/5 transition-colors text-sm disabled:opacity-50"
+                      >
+                        {notifyLoading ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <Bell className="h-4 w-4" />
+                        )}
+                        Notify Me
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Enquire Only CTA */}
+              {!isOwnArtwork && isEnquireOnly && (
+                <button
+                  ref={buyButtonRef as React.RefObject<HTMLButtonElement | null>}
+                  onClick={handleEnquire}
+                  disabled={messagingLoading}
+                  className="block w-full py-3.5 bg-accent text-white font-semibold rounded-full hover:bg-accent-dark transition-colors duration-300 text-center text-lg disabled:opacity-50"
+                >
+                  {messagingLoading ? (
+                    <span className="flex items-center justify-center gap-2">
+                      <Loader2 className="h-5 w-5 animate-spin" />
+                      Opening...
+                    </span>
+                  ) : (
+                    'Enquire About This Piece'
+                  )}
+                </button>
+              )}
+
               <div className="flex gap-3">
-                {!isOwnArtwork && (
+                {!isOwnArtwork && isAvailable && (
                   <button
                     onClick={handleMessageArtist}
                     disabled={messagingLoading}
@@ -1058,20 +1166,76 @@ export default function ArtworkDetailClient({
               boxShadow: '0 -2px 8px rgba(0,0,0,0.06)',
             }}
           >
-            <div className="min-w-0 flex-1">
-              <p className="text-lg font-bold text-foreground leading-tight">
-                {formatPrice(artwork.price_aud)}
-              </p>
-              <p className="text-[13px] text-stone truncate leading-tight mt-0.5">
-                {artwork.title}
-              </p>
-            </div>
-            <Link
-              href={`/checkout/${artwork.id}`}
-              className="flex-shrink-0 px-6 py-2.5 bg-accent text-white font-semibold rounded-full text-sm hover:bg-accent-dark transition-colors"
-            >
-              Buy Now
-            </Link>
+            {isAvailable && (
+              <>
+                <div className="min-w-0 flex-1">
+                  <p className="text-lg font-bold text-foreground leading-tight">
+                    {formatPrice(artwork.price_aud)}
+                  </p>
+                  <p className="text-[13px] text-stone truncate leading-tight mt-0.5">
+                    {artwork.title}
+                  </p>
+                </div>
+                <Link
+                  href={`/checkout/${artwork.id}`}
+                  className="flex-shrink-0 px-6 py-2.5 bg-accent text-white font-semibold rounded-full text-sm hover:bg-accent-dark transition-colors"
+                >
+                  Buy Now
+                </Link>
+              </>
+            )}
+
+            {isComingSoon && (
+              <>
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-medium text-blue-700 leading-tight flex items-center gap-1.5">
+                    <Clock className="h-3.5 w-3.5" />
+                    {isAvailableFromFuture
+                      ? `Available ${availableFromDate!.toLocaleDateString('en-AU', { day: 'numeric', month: 'long', year: 'numeric' })}`
+                      : 'Coming Soon'}
+                  </p>
+                </div>
+                {notifySuccess ? (
+                  <span className="flex-shrink-0 px-5 py-2.5 bg-green-50 text-green-700 font-semibold rounded-full text-sm flex items-center gap-1.5">
+                    <Check className="h-3.5 w-3.5" />
+                    Notified
+                  </span>
+                ) : (
+                  <button
+                    onClick={handleNotifyMe}
+                    disabled={notifyLoading || (!user && !notifyEmail)}
+                    className="flex-shrink-0 px-5 py-2.5 border-2 border-accent text-accent-dark font-semibold rounded-full text-sm flex items-center gap-1.5 disabled:opacity-50"
+                  >
+                    {notifyLoading ? (
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    ) : (
+                      <Bell className="h-3.5 w-3.5" />
+                    )}
+                    Notify Me
+                  </button>
+                )}
+              </>
+            )}
+
+            {isEnquireOnly && (
+              <>
+                <div className="min-w-0 flex-1">
+                  <p className="text-lg font-bold text-foreground leading-tight">
+                    {formatPrice(artwork.price_aud)}
+                  </p>
+                  <p className="text-[13px] text-stone truncate leading-tight mt-0.5">
+                    {artwork.title}
+                  </p>
+                </div>
+                <button
+                  onClick={handleEnquire}
+                  disabled={messagingLoading}
+                  className="flex-shrink-0 px-5 py-2.5 bg-accent text-white font-semibold rounded-full text-sm hover:bg-accent-dark transition-colors disabled:opacity-50"
+                >
+                  Enquire
+                </button>
+              </>
+            )}
           </div>
         </div>
       )}

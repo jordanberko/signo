@@ -64,6 +64,40 @@ const STYLES = [
   'Other',
 ];
 
+const COLOUR_PALETTE = [
+  { name: 'red', label: 'Red', hex: '#DC2626' },
+  { name: 'orange', label: 'Orange', hex: '#EA580C' },
+  { name: 'yellow', label: 'Yellow', hex: '#EAB308' },
+  { name: 'green', label: 'Green', hex: '#16A34A' },
+  { name: 'blue', label: 'Blue', hex: '#2563EB' },
+  { name: 'purple', label: 'Purple', hex: '#9333EA' },
+  { name: 'pink', label: 'Pink', hex: '#EC4899' },
+  { name: 'brown', label: 'Brown', hex: '#92400E' },
+  { name: 'black', label: 'Black', hex: '#1a1a1a' },
+  { name: 'white', label: 'White', hex: '#FAFAFA' },
+  { name: 'grey', label: 'Grey', hex: '#6B7280' },
+  { name: 'gold', label: 'Gold', hex: '#CA8A04' },
+  { name: 'silver', label: 'Silver', hex: '#94A3B8' },
+  { name: 'teal', label: 'Teal', hex: '#0D9488' },
+  { name: 'navy', label: 'Navy', hex: '#1E3A5A' },
+  { name: 'cream', label: 'Cream/Beige', hex: '#D4C5A9' },
+];
+
+const SURFACES = ['Canvas', 'Linen', 'Paper', 'Board', 'Wood', 'Metal', 'Glass', 'Fabric', 'Other'];
+
+const AVAILABILITY_OPTIONS = [
+  { value: 'available' as const, label: 'Available', desc: 'Can be purchased immediately' },
+  { value: 'coming_soon' as const, label: 'Coming soon', desc: 'Show on site with an available-from date' },
+  { value: 'enquire_only' as const, label: 'Enquire only', desc: 'Buyers can enquire but not purchase directly' },
+];
+
+const IMAGE_SLOT_LABELS = [
+  { label: 'Primary photo', helper: 'This is the main image buyers will see', required: true },
+  { label: 'Detail or texture', helper: 'Show a close-up of the surface', required: true },
+  { label: 'Side or back view', helper: 'Show the depth and hanging hardware', required: false },
+  { label: 'In context', helper: 'Show the artwork on a wall or in a room', required: false },
+];
+
 const STEP_META = [
   { label: 'Photos', icon: Camera },
   { label: 'Details', icon: FileText },
@@ -85,16 +119,21 @@ interface FormState {
   medium: string;
   customMedium: string;
   style: string;
+  colors: string[];
   tags: string[];
   tagInput: string;
   width_cm: string;
   height_cm: string;
   depth_cm: string;
+  surface: string;
   is_framed: boolean;
+  ready_to_hang: boolean;
   shipping_weight_kg: string;
   price_aud: string;
   shipping_cost: string;
   includeShipping: boolean;
+  availability: 'available' | 'coming_soon' | 'enquire_only';
+  available_from: string;
 }
 
 function getDefaultForm(): FormState {
@@ -107,16 +146,21 @@ function getDefaultForm(): FormState {
     medium: '',
     customMedium: '',
     style: '',
+    colors: [],
     tags: [],
     tagInput: '',
     width_cm: '',
     height_cm: '',
     depth_cm: '',
+    surface: '',
     is_framed: false,
+    ready_to_hang: false,
     shipping_weight_kg: '',
     price_aud: '',
     shipping_cost: '',
     includeShipping: true,
+    availability: 'available',
+    available_from: '',
   };
 }
 
@@ -178,10 +222,18 @@ export default function NewArtworkPage() {
   // Tags
   function addTag(tag: string) {
     const cleaned = tag.trim().toLowerCase();
-    if (cleaned && form.tags.length < 10 && !form.tags.includes(cleaned)) {
+    if (cleaned && form.tags.length < 25 && !form.tags.includes(cleaned)) {
       updateForm('tags', [...form.tags, cleaned]);
     }
     updateForm('tagInput', '');
+  }
+
+  function toggleColour(colourName: string) {
+    if (form.colors.includes(colourName)) {
+      updateForm('colors', form.colors.filter((c) => c !== colourName));
+    } else if (form.colors.length < 2) {
+      updateForm('colors', [...form.colors, colourName]);
+    }
   }
 
   function removeTag(tag: string) {
@@ -203,7 +255,7 @@ export default function NewArtworkPage() {
 
   // Validation per step
   const canProceed: Record<number, boolean> = {
-    1: form.images.length >= 1,
+    1: form.images.length >= 2,
     2: form.title.trim().length > 0 &&
        form.description.trim().length > 0 &&
        (form.medium !== '' || form.customMedium !== '') &&
@@ -237,6 +289,11 @@ export default function NewArtworkPage() {
           depth_cm: form.depth_cm ? parseFloat(form.depth_cm) : null,
           price_aud: price,
           is_framed: form.is_framed,
+          ready_to_hang: form.ready_to_hang,
+          surface: form.surface || null,
+          colors: form.colors,
+          availability: form.availability,
+          available_from: form.availability === 'coming_soon' && form.available_from ? form.available_from : null,
           shipping_weight_kg: form.shipping_weight_kg ? parseFloat(form.shipping_weight_kg) : null,
           shipping_cost: form.includeShipping ? 0 : (form.shipping_cost ? parseFloat(form.shipping_cost) : 0),
           images: form.images,
@@ -364,6 +421,32 @@ export default function NewArtworkPage() {
               </p>
             </div>
 
+            {/* Image slot guidance */}
+            <div className="grid grid-cols-2 gap-3">
+              {IMAGE_SLOT_LABELS.map((slot, i) => (
+                <div key={i} className={`p-3 rounded-xl border text-left ${
+                  form.images[i]
+                    ? 'border-accent/30 bg-accent-subtle/30'
+                    : 'border-border bg-white'
+                }`}>
+                  <div className="flex items-center gap-1.5 mb-0.5">
+                    <span className="text-xs font-semibold text-foreground">{i + 1}. {slot.label}</span>
+                    {slot.required ? (
+                      <span className="text-[10px] text-error font-medium">Required</span>
+                    ) : (
+                      <span className="text-[10px] text-warm-gray font-medium">Optional</span>
+                    )}
+                  </div>
+                  <p className="text-[11px] text-muted leading-snug">{slot.helper}</p>
+                  {form.images[i] && (
+                    <div className="mt-1.5 flex items-center gap-1 text-[10px] text-accent-dark font-medium">
+                      <Check className="h-3 w-3" /> Uploaded
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+
             <ImageUpload
               maxFiles={6}
               maxSizeMB={25}
@@ -371,6 +454,15 @@ export default function NewArtworkPage() {
               onImagesChange={(urls) => updateForm('images', urls)}
               uploadFile={handleImageUpload}
             />
+
+            {form.images.length < 3 && form.images.length >= 2 && (
+              <div className="flex gap-3 p-3 bg-amber-50/80 border border-amber-200/50 rounded-xl">
+                <Lightbulb className="h-4 w-4 text-amber-600 flex-shrink-0 mt-0.5" />
+                <p className="text-xs text-amber-700 font-medium">
+                  Listings with 3+ photos sell 40% faster
+                </p>
+              </div>
+            )}
 
             {/* Tips */}
             <div className="flex gap-3 p-4 bg-accent-subtle/50 border border-accent/10 rounded-xl">
@@ -380,6 +472,10 @@ export default function NewArtworkPage() {
                 <p>Use natural lighting. Show the full piece, a detail shot, and a scale reference (e.g. next to a book or on a wall).</p>
               </div>
             </div>
+
+            {form.images.length < 2 && (
+              <p className="text-xs text-warm-gray text-center">Upload at least 2 photos to continue</p>
+            )}
           </div>
         )}
 
@@ -505,10 +601,42 @@ export default function NewArtworkPage() {
               </div>
             </div>
 
+            {/* Dominant Colours */}
+            <div>
+              <p className="text-xs font-medium tracking-wide uppercase text-muted mb-2">
+                Dominant colours <span className="text-warm-gray font-normal">Select up to 2 dominant colours</span>
+              </p>
+              <div className="flex flex-wrap gap-2.5">
+                {COLOUR_PALETTE.map((c) => {
+                  const selected = form.colors.includes(c.name);
+                  return (
+                    <button
+                      key={c.name}
+                      type="button"
+                      title={c.label}
+                      onClick={() => toggleColour(c.name)}
+                      className={`w-8 h-8 rounded-full border-2 transition-all duration-200 flex-shrink-0 ${
+                        selected
+                          ? 'ring-2 ring-accent ring-offset-2 border-accent scale-110'
+                          : 'border-border hover:border-warm-gray hover:scale-105'
+                      }`}
+                      style={{ backgroundColor: c.hex }}
+                    />
+                  );
+                })}
+              </div>
+              {form.colors.length > 0 && (
+                <p className="text-xs text-warm-gray mt-2">
+                  Selected: {form.colors.map((c) => COLOUR_PALETTE.find((p) => p.name === c)?.label).join(', ')}
+                  {' '}{form.colors.length}/2
+                </p>
+              )}
+            </div>
+
             {/* Tags */}
             <div>
               <label htmlFor="tags" className="block text-xs font-medium tracking-wide uppercase text-muted mb-2">
-                Tags <span className="text-warm-gray font-normal">(up to 10)</span>
+                Tags <span className="text-warm-gray font-normal">(up to 25 — {form.tags.length}/25)</span>
               </label>
               <div className="flex flex-wrap gap-2 mb-2">
                 {form.tags.map((tag) => (
@@ -527,7 +655,7 @@ export default function NewArtworkPage() {
                   </span>
                 ))}
               </div>
-              {form.tags.length < 10 && (
+              {form.tags.length < 25 && (
                 <input
                   id="tags"
                   type="text"
@@ -608,6 +736,24 @@ export default function NewArtworkPage() {
                   </div>
                 </div>
 
+                {/* Surface / Material */}
+                <div>
+                  <label htmlFor="surface" className="block text-xs font-medium tracking-wide uppercase text-muted mb-2">
+                    Surface / Material
+                  </label>
+                  <select
+                    id="surface"
+                    value={form.surface}
+                    onChange={(e) => updateForm('surface', e.target.value)}
+                    className="w-full px-4 py-3 bg-white border border-border rounded-xl text-sm transition-colors appearance-none"
+                  >
+                    <option value="">Select surface</option>
+                    {SURFACES.map((s) => (
+                      <option key={s} value={s}>{s}</option>
+                    ))}
+                  </select>
+                </div>
+
                 {/* Framed toggle */}
                 <label className="flex items-center justify-between p-4 bg-white border border-border rounded-xl cursor-pointer group">
                   <div>
@@ -619,6 +765,24 @@ export default function NewArtworkPage() {
                       type="checkbox"
                       checked={form.is_framed}
                       onChange={(e) => updateForm('is_framed', e.target.checked)}
+                      className="sr-only peer"
+                    />
+                    <div className="w-11 h-6 bg-border rounded-full peer-checked:bg-accent transition-colors" />
+                    <div className="absolute left-0.5 top-0.5 w-5 h-5 bg-white rounded-full shadow-sm transition-transform peer-checked:translate-x-5" />
+                  </div>
+                </label>
+
+                {/* Ready to hang toggle */}
+                <label className="flex items-center justify-between p-4 bg-white border border-border rounded-xl cursor-pointer group">
+                  <div>
+                    <p className="font-medium text-sm">Ready to hang</p>
+                    <p className="text-xs text-muted mt-0.5">This artwork includes hanging hardware</p>
+                  </div>
+                  <div className="relative">
+                    <input
+                      type="checkbox"
+                      checked={form.ready_to_hang}
+                      onChange={(e) => updateForm('ready_to_hang', e.target.checked)}
                       className="sr-only peer"
                     />
                     <div className="w-11 h-6 bg-border rounded-full peer-checked:bg-accent transition-colors" />
@@ -666,6 +830,49 @@ export default function NewArtworkPage() {
               <p className="text-sm text-muted mt-1">
                 Price your work fairly — buyers appreciate transparency.
               </p>
+            </div>
+
+            {/* Availability Status */}
+            <div>
+              <p className="text-xs font-medium tracking-wide uppercase text-muted mb-3">
+                Availability
+              </p>
+              <div className="space-y-2">
+                {AVAILABILITY_OPTIONS.map((opt) => (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    onClick={() => updateForm('availability', opt.value)}
+                    className={`w-full relative p-4 border-2 rounded-xl text-left transition-all duration-200 ${
+                      form.availability === opt.value
+                        ? 'border-accent bg-accent-subtle'
+                        : 'border-border hover:border-warm-gray bg-white'
+                    }`}
+                  >
+                    {form.availability === opt.value && (
+                      <div className="absolute top-3 right-3 w-5 h-5 bg-accent rounded-full flex items-center justify-center">
+                        <Check className="h-3 w-3 text-white" />
+                      </div>
+                    )}
+                    <p className="font-medium text-sm">{opt.label}</p>
+                    <p className="text-xs text-muted mt-0.5">{opt.desc}</p>
+                  </button>
+                ))}
+              </div>
+              {form.availability === 'coming_soon' && (
+                <div className="mt-3 animate-fade-in">
+                  <label htmlFor="available_from" className="block text-xs font-medium tracking-wide uppercase text-muted mb-2">
+                    Available from
+                  </label>
+                  <input
+                    id="available_from"
+                    type="date"
+                    value={form.available_from}
+                    onChange={(e) => updateForm('available_from', e.target.value)}
+                    className="w-full px-4 py-3 bg-white border border-border rounded-xl text-sm transition-colors"
+                  />
+                </div>
+              )}
             </div>
 
             {/* Price input */}
@@ -839,7 +1046,32 @@ export default function NewArtworkPage() {
                   {form.is_framed && (
                     <span className="px-2.5 py-1 bg-muted-bg rounded-full">Framed</span>
                   )}
+                  {form.ready_to_hang && (
+                    <span className="px-2.5 py-1 bg-muted-bg rounded-full">Ready to hang</span>
+                  )}
+                  {form.surface && (
+                    <span className="px-2.5 py-1 bg-muted-bg rounded-full">{form.surface}</span>
+                  )}
+                  {form.availability !== 'available' && (
+                    <span className="px-2.5 py-1 bg-muted-bg rounded-full capitalize">{form.availability.replace('_', ' ')}</span>
+                  )}
                 </div>
+
+                {/* Colours */}
+                {form.colors.length > 0 && (
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-muted">Colours:</span>
+                    {form.colors.map((c) => {
+                      const col = COLOUR_PALETTE.find((p) => p.name === c);
+                      return col ? (
+                        <div key={c} className="flex items-center gap-1">
+                          <div className="w-4 h-4 rounded-full border border-border" style={{ backgroundColor: col.hex }} />
+                          <span className="text-xs text-muted">{col.label}</span>
+                        </div>
+                      ) : null;
+                    })}
+                  </div>
+                )}
 
                 {/* Dimensions */}
                 {(form.width_cm || form.height_cm) && (

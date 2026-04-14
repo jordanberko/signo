@@ -39,7 +39,7 @@ export async function GET(request: NextRequest) {
     let featuredQuery = supabase
       .from('artworks')
       .select(
-        'id, title, price_aud, images, medium, category, artist_id, width_cm, height_cm, is_featured, profiles!artworks_artist_id_fkey(id, full_name)',
+        'id, title, price_aud, images, medium, category, artist_id, width_cm, height_cm, is_featured, availability, available_from, profiles!artworks_artist_id_fkey(id, full_name)',
       )
       .eq('status', 'approved')
       .eq('is_featured', true)
@@ -62,7 +62,7 @@ export async function GET(request: NextRequest) {
       let q = supabase
         .from('artworks')
         .select(
-          'id, title, price_aud, images, medium, category, artist_id, width_cm, height_cm, is_featured, profiles!artworks_artist_id_fkey(id, full_name)',
+          'id, title, price_aud, images, medium, category, artist_id, width_cm, height_cm, is_featured, availability, available_from, profiles!artworks_artist_id_fkey(id, full_name)',
         )
         .eq('status', 'approved')
         .order('created_at', { ascending: false })
@@ -97,9 +97,12 @@ export async function GET(request: NextRequest) {
       category: a.category as string,
       widthCm: (a.width_cm as number) || null,
       heightCm: (a.height_cm as number) || null,
+      availability: (a.availability as string) || 'available',
     }));
 
-    return NextResponse.json({ data: artworks });
+    return NextResponse.json({ data: artworks }, {
+      headers: { 'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=300' },
+    });
   } catch (err) {
     console.error('[API /artworks/featured] Exception:', err);
     return NextResponse.json(

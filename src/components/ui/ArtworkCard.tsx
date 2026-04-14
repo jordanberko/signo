@@ -17,6 +17,7 @@ interface ArtworkCardProps {
   category?: 'original' | 'print' | 'digital';
   widthCm?: number | null;
   heightCm?: number | null;
+  availability?: 'available' | 'coming_soon' | 'enquire_only';
   /** Hide the category badge (useful on filtered views) */
   hideBadge?: boolean;
   /** Pre-fill favourite state (e.g. on /favourites page) */
@@ -36,6 +37,7 @@ export default function ArtworkCard({
   category,
   widthCm,
   heightCm,
+  availability = 'available',
   hideBadge = false,
   initialFavourited = false,
   onUnfavourite,
@@ -151,6 +153,18 @@ export default function ArtworkCard({
       {!hideBadge && categoryLabel && (
         <span className="absolute top-3 left-3 px-2.5 py-1 bg-[rgba(255,255,255,0.92)] backdrop-blur-sm text-[10.5px] font-bold tracking-wider uppercase rounded text-foreground">
           {categoryLabel}
+        </span>
+      )}
+
+      {/* Availability Badge — below category badge */}
+      {availability === 'coming_soon' && (
+        <span className="absolute top-12 left-3 px-2 py-0.5 bg-blue-50/90 backdrop-blur-sm text-[10px] font-semibold tracking-wide uppercase rounded text-blue-700">
+          Coming Soon
+        </span>
+      )}
+      {availability === 'enquire_only' && (
+        <span className="absolute top-12 left-3 px-2 py-0.5 bg-accent/10 backdrop-blur-sm text-[10px] font-semibold tracking-wide uppercase rounded text-accent-dark">
+          Enquire
         </span>
       )}
 

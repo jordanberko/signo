@@ -26,6 +26,10 @@ export type ArtworkStatus =
   | 'sold'
   | 'paused';
 
+export type AvailabilityStatus = 'available' | 'coming_soon' | 'enquire_only';
+
+export type Surface = 'canvas' | 'linen' | 'paper' | 'board' | 'wood' | 'metal' | 'glass' | 'fabric' | 'other';
+
 export type OrderStatus =
   | 'pending_payment'
   | 'paid'
@@ -71,6 +75,7 @@ export interface Database {
           first_sale_completed_at: string | null;
           is_verified: boolean;
           onboarding_completed: boolean;
+          accepts_commissions: boolean;
           created_at: string;
           updated_at: string;
         };
@@ -90,6 +95,7 @@ export interface Database {
           first_sale_completed_at?: string | null;
           is_verified?: boolean;
           onboarding_completed?: boolean;
+          accepts_commissions?: boolean;
           created_at?: string;
           updated_at?: string;
         };
@@ -109,6 +115,7 @@ export interface Database {
           first_sale_completed_at?: string | null;
           is_verified?: boolean;
           onboarding_completed?: boolean;
+          accepts_commissions?: boolean;
           created_at?: string;
           updated_at?: string;
         };
@@ -137,6 +144,11 @@ export interface Database {
           tags: string[];
           shipping_weight_kg: number | null;
           digital_file_url: string | null;
+          colors: string[];
+          surface: string | null;
+          ready_to_hang: boolean;
+          availability: AvailabilityStatus;
+          available_from: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -161,6 +173,11 @@ export interface Database {
           tags?: string[];
           shipping_weight_kg?: number | null;
           digital_file_url?: string | null;
+          colors?: string[];
+          surface?: string | null;
+          ready_to_hang?: boolean;
+          availability?: AvailabilityStatus;
+          available_from?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -185,6 +202,11 @@ export interface Database {
           tags?: string[];
           shipping_weight_kg?: number | null;
           digital_file_url?: string | null;
+          colors?: string[];
+          surface?: string | null;
+          ready_to_hang?: boolean;
+          availability?: AvailabilityStatus;
+          available_from?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -467,6 +489,120 @@ export interface Database {
           },
         ];
       };
+
+      follows: {
+        Row: {
+          id: string;
+          follower_id: string;
+          followed_id: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          follower_id: string;
+          followed_id: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          follower_id?: string;
+          followed_id?: string;
+          created_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'follows_follower_id_fkey';
+            columns: ['follower_id'];
+            isOneToOne: false;
+            referencedRelation: 'profiles';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'follows_followed_id_fkey';
+            columns: ['followed_id'];
+            isOneToOne: false;
+            referencedRelation: 'profiles';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+
+      artwork_notifications: {
+        Row: {
+          id: string;
+          artwork_id: string;
+          email: string;
+          user_id: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          artwork_id: string;
+          email: string;
+          user_id?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          artwork_id?: string;
+          email?: string;
+          user_id?: string | null;
+          created_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'artwork_notifications_artwork_id_fkey';
+            columns: ['artwork_id'];
+            isOneToOne: false;
+            referencedRelation: 'artworks';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'artwork_notifications_user_id_fkey';
+            columns: ['user_id'];
+            isOneToOne: false;
+            referencedRelation: 'profiles';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+
+      trade_enquiries: {
+        Row: {
+          id: string;
+          business_name: string;
+          contact_name: string;
+          email: string;
+          phone: string | null;
+          business_type: string | null;
+          description: string | null;
+          budget_range: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          business_name: string;
+          contact_name: string;
+          email: string;
+          phone?: string | null;
+          business_type?: string | null;
+          description?: string | null;
+          budget_range?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          business_name?: string;
+          contact_name?: string;
+          email?: string;
+          phone?: string | null;
+          business_type?: string | null;
+          description?: string | null;
+          budget_range?: string | null;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
     Functions: Record<string, never>;
@@ -500,6 +636,18 @@ export type ReviewUpdate = Database['public']['Tables']['reviews']['Update'];
 export type Message = Database['public']['Tables']['messages']['Row'];
 export type MessageInsert = Database['public']['Tables']['messages']['Insert'];
 export type MessageUpdate = Database['public']['Tables']['messages']['Update'];
+
+export type Follow = Database['public']['Tables']['follows']['Row'];
+export type FollowInsert = Database['public']['Tables']['follows']['Insert'];
+export type FollowUpdate = Database['public']['Tables']['follows']['Update'];
+
+export type ArtworkNotification = Database['public']['Tables']['artwork_notifications']['Row'];
+export type ArtworkNotificationInsert = Database['public']['Tables']['artwork_notifications']['Insert'];
+export type ArtworkNotificationUpdate = Database['public']['Tables']['artwork_notifications']['Update'];
+
+export type TradeEnquiry = Database['public']['Tables']['trade_enquiries']['Row'];
+export type TradeEnquiryInsert = Database['public']['Tables']['trade_enquiries']['Insert'];
+export type TradeEnquiryUpdate = Database['public']['Tables']['trade_enquiries']['Update'];
 
 // Backward-compatible alias — older code imports "User"
 export type User = Profile;

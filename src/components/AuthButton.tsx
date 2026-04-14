@@ -5,6 +5,7 @@ import { useState, useRef, useEffect } from 'react';
 import {
   LogOut,
   Heart,
+  Users,
   Shield,
   ShoppingBag,
   Settings,
@@ -140,6 +141,7 @@ export default function AuthButton() {
           <div className="py-1">
             <DropdownLink href="/orders" icon={ShoppingBag} label="My Orders" onClick={() => setMenuOpen(false)} />
             <DropdownLink href="/favourites" icon={Heart} label="Favourites" onClick={() => setMenuOpen(false)} />
+            <DropdownLink href="/following" icon={Users} label="Following" onClick={() => setMenuOpen(false)} />
             <DropdownLink href="/settings" icon={Settings} label="Settings" onClick={() => setMenuOpen(false)} />
           </div>
 

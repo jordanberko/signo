@@ -7,7 +7,7 @@ export default function Footer() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 md:py-20">
         <div className="grid grid-cols-1 md:grid-cols-12 gap-12">
           {/* Brand */}
-          <div className="md:col-span-4 space-y-5">
+          <div className="md:col-span-2 space-y-5">
             <h3 className="font-editorial text-3xl font-medium tracking-wide text-primary">SIGNO</h3>
             <p className="text-sm text-muted leading-relaxed max-w-xs">
               A curated Australian art marketplace built on fairness.
@@ -44,6 +44,16 @@ export default function Footer() {
               </Link>
               <Link href="/pricing" className="text-sm text-muted hover:text-primary transition-colors">
                 Pricing Info
+              </Link>
+            </nav>
+          </div>
+
+          {/* Business */}
+          <div className="md:col-span-2 space-y-4">
+            <h4 className="text-xs font-semibold tracking-[0.2em] uppercase text-warm-gray">Business</h4>
+            <nav className="flex flex-col gap-3">
+              <Link href="/trade" className="text-sm text-muted hover:text-primary transition-colors">
+                Trade Enquiries
               </Link>
             </nav>
           </div>

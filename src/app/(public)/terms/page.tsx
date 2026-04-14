@@ -30,7 +30,7 @@ export default function TermsPage() {
           <div className="p-6 bg-accent/5 rounded-xl border border-accent/20">
             <p className="text-sm text-muted leading-relaxed">
               By using Signo, you agree to these terms. We&apos;ve kept them as readable as possible — but they&apos;re
-              still a binding agreement between you and Signo Pty Ltd (ABN pending). If anything is unclear,{' '}
+              still a binding agreement between you and Signo Pty Ltd {/* TODO: Replace with actual ABN once registered */}(ABN: to be confirmed). If anything is unclear,{' '}
               <Link href="/contact" className="text-accent-dark hover:underline">get in touch</Link>.
             </p>
           </div>

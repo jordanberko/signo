@@ -97,6 +97,12 @@ export default async function ArtistProfilePage({ params }: PageProps) {
       ? reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length
       : 0;
 
+  // Follower count (server-side for initial render)
+  const { count: followerCount } = await supabase
+    .from('follows')
+    .select('*', { count: 'exact', head: true })
+    .eq('followed_id', id);
+
   return (
     <ArtistProfileClient
       artist={artist}
@@ -104,6 +110,7 @@ export default async function ArtistProfilePage({ params }: PageProps) {
       reviews={reviews ?? []}
       salesCount={salesCount ?? 0}
       avgRating={avgRating}
+      initialFollowerCount={followerCount ?? 0}
     />
   );
 }

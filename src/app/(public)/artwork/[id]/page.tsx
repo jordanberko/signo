@@ -103,6 +103,8 @@ export default async function ArtworkDetailPage({ params }: Props) {
     images: (data.images as string[]) || [],
     tags: (data.tags as string[]) || [],
     shipping_weight_kg: data.shipping_weight_kg,
+    availability: (data.availability as ArtworkDetail['availability']) || 'available',
+    available_from: data.available_from || null,
     artist: {
       id: profile?.id || '',
       full_name: profile?.full_name || null,

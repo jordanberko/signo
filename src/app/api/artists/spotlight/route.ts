@@ -116,7 +116,9 @@ export async function GET(request: NextRequest) {
       .sort((a, b) => b.artworkCount - a.artworkCount)
       .slice(0, limit);
 
-    return NextResponse.json({ data: artists });
+    return NextResponse.json({ data: artists }, {
+      headers: { 'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=300' },
+    });
   } catch (err) {
     console.error('[API /artists/spotlight] Exception:', err);
     return NextResponse.json(

@@ -23,7 +23,9 @@ export async function GET() {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
-    return NextResponse.json({ artworks: data || [] });
+    return NextResponse.json({ artworks: data || [] }, {
+      headers: { 'Cache-Control': 'private, no-cache' },
+    });
   } catch (err) {
     console.error('[API artworks/mine]', err);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });

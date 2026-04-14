@@ -28,6 +28,7 @@ export async function PUT(request: Request) {
       state,
       postcode,
       country,
+      accepts_commissions,
     } = body;
 
     // Validate full_name if provided
@@ -53,6 +54,7 @@ export async function PUT(request: Request) {
     if (state !== undefined) updateData.state = state?.trim() || null;
     if (postcode !== undefined) updateData.postcode = postcode?.trim() || null;
     if (country !== undefined) updateData.country = country?.trim() || null;
+    if (accepts_commissions !== undefined) updateData.accepts_commissions = !!accepts_commissions;
 
     // Role upgrade: only allow buyer → artist (never downgrade or escalate to admin)
     if (role === 'artist') {

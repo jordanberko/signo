@@ -548,7 +548,97 @@ export async function sendFirstSaleActivation(data: FirstSaleActivationData) {
 }
 
 // ════════════════════════════════════════════════════════════════════
-// 9. LISTINGS PAUSED (to artist — grace period expired)
+// 9. DELIVERY CONFIRMATION (to buyer)
+// TODO: Trigger when delivery_deadline is reached (shipped_at + 7 days)
+//       in the escrow cron/scheduled function (src/app/api/cron/expire-grace-periods)
+// ════════════════════════════════════════════════════════════════════
+
+export interface DeliveryConfirmationData {
+  buyerEmail: string;
+  buyerName: string;
+  artworkTitle: string;
+  artworkImageUrl?: string;
+  artistName: string;
+  orderId: string;
+}
+
+export async function sendDeliveryConfirmationEmail(data: DeliveryConfirmationData) {
+  const imageBlock = data.artworkImageUrl
+    ? `<img src="${data.artworkImageUrl}" alt="${escapeHtml(data.artworkTitle)}" style="width:100%;max-width:480px;border-radius:12px;margin-bottom:24px;display:block;" />`
+    : '';
+
+  const html = emailWrapper(`
+    <h1 style="font-family:Georgia,'Times New Roman',serif;font-size:24px;font-weight:500;color:#1a1a1a;margin:0 0 8px 0;">Your artwork should have arrived!</h1>
+    <p style="font-size:14px;color:#7a7a72;margin:0 0 24px 0;line-height:1.6;">
+      Hi ${escapeHtml(data.buyerName || 'there')}, your artwork &ldquo;<strong style="color:#1a1a1a;">${escapeHtml(data.artworkTitle)}</strong>&rdquo; by ${escapeHtml(data.artistName)} should now be with you. You have <strong style="color:#1a1a1a;">48 hours</strong> to inspect it. If everything looks good, you don&rsquo;t need to do anything &mdash; payment will release to the artist automatically.
+    </p>
+
+    ${imageBlock}
+
+    ${ctaButton('Report a Problem', `${APP_URL}/orders/${data.orderId}`)}
+
+    ${divider()}
+
+    <p style="font-size:13px;color:#7a7a72;margin:0;line-height:1.6;">
+      If you&rsquo;re happy with your artwork, no action needed. Enjoy your new piece!
+    </p>
+  `);
+
+  return safeSend({
+    to: data.buyerEmail,
+    subject: `Your artwork has been delivered — "${escapeHtml(data.artworkTitle)}"`,
+    html,
+  });
+}
+
+// ════════════════════════════════════════════════════════════════════
+// 10. DISPUTE ACKNOWLEDGEMENT (to buyer)
+// TODO: Trigger when a dispute is created (in the dispute submission handler)
+// ════════════════════════════════════════════════════════════════════
+
+export interface DisputeAcknowledgementData {
+  buyerEmail: string;
+  buyerName: string;
+  artworkTitle: string;
+  artistName: string;
+  orderId: string;
+  disputeReason: string;
+}
+
+export async function sendDisputeAcknowledgementEmail(data: DisputeAcknowledgementData) {
+  const html = emailWrapper(`
+    <h1 style="font-family:Georgia,'Times New Roman',serif;font-size:24px;font-weight:500;color:#1a1a1a;margin:0 0 8px 0;">We&rsquo;re looking into it</h1>
+    <p style="font-size:14px;color:#7a7a72;margin:0 0 24px 0;line-height:1.6;">
+      Hi ${escapeHtml(data.buyerName || 'there')}, we&rsquo;ve received your report about &ldquo;<strong style="color:#1a1a1a;">${escapeHtml(data.artworkTitle)}</strong>&rdquo; by ${escapeHtml(data.artistName)}. Our team will review your case and respond within <strong style="color:#1a1a1a;">24 hours</strong>. Your payment remains held securely in escrow while we resolve this.
+    </p>
+
+    <div style="background-color:#faf8f4;border:1px solid #e8e6e1;border-radius:12px;padding:24px;margin-bottom:24px;">
+      <p style="font-size:14px;font-weight:600;color:#1a1a1a;margin:0 0 12px 0;">What happens next:</p>
+      <p style="font-size:13px;color:#7a7a72;margin:0;line-height:1.8;">
+        We&rsquo;ll reach out to both you and the artist to understand the situation. Our goal is a fair resolution for everyone.
+      </p>
+    </div>
+
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="font-size:14px;color:#1a1a1a;line-height:1.8;margin-bottom:16px;">
+      <tr><td style="color:#7a7a72;padding-right:12px;white-space:nowrap;">Order ID</td><td style="font-family:monospace;font-size:12px;">${escapeHtml(data.orderId)}</td></tr>
+    </table>
+
+    ${divider()}
+
+    <p style="font-size:13px;color:#7a7a72;margin:0;line-height:1.6;">
+      If you need to add information, reply to this email or contact us at <a href="mailto:hello@signoart.com.au" style="color:#6b7c4e;text-decoration:underline;">hello@signoart.com.au</a>.
+    </p>
+  `);
+
+  return safeSend({
+    to: data.buyerEmail,
+    subject: `We've received your report — Order #${escapeHtml(data.orderId.slice(0, 8))}`,
+    html,
+  });
+}
+
+// ════════════════════════════════════════════════════════════════════
+// 11. LISTINGS PAUSED (to artist — grace period expired)
 // ════════════════════════════════════════════════════════════════════
 
 export interface ListingsPausedData {
@@ -604,6 +694,98 @@ export async function sendGracePeriodReminder(data: GracePeriodReminderData) {
   return safeSend({
     to: data.email,
     subject: `Reminder: Add your payment method \u2014 ${data.daysRemaining} day${data.daysRemaining === 1 ? '' : 's'} left`,
+    html,
+  });
+}
+
+// ════════════════════════════════════════════════════════════════════
+// 12. NEW ARTWORK BY FOLLOWED ARTIST (to follower)
+// TODO: Trigger this when an artwork is approved (in the admin approval
+//       handler or artwork status update API) — query the follows table
+//       for the artist's followers and send to each.
+// ════════════════════════════════════════════════════════════════════
+
+export interface NewArtworkFollowNotificationData {
+  followerEmail: string;
+  followerName: string;
+  artistName: string;
+  artistId: string;
+  artworkTitle: string;
+  artworkId: string;
+  artworkImageUrl?: string;
+}
+
+export async function sendNewArtworkFollowNotification(data: NewArtworkFollowNotificationData) {
+  const imageBlock = data.artworkImageUrl
+    ? `<img src="${data.artworkImageUrl}" alt="${escapeHtml(data.artworkTitle)}" style="width:100%;max-width:480px;border-radius:12px;margin-bottom:24px;display:block;" />`
+    : '';
+
+  const html = emailWrapper(`
+    <h1 style="font-family:Georgia,'Times New Roman',serif;font-size:24px;font-weight:500;color:#1a1a1a;margin:0 0 8px 0;">New artwork by ${escapeHtml(data.artistName)}</h1>
+    <p style="font-size:14px;color:#7a7a72;margin:0 0 24px 0;line-height:1.6;">
+      Hi ${escapeHtml(data.followerName || 'there')}, ${escapeHtml(data.artistName)} just listed a new artwork on Signo.
+    </p>
+
+    ${imageBlock}
+
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="font-size:14px;color:#1a1a1a;line-height:1.8;">
+      <tr><td style="color:#7a7a72;padding-right:12px;white-space:nowrap;">Artwork</td><td style="font-weight:500;">${escapeHtml(data.artworkTitle)}</td></tr>
+      <tr><td style="color:#7a7a72;padding-right:12px;white-space:nowrap;">Artist</td><td><a href="${APP_URL}/artists/${data.artistId}" style="color:#6b7c4e;text-decoration:underline;">${escapeHtml(data.artistName)}</a></td></tr>
+    </table>
+
+    ${ctaButton('View Artwork', `${APP_URL}/artwork/${data.artworkId}`)}
+  `);
+
+  return safeSend({
+    to: data.followerEmail,
+    subject: `New artwork by ${escapeHtml(data.artistName)} — "${escapeHtml(data.artworkTitle)}"`,
+    html,
+  });
+}
+
+// ════════════════════════════════════════════════════════════════════
+// 13. TRADE ENQUIRY NOTIFICATION (to admin)
+// ════════════════════════════════════════════════════════════════════
+
+export interface TradeEnquiryNotificationData {
+  businessName: string;
+  contactName: string;
+  email: string;
+  phone?: string;
+  businessType: string;
+  description: string;
+  budgetRange: string;
+}
+
+export async function sendTradeEnquiryNotification(data: TradeEnquiryNotificationData) {
+  const phoneLine = data.phone
+    ? `<tr><td style="color:#7a7a72;padding-right:12px;white-space:nowrap;">Phone</td><td>${escapeHtml(data.phone)}</td></tr>`
+    : '';
+
+  const html = emailWrapper(`
+    <h1 style="font-family:Georgia,'Times New Roman',serif;font-size:24px;font-weight:500;color:#1a1a1a;margin:0 0 8px 0;">New trade enquiry</h1>
+    <p style="font-size:14px;color:#7a7a72;margin:0 0 24px 0;line-height:1.6;">
+      A new trade enquiry has been submitted on Signo.
+    </p>
+
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="font-size:14px;color:#1a1a1a;line-height:1.8;">
+      <tr><td style="color:#7a7a72;padding-right:12px;white-space:nowrap;">Business</td><td style="font-weight:500;">${escapeHtml(data.businessName)}</td></tr>
+      <tr><td style="color:#7a7a72;padding-right:12px;white-space:nowrap;">Contact</td><td>${escapeHtml(data.contactName)}</td></tr>
+      <tr><td style="color:#7a7a72;padding-right:12px;white-space:nowrap;">Email</td><td><a href="mailto:${escapeHtml(data.email)}" style="color:#6b7c4e;text-decoration:underline;">${escapeHtml(data.email)}</a></td></tr>
+      ${phoneLine}
+      <tr><td style="color:#7a7a72;padding-right:12px;white-space:nowrap;">Industry</td><td>${escapeHtml(data.businessType)}</td></tr>
+      <tr><td style="color:#7a7a72;padding-right:12px;white-space:nowrap;">Budget</td><td style="font-weight:600;">${escapeHtml(data.budgetRange)}</td></tr>
+    </table>
+
+    ${divider()}
+
+    <p style="font-size:12px;color:#7a7a72;margin:0 0 4px 0;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;">Description</p>
+    <p style="font-size:14px;color:#1a1a1a;margin:0;line-height:1.6;">${escapeHtml(data.description)}</p>
+  `);
+
+  return safeSend({
+    to: 'hello@signoart.com.au',
+    subject: `Trade enquiry from ${escapeHtml(data.businessName)}`,
     html,
   });
 }

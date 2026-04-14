@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import {
   User,
@@ -148,6 +149,7 @@ export default function SettingsPage() {
   const [facebookUrl, setFacebookUrl] = useState(user?.social_links?.facebook || '');
   const [youtubeUrl, setYoutubeUrl] = useState(user?.social_links?.youtube || '')
   const [websiteUrl, setWebsiteUrl] = useState(user?.social_links?.website || '');
+  const [acceptsCommissions, setAcceptsCommissions] = useState(user?.accepts_commissions ?? false);
   const [artistSaving, setArtistSaving] = useState(false);
   const [artistStatus, setArtistStatus] = useState<{
     type: 'success' | 'error';
@@ -157,8 +159,27 @@ export default function SettingsPage() {
   // Danger zone
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleteConfirmText, setDeleteConfirmText] = useState('');
+  const [deleteLoading, setDeleteLoading] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [artistStats, setArtistStats] = useState<{ activeListings: number; pendingOrders: number } | null>(null);
+  const router = useRouter();
 
   const isArtist = user?.role === 'artist' || user?.role === 'admin';
+
+  // Fetch artist stats when delete modal opens
+  useEffect(() => {
+    if (!showDeleteConfirm || !isArtist) return;
+    const supabase = createClient();
+    Promise.all([
+      supabase.from('artworks').select('id', { count: 'exact', head: true }).eq('artist_id', user!.id).in('status', ['approved', 'pending_review', 'draft']),
+      supabase.from('orders').select('id', { count: 'exact', head: true }).eq('artist_id', user!.id).in('status', ['pending_payment', 'paid', 'shipped']),
+    ]).then(([artworksRes, ordersRes]) => {
+      setArtistStats({
+        activeListings: artworksRes.count ?? 0,
+        pendingOrders: ordersRes.count ?? 0,
+      });
+    });
+  }, [showDeleteConfirm, isArtist, user]);
 
   // Avatar upload handler
   const handleAvatarUpload = useCallback(
@@ -365,6 +386,7 @@ export default function SettingsPage() {
           bio: artistBio.trim() || null,
           location: artistLocation.trim() || null,
           social_links: socialLinks,
+          accepts_commissions: acceptsCommissions,
         }),
       });
       clearTimeout(timeout);
@@ -943,6 +965,31 @@ export default function SettingsPage() {
                 </div>
               </div>
 
+              {/* Commissions toggle */}
+              <div className="flex items-start gap-3 pt-2 border-t border-border">
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={acceptsCommissions}
+                  onClick={() => setAcceptsCommissions(!acceptsCommissions)}
+                  className={`relative mt-0.5 inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-accent/30 ${
+                    acceptsCommissions ? 'bg-accent' : 'bg-border'
+                  }`}
+                >
+                  <span
+                    className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                      acceptsCommissions ? 'translate-x-5' : 'translate-x-0'
+                    }`}
+                  />
+                </button>
+                <div>
+                  <p className="text-sm font-medium">Open to commissions</p>
+                  <p className="text-xs text-warm-gray mt-0.5">
+                    Show a &quot;Commission a Piece&quot; button on your profile so buyers can request custom work
+                  </p>
+                </div>
+              </div>
+
               {artistStatus && (
                 <StatusMessage
                   type={artistStatus.type}
@@ -1106,37 +1153,87 @@ export default function SettingsPage() {
                   or cancelled first.
                 </p>
 
-                {!showDeleteConfirm ? (
-                  <button
-                    type="button"
-                    onClick={() => setShowDeleteConfirm(true)}
-                    className="mt-4 px-5 py-2 border border-error/30 text-error text-sm font-medium rounded-full hover:bg-error/5 transition-colors"
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowDeleteConfirm(true);
+                    setDeleteConfirmText('');
+                    setDeleteError(null);
+                  }}
+                  className="mt-4 px-5 py-2 border border-error/30 text-error text-sm font-medium rounded-full hover:bg-error/5 transition-colors"
+                >
+                  Delete my account
+                </button>
+              </div>
+
+              {/* Delete account modal */}
+              {showDeleteConfirm && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+                  <div
+                    className="absolute inset-0 bg-black/40"
+                    onClick={() => { setShowDeleteConfirm(false); setDeleteConfirmText(''); }}
+                  />
+                  <dialog
+                    open
+                    className="relative bg-white rounded-2xl shadow-xl max-w-md w-full p-6 space-y-4 z-10"
                   >
-                    Delete my account
-                  </button>
-                ) : (
-                  <div className="mt-4 space-y-3">
-                    <p className="text-sm text-error font-medium">
-                      Type <span className="font-mono bg-error/5 px-1.5 py-0.5 rounded">DELETE</span> to confirm:
+                    <h2 className="text-lg font-semibold text-primary">Delete your account?</h2>
+                    <p className="text-sm text-muted leading-relaxed">
+                      This will permanently delete your account, profile, and all your artwork listings. This action cannot be undone.
                     </p>
-                    <input
-                      type="text"
-                      value={deleteConfirmText}
-                      onChange={(e) => setDeleteConfirmText(e.target.value)}
-                      className="w-full max-w-xs px-4 py-2.5 bg-white border border-error/30 rounded-xl text-sm placeholder:text-warm-gray focus:border-error focus:ring-1 focus:ring-error/20"
-                      placeholder="Type DELETE"
-                    />
-                    <div className="flex items-center gap-3">
+
+                    {isArtist && artistStats && (artistStats.activeListings > 0 || artistStats.pendingOrders > 0) && (
+                      <div className="flex items-start gap-2.5 p-3 bg-amber-50 border border-amber-200 rounded-xl">
+                        <AlertCircle className="w-4 h-4 text-amber-600 mt-0.5 shrink-0" />
+                        <p className="text-sm text-amber-800">
+                          You have {artistStats.activeListings} active listing{artistStats.activeListings !== 1 ? 's' : ''}
+                          {artistStats.pendingOrders > 0 && <> and {artistStats.pendingOrders} pending order{artistStats.pendingOrders !== 1 ? 's' : ''}</>}.
+                          These will be cancelled.
+                        </p>
+                      </div>
+                    )}
+
+                    <div>
+                      <label className="text-sm text-error font-medium block mb-2">
+                        Type <span className="font-mono bg-error/5 px-1.5 py-0.5 rounded">DELETE</span> to confirm:
+                      </label>
+                      <input
+                        type="text"
+                        value={deleteConfirmText}
+                        onChange={(e) => setDeleteConfirmText(e.target.value)}
+                        className="w-full px-4 py-2.5 bg-white border border-error/30 rounded-xl text-sm placeholder:text-warm-gray focus:border-error focus:ring-1 focus:ring-error/20"
+                        placeholder="Type DELETE"
+                        autoFocus
+                      />
+                    </div>
+
+                    {deleteError && (
+                      <p className="text-sm text-error">{deleteError}</p>
+                    )}
+
+                    <div className="flex items-center gap-3 pt-2">
                       <button
                         type="button"
-                        disabled={deleteConfirmText !== 'DELETE'}
-                        className="px-5 py-2 bg-error text-white text-sm font-semibold rounded-full hover:bg-error/90 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-                        onClick={() => {
-                          // Placeholder — actual deletion logic to come
-                          alert('Account deletion is not yet implemented. Contact support@signoart.com.au for assistance.');
+                        disabled={deleteConfirmText !== 'DELETE' || deleteLoading}
+                        className="px-5 py-2 bg-error text-white text-sm font-semibold rounded-full hover:bg-error/90 transition-colors disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-2"
+                        onClick={async () => {
+                          setDeleteLoading(true);
+                          setDeleteError(null);
+                          try {
+                            const res = await fetch('/api/account/delete', { method: 'POST' });
+                            if (!res.ok) {
+                              const body = await res.json().catch(() => ({}));
+                              throw new Error(body.error || 'Failed to delete account');
+                            }
+                            router.push('/');
+                          } catch (err) {
+                            setDeleteError(err instanceof Error ? err.message : 'Something went wrong');
+                            setDeleteLoading(false);
+                          }
                         }}
                       >
-                        Permanently delete
+                        {deleteLoading && <Loader2 className="w-4 h-4 animate-spin" />}
+                        Delete my account
                       </button>
                       <button
                         type="button"
@@ -1145,13 +1242,14 @@ export default function SettingsPage() {
                           setDeleteConfirmText('');
                         }}
                         className="px-5 py-2 text-sm text-muted hover:text-foreground transition-colors"
+                        disabled={deleteLoading}
                       >
                         Cancel
                       </button>
                     </div>
-                  </div>
-                )}
-              </div>
+                  </dialog>
+                </div>
+              )}
             </div>
           )}
         </div>

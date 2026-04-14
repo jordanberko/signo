@@ -290,6 +290,7 @@ export default function Header() {
             {user && (
               <>
                 <MobileLink href="/favourites" label="Favourites" pathname={pathname} onClick={() => setMobileMenuOpen(false)} />
+                <MobileLink href="/following" label="Following" pathname={pathname} onClick={() => setMobileMenuOpen(false)} />
                 <div className="relative">
                   <MobileLink href="/messages" label="Messages" pathname={pathname} onClick={() => setMobileMenuOpen(false)} />
                   {unreadCount > 0 && (

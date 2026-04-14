@@ -36,7 +36,7 @@ export async function GET(request: NextRequest) {
     let query = supabase
       .from('artworks')
       .select(
-        'id, title, price_aud, images, medium, style, category, artist_id, width_cm, height_cm, profiles!artworks_artist_id_fkey(id, full_name)',
+        'id, title, price_aud, images, medium, style, category, artist_id, width_cm, height_cm, availability, available_from, profiles!artworks_artist_id_fkey(id, full_name)',
         { count: 'exact' },
       )
       .eq('status', 'approved');
@@ -98,6 +98,15 @@ export async function GET(request: NextRequest) {
       query = query.in('style', styles.split(','));
     }
 
+    // Colour filter (comma-separated, array overlap)
+    const colors = params.get('colors');
+    if (colors) {
+      const colorArray = colors.split(',').filter(Boolean);
+      if (colorArray.length > 0) {
+        query = query.overlaps('colors', colorArray);
+      }
+    }
+
     // Price range
     const priceMin = parseFloat(params.get('priceMin') || '');
     const priceMax = parseFloat(params.get('priceMax') || '');
@@ -155,6 +164,8 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       data: data || [],
       count: count ?? 0,
+    }, {
+      headers: { 'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=300' },
     });
   } catch (err) {
     console.error('[API /artworks/browse] Exception:', err);

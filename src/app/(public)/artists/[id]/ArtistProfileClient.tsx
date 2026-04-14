@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import {
@@ -12,9 +12,16 @@ import {
   ChevronDown,
   MessageCircle,
   UserPlus,
+  UserCheck,
+  UserMinus,
+  Palette,
+  Loader2,
+  X,
+  Check,
 } from 'lucide-react';
 import { formatPrice } from '@/lib/utils';
 import Avatar from '@/components/ui/Avatar';
+import { useAuth } from '@/components/providers/AuthProvider';
 import type { Profile, Artwork, Review } from '@/lib/types/database';
 import ArtworkCard from '@/components/ui/ArtworkCard';
 
@@ -91,6 +98,7 @@ interface ArtistProfileClientProps {
   })[];
   salesCount: number;
   avgRating: number;
+  initialFollowerCount?: number;
 }
 
 // ── Component ──
@@ -101,9 +109,155 @@ export default function ArtistProfileClient({
   reviews,
   salesCount,
   avgRating,
+  initialFollowerCount = 0,
 }: ArtistProfileClientProps) {
+  const { user } = useAuth();
   const [sort, setSort] = useState<SortKey>('newest');
   const [showSortMenu, setShowSortMenu] = useState(false);
+
+  // Follow state
+  const [isFollowing, setIsFollowing] = useState(false);
+  const [followerCount, setFollowerCount] = useState(initialFollowerCount);
+  const [followLoading, setFollowLoading] = useState(false);
+  const [followHovered, setFollowHovered] = useState(false);
+  const isOwnProfile = user?.id === artist.id;
+
+  // Fetch follow status on mount
+  useEffect(() => {
+    async function fetchFollowStatus() {
+      try {
+        const res = await fetch(`/api/follows?artistId=${artist.id}`);
+        if (res.ok) {
+          const data = await res.json();
+          setIsFollowing(data.isFollowing);
+          setFollowerCount(data.followerCount);
+        }
+      } catch {
+        // Ignore — keep server-side defaults
+      }
+    }
+    fetchFollowStatus();
+  }, [artist.id]);
+
+  // Toggle follow / unfollow
+  const handleFollowToggle = useCallback(async () => {
+    if (!user) {
+      window.location.href = '/login?redirect=' + encodeURIComponent(window.location.pathname);
+      return;
+    }
+
+    if (followLoading) return;
+    setFollowLoading(true);
+
+    // Optimistic update
+    const wasFollowing = isFollowing;
+    setIsFollowing(!wasFollowing);
+    setFollowerCount((c) => (wasFollowing ? c - 1 : c + 1));
+
+    try {
+      const res = wasFollowing
+        ? await fetch(`/api/follows?followedId=${artist.id}`, { method: 'DELETE' })
+        : await fetch('/api/follows', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ followedId: artist.id }),
+          });
+
+      if (!res.ok) {
+        // Revert on error
+        setIsFollowing(wasFollowing);
+        setFollowerCount((c) => (wasFollowing ? c + 1 : c - 1));
+      }
+    } catch {
+      // Revert on error
+      setIsFollowing(wasFollowing);
+      setFollowerCount((c) => (wasFollowing ? c + 1 : c - 1));
+    } finally {
+      setFollowLoading(false);
+    }
+  }, [user, isFollowing, followLoading, artist.id]);
+
+  // Commission enquiry state
+  const [showCommissionModal, setShowCommissionModal] = useState(false);
+  const [commissionDescription, setCommissionDescription] = useState('');
+  const [commissionSize, setCommissionSize] = useState('');
+  const [commissionBudget, setCommissionBudget] = useState('');
+  const [commissionTimeline, setCommissionTimeline] = useState('');
+  const [commissionSending, setCommissionSending] = useState(false);
+  const [commissionError, setCommissionError] = useState<string | null>(null);
+  const [commissionSent, setCommissionSent] = useState(false);
+
+  const BUDGET_OPTIONS = [
+    'Under $200',
+    '$200 \u2013 $500',
+    '$500 \u2013 $1,000',
+    '$1,000 \u2013 $5,000',
+    '$5,000+',
+  ];
+
+  const handleCommissionSubmit = useCallback(async () => {
+    if (!user) {
+      window.location.href = '/login?redirect=' + encodeURIComponent(window.location.pathname);
+      return;
+    }
+    if (!commissionDescription.trim() || !commissionBudget) return;
+
+    setCommissionSending(true);
+    setCommissionError(null);
+
+    try {
+      // 1. Create or find conversation with the artist
+      const convRes = await fetch('/api/messages/conversations', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ participant_2: artist.id }),
+      });
+      if (!convRes.ok) {
+        const err = await convRes.json().catch(() => ({}));
+        throw new Error(err.error || 'Failed to start conversation');
+      }
+      const { data: conversation } = await convRes.json();
+
+      // 2. Build the structured commission message
+      const messageContent = [
+        '\u2728 Commission Enquiry',
+        '',
+        `Description: ${commissionDescription.trim()}`,
+        `Size: ${commissionSize.trim() || 'Not specified'}`,
+        `Budget: ${commissionBudget}`,
+        `Timeline: ${commissionTimeline.trim() || 'Flexible'}`,
+      ].join('\n');
+
+      // 3. Send the message
+      const msgRes = await fetch('/api/messages/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          conversation_id: conversation.id,
+          content: messageContent,
+        }),
+      });
+      if (!msgRes.ok) {
+        const err = await msgRes.json().catch(() => ({}));
+        throw new Error(err.error || 'Failed to send message');
+      }
+
+      setCommissionSent(true);
+      // Reset form after brief delay then close
+      setTimeout(() => {
+        setShowCommissionModal(false);
+        setCommissionSent(false);
+        setCommissionDescription('');
+        setCommissionSize('');
+        setCommissionBudget('');
+        setCommissionTimeline('');
+      }, 2000);
+    } catch (err) {
+      setCommissionError(err instanceof Error ? err.message : 'Something went wrong');
+    } finally {
+      setCommissionSending(false);
+    }
+  }, [user, artist.id, commissionDescription, commissionSize, commissionBudget, commissionTimeline]);
 
   const socialLinks = (artist.social_links ?? {}) as Record<string, string>;
   const instagram = socialLinks.instagram;
@@ -258,6 +412,13 @@ export default function ArtistProfileClient({
                 </div>
                 <div className="w-px h-8 bg-border" />
                 <div className="text-center md:text-left">
+                  <p className="text-xl font-bold">{followerCount}</p>
+                  <p className="text-xs text-muted uppercase tracking-wide">
+                    {followerCount === 1 ? 'Follower' : 'Followers'}
+                  </p>
+                </div>
+                <div className="w-px h-8 bg-border" />
+                <div className="text-center md:text-left">
                   <p className="text-xl font-bold">{salesCount}</p>
                   <p className="text-xs text-muted uppercase tracking-wide">Sales</p>
                 </div>
@@ -279,14 +440,59 @@ export default function ArtistProfileClient({
 
               {/* Action buttons */}
               <div className="flex items-center justify-center md:justify-start gap-3 pt-2">
-                <button className="inline-flex items-center gap-2 px-6 py-2.5 bg-primary text-white text-sm font-semibold rounded-full hover:bg-accent transition-colors duration-300">
-                  <UserPlus className="h-4 w-4" />
-                  Follow
-                </button>
+                {!isOwnProfile && (
+                  <button
+                    onClick={handleFollowToggle}
+                    onMouseEnter={() => setFollowHovered(true)}
+                    onMouseLeave={() => setFollowHovered(false)}
+                    disabled={followLoading}
+                    className={`inline-flex items-center gap-2 px-6 py-2.5 text-sm font-semibold rounded-full transition-all duration-300 ${
+                      isFollowing
+                        ? followHovered
+                          ? 'bg-red-50 text-red-600 border-2 border-red-300'
+                          : 'bg-accent text-white border-2 border-accent'
+                        : 'bg-primary text-white border-2 border-primary hover:bg-accent hover:border-accent'
+                    } ${followLoading ? 'opacity-60 cursor-not-allowed' : ''}`}
+                  >
+                    {isFollowing ? (
+                      followHovered ? (
+                        <>
+                          <UserMinus className="h-4 w-4" />
+                          Unfollow
+                        </>
+                      ) : (
+                        <>
+                          <UserCheck className="h-4 w-4" />
+                          Following
+                        </>
+                      )
+                    ) : (
+                      <>
+                        <UserPlus className="h-4 w-4" />
+                        Follow
+                      </>
+                    )}
+                  </button>
+                )}
                 <button className="inline-flex items-center gap-2 px-6 py-2.5 border-2 border-border text-sm font-semibold rounded-full hover:border-warm-gray transition-colors">
                   <MessageCircle className="h-4 w-4" />
                   Message
                 </button>
+                {!isOwnProfile && artist.accepts_commissions && (
+                  <button
+                    onClick={() => {
+                      if (!user) {
+                        window.location.href = '/login?redirect=' + encodeURIComponent(window.location.pathname);
+                        return;
+                      }
+                      setShowCommissionModal(true);
+                    }}
+                    className="inline-flex items-center gap-2 px-6 py-2.5 border-2 border-accent text-accent text-sm font-semibold rounded-full hover:bg-accent hover:text-white transition-colors"
+                  >
+                    <Palette className="h-4 w-4" />
+                    Commission a Piece
+                  </button>
+                )}
               </div>
             </div>
           </div>
@@ -362,6 +568,159 @@ export default function ArtistProfileClient({
           </div>
         )}
       </div>
+
+      {/* ═══════════════════════════════════════════
+          COMMISSION ENQUIRY MODAL
+      ═══════════════════════════════════════════ */}
+      {showCommissionModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div
+            className="absolute inset-0 bg-black/40"
+            onClick={() => { if (!commissionSending) { setShowCommissionModal(false); setCommissionError(null); } }}
+          />
+          <dialog
+            open
+            className="relative bg-white rounded-2xl shadow-xl max-w-md w-full p-6 space-y-5 z-10"
+          >
+            {/* Header */}
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-semibold text-primary flex items-center gap-2">
+                <Palette className="h-5 w-5 text-accent" />
+                Commission a Piece
+              </h2>
+              <button
+                type="button"
+                onClick={() => { if (!commissionSending) { setShowCommissionModal(false); setCommissionError(null); } }}
+                className="text-muted hover:text-foreground transition-colors"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            <p className="text-sm text-muted">
+              Send a commission enquiry to {artist.full_name ?? 'this artist'}. They&apos;ll receive it as a message.
+            </p>
+
+            {commissionSent ? (
+              <div className="py-8 text-center space-y-2">
+                <div className="w-12 h-12 bg-green-50 rounded-full flex items-center justify-center mx-auto">
+                  <Check className="h-6 w-6 text-green-600" />
+                </div>
+                <p className="font-medium text-green-700">Enquiry sent!</p>
+                <p className="text-sm text-muted">Check your messages for the artist&apos;s reply.</p>
+              </div>
+            ) : (
+              <>
+                {/* Description */}
+                <div>
+                  <label
+                    htmlFor="commission-description"
+                    className="block text-xs font-medium tracking-wide uppercase text-muted mb-2"
+                  >
+                    What would you like commissioned? <span className="text-error">*</span>
+                  </label>
+                  <textarea
+                    id="commission-description"
+                    value={commissionDescription}
+                    onChange={(e) => setCommissionDescription(e.target.value)}
+                    rows={3}
+                    maxLength={1000}
+                    className="w-full px-4 py-3 bg-white border border-border rounded-xl text-sm placeholder:text-warm-gray transition-colors focus:border-accent focus:ring-1 focus:ring-accent/20 resize-none"
+                    placeholder="Describe the artwork you have in mind..."
+                  />
+                </div>
+
+                {/* Size */}
+                <div>
+                  <label
+                    htmlFor="commission-size"
+                    className="block text-xs font-medium tracking-wide uppercase text-muted mb-2"
+                  >
+                    Approximate Size
+                  </label>
+                  <input
+                    id="commission-size"
+                    type="text"
+                    value={commissionSize}
+                    onChange={(e) => setCommissionSize(e.target.value)}
+                    className="w-full px-4 py-3 bg-white border border-border rounded-xl text-sm placeholder:text-warm-gray transition-colors focus:border-accent focus:ring-1 focus:ring-accent/20"
+                    placeholder="e.g. 60 x 80 cm"
+                  />
+                </div>
+
+                {/* Budget */}
+                <div>
+                  <label
+                    htmlFor="commission-budget"
+                    className="block text-xs font-medium tracking-wide uppercase text-muted mb-2"
+                  >
+                    Budget Range <span className="text-error">*</span>
+                  </label>
+                  <select
+                    id="commission-budget"
+                    value={commissionBudget}
+                    onChange={(e) => setCommissionBudget(e.target.value)}
+                    className="w-full px-4 py-3 bg-white border border-border rounded-xl text-sm transition-colors appearance-none focus:border-accent focus:ring-1 focus:ring-accent/20"
+                  >
+                    <option value="">Select a budget range</option>
+                    {BUDGET_OPTIONS.map((opt) => (
+                      <option key={opt} value={opt}>{opt}</option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Timeline */}
+                <div>
+                  <label
+                    htmlFor="commission-timeline"
+                    className="block text-xs font-medium tracking-wide uppercase text-muted mb-2"
+                  >
+                    Timeline
+                  </label>
+                  <input
+                    id="commission-timeline"
+                    type="text"
+                    value={commissionTimeline}
+                    onChange={(e) => setCommissionTimeline(e.target.value)}
+                    className="w-full px-4 py-3 bg-white border border-border rounded-xl text-sm placeholder:text-warm-gray transition-colors focus:border-accent focus:ring-1 focus:ring-accent/20"
+                    placeholder="e.g. Within 3 months"
+                  />
+                </div>
+
+                {commissionError && (
+                  <p className="text-sm text-error">{commissionError}</p>
+                )}
+
+                {/* Actions */}
+                <div className="flex items-center gap-3 pt-1">
+                  <button
+                    type="button"
+                    onClick={handleCommissionSubmit}
+                    disabled={commissionSending || !commissionDescription.trim() || !commissionBudget}
+                    className="px-6 py-2.5 bg-primary text-white text-sm font-semibold rounded-full hover:bg-accent transition-colors disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center gap-2"
+                  >
+                    {commissionSending ? (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        Sending...
+                      </>
+                    ) : (
+                      'Send Enquiry'
+                    )}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { setShowCommissionModal(false); setCommissionError(null); }}
+                    disabled={commissionSending}
+                    className="px-5 py-2.5 text-sm text-muted hover:text-foreground transition-colors"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </>
+            )}
+          </dialog>
+        </div>
+      )}
 
       {/* ═══════════════════════════════════════════
           REVIEWS
