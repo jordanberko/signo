@@ -1,34 +1,23 @@
 import type { Metadata, Viewport } from "next";
-import { DM_Sans, Playfair_Display, JetBrains_Mono, EB_Garamond } from "next/font/google";
+import localFont from "next/font/local";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import { AuthProvider } from "@/components/providers/AuthProvider";
 import "./globals.css";
 
-const dmSans = DM_Sans({
-  variable: "--font-dm-sans",
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
-});
-
-const jetbrainsMono = JetBrains_Mono({
-  variable: "--font-jetbrains",
-  subsets: ["latin"],
-  weight: ["400", "500", "700"],
-});
-
-const playfair = Playfair_Display({
-  variable: "--font-playfair",
-  subsets: ["latin"],
-  weight: ["400", "500", "600"],
-  style: ["normal", "italic"],
-});
-
-const ebGaramond = EB_Garamond({
-  variable: "--font-eb-garamond",
-  subsets: ["latin"],
-  weight: ["500"],
-  style: ["normal", "italic"],
+const switzer = localFont({
+  src: [
+    {
+      path: '../../public/fonts/Switzer-Variable.woff2',
+      style: 'normal',
+    },
+    {
+      path: '../../public/fonts/Switzer-VariableItalic.woff2',
+      style: 'italic',
+    },
+  ],
+  variable: '--font-switzer',
+  display: 'swap',
 });
 
 export const metadata: Metadata = {
@@ -76,7 +65,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${dmSans.variable} ${jetbrainsMono.variable} ${playfair.variable} ${ebGaramond.variable} h-full antialiased`}
+      className={`${switzer.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
         <AuthProvider>

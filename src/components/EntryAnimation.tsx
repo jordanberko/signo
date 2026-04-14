@@ -62,7 +62,7 @@ export default function EntryAnimation() {
         <div className="flex items-baseline">
           <span
             style={{
-              fontFamily: 'var(--font-eb-garamond), Georgia, serif',
+              fontFamily: 'var(--font-switzer), Helvetica Neue, Helvetica, Arial, sans-serif',
               fontSize: 'clamp(48px, 8vw, 80px)',
               fontWeight: 500,
               color: 'var(--color-primary, #1a1a1a)',
@@ -74,7 +74,7 @@ export default function EntryAnimation() {
           </span>
           <span
             style={{
-              fontFamily: 'var(--font-eb-garamond), Georgia, serif',
+              fontFamily: 'var(--font-switzer), Helvetica Neue, Helvetica, Arial, sans-serif',
               fontSize: 'clamp(48px, 8vw, 80px)',
               fontWeight: 500,
               fontStyle: 'italic',
@@ -90,7 +90,7 @@ export default function EntryAnimation() {
         {/* Subtitle */}
         <p
           style={{
-            fontFamily: 'var(--font-dm-sans), sans-serif',
+            fontFamily: 'var(--font-switzer), Helvetica Neue, Helvetica, Arial, sans-serif',
             fontSize: '12px',
             fontWeight: 500,
             letterSpacing: '0.2em',

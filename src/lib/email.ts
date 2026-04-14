@@ -45,7 +45,7 @@ function emailWrapper(content: string): string {
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Signo</title>
 </head>
-<body style="margin:0;padding:0;background-color:#faf8f4;font-family:'DM Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
+<body style="margin:0;padding:0;background-color:#faf8f4;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;">
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#faf8f4;">
     <tr>
       <td align="center" style="padding:40px 16px;">
@@ -55,7 +55,7 @@ function emailWrapper(content: string): string {
           <tr>
             <td align="center" style="padding-bottom:32px;">
               <a href="${APP_URL}" style="text-decoration:none;">
-                <span style="font-family:'EB Garamond',Georgia,'Times New Roman',serif;font-size:28px;font-weight:500;color:#1a1a1a;letter-spacing:0.08em;">SIGNO</span><span style="font-family:'EB Garamond',Georgia,'Times New Roman',serif;font-size:28px;font-weight:500;color:#6b7c4e;font-style:italic;">.</span>
+                <span style="font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;font-size:28px;font-weight:500;color:#1a1a1a;letter-spacing:0.08em;">SIGNO</span><span style="font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;font-size:28px;font-weight:500;color:#6b7c4e;font-style:italic;">.</span>
               </a>
             </td>
           </tr>
