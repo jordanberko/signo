@@ -28,9 +28,9 @@
   --color-accent-gold: #c4a55a;
 
   /* ── Typography ── */
-  --font-sans: var(--font-switzer);
-  --font-serif: var(--font-switzer);
-  --font-mono: var(--font-switzer);
+  --font-sans: var(--font-satoshi);
+  --font-serif: var(--font-satoshi);
+  --font-mono: var(--font-satoshi);
 }
 
 /* Smooth scrolling */
@@ -41,14 +41,14 @@ html {
 body {
   background: var(--color-background);
   color: var(--color-foreground);
-  font-family: var(--font-switzer), 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  font-family: var(--font-satoshi), 'Helvetica Neue', Helvetica, Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
 /* Editorial headings */
 .font-editorial {
-  font-family: var(--font-switzer), 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  font-family: var(--font-satoshi), 'Helvetica Neue', Helvetica, Arial, sans-serif;
 }
 
 /* Refined selection color */
@@ -228,12 +228,12 @@ body {
 
 /* Ribbon text styles for hero SVG */
 .ribbon-serif {
-  font-family: var(--font-switzer), 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  font-family: var(--font-satoshi), 'Helvetica Neue', Helvetica, Arial, sans-serif;
   font-style: italic;
   font-weight: 400;
 }
 .ribbon-sans {
-  font-family: var(--font-switzer), 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  font-family: var(--font-satoshi), 'Helvetica Neue', Helvetica, Arial, sans-serif;
   font-weight: 500;
   letter-spacing: 1px;
 }

@@ -334,7 +334,7 @@ export default function Header() {
                 ref={logoRef}
                 className="text-2xl text-primary group-hover:text-accent-dark transition-colors duration-300"
                 style={{
-                  fontFamily: 'var(--font-switzer), Helvetica Neue, Helvetica, Arial, sans-serif',
+                  fontFamily: 'var(--font-satoshi), Helvetica Neue, Helvetica, Arial, sans-serif',
                   fontWeight: 500,
                   letterSpacing: '0.1em',
                   ...(shouldAnimate && !animationDone
@@ -350,7 +350,7 @@ export default function Header() {
               <span
                 className="text-2xl italic"
                 style={{
-                  fontFamily: 'var(--font-switzer), Helvetica Neue, Helvetica, Arial, sans-serif',
+                  fontFamily: 'var(--font-satoshi), Helvetica Neue, Helvetica, Arial, sans-serif',
                   fontWeight: 500,
                   color: 'var(--color-accent, #6b7c4e)',
                   ...(shouldAnimate && !animationDone
@@ -624,7 +624,7 @@ export default function Header() {
               <span
                 className="text-lg"
                 style={{
-                  fontFamily: 'var(--font-switzer), Helvetica Neue, Helvetica, Arial, sans-serif',
+                  fontFamily: 'var(--font-satoshi), Helvetica Neue, Helvetica, Arial, sans-serif',
                   fontWeight: 500,
                   letterSpacing: '0.1em',
                 }}

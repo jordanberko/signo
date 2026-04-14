@@ -8,15 +8,15 @@ import "./globals.css";
 const switzer = localFont({
   src: [
     {
-      path: '../../public/fonts/Switzer-Variable.woff2',
+      path: '../../public/fonts/Satoshi-Variable.woff2',
       style: 'normal',
     },
     {
-      path: '../../public/fonts/Switzer-VariableItalic.woff2',
+      path: '../../public/fonts/Satoshi-VariableItalic.woff2',
       style: 'italic',
     },
   ],
-  variable: '--font-switzer',
+  variable: '--font-satoshi',
   display: 'swap',
 });
 
