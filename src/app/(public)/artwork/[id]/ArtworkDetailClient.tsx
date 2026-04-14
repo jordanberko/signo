@@ -688,7 +688,7 @@ export default function ArtworkDetailClient({
                   </span>
                 )}
               </div>
-              <h1 className="font-editorial text-3xl md:text-4xl font-medium">
+              <h1 className="font-editorial text-3xl md:text-4xl font-semibold">
                 {artwork.title}
               </h1>
             </div>

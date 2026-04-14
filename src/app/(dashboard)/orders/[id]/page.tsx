@@ -248,7 +248,7 @@ function OrderContent({
         {isSuccess ? (
           <>
             <CheckCircle2 className="h-16 w-16 text-green-500 mx-auto mb-4" />
-            <h1 className="font-editorial text-2xl font-medium mb-2">
+            <h1 className="font-editorial text-2xl font-semibold mb-2">
               Payment received!
             </h1>
             <p className="text-muted mb-6">
@@ -270,7 +270,7 @@ function OrderContent({
         ) : (
           <>
             <AlertCircle className="h-12 w-12 text-muted mx-auto mb-4" />
-            <h1 className="font-editorial text-2xl font-medium mb-2">
+            <h1 className="font-editorial text-2xl font-semibold mb-2">
               Order not found
             </h1>
             <p className="text-muted mb-6">
@@ -323,7 +323,7 @@ function OrderContent({
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
         <div>
-          <h1 className="font-editorial text-2xl md:text-3xl font-medium">
+          <h1 className="font-editorial text-2xl md:text-3xl font-semibold">
             {isSuccess ? 'Order Confirmation' : 'Order Details'}
           </h1>
           <div className="flex items-center gap-2 mt-1">

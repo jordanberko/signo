@@ -34,7 +34,7 @@ export default function SellerGuidePage() {
             </div>
             <div>
               <p className="text-accent-dark text-xs font-medium tracking-[0.15em] uppercase">Step 1</p>
-              <h2 className="font-editorial text-2xl md:text-3xl font-medium">Take Great Photos</h2>
+              <h2 className="font-editorial text-2xl md:text-3xl font-semibold">Take Great Photos</h2>
             </div>
           </div>
           <p className="text-muted leading-relaxed mb-8">
@@ -86,7 +86,7 @@ export default function SellerGuidePage() {
             </div>
             <div>
               <p className="text-accent-dark text-xs font-medium tracking-[0.15em] uppercase">Step 2</p>
-              <h2 className="font-editorial text-2xl md:text-3xl font-medium">Write a Compelling Listing</h2>
+              <h2 className="font-editorial text-2xl md:text-3xl font-semibold">Write a Compelling Listing</h2>
             </div>
           </div>
           <div className="space-y-6">
@@ -127,7 +127,7 @@ export default function SellerGuidePage() {
             </div>
             <div>
               <p className="text-accent-dark text-xs font-medium tracking-[0.15em] uppercase">Step 3</p>
-              <h2 className="font-editorial text-2xl md:text-3xl font-medium">Price Your Work</h2>
+              <h2 className="font-editorial text-2xl md:text-3xl font-semibold">Price Your Work</h2>
             </div>
           </div>
           <p className="text-muted leading-relaxed mb-8">
@@ -177,7 +177,7 @@ export default function SellerGuidePage() {
             </div>
             <div>
               <p className="text-accent-dark text-xs font-medium tracking-[0.15em] uppercase">Step 4</p>
-              <h2 className="font-editorial text-2xl md:text-3xl font-medium">Shipping Best Practices</h2>
+              <h2 className="font-editorial text-2xl md:text-3xl font-semibold">Shipping Best Practices</h2>
             </div>
           </div>
           <p className="text-muted leading-relaxed mb-8">
@@ -237,7 +237,7 @@ export default function SellerGuidePage() {
             </div>
             <div>
               <p className="text-accent-dark text-xs font-medium tracking-[0.15em] uppercase">Step 5</p>
-              <h2 className="font-editorial text-2xl md:text-3xl font-medium">The Review Process</h2>
+              <h2 className="font-editorial text-2xl md:text-3xl font-semibold">The Review Process</h2>
             </div>
           </div>
           <p className="text-muted leading-relaxed mb-8">
@@ -294,7 +294,7 @@ export default function SellerGuidePage() {
             </div>
             <div>
               <p className="text-accent-dark text-xs font-medium tracking-[0.15em] uppercase">Step 6</p>
-              <h2 className="font-editorial text-2xl md:text-3xl font-medium">How Payouts Work</h2>
+              <h2 className="font-editorial text-2xl md:text-3xl font-semibold">How Payouts Work</h2>
             </div>
           </div>
           <div className="space-y-6">
@@ -336,7 +336,7 @@ export default function SellerGuidePage() {
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <p className="text-accent-dark text-sm font-medium tracking-[0.15em] uppercase mb-3">Common Questions</p>
-            <h2 className="font-editorial text-3xl md:text-4xl font-medium">Seller FAQ</h2>
+            <h2 className="font-editorial text-3xl md:text-4xl font-semibold">Seller FAQ</h2>
           </div>
           <div className="space-y-4">
             {[
@@ -385,7 +385,7 @@ export default function SellerGuidePage() {
       {/* CTA */}
       <section className="py-20 md:py-28 bg-primary text-white relative texture-grain overflow-hidden">
         <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 text-center relative z-10">
-          <h2 className="font-editorial text-3xl md:text-4xl font-medium leading-snug">
+          <h2 className="font-editorial text-3xl md:text-4xl font-semibold leading-snug">
             Ready to start{' '}
             <span className="italic text-accent-dark">selling?</span>
           </h2>

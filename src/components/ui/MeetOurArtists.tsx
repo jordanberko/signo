@@ -31,7 +31,7 @@ export default function MeetOurArtists({ artists }: { artists: SpotlightArtist[]
             <p className="text-accent-dark text-xs font-semibold tracking-[0.2em] uppercase mb-2">
               Our Community
             </p>
-            <h2 className="font-editorial text-2xl md:text-3xl font-medium text-primary">
+            <h2 className="font-editorial text-2xl md:text-3xl font-semibold text-primary">
               Meet Our Artists
             </h2>
           </div>

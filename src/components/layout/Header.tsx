@@ -335,7 +335,7 @@ export default function Header() {
                 className="text-2xl text-primary group-hover:text-accent-dark transition-colors duration-300"
                 style={{
                   fontFamily: 'var(--font-satoshi), Helvetica Neue, Helvetica, Arial, sans-serif',
-                  fontWeight: 500,
+                  fontWeight: 600,
                   letterSpacing: '0.1em',
                   ...(shouldAnimate && !animationDone
                     ? {
@@ -351,7 +351,7 @@ export default function Header() {
                 className="text-2xl italic"
                 style={{
                   fontFamily: 'var(--font-satoshi), Helvetica Neue, Helvetica, Arial, sans-serif',
-                  fontWeight: 500,
+                  fontWeight: 600,
                   color: 'var(--color-accent, #6b7c4e)',
                   ...(shouldAnimate && !animationDone
                     ? {
@@ -625,7 +625,7 @@ export default function Header() {
                 className="text-lg"
                 style={{
                   fontFamily: 'var(--font-satoshi), Helvetica Neue, Helvetica, Arial, sans-serif',
-                  fontWeight: 500,
+                  fontWeight: 600,
                   letterSpacing: '0.1em',
                 }}
               >

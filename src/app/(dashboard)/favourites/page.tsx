@@ -107,7 +107,7 @@ export default function FavouritesPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mb-8">
         <div>
-          <h1 className="font-editorial text-3xl md:text-4xl font-medium">
+          <h1 className="font-editorial text-3xl md:text-4xl font-semibold">
             Your Favourites
           </h1>
           <p className="text-muted mt-1.5">
@@ -185,7 +185,7 @@ export default function FavouritesPage() {
           <div className="w-20 h-20 bg-muted-bg rounded-full flex items-center justify-center mx-auto mb-5">
             <Heart className="h-10 w-10 text-muted" />
           </div>
-          <h2 className="font-editorial text-2xl font-medium mb-2">
+          <h2 className="font-editorial text-2xl font-semibold mb-2">
             No saved artwork yet
           </h2>
           <p className="text-muted mb-8 max-w-md mx-auto">

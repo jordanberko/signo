@@ -364,7 +364,7 @@ export default function NewArtworkPage() {
     <div className="max-w-2xl mx-auto px-4 sm:px-6 py-8 pb-20">
       {/* ── Header ── */}
       <div className="mb-8">
-        <h1 className="font-editorial text-2xl md:text-3xl font-medium">Upload Artwork</h1>
+        <h1 className="font-editorial text-2xl md:text-3xl font-semibold">Upload Artwork</h1>
         <p className="text-sm text-muted mt-1">
           Add your work to Signo. It&apos;ll be reviewed within 24–48 hours.
         </p>

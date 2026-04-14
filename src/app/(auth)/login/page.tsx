@@ -121,10 +121,10 @@ function LoginForm() {
       <div className="w-full max-w-md">
         {/* Header */}
         <div className="text-center mb-10">
-          <Link href="/" className="font-editorial text-3xl font-medium text-primary hover:text-accent-dark transition-colors">
+          <Link href="/" className="font-editorial text-3xl font-semibold text-primary hover:text-accent-dark transition-colors">
             SIGNO
           </Link>
-          <h1 className="font-editorial text-2xl font-medium mt-6">Welcome back</h1>
+          <h1 className="font-editorial text-2xl font-semibold mt-6">Welcome back</h1>
           <p className="mt-2 text-sm text-muted">Sign in to your account</p>
         </div>
 
@@ -233,8 +233,8 @@ function LoginFallback() {
     <div className="min-h-[80vh] flex items-center justify-center px-4 py-12">
       <div className="w-full max-w-md">
         <div className="text-center mb-10">
-          <span className="font-editorial text-3xl font-medium text-primary">SIGNO</span>
-          <h1 className="font-editorial text-2xl font-medium mt-6">Welcome back</h1>
+          <span className="font-editorial text-3xl font-semibold text-primary">SIGNO</span>
+          <h1 className="font-editorial text-2xl font-semibold mt-6">Welcome back</h1>
           <p className="mt-2 text-sm text-muted">Sign in to your account</p>
         </div>
         <div className="space-y-5">

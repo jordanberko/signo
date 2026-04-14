@@ -333,7 +333,7 @@ export default function ArtAdvisoryPage() {
               <div className="text-center mb-12">
                 {results.length > 0 ? (
                   <>
-                    <h1 className="font-editorial text-3xl md:text-4xl font-medium text-primary mb-3">
+                    <h1 className="font-editorial text-3xl md:text-4xl font-semibold text-primary mb-3">
                       {relaxed ? 'Close matches' : `We found ${results.length} artwork${results.length === 1 ? '' : 's'} for you`}
                     </h1>
                     {relaxed && (
@@ -344,7 +344,7 @@ export default function ArtAdvisoryPage() {
                   </>
                 ) : (
                   <>
-                    <h1 className="font-editorial text-3xl md:text-4xl font-medium text-primary mb-3">
+                    <h1 className="font-editorial text-3xl md:text-4xl font-semibold text-primary mb-3">
                       No exact matches found
                     </h1>
                     <p className="text-muted text-sm">
@@ -446,7 +446,7 @@ export default function ArtAdvisoryPage() {
           {/* Step 1: Room */}
           {step === 1 && (
             <div>
-              <h1 className="font-editorial text-3xl md:text-4xl font-medium text-primary text-center mb-2">
+              <h1 className="font-editorial text-3xl md:text-4xl font-semibold text-primary text-center mb-2">
                 What room is this for?
               </h1>
               <p className="text-muted text-center mb-10 text-sm">
@@ -474,7 +474,7 @@ export default function ArtAdvisoryPage() {
           {/* Step 2: Size */}
           {step === 2 && (
             <div>
-              <h1 className="font-editorial text-3xl md:text-4xl font-medium text-primary text-center mb-2">
+              <h1 className="font-editorial text-3xl md:text-4xl font-semibold text-primary text-center mb-2">
                 What size are you looking for?
               </h1>
               <p className="text-muted text-center mb-10 text-sm">
@@ -502,7 +502,7 @@ export default function ArtAdvisoryPage() {
           {/* Step 3: Styles */}
           {step === 3 && (
             <div>
-              <h1 className="font-editorial text-3xl md:text-4xl font-medium text-primary text-center mb-2">
+              <h1 className="font-editorial text-3xl md:text-4xl font-semibold text-primary text-center mb-2">
                 What styles do you love?
               </h1>
               <p className="text-muted text-center mb-10 text-sm">
@@ -548,7 +548,7 @@ export default function ArtAdvisoryPage() {
           {/* Step 4: Colours */}
           {step === 4 && (
             <div>
-              <h1 className="font-editorial text-3xl md:text-4xl font-medium text-primary text-center mb-2">
+              <h1 className="font-editorial text-3xl md:text-4xl font-semibold text-primary text-center mb-2">
                 What colours speak to you?
               </h1>
               <p className="text-muted text-center mb-10 text-sm">
@@ -601,7 +601,7 @@ export default function ArtAdvisoryPage() {
           {/* Step 5: Budget */}
           {step === 5 && (
             <div>
-              <h1 className="font-editorial text-3xl md:text-4xl font-medium text-primary text-center mb-2">
+              <h1 className="font-editorial text-3xl md:text-4xl font-semibold text-primary text-center mb-2">
                 What's your budget?
               </h1>
               <p className="text-muted text-center mb-10 text-sm">

@@ -474,7 +474,7 @@ export default function SettingsPage() {
     <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
       {/* Header */}
       <div className="mb-8">
-        <h1 className="font-editorial text-3xl md:text-4xl font-medium">
+        <h1 className="font-editorial text-3xl md:text-4xl font-semibold">
           Settings
         </h1>
         <p className="text-muted mt-2">

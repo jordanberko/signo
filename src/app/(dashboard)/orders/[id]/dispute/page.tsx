@@ -168,7 +168,7 @@ function DisputeContent({ orderId }: { orderId: string }) {
     return (
       <div className="max-w-lg mx-auto px-4 py-16 text-center">
         <AlertCircle className="h-12 w-12 text-muted mx-auto mb-4" />
-        <h1 className="font-editorial text-2xl font-medium mb-2">
+        <h1 className="font-editorial text-2xl font-semibold mb-2">
           Cannot open dispute
         </h1>
         <p className="text-muted mb-6">{blockReason}</p>
@@ -189,7 +189,7 @@ function DisputeContent({ orderId }: { orderId: string }) {
     return (
       <div className="max-w-lg mx-auto px-4 py-16 text-center">
         <CheckCircle2 className="h-16 w-16 text-green-500 mx-auto mb-4" />
-        <h1 className="font-editorial text-2xl font-medium mb-2">
+        <h1 className="font-editorial text-2xl font-semibold mb-2">
           Dispute submitted
         </h1>
         <p className="text-muted mb-6">
@@ -221,7 +221,7 @@ function DisputeContent({ orderId }: { orderId: string }) {
 
       {/* Header */}
       <div className="mb-8">
-        <h1 className="font-editorial text-2xl md:text-3xl font-medium">
+        <h1 className="font-editorial text-2xl md:text-3xl font-semibold">
           Report an Issue
         </h1>
         {order?.artwork && (

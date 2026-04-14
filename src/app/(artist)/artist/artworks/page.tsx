@@ -355,7 +355,7 @@ export default function ArtistArtworksPage() {
       {/* Header */}
       <div className="flex items-center justify-between mb-8">
         <div>
-          <h1 className="font-editorial text-2xl md:text-3xl font-medium">My Artworks</h1>
+          <h1 className="font-editorial text-2xl md:text-3xl font-semibold">My Artworks</h1>
           <p className="text-sm text-muted mt-1">Manage all your listings</p>
         </div>
         <Link

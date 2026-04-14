@@ -494,7 +494,7 @@ export default function ArtistOnboardingPage() {
             </div>
 
             <div>
-              <h1 className="font-editorial text-3xl md:text-4xl font-medium">
+              <h1 className="font-editorial text-3xl md:text-4xl font-semibold">
                 Welcome to Signo
               </h1>
               <p className="text-muted mt-3 max-w-sm mx-auto leading-relaxed">
@@ -533,7 +533,7 @@ export default function ArtistOnboardingPage() {
         {step === 1 && (
           <div className="space-y-8">
             <div className="text-center">
-              <h1 className="font-editorial text-2xl md:text-3xl font-medium">
+              <h1 className="font-editorial text-2xl md:text-3xl font-semibold">
                 Set up your profile
               </h1>
               <p className="text-sm text-muted mt-2">
@@ -713,7 +713,7 @@ export default function ArtistOnboardingPage() {
         {step === 2 && (
           <div className="space-y-8">
             <div className="text-center">
-              <h1 className="font-editorial text-2xl md:text-3xl font-medium">
+              <h1 className="font-editorial text-2xl md:text-3xl font-semibold">
                 Our selling standards
               </h1>
               <p className="text-sm text-muted mt-2">
@@ -778,7 +778,7 @@ export default function ArtistOnboardingPage() {
         {step === 3 && (
           <div className="space-y-6">
             <div className="text-center">
-              <h1 className="font-editorial text-2xl md:text-3xl font-medium">
+              <h1 className="font-editorial text-2xl md:text-3xl font-semibold">
                 List your first artwork
               </h1>
               <p className="text-sm text-muted mt-2">
@@ -963,7 +963,7 @@ export default function ArtistOnboardingPage() {
         {step === 4 && (
           <div className="space-y-8">
             <div className="text-center">
-              <h1 className="font-editorial text-2xl md:text-3xl font-medium">
+              <h1 className="font-editorial text-2xl md:text-3xl font-semibold">
                 Connect payments
               </h1>
               <p className="text-sm text-muted mt-2">
@@ -1052,7 +1052,7 @@ export default function ArtistOnboardingPage() {
             </div>
 
             <div>
-              <h1 className="font-editorial text-2xl md:text-3xl font-medium">
+              <h1 className="font-editorial text-2xl md:text-3xl font-semibold">
                 You&apos;re all set!
               </h1>
               {artworkImages.length > 0 ? (

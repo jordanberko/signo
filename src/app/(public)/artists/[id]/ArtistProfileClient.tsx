@@ -449,7 +449,7 @@ export default function ArtistProfileClient({
             {/* Info */}
             <div className="flex-1 text-center md:text-left space-y-4">
               <div>
-                <h1 className="font-editorial text-3xl md:text-4xl font-medium">
+                <h1 className="font-editorial text-3xl md:text-4xl font-semibold">
                   {artist.full_name ?? 'Artist'}
                 </h1>
 

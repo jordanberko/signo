@@ -83,7 +83,7 @@ export default function OrdersPage() {
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
       <div className="mb-8">
-        <h1 className="font-editorial text-3xl md:text-4xl font-medium">
+        <h1 className="font-editorial text-3xl md:text-4xl font-semibold">
           My Orders
         </h1>
         <p className="text-muted mt-1.5">
@@ -105,7 +105,7 @@ export default function OrdersPage() {
           <div className="w-20 h-20 bg-muted-bg rounded-full flex items-center justify-center mx-auto mb-5">
             <Package className="h-10 w-10 text-muted" />
           </div>
-          <h2 className="font-editorial text-2xl font-medium mb-2">
+          <h2 className="font-editorial text-2xl font-semibold mb-2">
             No orders yet
           </h2>
           <p className="text-muted mb-8 max-w-md mx-auto">

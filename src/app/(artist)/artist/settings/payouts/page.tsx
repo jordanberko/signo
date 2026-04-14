@@ -148,7 +148,7 @@ function PayoutsContent() {
       </div>
 
       <div className="mb-8">
-        <h1 className="font-editorial text-2xl md:text-3xl font-medium">
+        <h1 className="font-editorial text-2xl md:text-3xl font-semibold">
           Payout Settings
         </h1>
         <p className="text-sm text-muted mt-1">

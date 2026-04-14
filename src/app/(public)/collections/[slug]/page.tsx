@@ -115,7 +115,7 @@ export default function CollectionDetailPage() {
             <p className="text-accent-dark text-xs font-semibold tracking-[0.2em] uppercase mb-3">
               CURATED COLLECTION
             </p>
-            <h1 className="font-editorial text-4xl md:text-6xl font-medium text-primary">
+            <h1 className="font-editorial text-4xl md:text-6xl font-bold text-primary">
               {collection.title}
             </h1>
             {collection.description && (

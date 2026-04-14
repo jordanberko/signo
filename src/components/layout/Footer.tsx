@@ -8,7 +8,7 @@ export default function Footer() {
         <div className="grid grid-cols-1 md:grid-cols-12 gap-12">
           {/* Brand */}
           <div className="md:col-span-2 space-y-5">
-            <h3 className="font-editorial text-3xl font-medium tracking-wide text-primary">SIGNO</h3>
+            <h3 className="font-editorial text-3xl font-semibold tracking-wide text-primary">SIGNO</h3>
             <p className="text-sm text-muted leading-relaxed max-w-xs">
               A curated Australian art marketplace built on fairness.
               Artists keep 100% of every sale.

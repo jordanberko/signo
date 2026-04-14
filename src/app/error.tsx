@@ -14,7 +14,7 @@ export default function Error({
         <p className="text-accent-dark text-sm font-medium tracking-[0.2em] uppercase mb-4">
           Error
         </p>
-        <h1 className="font-editorial text-3xl md:text-4xl font-medium text-primary mb-4">
+        <h1 className="font-editorial text-3xl md:text-4xl font-semibold text-primary mb-4">
           Something went wrong
         </h1>
         <p className="text-muted leading-relaxed mb-8">

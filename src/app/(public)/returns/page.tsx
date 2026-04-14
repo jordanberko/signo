@@ -44,7 +44,7 @@ export default function ReturnsPage() {
             <div className="w-8 h-8 bg-accent/10 rounded-full flex items-center justify-center">
               <span className="text-sm font-mono font-semibold text-accent-dark">1</span>
             </div>
-            <h2 className="font-editorial text-2xl font-medium">Damaged in Transit</h2>
+            <h2 className="font-editorial text-2xl font-semibold">Damaged in Transit</h2>
           </div>
           <div className="space-y-4 text-sm text-muted leading-relaxed">
             <p className="font-medium text-primary text-base">
@@ -77,7 +77,7 @@ export default function ReturnsPage() {
             <div className="w-8 h-8 bg-accent/10 rounded-full flex items-center justify-center">
               <span className="text-sm font-mono font-semibold text-accent-dark">2</span>
             </div>
-            <h2 className="font-editorial text-2xl font-medium">Not as Described</h2>
+            <h2 className="font-editorial text-2xl font-semibold">Not as Described</h2>
           </div>
           <div className="space-y-4 text-sm text-muted leading-relaxed">
             <p className="font-medium text-primary text-base">
@@ -112,7 +112,7 @@ export default function ReturnsPage() {
             <div className="w-8 h-8 bg-accent/10 rounded-full flex items-center justify-center">
               <span className="text-sm font-mono font-semibold text-accent-dark">3</span>
             </div>
-            <h2 className="font-editorial text-2xl font-medium">Changed Your Mind</h2>
+            <h2 className="font-editorial text-2xl font-semibold">Changed Your Mind</h2>
           </div>
           <div className="space-y-4 text-sm text-muted leading-relaxed">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -146,7 +146,7 @@ export default function ReturnsPage() {
             <div className="w-8 h-8 bg-muted-bg rounded-full flex items-center justify-center border border-border">
               <span className="text-sm font-mono text-warm-gray">~</span>
             </div>
-            <h2 className="font-editorial text-2xl font-medium">Digital Downloads</h2>
+            <h2 className="font-editorial text-2xl font-semibold">Digital Downloads</h2>
           </div>
           <div className="space-y-4 text-sm text-muted leading-relaxed">
             <p>
@@ -164,7 +164,7 @@ export default function ReturnsPage() {
       {/* How to Raise a Dispute */}
       <section className="py-16 md:py-20 bg-cream border-y border-border">
         <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
-          <h2 className="font-editorial text-2xl font-medium mb-6">How to Raise a Dispute</h2>
+          <h2 className="font-editorial text-2xl font-semibold mb-6">How to Raise a Dispute</h2>
           <div className="space-y-4">
             <div className="flex gap-4 items-start">
               <div className="w-8 h-8 bg-white rounded-full flex items-center justify-center shrink-0 border border-border">
@@ -205,7 +205,7 @@ export default function ReturnsPage() {
       {/* Refund Timeline */}
       <section className="py-16 md:py-20">
         <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
-          <h2 className="font-editorial text-2xl font-medium mb-6">Refund Timeline</h2>
+          <h2 className="font-editorial text-2xl font-semibold mb-6">Refund Timeline</h2>
           <div className="space-y-3 text-sm text-muted leading-relaxed">
             <div className="flex justify-between items-center p-4 bg-muted-bg rounded-xl border border-border">
               <span>Dispute review</span>
@@ -234,7 +234,7 @@ export default function ReturnsPage() {
       {/* Contact CTA */}
       <section className="py-16 md:py-20 bg-cream border-t border-border">
         <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h2 className="font-editorial text-2xl font-medium mb-4">Still have questions?</h2>
+          <h2 className="font-editorial text-2xl font-semibold mb-4">Still have questions?</h2>
           <p className="text-muted mb-6">
             Our support team is here to help with any order issues.
           </p>

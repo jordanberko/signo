@@ -351,7 +351,7 @@ export default function EditArtworkPage() {
   if (notFound) {
     return (
       <div className="max-w-lg mx-auto px-4 py-20 text-center">
-        <h1 className="font-editorial text-2xl font-medium mb-2">Artwork not found</h1>
+        <h1 className="font-editorial text-2xl font-semibold mb-2">Artwork not found</h1>
         <p className="text-sm text-muted mb-6">This artwork doesn&apos;t exist or doesn&apos;t belong to you.</p>
         <Link
           href="/artist/artworks"
@@ -371,7 +371,7 @@ export default function EditArtworkPage() {
     <div className="max-w-2xl mx-auto px-4 sm:px-6 py-8 pb-20">
       {/* Header */}
       <div className="mb-8">
-        <h1 className="font-editorial text-2xl md:text-3xl font-medium">Edit Artwork</h1>
+        <h1 className="font-editorial text-2xl md:text-3xl font-semibold">Edit Artwork</h1>
         <p className="text-sm text-muted mt-1">
           Update your listing details.
           {isRejected && ' Saving changes will automatically resubmit for review.'}

@@ -119,7 +119,7 @@ export default function MessagesPage() {
         <div className="w-16 h-16 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-5">
           <MessageCircle className="h-8 w-8 text-red-400" />
         </div>
-        <h1 className="font-editorial text-2xl font-medium mb-2">
+        <h1 className="font-editorial text-2xl font-semibold mb-2">
           Something went wrong
         </h1>
         <p className="text-muted mb-6">{error}</p>
@@ -145,7 +145,7 @@ export default function MessagesPage() {
         <div className="w-16 h-16 bg-cream rounded-full flex items-center justify-center mx-auto mb-5">
           <MessageCircle className="h-8 w-8 text-warm-gray" />
         </div>
-        <h1 className="font-editorial text-2xl font-medium mb-2">
+        <h1 className="font-editorial text-2xl font-semibold mb-2">
           No messages yet
         </h1>
         <p className="text-muted mb-6">
@@ -164,7 +164,7 @@ export default function MessagesPage() {
   // ── Conversation list ──
   return (
     <div className="max-w-2xl mx-auto px-4 sm:px-6 py-8">
-      <h1 className="font-editorial text-2xl md:text-3xl font-medium mb-6">
+      <h1 className="font-editorial text-2xl md:text-3xl font-semibold mb-6">
         Messages
       </h1>
 

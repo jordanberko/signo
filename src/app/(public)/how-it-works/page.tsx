@@ -25,7 +25,7 @@ export default function HowItWorksPage() {
               <div className="divider-accent" />
               <p className="text-accent-dark text-sm font-medium tracking-[0.15em] uppercase">For Sellers</p>
             </div>
-            <h2 className="font-editorial text-3xl md:text-4xl font-medium">Start selling in minutes</h2>
+            <h2 className="font-editorial text-3xl md:text-4xl font-semibold">Start selling in minutes</h2>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-12 md:gap-16">
@@ -96,7 +96,7 @@ export default function HowItWorksPage() {
               <div className="divider-accent" />
               <p className="text-accent-dark text-sm font-medium tracking-[0.15em] uppercase">For Buyers</p>
             </div>
-            <h2 className="font-editorial text-3xl md:text-4xl font-medium">Find art you love</h2>
+            <h2 className="font-editorial text-3xl md:text-4xl font-semibold">Find art you love</h2>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-12 md:gap-16">
@@ -137,7 +137,7 @@ export default function HowItWorksPage() {
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <p className="text-accent-dark text-sm font-medium tracking-[0.15em] uppercase mb-3">Peace of Mind</p>
-            <h2 className="font-editorial text-3xl md:text-4xl font-medium">Buyer Protection Guarantee</h2>
+            <h2 className="font-editorial text-3xl md:text-4xl font-semibold">Buyer Protection Guarantee</h2>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
@@ -168,7 +168,7 @@ export default function HowItWorksPage() {
       {/* CTA */}
       <section className="py-20 md:py-28 bg-primary text-white relative texture-grain overflow-hidden">
         <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 text-center relative z-10">
-          <h2 className="font-editorial text-3xl md:text-4xl font-medium leading-snug">
+          <h2 className="font-editorial text-3xl md:text-4xl font-semibold leading-snug">
             Ready to join the{' '}
             <span className="italic text-accent-dark">community?</span>
           </h2>

@@ -120,7 +120,7 @@ export default function EarningsPage() {
     <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       {/* Header */}
       <div className="mb-8">
-        <h1 className="font-editorial text-2xl md:text-3xl font-medium">Earnings</h1>
+        <h1 className="font-editorial text-2xl md:text-3xl font-semibold">Earnings</h1>
         <p className="text-sm text-muted mt-1">Track your sales and payouts</p>
       </div>
 

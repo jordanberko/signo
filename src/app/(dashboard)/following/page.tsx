@@ -109,7 +109,7 @@ export default function FollowingPage() {
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
       {/* Header */}
       <div className="mb-8">
-        <h1 className="font-editorial text-3xl md:text-4xl font-medium">
+        <h1 className="font-editorial text-3xl md:text-4xl font-semibold">
           Following
         </h1>
         <p className="text-muted mt-1.5">
@@ -145,7 +145,7 @@ export default function FollowingPage() {
           <div className="w-20 h-20 bg-muted-bg rounded-full flex items-center justify-center mx-auto mb-5">
             <Users className="h-10 w-10 text-muted" />
           </div>
-          <h2 className="font-editorial text-2xl font-medium mb-2">
+          <h2 className="font-editorial text-2xl font-semibold mb-2">
             You&apos;re not following any artists yet
           </h2>
           <p className="text-muted mb-8 max-w-md mx-auto">

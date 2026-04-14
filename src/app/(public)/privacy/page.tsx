@@ -37,7 +37,7 @@ export default function PrivacyPage() {
 
           {/* What We Collect */}
           <div>
-            <h2 className="font-editorial text-2xl font-medium mb-6">What we collect</h2>
+            <h2 className="font-editorial text-2xl font-semibold mb-6">What we collect</h2>
             <div className="space-y-4">
               <div className="p-5 bg-muted-bg rounded-xl border border-border">
                 <h3 className="font-medium text-sm mb-2">Account information</h3>
@@ -79,7 +79,7 @@ export default function PrivacyPage() {
 
           {/* How We Use It */}
           <div>
-            <h2 className="font-editorial text-2xl font-medium mb-6">How we use your information</h2>
+            <h2 className="font-editorial text-2xl font-semibold mb-6">How we use your information</h2>
             <div className="space-y-3">
               {[
                 {
@@ -116,7 +116,7 @@ export default function PrivacyPage() {
 
           {/* Third Parties */}
           <div>
-            <h2 className="font-editorial text-2xl font-medium mb-6">Third parties we work with</h2>
+            <h2 className="font-editorial text-2xl font-semibold mb-6">Third parties we work with</h2>
             <p className="text-sm text-muted leading-relaxed mb-6">
               We share your information only with trusted service providers who help us run Signo.
               We never sell your personal information.
@@ -151,7 +151,7 @@ export default function PrivacyPage() {
 
           {/* Cookies */}
           <div>
-            <h2 className="font-editorial text-2xl font-medium mb-6">Cookies and analytics</h2>
+            <h2 className="font-editorial text-2xl font-semibold mb-6">Cookies and analytics</h2>
             <p className="text-sm text-muted leading-relaxed mb-4">
               Signo uses essential cookies to keep you signed in and maintain your session. These are
               strictly necessary for the platform to function.
@@ -165,7 +165,7 @@ export default function PrivacyPage() {
 
           {/* Data Retention */}
           <div>
-            <h2 className="font-editorial text-2xl font-medium mb-6">Data retention</h2>
+            <h2 className="font-editorial text-2xl font-semibold mb-6">Data retention</h2>
             <p className="text-sm text-muted leading-relaxed mb-4">
               We keep your account information for as long as your account is active. If you delete your
               account, we will remove your personal information within 30 days, except where we need to
@@ -180,7 +180,7 @@ export default function PrivacyPage() {
 
           {/* Your Rights */}
           <div>
-            <h2 className="font-editorial text-2xl font-medium mb-6">Your rights</h2>
+            <h2 className="font-editorial text-2xl font-semibold mb-6">Your rights</h2>
             <p className="text-sm text-muted leading-relaxed mb-6">
               Under the Australian Privacy Principles, you have the right to:
             </p>

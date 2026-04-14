@@ -37,7 +37,7 @@ export default function TermsPage() {
 
           {/* Platform Usage */}
           <div>
-            <h2 className="font-editorial text-2xl font-medium mb-6">1. Using Signo</h2>
+            <h2 className="font-editorial text-2xl font-semibold mb-6">1. Using Signo</h2>
             <div className="space-y-4 text-sm text-muted leading-relaxed">
               <p>
                 Signo is an online marketplace that connects Australian artists with art buyers.
@@ -58,7 +58,7 @@ export default function TermsPage() {
 
           {/* Artist Obligations */}
           <div>
-            <h2 className="font-editorial text-2xl font-medium mb-6">2. Artist Obligations</h2>
+            <h2 className="font-editorial text-2xl font-semibold mb-6">2. Artist Obligations</h2>
             <p className="text-sm text-muted leading-relaxed mb-6">
               If you sell artwork on Signo, you agree to the following:
             </p>
@@ -95,7 +95,7 @@ export default function TermsPage() {
 
           {/* Buyer Obligations */}
           <div>
-            <h2 className="font-editorial text-2xl font-medium mb-6">3. Buyer Obligations</h2>
+            <h2 className="font-editorial text-2xl font-semibold mb-6">3. Buyer Obligations</h2>
             <p className="text-sm text-muted leading-relaxed mb-6">
               If you purchase artwork on Signo, you agree to the following:
             </p>
@@ -128,7 +128,7 @@ export default function TermsPage() {
 
           {/* Subscriptions */}
           <div>
-            <h2 className="font-editorial text-2xl font-medium mb-6">4. Subscription Terms</h2>
+            <h2 className="font-editorial text-2xl font-semibold mb-6">4. Subscription Terms</h2>
             <div className="space-y-4 text-sm text-muted leading-relaxed">
               <p>
                 Selling on Signo requires an active artist subscription at <strong>$30 AUD per month</strong>.
@@ -157,7 +157,7 @@ export default function TermsPage() {
 
           {/* Intellectual Property */}
           <div>
-            <h2 className="font-editorial text-2xl font-medium mb-6">5. Intellectual Property</h2>
+            <h2 className="font-editorial text-2xl font-semibold mb-6">5. Intellectual Property</h2>
             <div className="space-y-4 text-sm text-muted leading-relaxed">
               <p>
                 <strong>Artists retain full copyright</strong> to all artwork uploaded to Signo. Listing your work
@@ -180,7 +180,7 @@ export default function TermsPage() {
 
           {/* Dispute Resolution */}
           <div>
-            <h2 className="font-editorial text-2xl font-medium mb-6">6. Dispute Resolution</h2>
+            <h2 className="font-editorial text-2xl font-semibold mb-6">6. Dispute Resolution</h2>
             <div className="space-y-4 text-sm text-muted leading-relaxed">
               <p>
                 We aim to resolve all disputes fairly and efficiently. Our process:
@@ -205,7 +205,7 @@ export default function TermsPage() {
 
           {/* Limitation of Liability */}
           <div>
-            <h2 className="font-editorial text-2xl font-medium mb-6">7. Limitation of Liability</h2>
+            <h2 className="font-editorial text-2xl font-semibold mb-6">7. Limitation of Liability</h2>
             <div className="space-y-4 text-sm text-muted leading-relaxed">
               <p>
                 Signo provides a marketplace platform. We are not a party to the transaction between
@@ -229,7 +229,7 @@ export default function TermsPage() {
 
           {/* Changes */}
           <div>
-            <h2 className="font-editorial text-2xl font-medium mb-6">8. Changes to These Terms</h2>
+            <h2 className="font-editorial text-2xl font-semibold mb-6">8. Changes to These Terms</h2>
             <div className="space-y-4 text-sm text-muted leading-relaxed">
               <p>
                 We may update these terms from time to time. For significant changes, we&apos;ll notify you
@@ -241,7 +241,7 @@ export default function TermsPage() {
 
           {/* Governing Law */}
           <div>
-            <h2 className="font-editorial text-2xl font-medium mb-6">9. Governing Law</h2>
+            <h2 className="font-editorial text-2xl font-semibold mb-6">9. Governing Law</h2>
             <div className="space-y-4 text-sm text-muted leading-relaxed">
               <p>
                 These terms are governed by the laws of the State of Victoria, Australia.

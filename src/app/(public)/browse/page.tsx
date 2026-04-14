@@ -715,7 +715,7 @@ function BrowseContent() {
           <p className="text-accent-dark text-sm font-medium tracking-[0.15em] uppercase mb-3">
             Collection
           </p>
-          <h1 className="font-editorial text-4xl md:text-5xl font-medium">
+          <h1 className="font-editorial text-4xl md:text-5xl font-bold">
             Browse Artwork
           </h1>
           <p className="mt-3 text-muted max-w-lg">

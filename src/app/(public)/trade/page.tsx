@@ -72,7 +72,7 @@ export default function TradePage() {
               <div className="w-14 h-14 bg-accent/10 rounded-full flex items-center justify-center mx-auto mb-6">
                 <Send className="w-6 h-6 text-accent-dark" />
               </div>
-              <h2 className="font-editorial text-2xl font-medium mb-3">Enquiry received!</h2>
+              <h2 className="font-editorial text-2xl font-semibold mb-3">Enquiry received!</h2>
               <p className="text-muted leading-relaxed max-w-sm mx-auto">
                 Thanks for getting in touch. Our team will review your enquiry and respond within 48 hours.
               </p>

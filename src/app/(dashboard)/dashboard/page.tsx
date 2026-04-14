@@ -162,7 +162,7 @@ function DashboardContent() {
 
       {/* Welcome header */}
       <div className="mb-10">
-        <h1 className="font-editorial text-3xl md:text-4xl font-medium">
+        <h1 className="font-editorial text-3xl md:text-4xl font-semibold">
           Welcome back{firstName ? `, ${firstName}` : ''}
         </h1>
         <p className="text-muted mt-2">

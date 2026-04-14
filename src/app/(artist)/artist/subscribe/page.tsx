@@ -97,7 +97,7 @@ function SubscribeContent() {
 
         {/* Header */}
         <div className="text-center mb-8">
-          <h1 className="font-editorial text-3xl md:text-4xl font-medium">
+          <h1 className="font-editorial text-3xl md:text-4xl font-semibold">
             {subscriptionStatus === 'trial' && 'Signo for Artists'}
             {subscriptionStatus === 'pending_activation' && 'Complete Your Subscription'}
             {subscriptionStatus === 'active' && 'Your Subscription'}

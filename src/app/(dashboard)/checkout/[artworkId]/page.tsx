@@ -219,7 +219,7 @@ export default function CheckoutPage({
     return (
       <div className="max-w-2xl mx-auto px-4 py-16 text-center">
         <AlertCircle className="h-12 w-12 text-muted mx-auto mb-4" />
-        <h1 className="font-editorial text-2xl font-medium mb-2">
+        <h1 className="font-editorial text-2xl font-semibold mb-2">
           Artwork not available
         </h1>
         <p className="text-muted mb-6">
@@ -250,7 +250,7 @@ export default function CheckoutPage({
         Back to artwork
       </Link>
 
-      <h1 className="font-editorial text-2xl md:text-3xl font-medium mb-8">
+      <h1 className="font-editorial text-2xl md:text-3xl font-semibold mb-8">
         Checkout
       </h1>
 

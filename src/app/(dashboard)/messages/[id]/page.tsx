@@ -317,7 +317,7 @@ export default function ConversationPage({
   if (error) {
     return (
       <div className="max-w-2xl mx-auto px-4 py-16 text-center">
-        <h1 className="font-editorial text-2xl font-medium mb-2">
+        <h1 className="font-editorial text-2xl font-semibold mb-2">
           Something went wrong
         </h1>
         <p className="text-muted mb-6">{error}</p>
@@ -351,7 +351,7 @@ export default function ConversationPage({
   if (!otherUser) {
     return (
       <div className="max-w-2xl mx-auto px-4 py-16 text-center">
-        <h1 className="font-editorial text-2xl font-medium mb-2">
+        <h1 className="font-editorial text-2xl font-semibold mb-2">
           Conversation not found
         </h1>
         <p className="text-muted mb-6">

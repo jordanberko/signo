@@ -99,7 +99,7 @@ export default function PricingPage() {
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <p className="text-accent-dark text-sm font-medium tracking-[0.15em] uppercase mb-3">Transparency</p>
-            <h2 className="font-editorial text-3xl md:text-4xl font-medium">The only fee: payment processing</h2>
+            <h2 className="font-editorial text-3xl md:text-4xl font-semibold">The only fee: payment processing</h2>
             <p className="mt-4 text-muted max-w-2xl mx-auto leading-relaxed">
               Stripe charges ~1.75% + 30c per transaction for Australian domestic cards.
               This is Stripe&apos;s fee, not ours — it&apos;s the cost of securely processing credit card payments.
@@ -135,7 +135,7 @@ export default function PricingPage() {
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <p className="text-accent-dark text-sm font-medium tracking-[0.15em] uppercase mb-3">Compare</p>
-            <h2 className="font-editorial text-3xl md:text-4xl font-medium">How Signo stacks up</h2>
+            <h2 className="font-editorial text-3xl md:text-4xl font-semibold">How Signo stacks up</h2>
           </div>
 
           <div className="overflow-x-auto">
@@ -244,7 +244,7 @@ export default function PricingPage() {
       {/* CTA */}
       <section className="py-20 md:py-28 bg-primary text-white relative texture-grain overflow-hidden">
         <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 text-center relative z-10">
-          <h2 className="font-editorial text-3xl md:text-4xl font-medium leading-snug">
+          <h2 className="font-editorial text-3xl md:text-4xl font-semibold leading-snug">
             Keep what you{' '}
             <span className="italic text-accent-dark">earn</span>
           </h2>

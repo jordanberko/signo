@@ -2,7 +2,7 @@
 
 @theme inline {
   /* ── Core palette: warm, earthy, gallery-like ── */
-  --color-background: #f5f2ed;
+  --color-background: #FAFAF5;
   --color-background-pure: #ffffff;
   --color-foreground: #1a1a1a;
   --color-primary: #1a1a1a;
@@ -12,13 +12,13 @@
   --color-accent-subtle: #e8ecd9;
   --color-accent-dark: #556640;
   --color-muted: #6b6b63;
-  --color-muted-bg: #f0ece6;
-  --color-border: #e8e5df;
+  --color-muted-bg: #F5F5F0;
+  --color-border: #E8E8E3;
   --color-success: #16a34a;
   --color-error: #dc2626;
-  --color-cream: #faf8f4;
+  --color-cream: #FAFAF5;
   --color-warm-gray: #a8a29e;
-  --color-sand: #f5f2ed;
+  --color-sand: #FAFAF5;
   --color-off-white: #fafaf7;
 
   /* ── New tokens ── */

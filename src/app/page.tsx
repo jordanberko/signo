@@ -161,7 +161,7 @@ export default function HomePage() {
 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
           <div className="max-w-2xl mx-auto text-center animate-fade-up">
-            <h1 className="font-editorial text-5xl md:text-7xl lg:text-8xl font-medium leading-[0.95] tracking-tight text-primary">
+            <h1 className="font-editorial text-5xl md:text-7xl lg:text-8xl font-bold leading-[0.95] tracking-tight text-primary">
               Where Art Finds{' '}
               <span className="italic text-accent">
                 Its People
@@ -200,7 +200,7 @@ export default function HomePage() {
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="flex items-end justify-between mb-8">
               <div>
-                <h2 className="font-editorial text-2xl md:text-3xl font-medium text-primary">Featured</h2>
+                <h2 className="font-editorial text-2xl md:text-3xl font-semibold text-primary">Featured</h2>
               </div>
               <Link
                 href="/browse"
@@ -236,7 +236,7 @@ export default function HomePage() {
             <div className="flex items-end justify-between mb-8">
               <div>
                 <p className="text-accent-dark text-xs font-semibold tracking-[0.2em] uppercase mb-2">Just Listed</p>
-                <h2 className="font-editorial text-2xl md:text-3xl font-medium text-primary">New Arrivals</h2>
+                <h2 className="font-editorial text-2xl md:text-3xl font-semibold text-primary">New Arrivals</h2>
               </div>
               <Link
                 href="/browse?sort=newest"
@@ -265,7 +265,7 @@ export default function HomePage() {
               <div className="flex items-end justify-between mb-8">
                 <div>
                   <p className="text-accent-dark text-xs font-semibold tracking-[0.2em] uppercase mb-2">Recent Sales</p>
-                  <h2 className="font-editorial text-2xl md:text-3xl font-medium text-primary">Just Sold</h2>
+                  <h2 className="font-editorial text-2xl md:text-3xl font-semibold text-primary">Just Sold</h2>
                 </div>
                 <Link
                   href="/just-sold"
@@ -343,7 +343,7 @@ export default function HomePage() {
               <div className="flex items-end justify-between mb-8">
                 <div>
                   <p className="text-accent-dark text-xs font-semibold tracking-[0.2em] uppercase mb-2">Handpicked</p>
-                  <h2 className="font-editorial text-2xl md:text-3xl font-medium text-primary">Curated Collections</h2>
+                  <h2 className="font-editorial text-2xl md:text-3xl font-semibold text-primary">Curated Collections</h2>
                 </div>
                 <Link
                   href="/collections"
@@ -376,7 +376,7 @@ export default function HomePage() {
                       {/* Overlay */}
                       <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent" />
                       <div className="absolute bottom-0 left-0 right-0 p-5">
-                        <h3 className="font-editorial text-xl font-medium text-white">
+                        <h3 className="font-editorial text-xl font-semibold text-white">
                           {collection.title}
                         </h3>
                         <p className="text-white/70 text-sm mt-1">
@@ -426,7 +426,7 @@ export default function HomePage() {
                       size={56}
                     />
                     <div>
-                      <h3 className="font-editorial text-2xl font-medium text-primary group-hover/artist:text-accent-dark transition-colors">
+                      <h3 className="font-editorial text-2xl font-semibold text-primary group-hover/artist:text-accent-dark transition-colors">
                         {artist.fullName}
                       </h3>
                       {artist.location && (
@@ -497,7 +497,7 @@ export default function HomePage() {
           <ScrollReveal>
             <div className="text-center mb-12">
               <p className="text-accent-dark text-xs font-semibold tracking-[0.2em] uppercase mb-3">Why Signo</p>
-              <h2 className="font-editorial text-3xl md:text-5xl font-medium text-primary">
+              <h2 className="font-editorial text-3xl md:text-5xl font-bold text-primary">
                 Built for artists, loved by collectors
               </h2>
             </div>
@@ -528,7 +528,7 @@ export default function HomePage() {
                   <div className="w-12 h-12 rounded-xl bg-accent/10 flex items-center justify-center mb-5 group-hover:bg-accent/20 transition-colors">
                     <item.icon className="h-6 w-6 text-accent-dark" />
                   </div>
-                  <h3 className="font-editorial text-xl font-medium text-primary mb-2">{item.title}</h3>
+                  <h3 className="font-editorial text-xl font-semibold text-primary mb-2">{item.title}</h3>
                   <p className="text-muted text-sm leading-relaxed">{item.description}</p>
                 </div>
               </ScrollReveal>
@@ -542,7 +542,7 @@ export default function HomePage() {
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <ScrollReveal>
             <p className="text-accent-dark text-xs font-semibold tracking-[0.2em] uppercase mb-3">For Artists</p>
-            <h2 className="font-editorial text-3xl md:text-5xl font-medium text-primary leading-snug">
+            <h2 className="font-editorial text-3xl md:text-5xl font-bold text-primary leading-snug">
               Your art, your earnings.{' '}
               <span className="italic">No commission.</span>
             </h2>
@@ -575,7 +575,7 @@ export default function HomePage() {
           <ScrollReveal>
             <div className="text-center mb-14">
               <p className="text-accent-dark text-xs font-semibold tracking-[0.2em] uppercase mb-3">How It Works</p>
-              <h2 className="font-editorial text-3xl md:text-5xl font-medium text-primary">Simple for everyone</h2>
+              <h2 className="font-editorial text-3xl md:text-5xl font-bold text-primary">Simple for everyone</h2>
             </div>
           </ScrollReveal>
 
@@ -644,7 +644,7 @@ export default function HomePage() {
             <div className="absolute bottom-0 left-0 w-48 h-48 bg-accent/5 rounded-full blur-3xl translate-y-1/2 -translate-x-1/2" />
 
             <ScrollReveal className="relative z-10">
-              <h2 className="font-editorial text-4xl md:text-6xl font-medium text-white leading-tight max-w-2xl mx-auto">
+              <h2 className="font-editorial text-4xl md:text-6xl font-bold text-white leading-tight max-w-2xl mx-auto">
                 Ready to discover your next{' '}
                 <span className="italic text-accent">favourite piece?</span>
               </h2>

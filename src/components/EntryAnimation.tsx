@@ -64,7 +64,7 @@ export default function EntryAnimation() {
             style={{
               fontFamily: 'var(--font-satoshi), Helvetica Neue, Helvetica, Arial, sans-serif',
               fontSize: 'clamp(48px, 8vw, 80px)',
-              fontWeight: 500,
+              fontWeight: 600,
               color: 'var(--color-primary, #1a1a1a)',
               animation: 'entry-wordmark 1s cubic-bezier(0.22, 1, 0.36, 1) forwards',
               opacity: 0,
@@ -76,7 +76,7 @@ export default function EntryAnimation() {
             style={{
               fontFamily: 'var(--font-satoshi), Helvetica Neue, Helvetica, Arial, sans-serif',
               fontSize: 'clamp(48px, 8vw, 80px)',
-              fontWeight: 500,
+              fontWeight: 600,
               fontStyle: 'italic',
               color: 'var(--color-accent, #6b7c4e)',
               animation: 'entry-dot 0.4s ease-out 1s forwards',
@@ -92,7 +92,7 @@ export default function EntryAnimation() {
           style={{
             fontFamily: 'var(--font-satoshi), Helvetica Neue, Helvetica, Arial, sans-serif',
             fontSize: '12px',
-            fontWeight: 500,
+            fontWeight: 600,
             letterSpacing: '0.2em',
             textTransform: 'uppercase',
             color: 'var(--color-muted, #7a7a72)',
