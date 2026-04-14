@@ -53,36 +53,7 @@ export async function GET(request: NextRequest) {
 
     const { data: featuredData } = await featuredQuery;
 
-    const featured = featuredData || [];
-    const featuredIds = featured.map((a) => a.id);
-    const remaining = limit - featured.length;
-
-    let recentData: typeof featured = [];
-    if (remaining > 0) {
-      let q = supabase
-        .from('artworks')
-        .select(
-          'id, title, price_aud, images, medium, category, artist_id, width_cm, height_cm, is_featured, availability, available_from, profiles!artworks_artist_id_fkey(id, full_name)',
-        )
-        .eq('status', 'approved')
-        .order('created_at', { ascending: false })
-        .limit(remaining);
-
-      // Exclude already-fetched featured artworks
-      if (featuredIds.length > 0) {
-        q = q.not('id', 'in', `(${featuredIds.join(',')})`);
-      }
-
-      // Exclude artworks from paused/cancelled subscription artists
-      if (hiddenIds.length > 0) {
-        q = q.not('artist_id', 'in', `(${hiddenIds.join(',')})`);
-      }
-
-      const { data: rd } = await q;
-      recentData = rd || [];
-    }
-
-    const data = [...featured, ...recentData];
+    const data = featuredData || [];
 
     // Map to frontend-friendly shape
     const artworks = (data || []).map((a: Record<string, unknown>) => ({

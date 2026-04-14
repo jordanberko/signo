@@ -61,17 +61,6 @@ function timeAgo(dateString: string): string {
   return `${days}d ago`;
 }
 
-// Placeholder cards shown while artwork loads or when DB is empty
-const PLACEHOLDER_CARDS = [
-  { id: 'p1', ratio: 'aspect-[3/4]', color: 'from-stone-200 to-stone-300' },
-  { id: 'p2', ratio: 'aspect-[4/5]', color: 'from-amber-100 to-stone-200' },
-  { id: 'p3', ratio: 'aspect-[3/4]', color: 'from-stone-100 to-amber-100' },
-  { id: 'p4', ratio: 'aspect-[2/3]', color: 'from-stone-300 to-stone-200' },
-  { id: 'p5', ratio: 'aspect-[4/5]', color: 'from-amber-50 to-stone-200' },
-  { id: 'p6', ratio: 'aspect-[3/4]', color: 'from-stone-200 to-amber-100' },
-  { id: 'p7', ratio: 'aspect-[2/3]', color: 'from-stone-100 to-stone-300' },
-  { id: 'p8', ratio: 'aspect-[4/5]', color: 'from-amber-100 to-stone-100' },
-];
 
 export default function HomePage() {
   const [artworks, setArtworks] = useState<FeaturedArtwork[]>([]);
@@ -80,7 +69,6 @@ export default function HomePage() {
   const [spotlightArtists, setSpotlightArtists] = useState<SpotlightArtist[]>([]);
   const [collections, setCollections] = useState<HomeCollection[]>([]);
   const [favouriteIds, setFavouriteIds] = useState<Set<string>>(new Set());
-  const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
     async function fetchArt() {
@@ -158,7 +146,6 @@ export default function HomePage() {
       } catch (err) {
         console.error('[Home] Artwork fetch error:', err);
       } finally {
-        setLoaded(true);
       }
     }
     fetchArt();
@@ -208,59 +195,39 @@ export default function HomePage() {
       <TrustBar />
 
       {/* ==================== FEATURED ARTWORK GRID ==================== */}
-      <section className="pb-20 md:pb-28 pt-12">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-end justify-between mb-8">
-            <div>
-              <h2 className="font-editorial text-2xl md:text-3xl font-medium text-primary">Featured</h2>
+      {artworks.length > 0 && (
+        <section className="pb-20 md:pb-28 pt-12">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex items-end justify-between mb-8">
+              <div>
+                <h2 className="font-editorial text-2xl md:text-3xl font-medium text-primary">Featured</h2>
+              </div>
+              <Link
+                href="/browse"
+                className="hidden sm:inline-flex items-center gap-2 text-sm font-medium text-primary hover:text-accent-dark transition-colors group"
+              >
+                View all
+                <ArrowRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
+              </Link>
             </div>
-            <Link
-              href="/browse"
-              className="hidden sm:inline-flex items-center gap-2 text-sm font-medium text-primary hover:text-accent-dark transition-colors group"
-            >
-              View all
-              <ArrowRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
-            </Link>
-          </div>
 
-          {/* Real artwork or placeholder grid */}
-          {artworks.length > 0 ? (
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-x-5 gap-y-10 stagger-children">
               {artworks.map((artwork) => (
                 <ArtworkCard key={artwork.id} {...artwork} initialFavourited={favouriteIds.has(artwork.id)} />
               ))}
             </div>
-          ) : (
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-x-5 gap-y-6 stagger-children">
-              {PLACEHOLDER_CARDS.map((card) => (
-                <div key={card.id} className="group">
-                  <div className={`${card.ratio} rounded-lg bg-gradient-to-br ${card.color} overflow-hidden relative`}>
-                    {loaded && (
-                      <div className="absolute inset-0 flex items-center justify-center">
-                        <span className="text-warm-gray/60 text-xs tracking-widest uppercase">Coming Soon</span>
-                      </div>
-                    )}
-                  </div>
-                  <div className="pt-3 space-y-1.5">
-                    <div className="h-4 bg-sand rounded w-3/4" />
-                    <div className="h-3 bg-sand/60 rounded w-1/2" />
-                    <div className="h-4 bg-sand rounded w-1/3 mt-1" />
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
 
-          <div className="sm:hidden text-center mt-8">
-            <Link
-              href="/browse"
-              className="inline-flex items-center gap-2 text-sm font-semibold text-primary hover:text-accent-dark transition-colors"
-            >
-              View all artwork <ArrowRight className="h-4 w-4" />
-            </Link>
+            <div className="sm:hidden text-center mt-8">
+              <Link
+                href="/browse"
+                className="inline-flex items-center gap-2 text-sm font-semibold text-primary hover:text-accent-dark transition-colors"
+              >
+                View all artwork <ArrowRight className="h-4 w-4" />
+              </Link>
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
+      )}
 
       {/* ==================== NEW ARRIVALS — HORIZONTAL SCROLL ==================== */}
       {newArrivals.length > 0 && (
