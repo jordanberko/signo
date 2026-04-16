@@ -70,7 +70,6 @@ export default function HomePage() {
   }, []);
 
   const featuredList = featured.slice(0, 8);
-  const sellCtaImage = featured.find((a) => a.imageUrl)?.imageUrl ?? null;
 
   return (
     <div>
@@ -81,7 +80,7 @@ export default function HomePage() {
       </ScrollReveal>
       <RecentlyListed artworks={featuredList} />
       <BrowseBreak />
-      <SellCTA imageUrl={sellCtaImage} />
+      <SellCTA />
     </div>
   );
 }
@@ -261,7 +260,7 @@ function Hero() {
 function Proposition() {
   return (
     <section
-      className="py-14 md:py-20"
+      className="pt-14 md:pt-20 pb-8 md:pb-10"
       style={{ borderTop: '1px solid var(--color-border)' }}
     >
       <div className="px-6 sm:px-10">
@@ -354,7 +353,7 @@ function RecentlyListed({ artworks }: { artworks: FeaturedArtwork[] }) {
 
   return (
     <section
-      className="py-12 md:py-16"
+      className="py-6 md:py-10"
       style={{ borderTop: '1px solid var(--color-border)' }}
     >
       <div className="px-6 sm:px-10">
@@ -543,7 +542,7 @@ function RecentlyListed({ artworks }: { artworks: FeaturedArtwork[] }) {
 function BrowseBreak() {
   return (
     <section
-      className="py-14 md:py-20"
+      className="py-6 md:py-10"
       style={{ borderTop: '1px solid var(--color-border)' }}
     >
       <div className="px-6 sm:px-10">
@@ -573,167 +572,366 @@ function BrowseBreak() {
 }
 
 /* ══════════════════════════════════════════════════════════════════
-   SELL CTA — full-bleed image (or cream fallback), artist-facing
-   Single consolidated artist call-to-action.
+   SELL CTA — The Ledger
+   Radical-transparency typographic spread structured as a financial
+   ledger. No imagery, no overlay — the argument IS the structure.
+   Top rule draws; numerals count up in sequence; the 0% snap-lands
+   between sale price and Stripe fee; a double-rule precedes the
+   "You receive" total (accounting convention made live).
+   Motion communicates the message: the count-up is the proof.
    ══════════════════════════════════════════════════════════════════ */
 
-function SellCTA({ imageUrl }: { imageUrl: string | null }) {
-  if (imageUrl) {
-    return (
-      <section
-        className="relative overflow-hidden"
-        style={{ height: '55vh', minHeight: 440 }}
-      >
-        <Image
-          src={imageUrl}
-          alt=""
-          fill
-          sizes="100vw"
-          className="object-cover"
-        />
-        <div
-          className="absolute inset-0 pointer-events-none"
-          style={{ background: 'rgba(26,26,24,0.6)' }}
-        />
-        <div
-          className="absolute z-10"
-          style={{
-            left: 'clamp(1.5rem, 4vw, 2.5rem)',
-            right: 'clamp(1.5rem, 4vw, 2.5rem)',
-            bottom: 'clamp(2.5rem, 5vw, 3.5rem)',
-            maxWidth: 560,
-          }}
-        >
-          <ScrollReveal>
-            <div
-              className="mb-5"
-              style={{
-                fontSize: '0.62rem',
-                letterSpacing: '0.22em',
-                textTransform: 'uppercase',
-                fontWeight: 400,
-                color: 'rgba(252, 251, 248, 0.65)',
-              }}
-            >
-              For artists
-            </div>
-            <h2
-              className="font-serif"
-              style={{
-                fontSize: 'clamp(2.4rem, 5vw, 3.8rem)',
-                color: 'var(--color-warm-white)',
-                lineHeight: 1.05,
-                letterSpacing: '-0.025em',
-                fontWeight: 400,
-                margin: 0,
-              }}
-            >
-              Your art,<br />
-              <em style={{ fontStyle: 'italic' }}>your terms.</em>
-            </h2>
-            <p
-              style={{
-                fontSize: '0.88rem',
-                fontWeight: 300,
-                color: 'rgba(252, 251, 248, 0.68)',
-                lineHeight: 1.7,
-                marginTop: '1.2rem',
-                marginBottom: '1.6rem',
-                maxWidth: 420,
-              }}
-            >
-              Join a growing community of Australian artists selling directly to
-              collectors. Zero commission. Zero platform fees.
-            </p>
-            <Link
-              href="/register"
-              className="inline-block no-underline"
-              style={{
-                fontSize: '0.68rem',
-                fontWeight: 400,
-                letterSpacing: '0.18em',
-                textTransform: 'uppercase',
-                color: 'var(--color-warm-white)',
-                paddingBottom: '0.25rem',
-                borderBottom: '1px solid rgba(252, 251, 248, 0.45)',
-                transition: 'border-color 350ms cubic-bezier(0.22, 1, 0.36, 1)',
-              }}
-              onMouseEnter={(e) =>
-                ((e.currentTarget as HTMLAnchorElement).style.borderBottomColor =
-                  'rgba(252, 251, 248, 0.95)')
-              }
-              onMouseLeave={(e) =>
-                ((e.currentTarget as HTMLAnchorElement).style.borderBottomColor =
-                  'rgba(252, 251, 248, 0.45)')
-              }
-            >
-              Start selling on Signo
-            </Link>
-          </ScrollReveal>
-        </div>
-      </section>
-    );
-  }
+function useCountUp({
+  target,
+  start,
+  delay = 0,
+  duration = 900,
+  decimals = 0,
+}: {
+  target: number;
+  start: boolean;
+  delay?: number;
+  duration?: number;
+  decimals?: number;
+}) {
+  const [value, setValue] = useState(0);
 
-  // Cream fallback — no featured image available
+  useEffect(() => {
+    if (!start) {
+      setValue(0);
+      return;
+    }
+
+    const prefersReduced =
+      typeof window !== 'undefined' &&
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    if (prefersReduced) {
+      setValue(target);
+      return;
+    }
+
+    let rafId: number | null = null;
+    let startTime: number | null = null;
+
+    const delayTimer = setTimeout(() => {
+      function step(timestamp: number) {
+        if (startTime === null) startTime = timestamp;
+        const elapsed = timestamp - startTime;
+        const progress = Math.min(elapsed / duration, 1);
+        // ease-out cubic — matches --ease-out voice
+        const eased = 1 - Math.pow(1 - progress, 3);
+        const current = target * eased;
+        const factor = Math.pow(10, decimals);
+        setValue(Math.round(current * factor) / factor);
+        if (progress < 1) {
+          rafId = requestAnimationFrame(step);
+        } else {
+          setValue(target);
+        }
+      }
+      rafId = requestAnimationFrame(step);
+    }, delay);
+
+    return () => {
+      clearTimeout(delayTimer);
+      if (rafId !== null) cancelAnimationFrame(rafId);
+    };
+  }, [target, start, delay, duration, decimals]);
+
+  return value;
+}
+
+function fmtAUD(n: number, decimals = 2) {
+  return n.toLocaleString('en-AU', {
+    minimumFractionDigits: decimals,
+    maximumFractionDigits: decimals,
+  });
+}
+
+function LedgerRow({
+  label,
+  value,
+  isTotal = false,
+}: {
+  label: string;
+  value: React.ReactNode;
+  isTotal?: boolean;
+}) {
+  return (
+    <div
+      style={{
+        display: 'flex',
+        alignItems: 'baseline',
+        padding: isTotal ? '1.25rem 0 1.35rem' : '0.95rem 0',
+      }}
+    >
+      <span
+        style={{
+          fontSize: '0.78rem',
+          fontWeight: 300,
+          letterSpacing: '0.02em',
+          color: 'var(--color-stone-dark)',
+          flexShrink: 0,
+          whiteSpace: 'nowrap',
+        }}
+      >
+        {label}
+      </span>
+      <span
+        aria-hidden
+        style={{
+          flex: 1,
+          overflow: 'hidden',
+          color: 'var(--color-stone)',
+          letterSpacing: '0.4em',
+          whiteSpace: 'nowrap',
+          fontSize: '0.85rem',
+          margin: '0 0.65rem',
+          userSelect: 'none',
+          transform: 'translateY(-0.18em)',
+        }}
+      >
+        {'.'.repeat(200)}
+      </span>
+      <span
+        className="font-serif"
+        style={{
+          fontSize: isTotal
+            ? 'clamp(1.55rem, 3.2vw, 2.3rem)'
+            : 'clamp(1.35rem, 2.8vw, 2rem)',
+          letterSpacing: '-0.02em',
+          color: 'var(--color-ink)',
+          fontVariantNumeric: 'tabular-nums',
+          fontWeight: 400,
+          lineHeight: 1,
+          flexShrink: 0,
+        }}
+      >
+        {value}
+      </span>
+    </div>
+  );
+}
+
+function SellCTA() {
+  const sectionRef = useRef<HTMLElement>(null);
+  const [started, setStarted] = useState(false);
+  const [zeroLanded, setZeroLanded] = useState(false);
+  const [doubleRuleDrawn, setDoubleRuleDrawn] = useState(false);
+
+  // Observe visibility — trigger once when section is 15% visible
+  useEffect(() => {
+    const el = sectionRef.current;
+    if (!el) return;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setStarted(true);
+          observer.disconnect();
+        }
+      },
+      { threshold: 0.15 }
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
+  // Timeline — the sequence is the message
+  //   t=0      top rule draws (700ms)
+  //   t=500    sale price counts up (900ms → lands at 1400)
+  //   t=1500   0% snap-lands (350ms → settles at 1850)
+  //   t=1900   Stripe processing counts up (600ms → lands at 2500)
+  //   t=2600   double-rule draws (cascades ~450ms)
+  //   t=2900   "You receive" counts up (900ms → lands at 3800)
+  const salePrice = useCountUp({
+    target: 5000,
+    start: started,
+    delay: 500,
+    duration: 900,
+    decimals: 2,
+  });
+  const stripeFee = useCountUp({
+    target: 87.8,
+    start: started,
+    delay: 1900,
+    duration: 600,
+    decimals: 2,
+  });
+  const received = useCountUp({
+    target: 4912.2,
+    start: started,
+    delay: 2900,
+    duration: 900,
+    decimals: 2,
+  });
+
+  useEffect(() => {
+    if (!started) return;
+    const prefersReduced =
+      typeof window !== 'undefined' &&
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    if (prefersReduced) {
+      setZeroLanded(true);
+      setDoubleRuleDrawn(true);
+      return;
+    }
+
+    const t1 = setTimeout(() => setZeroLanded(true), 1500);
+    const t2 = setTimeout(() => setDoubleRuleDrawn(true), 2600);
+    return () => {
+      clearTimeout(t1);
+      clearTimeout(t2);
+    };
+  }, [started]);
+
+  const EASE = 'cubic-bezier(0.22, 1, 0.36, 1)';
+
   return (
     <section
-      className="py-16 md:py-20"
+      ref={sectionRef}
+      className="pt-14 md:pt-20 pb-20 md:pb-28"
       style={{
-        background: 'var(--color-cream)',
+        background: 'var(--color-warm-white)',
         borderTop: '1px solid var(--color-border)',
       }}
     >
       <div className="px-6 sm:px-10">
-        <div style={{ maxWidth: 560 }}>
-          <ScrollReveal>
+        <div style={{ maxWidth: 760 }}>
+          {/* Kicker */}
+          <div
+            style={{
+              fontSize: '0.62rem',
+              letterSpacing: '0.22em',
+              textTransform: 'uppercase',
+              color: 'var(--color-stone)',
+              fontWeight: 400,
+              marginBottom: '1.2rem',
+            }}
+          >
+            For artists · The ledger
+          </div>
+
+          {/* Headline — establishes the scenario */}
+          <h2
+            className="font-serif"
+            style={{
+              fontSize: 'clamp(2rem, 4vw, 3rem)',
+              lineHeight: 1.08,
+              letterSpacing: '-0.02em',
+              color: 'var(--color-ink)',
+              fontWeight: 400,
+              margin: 0,
+              marginBottom: '2.8rem',
+            }}
+          >
+            The maths of a{' '}
+            <em style={{ fontStyle: 'italic' }}>$5,000 sale.</em>
+          </h2>
+
+          {/* Top rule — draws in on entry */}
+          <div
+            style={{
+              height: 1,
+              background: 'var(--color-ink)',
+              transformOrigin: 'left',
+              transform: started ? 'scaleX(1)' : 'scaleX(0)',
+              transition: `transform 700ms ${EASE}`,
+            }}
+          />
+
+          {/* Ledger rows */}
+          <LedgerRow label="Sale price" value={`$${fmtAUD(salePrice, 2)}`} />
+          <div style={{ borderBottom: '1px solid var(--color-border)' }} />
+
+          <LedgerRow
+            label="Platform commission"
+            value={
+              <span
+                style={{
+                  display: 'inline-block',
+                  transform: zeroLanded ? 'scale(1)' : 'scale(0.9)',
+                  opacity: zeroLanded ? 1 : 0,
+                  transition: `transform 350ms ${EASE}, opacity 350ms ${EASE}`,
+                  color: 'var(--color-terracotta)',
+                  fontStyle: 'italic',
+                  transformOrigin: 'right center',
+                }}
+              >
+                0%
+              </span>
+            }
+          />
+          <div style={{ borderBottom: '1px solid var(--color-border)' }} />
+
+          <LedgerRow
+            label="Stripe processing"
+            value={`$${fmtAUD(stripeFee, 2)}`}
+          />
+
+          {/* Double rule — accounting convention for totals, two-line cascade */}
+          <div style={{ marginTop: '0.75rem' }}>
             <div
-              className="mb-5"
               style={{
-                fontSize: '0.62rem',
-                letterSpacing: '0.22em',
-                textTransform: 'uppercase',
-                color: 'var(--color-stone)',
-                fontWeight: 400,
+                height: 1,
+                background: 'var(--color-ink)',
+                transformOrigin: 'left',
+                transform: doubleRuleDrawn ? 'scaleX(1)' : 'scaleX(0)',
+                transition: `transform 450ms ${EASE}`,
               }}
-            >
-              For artists
-            </div>
-            <h2
-              className="font-serif"
+            />
+            <div style={{ height: 2 }} />
+            <div
               style={{
-                fontSize: 'clamp(2.4rem, 5vw, 3.8rem)',
-                lineHeight: 1.05,
-                letterSpacing: '-0.025em',
-                fontWeight: 400,
-                color: 'var(--color-ink)',
-                margin: 0,
+                height: 1,
+                background: 'var(--color-ink)',
+                transformOrigin: 'left',
+                transform: doubleRuleDrawn ? 'scaleX(1)' : 'scaleX(0)',
+                transition: `transform 450ms ${EASE} 80ms`,
               }}
-            >
-              Your art,<br />
-              <em style={{ fontStyle: 'italic', color: 'var(--color-terracotta)' }}>
-                your terms.
-              </em>
-            </h2>
-            <p
-              style={{
-                fontSize: '0.88rem',
-                fontWeight: 300,
-                lineHeight: 1.7,
-                color: 'var(--color-stone-dark)',
-                maxWidth: 420,
-                marginTop: '1.2rem',
-              }}
-            >
-              Join a growing community of Australian artists selling directly to
-              collectors. Zero commission. Zero platform fees.
-            </p>
-            <div className="mt-8">
-              <Link href="/register" className="editorial-link no-underline">
-                Start selling on Signo
-              </Link>
-            </div>
-          </ScrollReveal>
+            />
+          </div>
+
+          <LedgerRow
+            label="You receive"
+            value={`$${fmtAUD(received, 2)}`}
+            isTotal
+          />
+
+          {/* Bottom rule — closes the ledger */}
+          <div
+            style={{
+              height: 1,
+              background: 'var(--color-ink)',
+              transformOrigin: 'left',
+              transform: doubleRuleDrawn ? 'scaleX(1)' : 'scaleX(0)',
+              transition: `transform 450ms ${EASE} 160ms`,
+            }}
+          />
+
+          {/* Supporting caption */}
+          <p
+            style={{
+              fontSize: '0.9rem',
+              fontWeight: 300,
+              color: 'var(--color-stone-dark)',
+              lineHeight: 1.75,
+              marginTop: '2.4rem',
+              maxWidth: 460,
+            }}
+          >
+            $30/month after your first sale. No listing fees. No hidden
+            deductions. You set the price, you set the terms.
+          </p>
+
+          {/* CTA */}
+          <div className="mt-8">
+            <Link href="/register" className="editorial-link no-underline">
+              List your first work
+            </Link>
+          </div>
         </div>
       </div>
     </section>
