@@ -1,12 +1,13 @@
 'use client';
 
-import { useState, useEffect, useCallback, useRef, type PointerEvent as RPointerEvent } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { formatPrice } from '@/lib/utils';
 import { useAuth } from '@/components/providers/AuthProvider';
 import ArtworkCard from '@/components/ui/ArtworkCard';
+import ArtworkViewer from '@/components/ui/ArtworkViewer';
 
 // ── Types ──
 
@@ -52,340 +53,7 @@ interface Props {
   relatedArtworks: RelatedArtwork[];
   suggestedArtworks: RelatedArtwork[];
   artistArtworkCount: number;
-}
-
-// ── Lightbox ──
-// Mechanical identical — chrome restyled to warm-white / stone.
-
-const MIN_SCALE = 1;
-const MAX_SCALE = 5;
-const ZOOM_STEP = 0.3;
-
-function Lightbox({
-  images,
-  initialIndex,
-  onClose,
-  title,
-}: {
-  images: string[];
-  initialIndex: number;
-  onClose: () => void;
-  title: string;
-}) {
-  const [index, setIndex] = useState(initialIndex);
-  const [scale, setScale] = useState(1);
-  const [translate, setTranslate] = useState({ x: 0, y: 0 });
-
-  const isDragging = useRef(false);
-  const dragStart = useRef({ x: 0, y: 0 });
-  const translateStart = useRef({ x: 0, y: 0 });
-
-  const pointers = useRef<Map<number, { x: number; y: number }>>(new Map());
-  const pinchStartDist = useRef(0);
-  const pinchStartScale = useRef(1);
-
-  const imageContainerRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    setScale(1);
-    setTranslate({ x: 0, y: 0 });
-  }, [index]);
-
-  const isZoomed = scale > 1.05;
-
-  const clampTranslate = useCallback(
-    (tx: number, ty: number, s: number) => {
-      if (s <= 1) return { x: 0, y: 0 };
-      const el = imageContainerRef.current;
-      if (!el) return { x: tx, y: ty };
-      const rect = el.getBoundingClientRect();
-      const maxX = ((s - 1) * rect.width) / 2;
-      const maxY = ((s - 1) * rect.height) / 2;
-      return {
-        x: Math.max(-maxX, Math.min(maxX, tx)),
-        y: Math.max(-maxY, Math.min(maxY, ty)),
-      };
-    },
-    []
-  );
-
-  const handleKeyDown = useCallback(
-    (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        if (isZoomed) {
-          setScale(1);
-          setTranslate({ x: 0, y: 0 });
-        } else {
-          onClose();
-        }
-      }
-      if (e.key === 'ArrowLeft' && !isZoomed)
-        setIndex((i) => (i === 0 ? images.length - 1 : i - 1));
-      if (e.key === 'ArrowRight' && !isZoomed)
-        setIndex((i) => (i === images.length - 1 ? 0 : i + 1));
-    },
-    [images.length, onClose, isZoomed]
-  );
-
-  useEffect(() => {
-    document.addEventListener('keydown', handleKeyDown);
-    document.body.style.overflow = 'hidden';
-    return () => {
-      document.removeEventListener('keydown', handleKeyDown);
-      document.body.style.overflow = '';
-    };
-  }, [handleKeyDown]);
-
-  const handleWheel = useCallback((e: WheelEvent) => {
-    e.preventDefault();
-    const delta = e.deltaY > 0 ? -ZOOM_STEP : ZOOM_STEP;
-    setScale((prev) => {
-      const next = Math.max(MIN_SCALE, Math.min(MAX_SCALE, prev + delta));
-      if (next <= 1) setTranslate({ x: 0, y: 0 });
-      return next;
-    });
-  }, []);
-
-  useEffect(() => {
-    const el = imageContainerRef.current;
-    if (!el) return;
-    el.addEventListener('wheel', handleWheel, { passive: false });
-    return () => el.removeEventListener('wheel', handleWheel);
-  }, [handleWheel]);
-
-  function getDistance(pts: Map<number, { x: number; y: number }>) {
-    const arr = [...pts.values()];
-    if (arr.length < 2) return 0;
-    const dx = arr[1].x - arr[0].x;
-    const dy = arr[1].y - arr[0].y;
-    return Math.sqrt(dx * dx + dy * dy);
-  }
-
-  const handlePointerDown = useCallback(
-    (e: RPointerEvent<HTMLDivElement>) => {
-      pointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
-      (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
-
-      if (pointers.current.size === 2) {
-        pinchStartDist.current = getDistance(pointers.current);
-        pinchStartScale.current = scale;
-      } else if (pointers.current.size === 1 && isZoomed) {
-        isDragging.current = true;
-        dragStart.current = { x: e.clientX, y: e.clientY };
-        translateStart.current = { ...translate };
-      }
-    },
-    [isZoomed, scale, translate]
-  );
-
-  const handlePointerMove = useCallback(
-    (e: RPointerEvent<HTMLDivElement>) => {
-      pointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
-
-      if (pointers.current.size === 2) {
-        const dist = getDistance(pointers.current);
-        if (pinchStartDist.current > 0) {
-          const ratio = dist / pinchStartDist.current;
-          const newScale = Math.max(
-            MIN_SCALE,
-            Math.min(MAX_SCALE, pinchStartScale.current * ratio)
-          );
-          setScale(newScale);
-          if (newScale <= 1) setTranslate({ x: 0, y: 0 });
-        }
-      } else if (isDragging.current && pointers.current.size === 1) {
-        const dx = e.clientX - dragStart.current.x;
-        const dy = e.clientY - dragStart.current.y;
-        const newT = clampTranslate(
-          translateStart.current.x + dx,
-          translateStart.current.y + dy,
-          scale
-        );
-        setTranslate(newT);
-      }
-    },
-    [scale, clampTranslate]
-  );
-
-  const handlePointerUp = useCallback(
-    (e: RPointerEvent<HTMLDivElement>) => {
-      pointers.current.delete(e.pointerId);
-      if (pointers.current.size < 2) {
-        pinchStartDist.current = 0;
-      }
-      if (pointers.current.size === 0) {
-        isDragging.current = false;
-      }
-    },
-    []
-  );
-
-  const lastTap = useRef(0);
-  const handleDoubleAction = useCallback(() => {
-    if (isZoomed) {
-      setScale(1);
-      setTranslate({ x: 0, y: 0 });
-    } else {
-      setScale(3);
-    }
-  }, [isZoomed]);
-
-  const handleClick = useCallback(
-    (e: React.MouseEvent) => {
-      const now = Date.now();
-      if (now - lastTap.current < 300) {
-        e.preventDefault();
-        handleDoubleAction();
-      }
-      lastTap.current = now;
-    },
-    [handleDoubleAction]
-  );
-
-  const handleBackdropClick = useCallback(
-    (e: React.MouseEvent) => {
-      if (e.target === e.currentTarget && !isZoomed) {
-        onClose();
-      }
-    },
-    [isZoomed, onClose]
-  );
-
-  function goTo(dir: 'prev' | 'next') {
-    if (isZoomed) return;
-    setIndex((i) =>
-      dir === 'prev'
-        ? i === 0
-          ? images.length - 1
-          : i - 1
-        : i === images.length - 1
-          ? 0
-          : i + 1
-    );
-  }
-
-  return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center"
-      style={{ background: 'rgba(26,26,24,0.94)' }}
-      onClick={handleBackdropClick}
-    >
-      <button
-        onClick={onClose}
-        className="font-serif absolute top-6 right-6 z-10"
-        style={{
-          fontSize: '0.68rem',
-          letterSpacing: '0.2em',
-          textTransform: 'uppercase',
-          fontStyle: 'italic',
-          color: 'rgba(255,255,255,0.7)',
-          background: 'none',
-          border: 'none',
-          cursor: 'pointer',
-          padding: 8,
-        }}
-        aria-label="Close"
-      >
-        Close
-      </button>
-
-      {!isZoomed && (
-        <div
-          className="absolute top-6 left-1/2 -translate-x-1/2 pointer-events-none select-none z-10"
-          style={{
-            color: 'rgba(255,255,255,0.45)',
-            fontSize: '0.62rem',
-            letterSpacing: '0.2em',
-            textTransform: 'uppercase',
-          }}
-        >
-          Scroll or pinch to zoom
-        </div>
-      )}
-
-      {images.length > 1 && !isZoomed && (
-        <>
-          <button
-            onClick={() => goTo('prev')}
-            aria-label="Previous image"
-            className="font-serif absolute left-6 top-1/2 -translate-y-1/2 z-10"
-            style={{
-              color: 'rgba(255,255,255,0.7)',
-              background: 'none',
-              border: 'none',
-              cursor: 'pointer',
-              padding: 8,
-              fontSize: '0.7rem',
-              letterSpacing: '0.22em',
-              textTransform: 'uppercase',
-              fontStyle: 'italic',
-            }}
-          >
-            ← Prev
-          </button>
-          <button
-            onClick={() => goTo('next')}
-            aria-label="Next image"
-            className="font-serif absolute right-6 top-1/2 -translate-y-1/2 z-10"
-            style={{
-              color: 'rgba(255,255,255,0.7)',
-              background: 'none',
-              border: 'none',
-              cursor: 'pointer',
-              padding: 8,
-              fontSize: '0.7rem',
-              letterSpacing: '0.22em',
-              textTransform: 'uppercase',
-              fontStyle: 'italic',
-            }}
-          >
-            Next →
-          </button>
-        </>
-      )}
-
-      <div
-        ref={imageContainerRef}
-        className="relative max-w-[90vw] max-h-[90vh] touch-none select-none"
-        style={{ cursor: isZoomed ? 'grab' : 'zoom-in' }}
-        onPointerDown={handlePointerDown}
-        onPointerMove={handlePointerMove}
-        onPointerUp={handlePointerUp}
-        onPointerCancel={handlePointerUp}
-        onClick={handleClick}
-      >
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src={images[index]}
-          alt={`${title} — image ${index + 1}`}
-          className="max-w-full max-h-[90vh] object-contain pointer-events-none"
-          loading="lazy"
-          draggable={false}
-          style={{
-            transform: `scale(${scale}) translate(${translate.x / scale}px, ${translate.y / scale}px)`,
-            transition: isDragging.current || pointers.current.size >= 2
-              ? 'none'
-              : 'transform 200ms cubic-bezier(0.22, 1, 0.36, 1)',
-          }}
-        />
-      </div>
-
-      {images.length > 1 && !isZoomed && (
-        <div
-          className="absolute bottom-8 left-1/2 -translate-x-1/2 z-10"
-          style={{
-            fontSize: '0.68rem',
-            letterSpacing: '0.18em',
-            textTransform: 'uppercase',
-            color: 'rgba(255,255,255,0.6)',
-            fontWeight: 300,
-          }}
-        >
-          {index + 1} / {images.length}
-        </div>
-      )}
-    </div>
-  );
+  artistArtworks: { id: string; title: string; images: string[] }[];
 }
 
 // ── Fallback blur placeholder (cream background SVG, base64-encoded) ──
@@ -399,24 +67,24 @@ export default function ArtworkDetailClient({
   relatedArtworks,
   suggestedArtworks,
   artistArtworkCount,
+  artistArtworks,
 }: Props) {
   const [selectedImage, setSelectedImage] = useState(0);
-  // Fix 8: controls opacity fade on image switch
+  // Controls opacity fade on image switch
   const [imageVisible, setImageVisible] = useState(true);
-  // Fix 9: lightbox always rendered, opacity-controlled for fade transition
-  const [lightboxOpen, setLightboxOpen] = useState(false);
-  const [lightboxVisible, setLightboxVisible] = useState(false);
+  // Viewing mode state
+  const [viewerOpen, setViewerOpen] = useState(false);
+  const [viewerSourceRect, setViewerSourceRect] = useState<DOMRect | null>(null);
+  const mainImageRef = useRef<HTMLButtonElement>(null);
 
-  function openLightbox() {
-    setLightboxOpen(true);
-    // Trigger fade-in on next frame
-    setTimeout(() => setLightboxVisible(true), 0);
+  function openViewer() {
+    const rect = mainImageRef.current?.getBoundingClientRect();
+    setViewerSourceRect(rect || null);
+    setViewerOpen(true);
   }
 
-  function closeLightbox() {
-    setLightboxVisible(false);
-    // Remove from DOM after fade-out completes
-    setTimeout(() => setLightboxOpen(false), 200);
+  function closeViewer() {
+    setViewerOpen(false);
   }
 
   function switchImage(i: number) {
@@ -629,15 +297,18 @@ export default function ArtworkDetailClient({
         {/* ── Hero: image + metadata ── */}
         <div className="px-6 sm:px-10" style={{ paddingBottom: '5rem' }}>
           <div className="grid grid-cols-1 lg:grid-cols-12" style={{ gap: 'clamp(2rem, 5vw, 5rem)' }}>
-            {/* Image */}
-            <div className="lg:col-span-7">
+            {/* Image column — sticky on desktop */}
+            <div className="lg:col-span-5">
+              {/* Sticky scope: main image + thumbnails */}
+              <div className="lg:sticky" style={{ top: 'calc(5rem + 2rem)', zIndex: 2 }}>
               <button
+                ref={mainImageRef}
                 type="button"
-                onClick={openLightbox}
+                onClick={openViewer}
                 className="relative block w-full cursor-zoom-in group"
                 style={{
                   background: 'var(--color-cream)',
-                  aspectRatio: '4 / 3',
+                  aspectRatio: '4 / 5',
                   overflow: 'hidden',
                 }}
               >
@@ -736,7 +407,7 @@ export default function ArtworkDetailClient({
                 )}
               </button>
 
-              {/* Thumbnails */}
+              {/* Thumbnails — inside sticky scope so they stay visible while metadata scrolls */}
               {images.length > 1 && (
                 <div className="flex gap-3 overflow-x-auto scrollbar-hide" style={{ marginTop: '1.1rem' }}>
                   {images.map((img, i) => (
@@ -745,8 +416,8 @@ export default function ArtworkDetailClient({
                       onClick={() => switchImage(i)}
                       className="relative flex-shrink-0"
                       style={{
-                        width: 64,
-                        height: 64,
+                        width: 80,
+                        height: 100,
                         overflow: 'hidden',
                         opacity: selectedImage === i ? 1 : 0.55,
                         borderBottom: selectedImage === i
@@ -757,16 +428,16 @@ export default function ArtworkDetailClient({
                       }}
                       aria-label={`Image ${i + 1}`}
                     >
-                      <Image src={img} alt={`${artwork.title} — ${i + 1}`} fill className="object-cover" sizes="64px" />
+                      <Image src={img} alt={`${artwork.title} — ${i + 1}`} fill className="object-cover" sizes="80px" />
                     </button>
                   ))}
                 </div>
               )}
+              </div>{/* close sticky scope */}
             </div>
 
-            {/* Metadata column */}
-            <div className="lg:col-span-5">
-              <div className="lg:sticky" style={{ top: '6rem' }}>
+            {/* Metadata column — scrolls naturally */}
+            <div className="lg:col-span-7">
                 {/* Category label */}
                 <p
                   style={{
@@ -1124,88 +795,81 @@ export default function ArtworkDetailClient({
                     <li>Escrow protection — payment held until receipt is confirmed.</li>
                   </ul>
                 </div>
-              </div>
+
+                {/* ── Artist — inline in metadata column for sticky scroll depth ── */}
+                <div style={{ marginTop: '3rem', borderTop: '1px solid var(--color-border)', paddingTop: '2.4rem' }}>
+                  <p
+                    style={{
+                      fontSize: '0.62rem',
+                      letterSpacing: '0.22em',
+                      textTransform: 'uppercase',
+                      color: 'var(--color-stone)',
+                      marginBottom: '1rem',
+                    }}
+                  >
+                    The Artist
+                  </p>
+                  <h2
+                    className="font-serif"
+                    style={{
+                      fontSize: 'clamp(1.6rem, 2.5vw, 2.2rem)',
+                      lineHeight: 1.1,
+                      letterSpacing: '-0.015em',
+                      color: 'var(--color-ink)',
+                      fontWeight: 400,
+                    }}
+                  >
+                    {artist.full_name}
+                  </h2>
+                  {artist.location && (
+                    <p
+                      style={{
+                        fontSize: '0.88rem',
+                        color: 'var(--color-stone-dark)',
+                        fontWeight: 300,
+                        marginTop: '0.5rem',
+                        fontStyle: 'italic',
+                      }}
+                    >
+                      {artist.location}
+                    </p>
+                  )}
+                  <p
+                    style={{
+                      fontSize: '0.72rem',
+                      letterSpacing: '0.12em',
+                      textTransform: 'uppercase',
+                      color: 'var(--color-stone)',
+                      marginTop: '1rem',
+                    }}
+                  >
+                    {artistArtworkCount} {artistArtworkCount === 1 ? 'work' : 'works'} listed
+                  </p>
+                  {artist.bio && (
+                    <p
+                      style={{
+                        fontSize: '0.95rem',
+                        lineHeight: 1.75,
+                        fontWeight: 300,
+                        color: 'var(--color-stone-dark)',
+                        marginTop: '1.5rem',
+                        maxWidth: '52ch',
+                      }}
+                    >
+                      {artist.bio}
+                    </p>
+                  )}
+                  <Link
+                    href={`/artists/${artist.id}`}
+                    className="editorial-link no-underline"
+                    style={{ marginTop: '1.6rem', display: 'inline-block' }}
+                  >
+                    View storefront
+                  </Link>
+                </div>
             </div>
           </div>
         </div>
-
-        {/* ── Artist section ── */}
-        <div style={{ borderTop: '1px solid var(--color-border)' }} />
-        <section className="px-6 sm:px-10" style={{ paddingTop: '4rem', paddingBottom: '4rem' }}>
-          <div className="grid grid-cols-1 lg:grid-cols-12" style={{ gap: 'clamp(2rem, 5vw, 5rem)' }}>
-            <div className="lg:col-span-4">
-              <p
-                style={{
-                  fontSize: '0.62rem',
-                  letterSpacing: '0.22em',
-                  textTransform: 'uppercase',
-                  color: 'var(--color-stone)',
-                  marginBottom: '1rem',
-                }}
-              >
-                The Artist
-              </p>
-              <h2
-                className="font-serif"
-                style={{
-                  fontSize: 'clamp(1.8rem, 3vw, 2.6rem)',
-                  lineHeight: 1.1,
-                  letterSpacing: '-0.015em',
-                  color: 'var(--color-ink)',
-                  fontWeight: 400,
-                }}
-              >
-                {artist.full_name}
-              </h2>
-              {artist.location && (
-                <p
-                  style={{
-                    fontSize: '0.88rem',
-                    color: 'var(--color-stone-dark)',
-                    fontWeight: 300,
-                    marginTop: '0.5rem',
-                    fontStyle: 'italic',
-                  }}
-                >
-                  {artist.location}
-                </p>
-              )}
-              <p
-                style={{
-                  fontSize: '0.72rem',
-                  letterSpacing: '0.12em',
-                  textTransform: 'uppercase',
-                  color: 'var(--color-stone)',
-                  marginTop: '1.2rem',
-                }}
-              >
-                {artistArtworkCount} {artistArtworkCount === 1 ? 'work' : 'works'} listed
-              </p>
-            </div>
-            <div className="lg:col-span-8">
-              {artist.bio && (
-                <p
-                  style={{
-                    fontSize: '1rem',
-                    lineHeight: 1.75,
-                    fontWeight: 300,
-                    color: 'var(--color-stone-dark)',
-                    maxWidth: '56ch',
-                  }}
-                >
-                  {artist.bio}
-                </p>
-              )}
-              <Link
-                href={`/artists/${artist.id}`}
-                className="link-underline"
-                style={{ marginTop: '1.8rem', display: 'inline-block', fontSize: '0.82rem', color: 'var(--color-ink)', textDecoration: 'none' }}
-              >
-                View storefront
-              </Link>
-            </div>
-          </div>
-        </section>
 
         {/* ── More by this artist ── */}
         {relatedArtworks.length > 0 && (
@@ -1475,23 +1139,16 @@ export default function ArtworkDetailClient({
         </div>
       )}
 
-      {/* Fix 9: Lightbox always rendered when open, fade-in/out via opacity + pointer-events */}
-      {lightboxOpen && images.length > 0 && (
-        <div
-          style={{
-            opacity: lightboxVisible ? 1 : 0,
-            transition: 'opacity 200ms cubic-bezier(0.22, 1, 0.36, 1)',
-            pointerEvents: lightboxVisible ? 'auto' : 'none',
-          }}
-          aria-hidden={!lightboxVisible}
-        >
-          <Lightbox
-            images={images}
-            initialIndex={selectedImage}
-            onClose={closeLightbox}
-            title={artwork.title}
-          />
-        </div>
+      {/* ── Viewing mode — shared-element transition ── */}
+      {viewerOpen && images.length > 0 && (
+        <ArtworkViewer
+          images={images}
+          initialImageIndex={selectedImage}
+          artworkTitle={artwork.title}
+          artistName={artist.full_name || 'Artist'}
+          sourceRect={viewerSourceRect}
+          onClose={closeViewer}
+        />
       )}
     </>
   );

@@ -121,6 +121,22 @@ export default async function ArtworkDetailPage({ params }: Props) {
     .eq('artist_id', data.artist_id)
     .eq('status', 'approved');
 
+  // Fetch all artworks by this artist (for viewing mode pagination)
+  const { data: allArtistWorksRaw } = await supabase
+    .from('artworks')
+    .select('id, title, images')
+    .eq('artist_id', data.artist_id)
+    .eq('status', 'approved')
+    .order('created_at', { ascending: false });
+
+  const artistArtworks = (allArtistWorksRaw || []).map(
+    (a: Record<string, unknown>) => ({
+      id: a.id as string,
+      title: a.title as string,
+      images: (a.images as string[]) || [],
+    })
+  );
+
   // Fetch related artworks: same artist first, then same style/medium
   const { data: artistWorks } = await supabase
     .from('artworks')
@@ -298,6 +314,7 @@ export default async function ArtworkDetailPage({ params }: Props) {
         relatedArtworks={related}
         suggestedArtworks={suggested}
         artistArtworkCount={artistArtworkCount || 0}
+        artistArtworks={artistArtworks}
       />
     </>
   );
