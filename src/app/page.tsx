@@ -1,17 +1,32 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import Link from 'next/link';
-import { ArrowRight, ShieldCheck, Palette, DollarSign } from 'lucide-react';
-import ArtworkCard from '@/components/ui/ArtworkCard';
-import { formatPrice } from '@/lib/utils';
-import HeroRibbons from '@/components/ui/HeroRibbons';
-import GuidedSearch from '@/components/ui/GuidedSearch';
-import TrustBar from '@/components/ui/TrustBar';
-import MeetOurArtists, { type SpotlightArtist } from '@/components/ui/MeetOurArtists';
-import Avatar from '@/components/ui/Avatar';
+import Image from 'next/image';
 import EntryAnimation from '@/components/EntryAnimation';
 import ScrollReveal from '@/components/ui/ScrollReveal';
+import { formatPrice } from '@/lib/utils';
+
+/**
+ * Signo homepage — five-section editorial structure.
+ *
+ *   1. Hero          — gallery installation photographs (100vh, click indices)
+ *   2. Proposition   — zero commission value prop, dramatic "0%" anchor
+ *   3. RecentlyListed — typographic list with cursor-follow image preview
+ *   4. BrowseBreak   — editorial invitation to /browse
+ *   5. SellCTA       — full-bleed artist call-to-action
+ *
+ * Typography is designed, not typeset — deliberate scale contrast between
+ * the 0% display numeral (~9rem), serif headings (~2-5rem), and body (~0.88rem).
+ * Upright ↔ italic shifts within headlines create internal tension.
+ * Padding is tight: content flows like a single editorial spread, not islands.
+ */
+
+// Gallery installation photographs for the hero.
+const HERO_SLIDES = [
+  '/hero/36bc29c9-fbb9-4d66-917f-ed742abc97d4.png',
+  '/hero/89a3a75a-34a9-42b4-a9bb-afe63c1d612a.png',
+];
 
 interface FeaturedArtwork {
   id: string;
@@ -24,652 +39,698 @@ interface FeaturedArtwork {
   category: 'original' | 'print' | 'digital';
   widthCm?: number | null;
   heightCm?: number | null;
+  availability?: string;
 }
-
-interface HomeCollection {
-  id: string;
-  title: string;
-  slug: string;
-  description: string | null;
-  cover_image_url: string | null;
-  artwork_count: number;
-}
-
-interface JustSoldItem {
-  artworkId: string;
-  title: string;
-  imageUrl: string;
-  medium: string | null;
-  widthCm: number | null;
-  heightCm: number | null;
-  price: number;
-  artistName: string;
-  artistId: string;
-  soldAt: string;
-}
-
-function timeAgo(dateString: string): string {
-  const now = Date.now();
-  const then = new Date(dateString).getTime();
-  const seconds = Math.floor((now - then) / 1000);
-  if (seconds < 60) return 'Just now';
-  const minutes = Math.floor(seconds / 60);
-  if (minutes < 60) return `${minutes}m ago`;
-  const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours}h ago`;
-  const days = Math.floor(hours / 24);
-  return `${days}d ago`;
-}
-
 
 export default function HomePage() {
-  const [artworks, setArtworks] = useState<FeaturedArtwork[]>([]);
-  const [newArrivals, setNewArrivals] = useState<FeaturedArtwork[]>([]);
-  const [justSold, setJustSold] = useState<JustSoldItem[]>([]);
-  const [spotlightArtists, setSpotlightArtists] = useState<SpotlightArtist[]>([]);
-  const [collections, setCollections] = useState<HomeCollection[]>([]);
-  const [favouriteIds, setFavouriteIds] = useState<Set<string>>(new Set());
+  const [featured, setFeatured] = useState<FeaturedArtwork[]>([]);
 
   useEffect(() => {
-    async function fetchArt() {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 10000);
+
+    async function load() {
       try {
-        const controller = new AbortController();
-        const timeout = setTimeout(() => controller.abort(), 10000);
-
-        // Fetch featured, new arrivals, just sold, artist spotlight, and user favourites in parallel
-        const [featuredRes, arrivalsRes, justSoldRes, artistsRes, favsRes, collectionsRes] = await Promise.all([
-          fetch('/api/artworks/featured?limit=8', { signal: controller.signal }),
-          fetch('/api/artworks/browse?limit=6&sort=newest', { signal: controller.signal }),
-          fetch('/api/artworks/just-sold?limit=4', { signal: controller.signal }),
-          fetch('/api/artists/spotlight?limit=10', { signal: controller.signal }),
-          fetch('/api/favourites/ids', { signal: controller.signal }),
-          fetch('/api/collections?minArtworks=3', { signal: controller.signal }),
-        ]);
+        const res = await fetch('/api/artworks/featured?limit=12', {
+          signal: controller.signal,
+        });
         clearTimeout(timeout);
-
-        if (featuredRes.ok) {
-          const json = await featuredRes.json();
-          const mapped = (json.data || []) as FeaturedArtwork[];
-          setArtworks(mapped);
-        } else {
-          console.error('[Home] Featured artwork fetch failed:', featuredRes.status);
-        }
-
-        if (arrivalsRes.ok) {
-          const json = await arrivalsRes.json();
-          const rows = (json.data || []) as Array<Record<string, unknown>>;
-          // Map browse response shape to FeaturedArtwork shape
-          const mapped: FeaturedArtwork[] = rows.map((a) => ({
-            id: a.id as string,
-            title: a.title as string,
-            artistName: (a.profiles as Record<string, string> | null)?.full_name || 'Unknown',
-            artistId: a.artist_id as string,
-            price: a.price_aud as number,
-            imageUrl: ((a.images as string[]) || [])[0] || '',
-            medium: a.medium as string,
-            category: a.category as 'original' | 'print' | 'digital',
-            widthCm: (a.width_cm as number) || null,
-            heightCm: (a.height_cm as number) || null,
-          }));
-          setNewArrivals(mapped);
-        } else {
-          console.error('[Home] New arrivals fetch failed:', arrivalsRes.status);
-        }
-
-        if (justSoldRes.ok) {
-          const json = await justSoldRes.json();
-          setJustSold((json.data || []) as JustSoldItem[]);
-        } else {
-          console.error('[Home] Just sold fetch failed:', justSoldRes.status);
-        }
-
-        if (artistsRes.ok) {
-          const json = await artistsRes.json();
-          setSpotlightArtists((json.data || []) as SpotlightArtist[]);
-        } else {
-          console.error('[Home] Artist spotlight fetch failed:', artistsRes.status);
-        }
-
-        if (favsRes.ok) {
-          const json = await favsRes.json();
-          setFavouriteIds(new Set(json.ids || []));
-        } else {
-          console.error('[Home] Favourites fetch failed:', favsRes.status);
-        }
-
-        if (collectionsRes.ok) {
-          const json = await collectionsRes.json();
-          setCollections((json.data || []).slice(0, 2) as HomeCollection[]);
-        } else {
-          console.error('[Home] Collections fetch failed:', collectionsRes.status);
+        if (res.ok) {
+          const json = await res.json();
+          setFeatured((json.data || []) as FeaturedArtwork[]);
         }
       } catch (err) {
-        console.error('[Home] Artwork fetch error:', err);
-      } finally {
+        if ((err as Error).name !== 'AbortError') {
+          console.error('[Home] Load error:', err);
+        }
       }
     }
-    fetchArt();
+    load();
+    return () => clearTimeout(timeout);
   }, []);
+
+  const featuredList = featured.slice(0, 8);
+  const sellCtaImage = featured.find((a) => a.imageUrl)?.imageUrl ?? null;
 
   return (
     <div>
       <EntryAnimation />
-      {/* ==================== HERO — MINIMAL ==================== */}
-      <section className="bg-background pt-16 pb-12 md:pt-28 md:pb-20 relative overflow-x-clip">
-        {/* Ribbon animation layer */}
-        <HeroRibbons />
+      <Hero />
+      <ScrollReveal>
+        <Proposition />
+      </ScrollReveal>
+      <RecentlyListed artworks={featuredList} />
+      <ScrollReveal>
+        <BrowseBreak />
+      </ScrollReveal>
+      <SellCTA imageUrl={sellCtaImage} />
+    </div>
+  );
+}
 
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-          <div className="max-w-2xl mx-auto text-center animate-fade-up">
-            <h1 className="font-editorial text-5xl md:text-7xl lg:text-8xl font-bold leading-[0.95] tracking-tight text-primary">
-              Where Art Finds{' '}
-              <span className="italic text-accent">
-                Its People
-              </span>
-            </h1>
-            <p className="mt-6 text-xl text-muted max-w-md mx-auto leading-relaxed">
-              A curated marketplace for Australian artists. Zero commission. You keep everything you earn.
-            </p>
+/* ══════════════════════════════════════════════════════════════════
+   HERO — gallery installation photographs, slow crossfade
+   Typography: kicker (0.62rem caps) + split-treatment tagline.
+   "Where art" upright serif, "finds its people." italic serif —
+   the style shift creates internal tension in one statement.
+   ══════════════════════════════════════════════════════════════════ */
+
+function Hero() {
+  const [index, setIndex] = useState(0);
+  const [tick, setTick] = useState(0);
+  const slides = HERO_SLIDES;
+  const count = slides.length;
+
+  useEffect(() => {
+    if (count < 2) return;
+    if (
+      typeof window !== 'undefined' &&
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    ) {
+      return;
+    }
+    const id = setInterval(() => setIndex((i) => (i + 1) % count), 9000);
+    return () => clearInterval(id);
+  }, [count, tick]);
+
+  const goTo = (i: number) => {
+    setIndex(i);
+    setTick((t) => t + 1);
+  };
+
+  return (
+    <section
+      className="relative overflow-hidden"
+      style={{ height: '100vh' }}
+      aria-label="Gallery installation"
+    >
+      {slides.map((src, i) => (
+        <div
+          key={src}
+          className="absolute inset-0"
+          style={{
+            opacity: i === index ? 1 : 0,
+            transition: 'opacity 1.5s cubic-bezier(0.22, 1, 0.36, 1)',
+          }}
+          aria-hidden={i !== index}
+        >
+          <Image
+            src={src}
+            alt=""
+            fill
+            priority={i === 0}
+            sizes="100vw"
+            className="object-cover"
+          />
+          <div
+            className="absolute inset-0 pointer-events-none"
+            style={{
+              background:
+                'linear-gradient(to bottom, transparent 50%, rgba(26,26,24,0.6) 100%)',
+            }}
+          />
+        </div>
+      ))}
+
+      {/* Text overlay — bottom-left */}
+      <div
+        className="absolute z-10"
+        style={{
+          left: 'clamp(1.5rem, 4vw, 3rem)',
+          right: 'clamp(1.5rem, 4vw, 3rem)',
+          bottom: 'clamp(2.5rem, 6vw, 4rem)',
+          maxWidth: 720,
+        }}
+      >
+        <div
+          className="mb-5"
+          style={{
+            fontSize: '0.62rem',
+            letterSpacing: '0.22em',
+            textTransform: 'uppercase',
+            fontWeight: 400,
+            color: 'rgba(252, 251, 248, 0.72)',
+          }}
+        >
+          Australian artists · est. 2026
+        </div>
+        <h1
+          className="font-serif"
+          style={{
+            fontSize: 'clamp(3rem, 7vw, 5.5rem)',
+            fontWeight: 400,
+            lineHeight: 1.0,
+            letterSpacing: '-0.025em',
+            color: 'var(--color-warm-white)',
+            margin: 0,
+          }}
+        >
+          Where art<br />
+          <em style={{ fontStyle: 'italic' }}>finds its people.</em>
+        </h1>
+      </div>
+
+      {/* Numbered indices — bottom-right */}
+      {count > 1 && (
+        <div
+          className="absolute z-10 flex items-baseline"
+          style={{
+            right: 'clamp(1.5rem, 4vw, 3rem)',
+            bottom: 'clamp(2.5rem, 6vw, 4rem)',
+            gap: '1.25rem',
+          }}
+          aria-label="Hero slide selector"
+        >
+          {slides.map((_, i) => {
+            const active = i === index;
+            return (
+              <button
+                key={i}
+                type="button"
+                onClick={() => goTo(i)}
+                aria-label={`Show slide ${i + 1}`}
+                aria-current={active ? 'true' : undefined}
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  padding: '0.35rem 0',
+                  cursor: 'pointer',
+                  fontSize: '0.62rem',
+                  letterSpacing: '0.22em',
+                  textTransform: 'uppercase',
+                  fontWeight: 400,
+                  color: active
+                    ? 'rgba(252, 251, 248, 0.95)'
+                    : 'rgba(252, 251, 248, 0.5)',
+                  borderBottom: active
+                    ? '1px solid rgba(252, 251, 248, 0.95)'
+                    : '1px solid transparent',
+                  transition: 'color 0.35s ease, border-color 0.35s ease',
+                }}
+                onMouseEnter={(e) => {
+                  if (!active) {
+                    (e.currentTarget as HTMLButtonElement).style.color =
+                      'rgba(252, 251, 248, 0.85)';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (!active) {
+                    (e.currentTarget as HTMLButtonElement).style.color =
+                      'rgba(252, 251, 248, 0.5)';
+                  }
+                }}
+              >
+                {String(i + 1).padStart(2, '0')}
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </section>
+  );
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   PROPOSITION — the single value-prop beat, right after the hero
+   Dramatic scale contrast: "0%" at ~9rem display, "commission."
+   continuation at ~2.4rem italic, body at 0.88rem.
+   Three typographic scales in one section = designed, not typeset.
+   ══════════════════════════════════════════════════════════════════ */
+
+function Proposition() {
+  return (
+    <section
+      className="py-14 md:py-20"
+      style={{ borderTop: '1px solid var(--color-border)' }}
+    >
+      <div className="px-6 sm:px-10">
+        <div style={{ maxWidth: 800 }}>
+          {/* Massive display numeral — the visual anchor */}
+          <div
+            className="font-serif"
+            style={{
+              fontSize: 'clamp(5rem, 11vw, 9rem)',
+              lineHeight: 0.85,
+              letterSpacing: '-0.04em',
+              color: 'var(--color-ink)',
+              fontWeight: 400,
+            }}
+          >
+            0
+            <span
+              style={{
+                fontSize: '0.35em',
+                verticalAlign: 'super',
+                color: 'var(--color-terracotta)',
+                letterSpacing: 0,
+                fontStyle: 'italic',
+              }}
+            >
+              %
+            </span>
           </div>
 
-          {/* Guided Search */}
-          <GuidedSearch />
-        </div>
-      </section>
-
-      {/* ==================== ART ADVISORY CTA ==================== */}
-      <section className="bg-cream border-y border-border/40">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5 flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-4 text-center">
-          <span className="text-sm text-muted">Not sure where to start?</span>
-          <Link
-            href="/art-advisory"
-            className="inline-flex items-center gap-1.5 text-sm font-semibold text-accent-dark hover:text-accent transition-colors group"
+          {/* Italic serif continuation — reads as one thought with the numeral */}
+          <h2
+            className="font-serif"
+            style={{
+              fontSize: 'clamp(1.5rem, 2.8vw, 2.4rem)',
+              fontWeight: 400,
+              fontStyle: 'italic',
+              lineHeight: 1.15,
+              letterSpacing: '-0.015em',
+              color: 'var(--color-ink)',
+              margin: 0,
+              marginTop: 'clamp(0.8rem, 1.5vw, 1.2rem)',
+            }}
           >
-            Take our art advisory quiz
-            <ArrowRight className="h-3.5 w-3.5 group-hover:translate-x-0.5 transition-transform" />
+            commission. Artists keep<br />
+            everything they earn.
+          </h2>
+
+          {/* Supporting detail */}
+          <p
+            style={{
+              fontSize: '0.88rem',
+              fontWeight: 300,
+              color: 'var(--color-text-muted)',
+              maxWidth: 400,
+              lineHeight: 1.7,
+              marginTop: '1.5rem',
+            }}
+          >
+            $30/month after your first sale.
+            Stripe processing is the only deduction.
+          </p>
+
+          <div className="mt-6">
+            <Link href="/pricing" className="editorial-link no-underline">
+              Read the full ledger
+            </Link>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   RECENTLY LISTED — typographic rows with cursor-follow preview
+   Header uses italic serif for warmth. Rows have 3-scale hierarchy:
+   title (serif 1.5rem) → artist (sans 0.82rem) → price (serif 1rem).
+   ══════════════════════════════════════════════════════════════════ */
+
+function RecentlyListed({ artworks }: { artworks: FeaturedArtwork[] }) {
+  const [hoverIdx, setHoverIdx] = useState<number | null>(null);
+  const [mouse, setMouse] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
+  const previewRef = useRef<HTMLDivElement>(null);
+
+  const handleMove = useCallback((e: React.MouseEvent) => {
+    setMouse({ x: e.clientX, y: e.clientY });
+  }, []);
+
+  if (artworks.length < 3) return null;
+
+  return (
+    <section
+      className="py-12 md:py-16"
+      style={{ borderTop: '1px solid var(--color-border)' }}
+    >
+      <div className="px-6 sm:px-10">
+        {/* Header */}
+        <ScrollReveal>
+          <div
+            className="flex items-baseline justify-between mb-8 pb-3"
+            style={{ borderBottom: '1px solid var(--color-border)' }}
+          >
+            <h2
+              className="font-serif"
+              style={{
+                fontSize: '1.35rem',
+                fontWeight: 400,
+                fontStyle: 'italic',
+                color: 'var(--color-ink)',
+                letterSpacing: '-0.01em',
+                margin: 0,
+              }}
+            >
+              Recently listed
+            </h2>
+            <span
+              style={{
+                fontSize: '0.62rem',
+                fontWeight: 400,
+                color: 'var(--color-stone)',
+                letterSpacing: '0.22em',
+                textTransform: 'uppercase',
+              }}
+            >
+              {artworks.length} works
+            </span>
+          </div>
+        </ScrollReveal>
+
+        {/* List */}
+        <ul className="list-none p-0 m-0" onMouseMove={handleMove}>
+          {artworks.map((art, i) => (
+            <li key={art.id}>
+              <Link
+                href={`/artwork/${art.id}`}
+                className="no-underline block"
+                onMouseEnter={() => setHoverIdx(i)}
+                onMouseLeave={() => setHoverIdx(null)}
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'minmax(0,1fr) auto auto',
+                  gap: 'clamp(1rem, 3vw, 3rem)',
+                  alignItems: 'center',
+                  padding: '1.15rem 0',
+                  borderBottom: '1px solid var(--color-border)',
+                  color: 'var(--color-ink)',
+                  transition: 'color 0.3s ease',
+                }}
+                onMouseOver={(e) => {
+                  const el = e.currentTarget as HTMLAnchorElement;
+                  const name = el.querySelector('.fl-name') as HTMLElement | null;
+                  if (name) name.style.color = 'var(--color-terracotta)';
+                }}
+                onMouseOut={(e) => {
+                  const el = e.currentTarget as HTMLAnchorElement;
+                  const name = el.querySelector('.fl-name') as HTMLElement | null;
+                  if (name) name.style.color = 'var(--color-ink)';
+                }}
+              >
+                <div className="flex items-center gap-3">
+                  {/* Mobile-only inline thumbnail */}
+                  {art.imageUrl && (
+                    <div
+                      className="block md:hidden shrink-0 overflow-hidden"
+                      style={{
+                        width: 56,
+                        height: 70,
+                        border: '1px solid var(--color-ink)',
+                        background: 'var(--color-cream)',
+                        position: 'relative',
+                      }}
+                    >
+                      <Image
+                        src={art.imageUrl}
+                        alt=""
+                        fill
+                        sizes="56px"
+                        className="object-cover"
+                      />
+                    </div>
+                  )}
+                  <div
+                    className="fl-name font-serif"
+                    style={{
+                      fontSize: 'clamp(1.2rem, 2.2vw, 1.5rem)',
+                      letterSpacing: '-0.01em',
+                      fontWeight: 400,
+                      transition: 'color 0.3s ease',
+                      lineHeight: 1.2,
+                      minWidth: 0,
+                    }}
+                  >
+                    {art.title}
+                    <span
+                      style={{
+                        fontWeight: 300,
+                        color: 'var(--color-text-muted)',
+                        fontSize: '0.8rem',
+                        fontFamily: 'var(--font-sans)',
+                        marginLeft: '0.8rem',
+                      }}
+                    >
+                      {art.artistName}
+                    </span>
+                  </div>
+                </div>
+                <div
+                  className="hidden md:block"
+                  style={{
+                    fontSize: '0.76rem',
+                    fontWeight: 300,
+                    color: 'var(--color-text-muted)',
+                    letterSpacing: '0.04em',
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  {art.medium}
+                </div>
+                <div
+                  className="font-serif"
+                  style={{
+                    fontSize: '1rem',
+                    fontWeight: 400,
+                    minWidth: 80,
+                    textAlign: 'right',
+                    color: 'var(--color-ink)',
+                  }}
+                >
+                  {formatPrice(art.price)}
+                </div>
+              </Link>
+            </li>
+          ))}
+        </ul>
+      </div>
+
+      {/* Floating cursor preview */}
+      <div
+        ref={previewRef}
+        className="hidden md:block"
+        style={{
+          position: 'fixed',
+          width: 260,
+          height: 320,
+          pointerEvents: 'none',
+          zIndex: 100,
+          overflow: 'hidden',
+          opacity: hoverIdx !== null ? 1 : 0,
+          transition: 'opacity 0.35s ease',
+          border: '1px solid var(--color-ink)',
+          left: mouse.x + 24,
+          top: mouse.y - 160,
+          background: 'var(--color-cream)',
+        }}
+        aria-hidden
+      >
+        {hoverIdx !== null && artworks[hoverIdx]?.imageUrl && (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={artworks[hoverIdx].imageUrl}
+            alt=""
+            style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+          />
+        )}
+      </div>
+    </section>
+  );
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   BROWSE BREAK — editorial invitation after the list
+   One italic serif sentence + editorial link. Tight, minimal.
+   ══════════════════════════════════════════════════════════════════ */
+
+function BrowseBreak() {
+  return (
+    <section
+      className="py-14 md:py-20"
+      style={{ borderTop: '1px solid var(--color-border)' }}
+    >
+      <div className="px-6 sm:px-10">
+        <p
+          className="font-serif"
+          style={{
+            fontSize: 'clamp(1.4rem, 2.6vw, 2rem)',
+            fontWeight: 400,
+            fontStyle: 'italic',
+            lineHeight: 1.3,
+            letterSpacing: '-0.01em',
+            color: 'var(--color-ink)',
+            margin: 0,
+            maxWidth: 520,
+          }}
+        >
+          These are just the latest arrivals.
+        </p>
+        <div className="mt-6">
+          <Link href="/browse" className="editorial-link no-underline">
+            Browse the full collection
           </Link>
         </div>
-      </section>
+      </div>
+    </section>
+  );
+}
 
-      {/* ==================== TRUST BAR ==================== */}
-      <TrustBar />
+/* ══════════════════════════════════════════════════════════════════
+   SELL CTA — full-bleed image (or cream fallback), artist-facing
+   Single consolidated artist call-to-action.
+   ══════════════════════════════════════════════════════════════════ */
 
-      {/* ==================== FEATURED ARTWORK GRID ==================== */}
-      {artworks.length > 0 && (
-        <section className="pb-20 md:pb-28 pt-12">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="flex items-end justify-between mb-8">
-              <div>
-                <h2 className="font-editorial text-2xl md:text-3xl font-semibold text-primary">Featured</h2>
-              </div>
-              <Link
-                href="/browse"
-                className="hidden sm:inline-flex items-center gap-2 text-sm font-medium text-primary hover:text-accent-dark transition-colors group"
-              >
-                View all
-                <ArrowRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
-              </Link>
-            </div>
-
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-x-5 gap-y-10 stagger-children">
-              {artworks.map((artwork) => (
-                <ArtworkCard key={artwork.id} {...artwork} initialFavourited={favouriteIds.has(artwork.id)} />
-              ))}
-            </div>
-
-            <div className="sm:hidden text-center mt-8">
-              <Link
-                href="/browse"
-                className="inline-flex items-center gap-2 text-sm font-semibold text-primary hover:text-accent-dark transition-colors"
-              >
-                View all artwork <ArrowRight className="h-4 w-4" />
-              </Link>
-            </div>
-          </div>
-        </section>
-      )}
-
-      {/* ==================== NEW ARRIVALS — HORIZONTAL SCROLL ==================== */}
-      {newArrivals.length > 0 && (
-        <section className="py-20 md:py-28 bg-cream">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="flex items-end justify-between mb-8">
-              <div>
-                <p className="text-accent-dark text-xs font-semibold tracking-[0.2em] uppercase mb-2">Just Listed</p>
-                <h2 className="font-editorial text-2xl md:text-3xl font-semibold text-primary">New Arrivals</h2>
-              </div>
-              <Link
-                href="/browse?sort=newest"
-                className="hidden sm:inline-flex items-center gap-2 text-sm font-medium text-primary hover:text-accent-dark transition-colors group"
-              >
-                See all new
-                <ArrowRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
-              </Link>
-            </div>
-            <div className="flex gap-5 overflow-x-auto pb-4 -mx-4 px-4 sm:mx-0 sm:px-0 snap-x snap-mandatory scrollbar-hide">
-              {newArrivals.map((artwork) => (
-                <div key={artwork.id} className="flex-shrink-0 w-[260px] sm:w-[280px] snap-start">
-                  <ArtworkCard {...artwork} initialFavourited={favouriteIds.has(artwork.id)} />
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
-      )}
-
-      {/* ==================== JUST SOLD — SOCIAL PROOF ==================== */}
-      {justSold.length > 0 && (
-        <section className="py-20 md:py-28">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <ScrollReveal>
-              <div className="flex items-end justify-between mb-8">
-                <div>
-                  <p className="text-accent-dark text-xs font-semibold tracking-[0.2em] uppercase mb-2">Recent Sales</p>
-                  <h2 className="font-editorial text-2xl md:text-3xl font-semibold text-primary">Just Sold</h2>
-                </div>
-                <Link
-                  href="/just-sold"
-                  className="hidden sm:inline-flex items-center gap-2 text-sm font-medium text-primary hover:text-accent-dark transition-colors group"
-                >
-                  View all
-                  <ArrowRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
-                </Link>
-              </div>
-            </ScrollReveal>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-x-5 gap-y-10">
-              {justSold.map((item) => (
-                <ScrollReveal key={item.artworkId}>
-                  <div className="group relative rounded-[10px] bg-white border border-border overflow-hidden transition-all duration-300 ease-out md:hover:-translate-y-1 md:hover:shadow-[0_16px_48px_rgba(0,0,0,0.08)]">
-                    <Link
-                      href={`/artwork/${item.artworkId}`}
-                      className="block overflow-hidden aspect-[4/5] bg-muted-bg relative"
-                    >
-                      {item.imageUrl ? (
-                        <img
-                          src={item.imageUrl}
-                          alt={item.title}
-                          className="block w-full h-full object-cover transition-transform duration-500 ease-out md:group-hover:scale-[1.03]"
-                          loading="lazy"
-                        />
-                      ) : (
-                        <div className="w-full h-full bg-gradient-to-br from-muted-bg to-border flex items-center justify-center">
-                          <span className="text-warm-gray text-xs tracking-widest uppercase">No image</span>
-                        </div>
-                      )}
-                      <span className="absolute top-3 left-3 bg-black/60 text-white text-xs font-medium px-2 py-0.5 rounded-full">
-                        Sold
-                      </span>
-                    </Link>
-                    <div className="p-4 space-y-1.5">
-                      <Link href={`/artwork/${item.artworkId}`} className="block">
-                        <h3 className="font-editorial font-medium text-foreground truncate hover:text-accent transition-colors duration-200 text-[15px] leading-snug">
-                          {item.title}
-                        </h3>
-                      </Link>
-                      <Link
-                        href={`/artists/${item.artistId}`}
-                        className="block text-[13px] text-muted hover:text-accent transition-colors duration-200"
-                      >
-                        {item.artistName}
-                      </Link>
-                      <p className="font-semibold text-foreground text-sm pt-0.5 tracking-tight">
-                        Sold for {formatPrice(item.price)}
-                      </p>
-                      <p className="text-xs text-muted">{timeAgo(item.soldAt)}</p>
-                    </div>
-                  </div>
-                </ScrollReveal>
-              ))}
-            </div>
-
-            <div className="sm:hidden text-center mt-8">
-              <Link
-                href="/just-sold"
-                className="inline-flex items-center gap-2 text-sm font-semibold text-primary hover:text-accent-dark transition-colors"
-              >
-                View all sold artwork <ArrowRight className="h-4 w-4" />
-              </Link>
-            </div>
-          </div>
-        </section>
-      )}
-
-      {/* ==================== CURATED COLLECTIONS ==================== */}
-      {collections.length > 0 && (
-        <section className="py-20 md:py-28 bg-cream">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <ScrollReveal>
-              <div className="flex items-end justify-between mb-8">
-                <div>
-                  <p className="text-accent-dark text-xs font-semibold tracking-[0.2em] uppercase mb-2">Handpicked</p>
-                  <h2 className="font-editorial text-2xl md:text-3xl font-semibold text-primary">Curated Collections</h2>
-                </div>
-                <Link
-                  href="/collections"
-                  className="hidden sm:inline-flex items-center gap-2 text-sm font-medium text-primary hover:text-accent-dark transition-colors group"
-                >
-                  View all
-                  <ArrowRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
-                </Link>
-              </div>
-            </ScrollReveal>
-
-            <div className="flex gap-5 overflow-x-auto pb-4 -mx-4 px-4 sm:mx-0 sm:px-0 snap-x snap-mandatory scrollbar-hide">
-              {collections.map((collection, i) => (
-                <ScrollReveal key={collection.id} delay={i * 150}>
-                  <Link
-                    href={`/collections/${collection.slug}`}
-                    className="group flex-shrink-0 w-[340px] sm:w-[400px] snap-start block rounded-2xl border border-border overflow-hidden bg-white transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_16px_48px_rgba(0,0,0,0.08)]"
-                  >
-                    <div className="aspect-[16/10] bg-muted-bg relative overflow-hidden">
-                      {collection.cover_image_url ? (
-                        <img
-                          src={collection.cover_image_url}
-                          alt={collection.title}
-                          className="w-full h-full object-cover transition-transform duration-500 ease-out group-hover:scale-[1.03]"
-                          loading="lazy"
-                        />
-                      ) : (
-                        <div className="w-full h-full bg-gradient-to-br from-stone-200 to-stone-300" />
-                      )}
-                      {/* Overlay */}
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent" />
-                      <div className="absolute bottom-0 left-0 right-0 p-5">
-                        <h3 className="font-editorial text-xl font-semibold text-white">
-                          {collection.title}
-                        </h3>
-                        <p className="text-white/70 text-sm mt-1">
-                          {collection.artwork_count} {collection.artwork_count === 1 ? 'work' : 'works'}
-                        </p>
-                      </div>
-                    </div>
-                  </Link>
-                </ScrollReveal>
-              ))}
-            </div>
-
-            <div className="sm:hidden text-center mt-6">
-              <Link
-                href="/collections"
-                className="inline-flex items-center gap-2 text-sm font-semibold text-primary hover:text-accent-dark transition-colors"
-              >
-                View all collections <ArrowRight className="h-4 w-4" />
-              </Link>
-            </div>
-          </div>
-        </section>
-      )}
-
-      {/* ==================== ARTIST SPOTLIGHT — FULL WIDTH ==================== */}
-      {spotlightArtists.length > 0 && artworks.length > 0 && (() => {
-        const artist = spotlightArtists.find((a) => a.id === artworks[0].artistId);
-        if (!artist) return null;
-
-        // Grab up to 3 artworks by this artist for the visual row
-        const artistWorks = artworks.filter((a) => a.artistId === artist.id).slice(0, 3);
-
-        return (
-          <section className="py-20 md:py-28">
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-              <ScrollReveal>
-                <p className="text-accent-dark text-xs font-semibold tracking-[0.2em] uppercase mb-8">Artist Spotlight</p>
-              </ScrollReveal>
-
-              <div className="grid grid-cols-1 md:grid-cols-12 gap-8 md:gap-12 items-start">
-                {/* Artist info — left column */}
-                <ScrollReveal delay={100} className="md:col-span-4">
-                  <Link href={`/artists/${artist.id}`} className="group/artist flex items-center gap-3.5">
-                    <Avatar
-                      avatarUrl={artist.avatarUrl}
-                      name={artist.fullName}
-                      size={56}
-                    />
-                    <div>
-                      <h3 className="font-editorial text-2xl font-semibold text-primary group-hover/artist:text-accent-dark transition-colors">
-                        {artist.fullName}
-                      </h3>
-                      {artist.location && (
-                        <p className="text-muted text-sm">{artist.location}</p>
-                      )}
-                    </div>
-                  </Link>
-                  {artist.bio && (
-                    <p className="mt-4 text-muted text-sm leading-relaxed line-clamp-4">
-                      {artist.bio}
-                    </p>
-                  )}
-                  <Link
-                    href={`/artists/${artist.id}`}
-                    className="inline-flex items-center gap-1.5 text-sm font-medium text-accent-dark mt-4 hover:gap-2.5 transition-all"
-                  >
-                    View profile
-                    <ArrowRight className="h-3.5 w-3.5" />
-                  </Link>
-                </ScrollReveal>
-
-                {/* Artist works — right columns */}
-                <ScrollReveal delay={200} className="md:col-span-8">
-                  <div className={`grid gap-4 ${
-                    artistWorks.length === 1
-                      ? 'grid-cols-1'
-                      : artistWorks.length === 2
-                        ? 'grid-cols-2'
-                        : 'grid-cols-2 md:grid-cols-3'
-                  }`}>
-                    {artistWorks.map((work, i) => (
-                      <Link
-                        key={work.id}
-                        href={`/artwork/${work.id}`}
-                        className={`group relative rounded-xl overflow-hidden ${
-                          artistWorks.length === 3 && i === 0 ? 'col-span-2 md:col-span-1' : ''
-                        }`}
-                      >
-                        <div className="aspect-[4/5]">
-                          <img
-                            src={work.imageUrl}
-                            alt={work.title}
-                            className="w-full h-full object-cover transition-transform duration-[600ms] ease-out group-hover:scale-[1.03]"
-                          />
-                        </div>
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                          <div className="absolute bottom-0 left-0 right-0 p-4">
-                            <p className="text-white font-medium text-sm">{work.title}</p>
-                            <p className="text-white/70 text-xs mt-0.5">{work.medium}</p>
-                          </div>
-                        </div>
-                      </Link>
-                    ))}
-                  </div>
-                </ScrollReveal>
-              </div>
-            </div>
-          </section>
-        );
-      })()}
-
-      {/* ==================== MEET OUR ARTISTS ==================== */}
-      <MeetOurArtists artists={spotlightArtists} />
-
-      {/* ==================== WHY SIGNO — 3 CARDS ==================== */}
-      <section className="py-20 md:py-28 bg-cream">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+function SellCTA({ imageUrl }: { imageUrl: string | null }) {
+  if (imageUrl) {
+    return (
+      <section
+        className="relative overflow-hidden"
+        style={{ height: '55vh', minHeight: 440 }}
+      >
+        <Image
+          src={imageUrl}
+          alt=""
+          fill
+          sizes="100vw"
+          className="object-cover"
+        />
+        <div
+          className="absolute inset-0 pointer-events-none"
+          style={{ background: 'rgba(26,26,24,0.6)' }}
+        />
+        <div
+          className="absolute z-10"
+          style={{
+            left: 'clamp(1.5rem, 4vw, 2.5rem)',
+            right: 'clamp(1.5rem, 4vw, 2.5rem)',
+            bottom: 'clamp(2.5rem, 5vw, 3.5rem)',
+            maxWidth: 560,
+          }}
+        >
           <ScrollReveal>
-            <div className="text-center mb-12">
-              <p className="text-accent-dark text-xs font-semibold tracking-[0.2em] uppercase mb-3">Why Signo</p>
-              <h2 className="font-editorial text-3xl md:text-5xl font-bold text-primary">
-                Built for artists, loved by collectors
-              </h2>
+            <div
+              className="mb-5"
+              style={{
+                fontSize: '0.62rem',
+                letterSpacing: '0.22em',
+                textTransform: 'uppercase',
+                fontWeight: 400,
+                color: 'rgba(252, 251, 248, 0.65)',
+              }}
+            >
+              For artists
             </div>
-          </ScrollReveal>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {[
-              {
-                icon: DollarSign,
-                title: 'Zero Commission',
-                description: 'Artists keep 100% of every sale. Free until your first sale. Then just $30/month to keep your listings live.',
-              },
-              {
-                icon: ShieldCheck,
-                title: 'Buyer Protection',
-                description: 'Payments held in escrow until delivery is confirmed. 48-hour inspection window on every order.',
-              },
-              {
-                icon: Palette,
-                title: 'Curated Quality',
-                description: 'Every piece is reviewed before listing. Sell originals, prints, and digital downloads from one storefront.',
-              },
-            ].map((item, i) => (
-              <ScrollReveal key={item.title} delay={i * 150}>
-                <div
-                  className="bg-white rounded-2xl p-8 border border-border hover:border-accent/40 hover:-translate-y-1 hover:shadow-md transition-all duration-300 group"
-                >
-                  <div className="w-12 h-12 rounded-xl bg-accent/10 flex items-center justify-center mb-5 group-hover:bg-accent/20 transition-colors">
-                    <item.icon className="h-6 w-6 text-accent-dark" />
-                  </div>
-                  <h3 className="font-editorial text-xl font-semibold text-primary mb-2">{item.title}</h3>
-                  <p className="text-muted text-sm leading-relaxed">{item.description}</p>
-                </div>
-              </ScrollReveal>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ==================== FOR ARTISTS — STANDALONE CTA ==================== */}
-      <section className="py-20 md:py-28 bg-accent/5">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <ScrollReveal>
-            <p className="text-accent-dark text-xs font-semibold tracking-[0.2em] uppercase mb-3">For Artists</p>
-            <h2 className="font-editorial text-3xl md:text-5xl font-bold text-primary leading-snug">
-              Your art, your earnings.{' '}
-              <span className="italic">No commission.</span>
+            <h2
+              className="font-serif"
+              style={{
+                fontSize: 'clamp(2.4rem, 5vw, 3.8rem)',
+                color: 'var(--color-warm-white)',
+                lineHeight: 1.05,
+                letterSpacing: '-0.025em',
+                fontWeight: 400,
+                margin: 0,
+              }}
+            >
+              Your art,<br />
+              <em style={{ fontStyle: 'italic' }}>your terms.</em>
             </h2>
-            <p className="mt-5 text-muted leading-relaxed max-w-xl mx-auto">
-              List for free. Your $30/month subscription starts only after your first sale. You keep 100% of every sale —
-              the only deduction is Stripe&apos;s payment processing fee (~1.75% + 30c).
+            <p
+              style={{
+                fontSize: '0.88rem',
+                fontWeight: 300,
+                color: 'rgba(252, 251, 248, 0.68)',
+                lineHeight: 1.7,
+                marginTop: '1.2rem',
+                marginBottom: '1.6rem',
+                maxWidth: 420,
+              }}
+            >
+              Join a growing community of Australian artists selling directly to
+              collectors. Zero commission. Zero platform fees.
             </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center mt-8">
-              <Link
-                href="/register"
-                className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-accent text-white font-semibold rounded-full hover:bg-accent-dark hover:scale-[0.98] active:scale-[0.96] transition-all duration-200 ease-out"
-              >
-                Start Selling
-                <ArrowRight className="h-4 w-4" />
-              </Link>
-              <Link
-                href="/how-it-works"
-                className="inline-flex items-center justify-center px-6 py-3 border border-border text-primary font-medium rounded-full hover:bg-white hover:scale-[0.98] active:scale-[0.96] transition-all duration-200 ease-out"
-              >
-                How It Works
-              </Link>
-            </div>
+            <Link
+              href="/register"
+              className="inline-block no-underline"
+              style={{
+                fontSize: '0.68rem',
+                fontWeight: 400,
+                letterSpacing: '0.18em',
+                textTransform: 'uppercase',
+                color: 'var(--color-warm-white)',
+                paddingBottom: '0.25rem',
+                borderBottom: '1px solid rgba(252, 251, 248, 0.45)',
+                transition: 'border-color 0.3s ease',
+              }}
+              onMouseEnter={(e) =>
+                ((e.currentTarget as HTMLAnchorElement).style.borderBottomColor =
+                  'rgba(252, 251, 248, 0.95)')
+              }
+              onMouseLeave={(e) =>
+                ((e.currentTarget as HTMLAnchorElement).style.borderBottomColor =
+                  'rgba(252, 251, 248, 0.45)')
+              }
+            >
+              Start selling on Signo
+            </Link>
           </ScrollReveal>
         </div>
       </section>
+    );
+  }
 
-      {/* ==================== HOW IT WORKS — CONDENSED ==================== */}
-      <section className="py-20 md:py-32">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+  // Cream fallback — no featured image available
+  return (
+    <section
+      className="py-16 md:py-20"
+      style={{
+        background: 'var(--color-cream)',
+        borderTop: '1px solid var(--color-border)',
+      }}
+    >
+      <div className="px-6 sm:px-10">
+        <div style={{ maxWidth: 560 }}>
           <ScrollReveal>
-            <div className="text-center mb-14">
-              <p className="text-accent-dark text-xs font-semibold tracking-[0.2em] uppercase mb-3">How It Works</p>
-              <h2 className="font-editorial text-3xl md:text-5xl font-bold text-primary">Simple for everyone</h2>
+            <div
+              className="mb-5"
+              style={{
+                fontSize: '0.62rem',
+                letterSpacing: '0.22em',
+                textTransform: 'uppercase',
+                color: 'var(--color-stone)',
+                fontWeight: 400,
+              }}
+            >
+              For artists
+            </div>
+            <h2
+              className="font-serif"
+              style={{
+                fontSize: 'clamp(2.4rem, 5vw, 3.8rem)',
+                lineHeight: 1.05,
+                letterSpacing: '-0.025em',
+                fontWeight: 400,
+                color: 'var(--color-ink)',
+                margin: 0,
+              }}
+            >
+              Your art,<br />
+              <em style={{ fontStyle: 'italic', color: 'var(--color-terracotta)' }}>
+                your terms.
+              </em>
+            </h2>
+            <p
+              style={{
+                fontSize: '0.88rem',
+                fontWeight: 300,
+                lineHeight: 1.7,
+                color: 'var(--color-stone-dark)',
+                maxWidth: 420,
+                marginTop: '1.2rem',
+              }}
+            >
+              Join a growing community of Australian artists selling directly to
+              collectors. Zero commission. Zero platform fees.
+            </p>
+            <div className="mt-8">
+              <Link href="/register" className="editorial-link no-underline">
+                Start selling on Signo
+              </Link>
             </div>
           </ScrollReveal>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-12 md:gap-16">
-            {/* Selling */}
-            <ScrollReveal delay={100}>
-              <div className="space-y-6">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="h-0.5 w-10 bg-accent" />
-                  <h3 className="font-editorial text-lg font-medium text-primary">Selling</h3>
-                </div>
-                {[
-                  { step: 'Upload', desc: 'Add photos, set your price, describe your work.' },
-                  { step: 'Review', desc: 'Our team reviews quality within 24-48 hours.' },
-                  { step: 'Sell', desc: 'Your art goes live. When it sells, you keep 100%.' },
-                  { step: 'Get paid', desc: 'Funds released when the buyer confirms delivery, or automatically after the 48-hour inspection window.' },
-                ].map((item, i) => (
-                  <div key={i} className="flex gap-4 group">
-                    <div className="flex-shrink-0 w-8 h-8 rounded-full border border-border flex items-center justify-center text-xs font-medium text-muted group-hover:border-accent group-hover:text-accent-dark group-hover:bg-accent/5 transition-all">
-                      {i + 1}
-                    </div>
-                    <div>
-                      <p className="font-medium text-sm text-primary">{item.step}</p>
-                      <p className="text-sm text-muted mt-0.5">{item.desc}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </ScrollReveal>
-
-            {/* Buying */}
-            <ScrollReveal delay={250}>
-              <div className="space-y-6">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="h-0.5 w-10 bg-accent" />
-                  <h3 className="font-editorial text-lg font-medium text-primary">Buying</h3>
-                </div>
-                {[
-                  { step: 'Discover', desc: 'Browse by style, medium, price, or artist.' },
-                  { step: 'Purchase', desc: 'Secure checkout. Payment held in escrow.' },
-                  { step: 'Receive', desc: 'Tracked shipping within 7 days.' },
-                  { step: 'Enjoy', desc: '48-hour inspection window. Full buyer protection.' },
-                ].map((item, i) => (
-                  <div key={i} className="flex gap-4 group">
-                    <div className="flex-shrink-0 w-8 h-8 rounded-full border border-border flex items-center justify-center text-xs font-medium text-muted group-hover:border-accent group-hover:text-accent-dark group-hover:bg-accent/5 transition-all">
-                      {i + 1}
-                    </div>
-                    <div>
-                      <p className="font-medium text-sm text-primary">{item.step}</p>
-                      <p className="text-sm text-muted mt-0.5">{item.desc}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </ScrollReveal>
-          </div>
         </div>
-      </section>
-
-      {/* ==================== CTA BANNER ==================== */}
-      <section className="py-20 md:py-28">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="bg-primary rounded-3xl px-8 py-20 md:px-16 md:py-28 text-center relative overflow-hidden">
-            {/* Accent glow */}
-            <div className="absolute top-0 right-0 w-64 h-64 bg-accent/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
-            <div className="absolute bottom-0 left-0 w-48 h-48 bg-accent/5 rounded-full blur-3xl translate-y-1/2 -translate-x-1/2" />
-
-            <ScrollReveal className="relative z-10">
-              <h2 className="font-editorial text-4xl md:text-6xl font-bold text-white leading-tight max-w-2xl mx-auto">
-                Ready to discover your next{' '}
-                <span className="italic text-accent">favourite piece?</span>
-              </h2>
-              <p className="text-gray-400 mt-5 text-xl max-w-lg mx-auto">
-                Join a community that values artists and celebrates creativity.
-              </p>
-              <div className="flex flex-col sm:flex-row gap-4 justify-center mt-10">
-                <Link
-                  href="/browse"
-                  className="group inline-flex items-center justify-center gap-3 px-8 py-4 bg-accent text-primary font-semibold rounded-full hover:bg-accent-light hover:scale-[0.98] active:scale-[0.96] transition-all duration-200 ease-out text-lg"
-                >
-                  Browse Artwork
-                  <ArrowRight className="h-5 w-5 group-hover:translate-x-1 transition-transform" />
-                </Link>
-                <Link
-                  href="/register"
-                  className="inline-flex items-center justify-center gap-2 px-8 py-4 border border-white/30 text-white font-semibold rounded-full hover:bg-white hover:text-primary hover:scale-[0.98] active:scale-[0.96] transition-all duration-200 ease-out text-lg"
-                >
-                  Join Signo
-                </Link>
-              </div>
-            </ScrollReveal>
-          </div>
-        </div>
-      </section>
-    </div>
+      </div>
+    </section>
   );
 }
