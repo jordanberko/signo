@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import ScrollReveal from '@/components/ui/ScrollReveal';
+import Image from 'next/image';
 
 interface CollectionCard {
   id: string;
@@ -35,82 +35,232 @@ export default function CollectionsPage() {
   }, []);
 
   return (
-    <div className="min-h-[60vh]">
-      {/* Header */}
-      <section className="py-16 md:py-24">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <ScrollReveal>
-            <p className="text-accent-dark text-xs font-semibold tracking-[0.2em] uppercase mb-3">
-              CURATED
-            </p>
-            <h1 className="font-editorial text-4xl md:text-6xl font-bold text-primary">
-              Collections
-            </h1>
-            <p className="mt-4 text-muted text-lg max-w-md mx-auto">
-              Handpicked artwork, thoughtfully grouped.
-            </p>
-          </ScrollReveal>
-        </div>
-      </section>
+    <div style={{ background: 'var(--color-warm-white)' }}>
+      {/* ── Editorial header ── */}
+      <header
+        className="px-6 sm:px-10"
+        style={{
+          paddingTop: 'clamp(4rem, 9vw, 7rem)',
+          paddingBottom: 'clamp(2.5rem, 5vw, 4rem)',
+        }}
+      >
+        <p
+          style={{
+            fontSize: '0.68rem',
+            letterSpacing: '0.22em',
+            textTransform: 'uppercase',
+            color: 'var(--color-stone)',
+            marginBottom: '1.2rem',
+          }}
+        >
+          Curated
+        </p>
+        <h1
+          className="font-serif"
+          style={{
+            fontSize: 'clamp(2.6rem, 6vw, 4.8rem)',
+            lineHeight: 1.02,
+            letterSpacing: '-0.015em',
+            color: 'var(--color-ink)',
+            fontWeight: 400,
+            maxWidth: '22ch',
+          }}
+        >
+          Collections, <em style={{ fontStyle: 'italic' }}>thoughtfully grouped.</em>
+        </h1>
+        <p
+          style={{
+            marginTop: '1.6rem',
+            fontSize: '0.92rem',
+            fontWeight: 300,
+            lineHeight: 1.6,
+            color: 'var(--color-stone-dark)',
+            maxWidth: '46ch',
+          }}
+        >
+          {loaded && collections.length > 0
+            ? `${collections.length} curated ${collections.length === 1 ? 'edit' : 'edits'} — handpicked threads running through the roster, from quiet interiors to the edge of abstraction.`
+            : 'Handpicked threads running through the roster, from quiet interiors to the edge of abstraction.'}
+        </p>
+      </header>
 
-      {/* Grid */}
-      <section className="pb-20 md:pb-28">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          {!loaded ? (
-            <div className="text-center py-16">
-              <div className="inline-block w-8 h-8 border-2 border-accent border-t-transparent rounded-full animate-spin" />
-            </div>
-          ) : collections.length === 0 ? (
-            <div className="text-center py-16">
-              <p className="text-muted text-lg">No collections yet. Check back soon.</p>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {collections.map((collection, i) => (
-                <ScrollReveal key={collection.id} delay={i * 100}>
-                  <Link
-                    href={`/collections/${collection.slug}`}
-                    className="group block rounded-2xl border border-border overflow-hidden bg-white transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_16px_48px_rgba(0,0,0,0.08)]"
+      <div style={{ borderTop: '1px solid var(--color-border)' }} />
+
+      {/* ── Grid ── */}
+      <section
+        className="px-6 sm:px-10"
+        style={{ paddingTop: 'clamp(3rem, 5vw, 4.5rem)', paddingBottom: 'clamp(4rem, 7vw, 6rem)' }}
+      >
+        {!loaded ? (
+          <p
+            className="font-serif"
+            style={{
+              fontSize: '1.1rem',
+              fontStyle: 'italic',
+              color: 'var(--color-stone)',
+              fontWeight: 300,
+            }}
+          >
+            Loading the edits…
+          </p>
+        ) : collections.length === 0 ? (
+          <div style={{ maxWidth: '46ch', paddingTop: '2rem', paddingBottom: '5rem' }}>
+            <p
+              className="font-serif"
+              style={{
+                fontSize: 'clamp(1.6rem, 3vw, 2.2rem)',
+                lineHeight: 1.15,
+                color: 'var(--color-ink)',
+              }}
+            >
+              New collections are being assembled.
+            </p>
+            <p
+              style={{
+                marginTop: '1rem',
+                fontSize: '0.88rem',
+                color: 'var(--color-stone-dark)',
+                fontWeight: 300,
+                lineHeight: 1.6,
+              }}
+            >
+              Curatorial edits are published monthly.
+            </p>
+            <Link
+              href="/browse"
+              className="editorial-link"
+              style={{ marginTop: '1.6rem', display: 'inline-block' }}
+            >
+              Browse current works →
+            </Link>
+          </div>
+        ) : (
+          <div
+            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3"
+            style={{ gap: 'clamp(2rem, 4vw, 3.5rem)' }}
+          >
+            {collections.map((collection, i) => {
+              const num = String(i + 1).padStart(2, '0');
+              return (
+                <Link
+                  key={collection.id}
+                  href={`/collections/${collection.slug}`}
+                  className="img-zoom"
+                  style={{
+                    display: 'block',
+                    textDecoration: 'none',
+                  }}
+                >
+                  {/* Cover */}
+                  <div
+                    style={{
+                      aspectRatio: '4 / 5',
+                      background: 'var(--color-cream)',
+                      position: 'relative',
+                      overflow: 'hidden',
+                    }}
                   >
-                    {/* Cover Image */}
-                    <div className="aspect-[16/10] bg-muted-bg relative overflow-hidden">
-                      {collection.cover_image_url ? (
-                        <img
-                          src={collection.cover_image_url}
-                          alt={collection.title}
-                          className="w-full h-full object-cover transition-transform duration-500 ease-out group-hover:scale-[1.03]"
-                          loading="lazy"
-                        />
-                      ) : (
-                        <div className="w-full h-full bg-gradient-to-br from-stone-200 to-stone-300 flex items-center justify-center">
-                          <span className="text-warm-gray/60 text-xs tracking-widest uppercase">
-                            Collection
-                          </span>
-                        </div>
-                      )}
-                      {/* Artwork count badge */}
-                      <span className="absolute bottom-3 right-3 px-2.5 py-1 bg-black/60 text-white text-xs font-medium rounded-full">
-                        {collection.artwork_count} {collection.artwork_count === 1 ? 'work' : 'works'}
-                      </span>
-                    </div>
+                    {collection.cover_image_url ? (
+                      <Image
+                        src={collection.cover_image_url}
+                        alt={collection.title}
+                        fill
+                        className="object-cover"
+                        sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                      />
+                    ) : (
+                      <div
+                        style={{
+                          width: '100%',
+                          height: '100%',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                        }}
+                      >
+                        <span
+                          style={{
+                            fontSize: '0.62rem',
+                            letterSpacing: '0.22em',
+                            textTransform: 'uppercase',
+                            color: 'var(--color-stone)',
+                          }}
+                        >
+                          Collection
+                        </span>
+                      </div>
+                    )}
+                  </div>
 
-                    {/* Info */}
-                    <div className="p-5">
-                      <h2 className="font-editorial text-xl font-medium text-primary group-hover:text-accent-dark transition-colors">
-                        {collection.title}
-                      </h2>
-                      {collection.description && (
-                        <p className="mt-2 text-sm text-muted line-clamp-2">
-                          {collection.description}
-                        </p>
-                      )}
-                    </div>
-                  </Link>
-                </ScrollReveal>
-              ))}
-            </div>
-          )}
-        </div>
+                  {/* Meta */}
+                  <div
+                    style={{
+                      marginTop: '1.4rem',
+                      display: 'grid',
+                      gridTemplateColumns: 'auto 1fr auto',
+                      gap: '1.2rem',
+                      alignItems: 'baseline',
+                    }}
+                  >
+                    <span
+                      className="font-serif"
+                      style={{
+                        fontSize: '0.82rem',
+                        color: 'var(--color-stone)',
+                        fontStyle: 'italic',
+                        fontWeight: 400,
+                      }}
+                    >
+                      {num}
+                    </span>
+                    <h2
+                      className="font-serif"
+                      style={{
+                        fontSize: 'clamp(1.3rem, 2vw, 1.7rem)',
+                        lineHeight: 1.2,
+                        color: 'var(--color-ink)',
+                        fontWeight: 400,
+                        letterSpacing: '-0.01em',
+                      }}
+                    >
+                      {collection.title}
+                    </h2>
+                    <span
+                      style={{
+                        fontSize: '0.62rem',
+                        letterSpacing: '0.2em',
+                        textTransform: 'uppercase',
+                        color: 'var(--color-stone)',
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
+                      {collection.artwork_count} {collection.artwork_count === 1 ? 'work' : 'works'}
+                    </span>
+                  </div>
+                  {collection.description && (
+                    <p
+                      style={{
+                        marginTop: '0.6rem',
+                        marginLeft: 'calc(0.82rem + 1.2rem)',
+                        fontSize: '0.86rem',
+                        color: 'var(--color-stone-dark)',
+                        fontWeight: 300,
+                        lineHeight: 1.55,
+                        maxWidth: '38ch',
+                        display: '-webkit-box',
+                        WebkitLineClamp: 2,
+                        WebkitBoxOrient: 'vertical',
+                        overflow: 'hidden',
+                      }}
+                    >
+                      {collection.description}
+                    </p>
+                  )}
+                </Link>
+              );
+            })}
+          </div>
+        )}
       </section>
     </div>
   );

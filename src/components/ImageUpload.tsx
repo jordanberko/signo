@@ -1,7 +1,6 @@
 'use client';
 
-import { useCallback, useRef, useState } from 'react';
-import { ImagePlus, X, GripVertical, Loader2, AlertCircle, RotateCw, Pencil } from 'lucide-react';
+import { useCallback, useRef, useState, type CSSProperties } from 'react';
 import Image from 'next/image';
 import dynamic from 'next/dynamic';
 
@@ -39,6 +38,27 @@ interface ImageUploadProps {
 
 const ACCEPTED = '.jpg,.jpeg,.png,.webp,.heic,.heif';
 const ACCEPTED_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/heic', 'image/heif'];
+
+// ── Editorial style tokens ──
+
+const KICKER: CSSProperties = {
+  fontSize: '0.62rem',
+  letterSpacing: '0.22em',
+  textTransform: 'uppercase',
+  color: 'var(--color-stone)',
+  fontWeight: 400,
+  margin: 0,
+};
+
+const SERIF_ITALIC: CSSProperties = {
+  fontFamily: 'var(--font-serif), Georgia, serif',
+  fontStyle: 'italic',
+  fontWeight: 400,
+};
+
+const HAIRLINE_BORDER = '1px solid var(--color-border-strong)';
+const INK_BORDER = '1px solid var(--color-ink)';
+const ERROR_BORDER = '1px solid var(--color-terracotta, #c45d3e)';
 
 export default function ImageUpload({
   maxFiles = 6,
@@ -78,7 +98,6 @@ export default function ImageUpload({
   // Upload a single file for a given image item
   const uploadSingleFile = useCallback(
     async (file: File, itemId: string) => {
-      // Mark as uploading
       setImages((prev) =>
         prev.map((img) =>
           img.id === itemId ? { ...img, uploading: true, error: undefined, progress: 0 } : img
@@ -106,9 +125,7 @@ export default function ImageUpload({
         console.error(`[ImageUpload] Upload failed for ${file.name}:`, message);
         setImages((prev) =>
           prev.map((img) =>
-            img.id === itemId
-              ? { ...img, uploading: false, error: message }
-              : img
+            img.id === itemId ? { ...img, uploading: false, error: message } : img
           )
         );
       }
@@ -134,11 +151,9 @@ export default function ImageUpload({
       if (!id) return;
       setEditingId(null);
 
-      // Revoke old preview if any
       const oldImg = images.find((i) => i.id === id);
       if (oldImg?.preview) URL.revokeObjectURL(oldImg.preview);
 
-      // Set new local preview and start re-upload
       const preview = URL.createObjectURL(file);
       setImages((prev) =>
         prev.map((img) =>
@@ -182,14 +197,14 @@ export default function ImageUpload({
       setError('');
       const fileArray = Array.from(files);
 
-      // Check total count
       const currentCount = images.length;
       if (currentCount + fileArray.length > maxFiles) {
-        setError(`You can upload a maximum of ${maxFiles} images. You have ${currentCount} already.`);
+        setError(
+          `You can upload a maximum of ${maxFiles} images. You have ${currentCount} already.`
+        );
         return;
       }
 
-      // Validate each file
       const validFiles: { file: File; item: ImageItem }[] = [];
       for (const file of fileArray) {
         if (!ACCEPTED_TYPES.includes(file.type)) {
@@ -214,11 +229,9 @@ export default function ImageUpload({
         validFiles.push({ file, item });
       }
 
-      // Add placeholders immediately (shows local preview)
       const newItems = validFiles.map((v) => v.item);
       setImages((prev) => [...prev, ...newItems]);
 
-      // Upload each file
       for (const { file, item } of validFiles) {
         uploadSingleFile(file, item.id);
       }
@@ -295,8 +308,8 @@ export default function ImageUpload({
   const hasRoom = images.length < maxFiles;
 
   return (
-    <div className="space-y-4">
-      {/* Drop zone */}
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+      {/* ── Drop zone (hairline ink-bordered rectangle) ── */}
       {hasRoom && (
         <button
           type="button"
@@ -304,31 +317,44 @@ export default function ImageUpload({
           onDragOver={handleDragOver}
           onDragLeave={handleDragLeave}
           onDrop={handleDrop}
-          className={`w-full border-2 border-dashed rounded-2xl p-8 text-center transition-all duration-300 cursor-pointer group ${
-            isDraggingOver
-              ? 'border-accent bg-accent-subtle scale-[1.01]'
-              : 'border-border hover:border-accent/50 hover:bg-cream'
-          }`}
+          style={{
+            width: '100%',
+            background: isDraggingOver ? 'var(--color-cream)' : 'transparent',
+            border: isDraggingOver ? INK_BORDER : HAIRLINE_BORDER,
+            padding: '2.6rem 1.5rem',
+            cursor: 'pointer',
+            textAlign: 'center',
+            transition: 'background 200ms cubic-bezier(0.22, 1, 0.36, 1), border-color 200ms cubic-bezier(0.22, 1, 0.36, 1)',
+            color: 'var(--color-ink)',
+          }}
         >
-          <div className="flex flex-col items-center gap-3">
-            <div
-              className={`w-14 h-14 rounded-full flex items-center justify-center transition-colors duration-300 ${
-                isDraggingOver
-                  ? 'bg-accent/20 text-accent'
-                  : 'bg-muted-bg text-muted group-hover:bg-accent-subtle group-hover:text-accent'
-              }`}
-            >
-              <ImagePlus className="h-6 w-6" />
-            </div>
-            <div>
-              <p className="font-medium text-sm">
-                {isDraggingOver ? 'Drop images here' : 'Drop images here or click to browse'}
-              </p>
-              <p className="text-xs text-muted mt-1">
-                JPG, PNG, WebP, or HEIC · Max {maxSizeMB} MB each · Up to {maxFiles} images · High-res recommended
-              </p>
-            </div>
-          </div>
+          <p style={{ ...KICKER, marginBottom: '1rem' }}>
+            {isDraggingOver ? 'Release to upload' : 'Add photographs'}
+          </p>
+          <p
+            style={{
+              ...SERIF_ITALIC,
+              fontSize: '1.2rem',
+              color: 'var(--color-ink)',
+              margin: 0,
+              lineHeight: 1.4,
+            }}
+          >
+            {isDraggingOver
+              ? 'Drop the files here.'
+              : 'Drop files here, or click to browse.'}
+          </p>
+          <p
+            style={{
+              fontSize: '0.78rem',
+              color: 'var(--color-stone-dark)',
+              fontWeight: 300,
+              marginTop: '0.6rem',
+              lineHeight: 1.5,
+            }}
+          >
+            JPG · PNG · WebP · HEIC &nbsp;—&nbsp; max {maxSizeMB} MB each &nbsp;—&nbsp; up to {maxFiles} images
+          </p>
         </button>
       )}
 
@@ -337,32 +363,69 @@ export default function ImageUpload({
         type="file"
         accept={ACCEPTED}
         multiple={maxFiles > 1}
-        className="hidden"
+        style={{ display: 'none' }}
         onChange={(e) => {
           if (e.target.files) addFiles(e.target.files);
           e.target.value = '';
         }}
       />
 
-      {/* Error */}
+      {/* ── Error notice (terracotta hairline) ── */}
       {error && (
-        <div className="flex items-start gap-2.5 p-3.5 bg-error/5 border border-error/20 text-error text-sm rounded-xl animate-fade-in">
-          <AlertCircle className="h-4 w-4 mt-0.5 flex-shrink-0" />
-          <p>{error}</p>
+        <div
+          style={{
+            borderTop: ERROR_BORDER,
+            borderBottom: ERROR_BORDER,
+            padding: '0.9rem 0',
+          }}
+        >
+          <p
+            style={{
+              ...KICKER,
+              color: 'var(--color-terracotta, #c45d3e)',
+              marginBottom: '0.4rem',
+            }}
+          >
+            — A problem
+          </p>
+          <p
+            style={{
+              ...SERIF_ITALIC,
+              fontSize: '1rem',
+              color: 'var(--color-ink)',
+              margin: 0,
+              lineHeight: 1.5,
+            }}
+          >
+            {error}
+          </p>
         </div>
       )}
 
-      {/* Uploading indicator */}
+      {/* ── Uploading hint ── */}
       {anyUploading && (
-        <div className="flex items-center gap-2 text-xs text-muted">
-          <Loader2 className="h-3 w-3 animate-spin" />
-          <span>Uploading — please wait...</span>
-        </div>
+        <p
+          style={{
+            ...SERIF_ITALIC,
+            fontSize: '0.92rem',
+            color: 'var(--color-stone-dark)',
+            margin: 0,
+          }}
+        >
+          — Uploading, please wait…
+        </p>
       )}
 
-      {/* Image grid */}
+      {/* ── Image grid (square tiles, hairline borders, no rounded) ── */}
       {images.length > 0 && (
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
+            gap: '0.9rem',
+          }}
+          className="image-upload-grid"
+        >
           {images.map((img, index) => (
             <div
               key={img.id}
@@ -370,33 +433,78 @@ export default function ImageUpload({
               onDragStart={() => handleReorderDragStart(index)}
               onDragOver={(e) => handleReorderDragOver(e, index)}
               onDragEnd={handleReorderDragEnd}
-              className={`relative group aspect-square rounded-xl overflow-hidden border-2 transition-all duration-200 ${
-                dragIndex === index
-                  ? 'border-accent opacity-50 scale-95'
-                  : 'border-border hover:border-accent/40'
-              } ${img.error ? 'border-error/40' : ''}`}
+              style={{
+                position: 'relative',
+                aspectRatio: '1 / 1',
+                overflow: 'hidden',
+                border: img.error
+                  ? ERROR_BORDER
+                  : dragIndex === index
+                    ? INK_BORDER
+                    : HAIRLINE_BORDER,
+                background: 'var(--color-cream)',
+                opacity: dragIndex === index ? 0.55 : 1,
+                transition: 'opacity 200ms cubic-bezier(0.22, 1, 0.36, 1), border-color 200ms cubic-bezier(0.22, 1, 0.36, 1)',
+                cursor: img.uploading ? 'default' : 'grab',
+              }}
+              className="image-upload-tile"
             >
-              {/* Thumbnail — uses local preview immediately, then Supabase URL */}
+              {/* Thumbnail */}
               <Image
                 src={img.preview || img.url}
                 alt={`Upload ${index + 1}`}
                 fill
-                className="object-cover"
+                style={{ objectFit: 'cover' }}
                 sizes="(max-width: 640px) 50vw, 33vw"
               />
 
-              {/* Upload progress overlay — spinner, not stuck percentage */}
+              {/* Upload progress overlay — typographic, no spinner */}
               {img.uploading && (
-                <div className="absolute inset-0 bg-black/40 flex items-center justify-center backdrop-blur-[2px]">
-                  <div className="flex flex-col items-center gap-2">
-                    <Loader2 className="h-6 w-6 text-white animate-spin" />
-                    <span className="text-xs text-white/80 font-medium">
-                      {img.progress < 40
-                        ? 'Compressing...'
-                        : img.progress < 90
-                          ? 'Uploading...'
-                          : 'Finishing...'}
-                    </span>
+                <div
+                  style={{
+                    position: 'absolute',
+                    inset: 0,
+                    background: 'rgba(26, 26, 24, 0.55)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexDirection: 'column',
+                    gap: '0.5rem',
+                    padding: '1rem',
+                  }}
+                >
+                  <p
+                    style={{
+                      ...SERIF_ITALIC,
+                      fontSize: '1.1rem',
+                      color: 'var(--color-warm-white)',
+                      margin: 0,
+                      textAlign: 'center',
+                    }}
+                  >
+                    {img.progress < 40
+                      ? 'Compressing…'
+                      : img.progress < 90
+                        ? 'Uploading…'
+                        : 'Finishing…'}
+                  </p>
+                  {/* Hairline progress bar */}
+                  <div
+                    style={{
+                      width: '70%',
+                      height: 1,
+                      background: 'rgba(252, 251, 248, 0.25)',
+                      overflow: 'hidden',
+                    }}
+                  >
+                    <div
+                      style={{
+                        width: `${img.progress}%`,
+                        height: '100%',
+                        background: 'var(--color-warm-white)',
+                        transition: 'width 350ms cubic-bezier(0.22, 1, 0.36, 1)',
+                      }}
+                    />
                   </div>
                 </div>
               )}
@@ -405,101 +513,209 @@ export default function ImageUpload({
               {img.error && (
                 <button
                   type="button"
-                  onClick={() => retryUpload(img.id)}
-                  className="absolute inset-0 bg-red-900/60 flex items-center justify-center backdrop-blur-[2px] cursor-pointer"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    retryUpload(img.id);
+                  }}
+                  style={{
+                    position: 'absolute',
+                    inset: 0,
+                    background: 'rgba(196, 93, 62, 0.85)',
+                    border: 'none',
+                    color: 'var(--color-warm-white)',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '0.4rem',
+                    padding: '1rem',
+                    textAlign: 'center',
+                  }}
                 >
-                  <div className="flex flex-col items-center gap-1.5 px-3 text-center">
-                    <RotateCw className="h-5 w-5 text-white" />
-                    <span className="text-xs text-white font-medium leading-tight">
-                      Failed — tap to retry
-                    </span>
-                    <span className="text-[10px] text-white/70 leading-tight max-w-[120px] truncate">
-                      {img.error}
-                    </span>
-                  </div>
+                  <p style={{ ...KICKER, color: 'var(--color-warm-white)', margin: 0 }}>
+                    Failed
+                  </p>
+                  <p
+                    style={{
+                      ...SERIF_ITALIC,
+                      fontSize: '1rem',
+                      color: 'var(--color-warm-white)',
+                      margin: 0,
+                    }}
+                  >
+                    Tap to retry ↻
+                  </p>
                 </button>
               )}
 
-              {/* Primary badge */}
+              {/* Primary kicker — bottom-left, only on first non-erroring tile */}
               {index === 0 && !img.uploading && !img.error && (
-                <div className="absolute top-2 left-2 px-2 py-0.5 bg-accent text-white text-[10px] font-semibold uppercase tracking-wider rounded-full">
-                  Primary
-                </div>
+                <p
+                  style={{
+                    position: 'absolute',
+                    bottom: '0.6rem',
+                    left: '0.7rem',
+                    margin: 0,
+                    fontSize: '0.6rem',
+                    letterSpacing: '0.22em',
+                    textTransform: 'uppercase',
+                    color: 'var(--color-warm-white)',
+                    fontWeight: 400,
+                    textShadow: '0 1px 2px rgba(0,0,0,0.5)',
+                    pointerEvents: 'none',
+                  }}
+                >
+                  01 — Primary
+                </p>
               )}
 
-              {/* Hover controls */}
+              {/* Hover controls — text-only */}
               {!img.uploading && !img.error && (
-                <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                  {/* Drag handle */}
-                  <div className="absolute top-2 left-2 p-1.5 bg-white/90 rounded-lg cursor-grab active:cursor-grabbing shadow-sm">
-                    <GripVertical className="h-3.5 w-3.5 text-muted" />
+                <div
+                  className="image-upload-controls"
+                  style={{
+                    position: 'absolute',
+                    inset: 0,
+                    background:
+                      'linear-gradient(to top, rgba(26,26,24,0.55) 0%, transparent 45%, transparent 55%, rgba(26,26,24,0.45) 100%)',
+                    opacity: 0,
+                    transition: 'opacity 200ms cubic-bezier(0.22, 1, 0.36, 1)',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    justifyContent: 'space-between',
+                    padding: '0.7rem 0.8rem',
+                  }}
+                >
+                  {/* Top row: drag glyph + remove */}
+                  <div
+                    style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                    }}
+                  >
+                    <span
+                      aria-hidden
+                      title="Drag to reorder"
+                      style={{
+                        fontSize: '1rem',
+                        color: 'var(--color-warm-white)',
+                        cursor: 'grab',
+                        lineHeight: 1,
+                        userSelect: 'none',
+                      }}
+                    >
+                      ≡
+                    </span>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        removeImage(img.id);
+                      }}
+                      aria-label="Remove image"
+                      style={{
+                        background: 'transparent',
+                        border: 'none',
+                        color: 'var(--color-warm-white)',
+                        fontSize: '1.1rem',
+                        cursor: 'pointer',
+                        lineHeight: 1,
+                        padding: 0,
+                      }}
+                    >
+                      ×
+                    </button>
                   </div>
 
-                  {/* Edit button */}
+                  {/* Bottom row: edit text-link */}
                   <button
                     type="button"
                     onClick={(e) => {
                       e.stopPropagation();
                       setEditingId(img.id);
                     }}
-                    className="absolute bottom-2 left-2 flex items-center gap-1 px-2.5 py-1.5 bg-white/90 rounded-lg hover:bg-accent hover:text-white transition-colors shadow-sm text-xs font-medium"
-                  >
-                    <Pencil className="h-3 w-3" />
-                    Edit
-                  </button>
-
-                  {/* Remove button */}
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      removeImage(img.id);
+                    style={{
+                      ...SERIF_ITALIC,
+                      background: 'transparent',
+                      border: 'none',
+                      color: 'var(--color-warm-white)',
+                      fontSize: '0.92rem',
+                      cursor: 'pointer',
+                      padding: 0,
+                      textAlign: 'left',
+                      alignSelf: 'flex-start',
                     }}
-                    className="absolute top-2 right-2 p-1.5 bg-white/90 rounded-lg hover:bg-error hover:text-white transition-colors shadow-sm"
                   >
-                    <X className="h-3.5 w-3.5" />
+                    — Edit
                   </button>
                 </div>
-              )}
-
-              {/* Remove button for errored items */}
-              {img.error && (
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    removeImage(img.id);
-                  }}
-                  className="absolute top-2 right-2 p-1.5 bg-white/90 rounded-lg hover:bg-error hover:text-white transition-colors shadow-sm z-10"
-                >
-                  <X className="h-3.5 w-3.5" />
-                </button>
               )}
             </div>
           ))}
 
-          {/* Add more placeholder */}
+          {/* Add another tile */}
           {hasRoom && (
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
-              className="aspect-square rounded-xl border-2 border-dashed border-border hover:border-accent/50 hover:bg-cream flex items-center justify-center transition-all duration-200 group"
+              style={{
+                aspectRatio: '1 / 1',
+                background: 'transparent',
+                border: HAIRLINE_BORDER,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: 'var(--color-stone-dark)',
+                transition: 'border-color 200ms cubic-bezier(0.22, 1, 0.36, 1), color 200ms cubic-bezier(0.22, 1, 0.36, 1)',
+              }}
+              className="image-upload-add-tile"
             >
-              <div className="flex flex-col items-center gap-1.5">
-                <ImagePlus className="h-5 w-5 text-muted group-hover:text-accent-dark transition-colors" />
-                <span className="text-xs text-muted group-hover:text-accent-dark transition-colors">Add more</span>
-              </div>
+              <span
+                style={{
+                  ...SERIF_ITALIC,
+                  fontSize: '1rem',
+                }}
+              >
+                + Add another
+              </span>
             </button>
           )}
         </div>
       )}
 
-      {/* Hint */}
+      {/* ── Hint ── */}
       {images.length > 1 && (
-        <p className="text-xs text-warm-gray text-center">
-          Drag images to reorder · The first image will be the main thumbnail
+        <p
+          style={{
+            ...SERIF_ITALIC,
+            fontSize: '0.85rem',
+            color: 'var(--color-stone-dark)',
+            margin: 0,
+            textAlign: 'center',
+          }}
+        >
+          — Drag to reorder. The first image becomes the primary.
         </p>
       )}
+
+      {/* Inline hover styles — Tailwind classes are avoided to keep this token-pure */}
+      <style jsx>{`
+        :global(.image-upload-tile:hover .image-upload-controls) {
+          opacity: 1;
+        }
+        :global(.image-upload-add-tile:hover) {
+          border-color: var(--color-ink) !important;
+          color: var(--color-ink) !important;
+        }
+        @media (min-width: 640px) {
+          :global(.image-upload-grid) {
+            grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+          }
+        }
+      `}</style>
 
       {/* Image Editor modal */}
       {editingId && (() => {

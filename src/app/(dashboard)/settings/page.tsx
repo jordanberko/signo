@@ -4,28 +4,6 @@ import { useState, useCallback, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
-import {
-  User,
-  MapPin,
-  Lock,
-  Bell,
-  Palette,
-  ArrowRight,
-  ArrowUp,
-  ArrowDown,
-  Check,
-  Loader2,
-  AlertCircle,
-  CreditCard,
-  Trash2,
-  AtSign,
-  Globe,
-  ExternalLink,
-  Plus,
-  X,
-  Search,
-  ImageIcon,
-} from 'lucide-react';
 import { formatPrice } from '@/lib/utils';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { useRequireAuth } from '@/lib/hooks/useRequireAuth';
@@ -35,7 +13,14 @@ import AvatarUpload from '@/components/AvatarUpload';
 
 // ── Types ──
 
-type TabId = 'profile' | 'address' | 'password' | 'notifications' | 'artist' | 'subscription' | 'danger';
+type TabId =
+  | 'profile'
+  | 'address'
+  | 'password'
+  | 'notifications'
+  | 'artist'
+  | 'subscription'
+  | 'danger';
 
 interface Address {
   street: string;
@@ -45,59 +30,83 @@ interface Address {
   country: string;
 }
 
-// ── Tab button ──
+// ── Shared editorial helpers ──
 
-function TabButton({
-  active,
-  icon: Icon,
-  label,
-  onClick,
-}: {
-  active: boolean;
-  icon: React.ComponentType<{ className?: string }>;
-  label: string;
-  onClick: () => void;
-}) {
+function Kicker({ children }: { children: React.ReactNode }) {
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={`flex items-center gap-2.5 px-4 py-2.5 rounded-lg text-sm font-medium transition-colors w-full text-left ${
-        active
-          ? 'bg-accent-subtle text-accent'
-          : 'text-muted hover:bg-muted-bg hover:text-foreground'
-      }`}
+    <p
+      style={{
+        fontSize: '0.62rem',
+        letterSpacing: '0.22em',
+        textTransform: 'uppercase',
+        color: 'var(--color-stone)',
+        marginBottom: '1rem',
+      }}
     >
-      <Icon className="h-4 w-4 flex-shrink-0" />
-      {label}
-    </button>
+      {children}
+    </p>
   );
 }
 
-// ── Status toast ──
-
-function StatusMessage({
-  type,
-  message,
-}: {
-  type: 'success' | 'error';
-  message: string;
-}) {
+function SectionTitle({ children }: { children: React.ReactNode }) {
   return (
-    <div
-      className={`flex items-center gap-2 p-3 rounded-xl text-sm animate-fade-in ${
-        type === 'success'
-          ? 'bg-green-50 text-green-700 border border-green-200'
-          : 'bg-error/5 text-error border border-error/20'
-      }`}
+    <h2
+      className="font-serif"
+      style={{
+        fontSize: 'clamp(1.6rem, 3vw, 2.2rem)',
+        lineHeight: 1.1,
+        letterSpacing: '-0.01em',
+        color: 'var(--color-ink)',
+        fontWeight: 400,
+        marginBottom: '0.7rem',
+      }}
     >
-      {type === 'success' ? (
-        <Check className="h-4 w-4 flex-shrink-0" />
-      ) : (
-        <AlertCircle className="h-4 w-4 flex-shrink-0" />
-      )}
-      {message}
-    </div>
+      {children}
+    </h2>
+  );
+}
+
+function SectionIntro({ children }: { children: React.ReactNode }) {
+  return (
+    <p
+      style={{
+        fontSize: '0.92rem',
+        fontWeight: 300,
+        color: 'var(--color-stone-dark)',
+        lineHeight: 1.6,
+        maxWidth: '56ch',
+        marginBottom: '2.4rem',
+      }}
+    >
+      {children}
+    </p>
+  );
+}
+
+function StatusLine({
+  status,
+}: {
+  status: { type: 'success' | 'error'; message: string } | null;
+}) {
+  if (!status) return null;
+  return (
+    <p
+      className="font-serif"
+      style={{
+        marginTop: '1.4rem',
+        marginBottom: '0.4rem',
+        fontSize: '0.88rem',
+        fontStyle: 'italic',
+        fontWeight: 400,
+        color:
+          status.type === 'success'
+            ? 'var(--color-ink)'
+            : 'var(--color-terracotta, #c45d3e)',
+      }}
+    >
+      {status.type === 'success' ? '✓ ' : '— '}
+      {status.message}
+    </p>
   );
 }
 
@@ -117,7 +126,7 @@ export default function SettingsPage() {
     message: string;
   } | null>(null);
 
-  // Address state — load from profile if available
+  // Address state
   const userAny = user as Record<string, unknown> | null;
   const [address, setAddress] = useState<Address>({
     street: (userAny?.street_address as string) || '',
@@ -143,7 +152,7 @@ export default function SettingsPage() {
   } | null>(null);
 
   // Notification prefs
-  const [emailPrefs, setEmailPrefs] = useState({
+  const [emailPrefs] = useState({
     orderUpdates: true,
     newArtwork: true,
     marketing: false,
@@ -152,20 +161,38 @@ export default function SettingsPage() {
   // Artist profile state
   const [artistBio, setArtistBio] = useState(user?.bio || '');
   const [artistLocation, setArtistLocation] = useState(user?.location || '');
-  const [artistState, setArtistState] = useState((userAny?.state as string) || '');
-  const [instagramUrl, setInstagramUrl] = useState(user?.social_links?.instagram || '');
+  const [artistState, setArtistState] = useState(
+    (userAny?.state as string) || ''
+  );
+  const [instagramUrl, setInstagramUrl] = useState(
+    user?.social_links?.instagram || ''
+  );
   const [tiktokUrl, setTiktokUrl] = useState(user?.social_links?.tiktok || '');
-  const [facebookUrl, setFacebookUrl] = useState(user?.social_links?.facebook || '');
-  const [youtubeUrl, setYoutubeUrl] = useState(user?.social_links?.youtube || '')
-  const [websiteUrl, setWebsiteUrl] = useState(user?.social_links?.website || '');
-  const [acceptsCommissions, setAcceptsCommissions] = useState(user?.accepts_commissions ?? false);
+  const [facebookUrl, setFacebookUrl] = useState(
+    user?.social_links?.facebook || ''
+  );
+  const [youtubeUrl, setYoutubeUrl] = useState(
+    user?.social_links?.youtube || ''
+  );
+  const [websiteUrl, setWebsiteUrl] = useState(
+    user?.social_links?.website || ''
+  );
+  const [acceptsCommissions, setAcceptsCommissions] = useState(
+    user?.accepts_commissions ?? false
+  );
 
   // Featured works state
   const [featuredArtworkIds, setFeaturedArtworkIds] = useState<string[]>(
     (user?.featured_artworks as string[]) || []
   );
   const [myArtworks, setMyArtworks] = useState<
-    { id: string; title: string; price_aud: number; images: string[]; status: string }[]
+    {
+      id: string;
+      title: string;
+      price_aud: number;
+      images: string[];
+      status: string;
+    }[]
   >([]);
   const [myArtworksLoaded, setMyArtworksLoaded] = useState(false);
   const [showArtworkPicker, setShowArtworkPicker] = useState(false);
@@ -182,12 +209,14 @@ export default function SettingsPage() {
   const [deleteConfirmText, setDeleteConfirmText] = useState('');
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
-  const [artistStats, setArtistStats] = useState<{ activeListings: number; pendingOrders: number } | null>(null);
+  const [artistStats, setArtistStats] = useState<{
+    activeListings: number;
+    pendingOrders: number;
+  } | null>(null);
   const router = useRouter();
 
   const isArtist = user?.role === 'artist' || user?.role === 'admin';
 
-  // Fetch artist's artworks for featured works picker
   useEffect(() => {
     if (!isArtist || myArtworksLoaded) return;
     fetch('/api/artworks/mine')
@@ -199,26 +228,34 @@ export default function SettingsPage() {
       .catch(() => setMyArtworksLoaded(true));
   }, [isArtist, myArtworksLoaded]);
 
-  // Derived: featured artwork objects in order
   const featuredArtworkObjects = featuredArtworkIds
     .map((id) => myArtworks.find((a) => a.id === id))
     .filter(Boolean) as typeof myArtworks;
 
-  // Artworks available to add (approved, not already selected)
   const availableArtworks = myArtworks
-    .filter((a) => a.status === 'approved' && !featuredArtworkIds.includes(a.id))
-    .filter((a) =>
-      !artworkSearch.trim() ||
-      a.title.toLowerCase().includes(artworkSearch.toLowerCase())
+    .filter(
+      (a) => a.status === 'approved' && !featuredArtworkIds.includes(a.id)
+    )
+    .filter(
+      (a) =>
+        !artworkSearch.trim() ||
+        a.title.toLowerCase().includes(artworkSearch.toLowerCase())
     );
 
-  // Fetch artist stats when delete modal opens
   useEffect(() => {
     if (!showDeleteConfirm || !isArtist) return;
     const supabase = createClient();
     Promise.all([
-      supabase.from('artworks').select('id', { count: 'exact', head: true }).eq('artist_id', user!.id).in('status', ['approved', 'pending_review', 'draft']),
-      supabase.from('orders').select('id', { count: 'exact', head: true }).eq('artist_id', user!.id).in('status', ['pending_payment', 'paid', 'shipped']),
+      supabase
+        .from('artworks')
+        .select('id', { count: 'exact', head: true })
+        .eq('artist_id', user!.id)
+        .in('status', ['approved', 'pending_review', 'draft']),
+      supabase
+        .from('orders')
+        .select('id', { count: 'exact', head: true })
+        .eq('artist_id', user!.id)
+        .in('status', ['pending_payment', 'paid', 'shipped']),
     ]).then(([artworksRes, ordersRes]) => {
       setArtistStats({
         activeListings: artworksRes.count ?? 0,
@@ -227,7 +264,6 @@ export default function SettingsPage() {
     });
   }, [showDeleteConfirm, isArtist, user]);
 
-  // Avatar upload handler
   const handleAvatarUpload = useCallback(
     async (file: File, onProgress: (p: number) => void) => {
       if (!user) throw new Error('Not authenticated');
@@ -236,7 +272,6 @@ export default function SettingsPage() {
     [user]
   );
 
-  // Save profile via server API route
   async function saveProfile() {
     if (!user) return;
     setProfileSaving(true);
@@ -270,16 +305,16 @@ export default function SettingsPage() {
     } catch (err) {
       setProfileStatus({
         type: 'error',
-        message: (err as Error).name === 'AbortError'
-          ? 'Request timed out. Please try again.'
-          : 'Failed to update profile. Please try again.',
+        message:
+          (err as Error).name === 'AbortError'
+            ? 'Request timed out. Please try again.'
+            : 'Failed to update profile. Please try again.',
       });
     } finally {
       setProfileSaving(false);
     }
   }
 
-  // Save address via server API route
   async function saveAddress() {
     if (!user) return;
     setAddressSaving(true);
@@ -319,16 +354,16 @@ export default function SettingsPage() {
     } catch (err) {
       setAddressStatus({
         type: 'error',
-        message: (err as Error).name === 'AbortError'
-          ? 'Request timed out. Please try again.'
-          : 'Something went wrong. Please try again.',
+        message:
+          (err as Error).name === 'AbortError'
+            ? 'Request timed out. Please try again.'
+            : 'Something went wrong. Please try again.',
       });
     } finally {
       setAddressSaving(false);
     }
   }
 
-  // Change password
   async function changePassword() {
     setPasswordStatus(null);
 
@@ -361,7 +396,6 @@ export default function SettingsPage() {
     try {
       const supabase = createClient();
 
-      // Verify current password first
       const { error: verifyError } = await supabase.auth.signInWithPassword({
         email: user?.email ?? '',
         password: currentPassword,
@@ -393,16 +427,13 @@ export default function SettingsPage() {
       setPasswordStatus({
         type: 'error',
         message:
-          err instanceof Error
-            ? err.message
-            : 'Failed to update password.',
+          err instanceof Error ? err.message : 'Failed to update password.',
       });
     } finally {
       setPasswordSaving(false);
     }
   }
 
-  // Save artist profile
   async function saveArtistProfile() {
     if (!user) return;
     setArtistSaving(true);
@@ -440,11 +471,12 @@ export default function SettingsPage() {
       clearTimeout(timeout);
 
       const result = await res.json();
-      if (!res.ok) throw new Error(result.error || 'Failed to update artist profile.');
+      if (!res.ok)
+        throw new Error(result.error || 'Failed to update artist profile.');
 
       await refreshUser();
       setArtistStatus({ type: 'success', message: 'Artist profile updated.' });
-    } catch (err) {
+    } catch {
       setArtistStatus({
         type: 'error',
         message: 'Failed to update artist profile. Please try again.',
@@ -454,160 +486,289 @@ export default function SettingsPage() {
     }
   }
 
-  const TABS: { id: TabId; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
-    { id: 'profile', label: 'Profile', icon: User },
-    { id: 'address', label: 'Shipping Address', icon: MapPin },
-    { id: 'password', label: 'Password', icon: Lock },
-    { id: 'notifications', label: 'Notifications', icon: Bell },
+  const TABS: { id: TabId; label: string }[] = [
+    { id: 'profile', label: 'Profile' },
+    { id: 'address', label: 'Shipping' },
+    { id: 'password', label: 'Password' },
+    { id: 'notifications', label: 'Notifications' },
+    ...(isArtist ? [{ id: 'artist' as TabId, label: 'Artist profile' }] : []),
     ...(isArtist
-      ? [{ id: 'artist' as TabId, label: 'Artist Profile', icon: Palette }]
+      ? [{ id: 'subscription' as TabId, label: 'Subscription' }]
       : []),
-    ...(isArtist
-      ? [{ id: 'subscription' as TabId, label: 'Subscription', icon: CreditCard }]
-      : []),
-    { id: 'danger', label: 'Danger Zone', icon: Trash2 },
+    { id: 'danger', label: 'Close account' },
   ];
 
-  if (authLoading) return <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '60vh' }}><div style={{ width: 32, height: 32, border: '3px solid #E5E2DB', borderTopColor: '#2C2C2A', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} /><style>{'@keyframes spin { to { transform: rotate(360deg) } }'}</style></div>;
-
-  return (
-    <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
-      {/* Header */}
-      <div className="mb-8">
-        <h1 className="font-editorial text-3xl md:text-4xl font-semibold">
-          Settings
-        </h1>
-        <p className="text-muted mt-2">
-          Manage your account, address, and preferences.
+  if (authLoading) {
+    return (
+      <div
+        style={{
+          minHeight: '60vh',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          background: 'var(--color-warm-white)',
+        }}
+      >
+        <p
+          className="font-serif"
+          style={{
+            fontStyle: 'italic',
+            fontSize: '0.95rem',
+            color: 'var(--color-stone)',
+          }}
+        >
+          Loading…
         </p>
       </div>
+    );
+  }
 
-      <div className="flex flex-col md:flex-row gap-8">
-        {/* Sidebar */}
-        <aside className="md:w-56 flex-shrink-0">
-          <nav className="space-y-1">
-            {TABS.map((tab) => (
-              <TabButton
-                key={tab.id}
-                active={activeTab === tab.id}
-                icon={tab.icon}
-                label={tab.label}
-                onClick={() => setActiveTab(tab.id)}
-              />
-            ))}
-          </nav>
+  return (
+    <div style={{ background: 'var(--color-warm-white)', minHeight: '100vh' }}>
+      <div
+        className="px-6 sm:px-10"
+        style={{
+          maxWidth: '78rem',
+          margin: '0 auto',
+          paddingTop: 'clamp(7.5rem, 10vw, 9.5rem)',
+          paddingBottom: 'clamp(4rem, 7vw, 6rem)',
+        }}
+      >
+        {/* ── Editorial header ── */}
+        <header style={{ marginBottom: 'clamp(2.4rem, 4vw, 3.4rem)' }}>
+          <Kicker>The Studio · Settings</Kicker>
+          <h1
+            className="font-serif"
+            style={{
+              fontSize: 'clamp(2rem, 4vw, 3rem)',
+              lineHeight: 1.05,
+              letterSpacing: '-0.015em',
+              color: 'var(--color-ink)',
+              fontWeight: 400,
+              marginBottom: '0.7rem',
+            }}
+          >
+            Your <em style={{ fontStyle: 'italic' }}>account.</em>
+          </h1>
+          <p
+            style={{
+              fontSize: '0.92rem',
+              fontWeight: 300,
+              color: 'var(--color-stone-dark)',
+              lineHeight: 1.6,
+              maxWidth: '52ch',
+            }}
+          >
+            Profile, address, password, and the finer details of how Signo
+            reaches you.
+          </p>
+        </header>
 
-          {/* Payout settings link for artists */}
-          {isArtist && (
-            <div className="mt-6 pt-6 border-t border-border">
-              <Link
-                href="/artist/settings/payouts"
-                className="flex items-center gap-2.5 px-4 py-2.5 rounded-lg text-sm font-medium text-muted hover:bg-muted-bg hover:text-foreground transition-colors"
-              >
-                <CreditCard className="h-4 w-4 flex-shrink-0" />
-                Payout Settings
-                <ArrowRight className="h-3.5 w-3.5 ml-auto" />
-              </Link>
-            </div>
-          )}
-        </aside>
+        <div
+          className="flex flex-col md:flex-row"
+          style={{ gap: 'clamp(2.4rem, 4vw, 4rem)' }}
+        >
+          {/* ── Sidebar nav — typographic index ── */}
+          <aside
+            className="md:flex-shrink-0"
+            style={{ width: '100%', maxWidth: 220 }}
+          >
+            <p
+              style={{
+                fontSize: '0.6rem',
+                letterSpacing: '0.22em',
+                textTransform: 'uppercase',
+                color: 'var(--color-stone)',
+                marginBottom: '1rem',
+                paddingBottom: '0.8rem',
+                borderBottom: '1px solid var(--color-border-strong)',
+              }}
+            >
+              Index
+            </p>
+            <nav>
+              <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
+                {TABS.map((tab, i) => {
+                  const active = activeTab === tab.id;
+                  return (
+                    <li key={tab.id}>
+                      <button
+                        type="button"
+                        onClick={() => setActiveTab(tab.id)}
+                        className="font-serif"
+                        style={{
+                          display: 'flex',
+                          alignItems: 'baseline',
+                          gap: '0.7rem',
+                          width: '100%',
+                          textAlign: 'left',
+                          padding: '0.85rem 0',
+                          background: 'none',
+                          border: 'none',
+                          borderBottom: '1px solid var(--color-border)',
+                          cursor: 'pointer',
+                          color: active
+                            ? 'var(--color-ink)'
+                            : 'var(--color-stone-dark)',
+                          fontSize: '0.95rem',
+                          fontStyle: active ? 'italic' : 'normal',
+                          fontWeight: 400,
+                        }}
+                      >
+                        <span
+                          style={{
+                            fontSize: '0.62rem',
+                            letterSpacing: '0.18em',
+                            color: 'var(--color-stone)',
+                            fontStyle: 'normal',
+                            fontFamily: 'inherit',
+                          }}
+                        >
+                          {String(i + 1).padStart(2, '0')}
+                        </span>
+                        {tab.label}
+                        {active && (
+                          <span
+                            aria-hidden
+                            style={{
+                              marginLeft: 'auto',
+                              fontSize: '0.7rem',
+                              fontStyle: 'normal',
+                              color: 'var(--color-stone)',
+                            }}
+                          >
+                            ·
+                          </span>
+                        )}
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
+            </nav>
 
-        {/* Content */}
-        <div className="flex-1 min-w-0">
-          {/* ═══════ Profile ═══════ */}
-          {activeTab === 'profile' && (
-            <div className="bg-white border border-border rounded-2xl p-6 md:p-8 space-y-6">
-              <div>
-                <h2 className="font-semibold text-lg">Profile</h2>
-                <p className="text-sm text-muted mt-1">
-                  Your public information visible to other users.
-                </p>
-              </div>
-
-              {/* Avatar */}
-              <div className="flex justify-center">
-                <AvatarUpload
-                  currentUrl={avatarUrl}
-                  userName={fullName}
-                  size={100}
-                  onAvatarChange={setAvatarUrl}
-                  uploadFile={handleAvatarUpload}
-                />
-              </div>
-
-              {/* Full Name */}
-              <div>
-                <label
-                  htmlFor="fullName"
-                  className="block text-xs font-medium tracking-wide uppercase text-muted mb-2"
+            {isArtist && (
+              <div style={{ marginTop: '2rem' }}>
+                <Link
+                  href="/artist/settings/payouts"
+                  className="font-serif"
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'baseline',
+                    gap: '0.5rem',
+                    fontSize: '0.72rem',
+                    letterSpacing: '0.18em',
+                    textTransform: 'uppercase',
+                    fontStyle: 'italic',
+                    color: 'var(--color-stone)',
+                    textDecoration: 'none',
+                    borderBottom: '1px solid var(--color-border)',
+                    paddingBottom: '0.2rem',
+                  }}
                 >
-                  Full Name
-                </label>
-                <input
-                  id="fullName"
-                  type="text"
-                  value={fullName}
-                  onChange={(e) => setFullName(e.target.value)}
-                  className="w-full px-4 py-3 bg-white border border-border rounded-xl text-sm placeholder:text-warm-gray transition-colors focus:border-accent focus:ring-1 focus:ring-accent/20"
-                  placeholder="Your full name"
-                />
+                  Payout settings →
+                </Link>
               </div>
+            )}
+          </aside>
 
-              {/* Email (read-only) */}
-              <div>
-                <label className="block text-xs font-medium tracking-wide uppercase text-muted mb-2">
-                  Email
-                </label>
-                <div className="w-full px-4 py-3 bg-muted-bg border border-border rounded-xl text-sm text-muted">
-                  {user?.email || '—'}
+          {/* ── Content column ── */}
+          <div style={{ flex: 1, minWidth: 0 }}>
+            {/* ═══════ Profile ═══════ */}
+            {activeTab === 'profile' && (
+              <section>
+                <Kicker>01 · Profile</Kicker>
+                <SectionTitle>
+                  Your <em style={{ fontStyle: 'italic' }}>public face.</em>
+                </SectionTitle>
+                <SectionIntro>
+                  The name and portrait collectors and artists see when you
+                  write to them.
+                </SectionIntro>
+
+                <div style={{ marginBottom: '2.2rem' }}>
+                  <AvatarUpload
+                    currentUrl={avatarUrl}
+                    userName={fullName}
+                    size={100}
+                    onAvatarChange={setAvatarUrl}
+                    uploadFile={handleAvatarUpload}
+                  />
                 </div>
-                <p className="text-xs text-warm-gray mt-1.5">
-                  Email cannot be changed. Contact support if needed.
-                </p>
-              </div>
 
-              {profileStatus && (
-                <StatusMessage
-                  type={profileStatus.type}
-                  message={profileStatus.message}
-                />
-              )}
+                <div style={{ marginBottom: '2.2rem' }}>
+                  <label htmlFor="fullName" className="commission-label">
+                    Full name
+                  </label>
+                  <input
+                    id="fullName"
+                    type="text"
+                    value={fullName}
+                    onChange={(e) => setFullName(e.target.value)}
+                    className="commission-field"
+                    placeholder="Your full name"
+                  />
+                </div>
 
-              <button
-                type="button"
-                onClick={saveProfile}
-                disabled={profileSaving || !fullName.trim()}
-                className="px-6 py-2.5 bg-primary text-white text-sm font-semibold rounded-full hover:bg-accent transition-colors disabled:opacity-50 inline-flex items-center gap-2"
-              >
-                {profileSaving ? (
-                  <>
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    Saving...
-                  </>
-                ) : (
-                  'Save Changes'
-                )}
-              </button>
-            </div>
-          )}
-
-          {/* ═══════ Shipping Address ═══════ */}
-          {activeTab === 'address' && (
-            <div className="bg-white border border-border rounded-2xl p-6 md:p-8 space-y-6">
-              <div>
-                <h2 className="font-semibold text-lg">Shipping Address</h2>
-                <p className="text-sm text-muted mt-1">
-                  Your default address for purchases.
-                </p>
-              </div>
-
-              <div className="space-y-4">
-                <div>
-                  <label
-                    htmlFor="street"
-                    className="block text-xs font-medium tracking-wide uppercase text-muted mb-2"
+                <div style={{ marginBottom: '2.2rem' }}>
+                  <p className="commission-label">Email</p>
+                  <p
+                    className="font-serif"
+                    style={{
+                      fontSize: '1rem',
+                      color: 'var(--color-ink)',
+                      padding: '0.9rem 0',
+                      borderBottom: '1px solid var(--color-border)',
+                      margin: 0,
+                    }}
                   >
-                    Street Address
+                    {user?.email || '—'}
+                  </p>
+                  <p
+                    className="font-serif"
+                    style={{
+                      marginTop: '0.5rem',
+                      fontSize: '0.75rem',
+                      fontStyle: 'italic',
+                      color: 'var(--color-stone)',
+                    }}
+                  >
+                    Fixed. Contact support if this needs to change.
+                  </p>
+                </div>
+
+                <StatusLine status={profileStatus} />
+
+                <button
+                  type="button"
+                  onClick={saveProfile}
+                  disabled={profileSaving || !fullName.trim()}
+                  className="artwork-primary-cta artwork-primary-cta--compact"
+                  style={{
+                    minWidth: '14rem',
+                    opacity: profileSaving || !fullName.trim() ? 0.5 : 1,
+                    marginTop: '1.4rem',
+                  }}
+                >
+                  {profileSaving ? 'Saving…' : 'Save changes'}
+                </button>
+              </section>
+            )}
+
+            {/* ═══════ Shipping Address ═══════ */}
+            {activeTab === 'address' && (
+              <section>
+                <Kicker>02 · Shipping</Kicker>
+                <SectionTitle>
+                  Where works should <em style={{ fontStyle: 'italic' }}>arrive.</em>
+                </SectionTitle>
+                <SectionIntro>
+                  Your default delivery address, used at checkout.
+                </SectionIntro>
+
+                <div style={{ marginBottom: '2.2rem' }}>
+                  <label htmlFor="street" className="commission-label">
+                    Street
                   </label>
                   <input
                     id="street"
@@ -616,17 +777,17 @@ export default function SettingsPage() {
                     onChange={(e) =>
                       setAddress((a) => ({ ...a, street: e.target.value }))
                     }
-                    className="w-full px-4 py-3 bg-white border border-border rounded-xl text-sm placeholder:text-warm-gray transition-colors focus:border-accent focus:ring-1 focus:ring-accent/20"
+                    className="commission-field"
                     placeholder="123 Example Street, Apt 4B"
                   />
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
+                <div
+                  className="grid grid-cols-1 sm:grid-cols-2"
+                  style={{ gap: '1.4rem', marginBottom: '2.2rem' }}
+                >
                   <div>
-                    <label
-                      htmlFor="city"
-                      className="block text-xs font-medium tracking-wide uppercase text-muted mb-2"
-                    >
+                    <label htmlFor="city" className="commission-label">
                       City
                     </label>
                     <input
@@ -636,15 +797,12 @@ export default function SettingsPage() {
                       onChange={(e) =>
                         setAddress((a) => ({ ...a, city: e.target.value }))
                       }
-                      className="w-full px-4 py-3 bg-white border border-border rounded-xl text-sm placeholder:text-warm-gray transition-colors focus:border-accent focus:ring-1 focus:ring-accent/20"
+                      className="commission-field"
                       placeholder="Sydney"
                     />
                   </div>
                   <div>
-                    <label
-                      htmlFor="state"
-                      className="block text-xs font-medium tracking-wide uppercase text-muted mb-2"
-                    >
+                    <label htmlFor="state" className="commission-label">
                       State
                     </label>
                     <select
@@ -653,7 +811,7 @@ export default function SettingsPage() {
                       onChange={(e) =>
                         setAddress((a) => ({ ...a, state: e.target.value }))
                       }
-                      className="w-full px-4 py-3 bg-white border border-border rounded-xl text-sm transition-colors appearance-none focus:border-accent focus:ring-1 focus:ring-accent/20"
+                      className="commission-field"
                     >
                       <option value="">Select</option>
                       <option value="NSW">NSW</option>
@@ -668,12 +826,12 @@ export default function SettingsPage() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
+                <div
+                  className="grid grid-cols-1 sm:grid-cols-2"
+                  style={{ gap: '1.4rem', marginBottom: '2.2rem' }}
+                >
                   <div>
-                    <label
-                      htmlFor="postcode"
-                      className="block text-xs font-medium tracking-wide uppercase text-muted mb-2"
-                    >
+                    <label htmlFor="postcode" className="commission-label">
                       Postcode
                     </label>
                     <input
@@ -688,707 +846,1088 @@ export default function SettingsPage() {
                           postcode: e.target.value.replace(/\D/g, ''),
                         }))
                       }
-                      className="w-full px-4 py-3 bg-white border border-border rounded-xl text-sm placeholder:text-warm-gray transition-colors focus:border-accent focus:ring-1 focus:ring-accent/20"
+                      className="commission-field"
                       placeholder="2000"
                     />
                   </div>
                   <div>
-                    <label
-                      htmlFor="country"
-                      className="block text-xs font-medium tracking-wide uppercase text-muted mb-2"
+                    <p className="commission-label">Country</p>
+                    <p
+                      className="font-serif"
+                      style={{
+                        fontSize: '1rem',
+                        fontStyle: 'italic',
+                        color: 'var(--color-stone-dark)',
+                        padding: '0.9rem 0',
+                        borderBottom: '1px solid var(--color-border)',
+                        margin: 0,
+                      }}
                     >
-                      Country
-                    </label>
-                    <div className="w-full px-4 py-3 bg-muted-bg border border-border rounded-xl text-sm text-muted">
                       Australia
-                    </div>
+                    </p>
                   </div>
                 </div>
-              </div>
 
-              {addressStatus && (
-                <StatusMessage
-                  type={addressStatus.type}
-                  message={addressStatus.message}
-                />
-              )}
+                <StatusLine status={addressStatus} />
 
-              <button
-                type="button"
-                onClick={saveAddress}
-                disabled={addressSaving}
-                className="px-6 py-2.5 bg-primary text-white text-sm font-semibold rounded-full hover:bg-accent transition-colors disabled:opacity-50 inline-flex items-center gap-2"
-              >
-                {addressSaving ? (
-                  <>
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    Saving...
-                  </>
-                ) : (
-                  'Save Address'
-                )}
-              </button>
-            </div>
-          )}
+                <button
+                  type="button"
+                  onClick={saveAddress}
+                  disabled={addressSaving}
+                  className="artwork-primary-cta artwork-primary-cta--compact"
+                  style={{
+                    minWidth: '14rem',
+                    opacity: addressSaving ? 0.5 : 1,
+                    marginTop: '1.4rem',
+                  }}
+                >
+                  {addressSaving ? 'Saving…' : 'Save address'}
+                </button>
+              </section>
+            )}
 
-          {/* ═══════ Password ═══════ */}
-          {activeTab === 'password' && (
-            <div className="bg-white border border-border rounded-2xl p-6 md:p-8 space-y-6">
-              <div>
-                <h2 className="font-semibold text-lg">Change Password</h2>
-                <p className="text-sm text-muted mt-1">
-                  Update your password. Must be at least 8 characters.
-                </p>
-              </div>
+            {/* ═══════ Password ═══════ */}
+            {activeTab === 'password' && (
+              <section>
+                <Kicker>03 · Password</Kicker>
+                <SectionTitle>
+                  Change your{' '}
+                  <em style={{ fontStyle: 'italic' }}>credentials.</em>
+                </SectionTitle>
+                <SectionIntro>
+                  At least eight characters. Choose something you can recall
+                  without a note.
+                </SectionIntro>
 
-              <div className="space-y-4 max-w-md">
-                <div>
-                  <label
-                    htmlFor="currentPassword"
-                    className="block text-xs font-medium tracking-wide uppercase text-muted mb-2"
-                  >
-                    Current Password
-                  </label>
-                  <input
-                    id="currentPassword"
-                    type="password"
-                    value={currentPassword}
-                    onChange={(e) => setCurrentPassword(e.target.value)}
-                    className="w-full px-4 py-3 bg-white border border-border rounded-xl text-sm placeholder:text-warm-gray transition-colors focus:border-accent focus:ring-1 focus:ring-accent/20"
-                    placeholder="Enter current password"
-                    autoComplete="current-password"
-                  />
+                <div style={{ maxWidth: '32rem' }}>
+                  <div style={{ marginBottom: '2rem' }}>
+                    <label
+                      htmlFor="currentPassword"
+                      className="commission-label"
+                    >
+                      Current password
+                    </label>
+                    <input
+                      id="currentPassword"
+                      type="password"
+                      value={currentPassword}
+                      onChange={(e) => setCurrentPassword(e.target.value)}
+                      className="commission-field"
+                      placeholder="••••••••"
+                      autoComplete="current-password"
+                    />
+                  </div>
+
+                  <div style={{ marginBottom: '2rem' }}>
+                    <label htmlFor="newPassword" className="commission-label">
+                      New password
+                    </label>
+                    <input
+                      id="newPassword"
+                      type="password"
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
+                      className="commission-field"
+                      placeholder="At least 8 characters"
+                      autoComplete="new-password"
+                    />
+                  </div>
+
+                  <div style={{ marginBottom: '2rem' }}>
+                    <label
+                      htmlFor="confirmPassword"
+                      className="commission-label"
+                    >
+                      Confirm
+                    </label>
+                    <input
+                      id="confirmPassword"
+                      type="password"
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      className="commission-field"
+                      placeholder="Repeat your new password"
+                      autoComplete="new-password"
+                    />
+                    {newPassword &&
+                      confirmPassword &&
+                      newPassword !== confirmPassword && (
+                        <p
+                          className="font-serif"
+                          style={{
+                            marginTop: '0.5rem',
+                            fontSize: '0.75rem',
+                            fontStyle: 'italic',
+                            color: 'var(--color-terracotta, #c45d3e)',
+                          }}
+                        >
+                          Passwords don&apos;t match.
+                        </p>
+                      )}
+                  </div>
                 </div>
 
-                <div>
-                  <label
-                    htmlFor="newPassword"
-                    className="block text-xs font-medium tracking-wide uppercase text-muted mb-2"
-                  >
-                    New Password
-                  </label>
-                  <input
-                    id="newPassword"
-                    type="password"
-                    value={newPassword}
-                    onChange={(e) => setNewPassword(e.target.value)}
-                    className="w-full px-4 py-3 bg-white border border-border rounded-xl text-sm placeholder:text-warm-gray transition-colors focus:border-accent focus:ring-1 focus:ring-accent/20"
-                    placeholder="New password"
-                    autoComplete="new-password"
-                  />
-                </div>
+                <StatusLine status={passwordStatus} />
 
-                <div>
-                  <label
-                    htmlFor="confirmPassword"
-                    className="block text-xs font-medium tracking-wide uppercase text-muted mb-2"
-                  >
-                    Confirm New Password
-                  </label>
-                  <input
-                    id="confirmPassword"
-                    type="password"
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                    className="w-full px-4 py-3 bg-white border border-border rounded-xl text-sm placeholder:text-warm-gray transition-colors focus:border-accent focus:ring-1 focus:ring-accent/20"
-                    placeholder="Confirm new password"
-                    autoComplete="new-password"
-                  />
-                  {newPassword &&
-                    confirmPassword &&
-                    newPassword !== confirmPassword && (
-                      <p className="text-xs text-error mt-1.5">
-                        Passwords do not match.
+                <button
+                  type="button"
+                  onClick={changePassword}
+                  disabled={
+                    passwordSaving ||
+                    !currentPassword ||
+                    !newPassword ||
+                    !confirmPassword
+                  }
+                  className="artwork-primary-cta artwork-primary-cta--compact"
+                  style={{
+                    minWidth: '14rem',
+                    opacity:
+                      passwordSaving ||
+                      !currentPassword ||
+                      !newPassword ||
+                      !confirmPassword
+                        ? 0.5
+                        : 1,
+                    marginTop: '1.4rem',
+                  }}
+                >
+                  {passwordSaving ? 'Updating…' : 'Update password'}
+                </button>
+              </section>
+            )}
+
+            {/* ═══════ Notifications ═══════ */}
+            {activeTab === 'notifications' && (
+              <section>
+                <Kicker>04 · Notifications</Kicker>
+                <SectionTitle>
+                  Email, set <em style={{ fontStyle: 'italic' }}>just so.</em>
+                </SectionTitle>
+                <SectionIntro>
+                  Fine-grained controls are coming. For now, Signo writes to
+                  you about orders and follows only.
+                </SectionIntro>
+
+                <ul
+                  style={{
+                    listStyle: 'none',
+                    padding: 0,
+                    margin: 0,
+                    borderTop: '1px solid var(--color-border-strong)',
+                    opacity: 0.55,
+                    pointerEvents: 'none',
+                  }}
+                >
+                  {[
+                    {
+                      key: 'orderUpdates' as const,
+                      label: 'Order updates',
+                      desc: 'Shipping confirmations, delivery updates, and payout notices.',
+                    },
+                    {
+                      key: 'newArtwork' as const,
+                      label: 'New works from followed artists',
+                      desc: 'A note when artists you follow add a piece.',
+                    },
+                    {
+                      key: 'marketing' as const,
+                      label: 'Newsletter',
+                      desc: 'Curated collections and occasional dispatches.',
+                    },
+                  ].map((pref) => (
+                    <li
+                      key={pref.key}
+                      style={{
+                        borderBottom: '1px solid var(--color-border)',
+                        padding: '1.4rem 0',
+                        display: 'flex',
+                        alignItems: 'flex-start',
+                        justifyContent: 'space-between',
+                        gap: '1.6rem',
+                      }}
+                    >
+                      <div style={{ flex: 1 }}>
+                        <p
+                          className="font-serif"
+                          style={{
+                            fontSize: '1.05rem',
+                            color: 'var(--color-ink)',
+                            fontWeight: 400,
+                            margin: 0,
+                          }}
+                        >
+                          {pref.label}
+                        </p>
+                        <p
+                          style={{
+                            marginTop: '0.3rem',
+                            fontSize: '0.82rem',
+                            color: 'var(--color-stone)',
+                            fontWeight: 300,
+                            lineHeight: 1.5,
+                          }}
+                        >
+                          {pref.desc}
+                        </p>
+                      </div>
+                      <p
+                        className="font-serif"
+                        style={{
+                          fontSize: '0.7rem',
+                          letterSpacing: '0.18em',
+                          textTransform: 'uppercase',
+                          fontStyle: 'italic',
+                          color: 'var(--color-stone)',
+                          marginTop: '0.2rem',
+                          flexShrink: 0,
+                        }}
+                      >
+                        {emailPrefs[pref.key] ? 'On' : 'Off'}
                       </p>
-                    )}
-                </div>
-              </div>
+                    </li>
+                  ))}
+                </ul>
 
-              {passwordStatus && (
-                <StatusMessage
-                  type={passwordStatus.type}
-                  message={passwordStatus.message}
-                />
-              )}
-
-              <button
-                type="button"
-                onClick={changePassword}
-                disabled={
-                  passwordSaving || !currentPassword || !newPassword || !confirmPassword
-                }
-                className="px-6 py-2.5 bg-primary text-white text-sm font-semibold rounded-full hover:bg-accent transition-colors disabled:opacity-50 inline-flex items-center gap-2"
-              >
-                {passwordSaving ? (
-                  <>
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    Updating...
-                  </>
-                ) : (
-                  'Update Password'
-                )}
-              </button>
-            </div>
-          )}
-
-          {/* ═══════ Notifications ═══════ */}
-          {activeTab === 'notifications' && (
-            <div className="bg-white border border-border rounded-2xl p-6 md:p-8 space-y-6">
-              <div>
-                <h2 className="font-semibold text-lg">
-                  Email Notifications
-                </h2>
-                <p className="text-sm text-muted mt-1">
-                  Email notification preferences coming soon.
+                <p
+                  className="font-serif"
+                  style={{
+                    marginTop: '1.4rem',
+                    fontSize: '0.78rem',
+                    fontStyle: 'italic',
+                    color: 'var(--color-stone)',
+                  }}
+                >
+                  — Coming soon.
                 </p>
-              </div>
+              </section>
+            )}
 
-              <div className="space-y-4 opacity-50 pointer-events-none">
-                {[
-                  {
-                    key: 'orderUpdates' as const,
-                    label: 'Order updates',
-                    desc: 'Shipping confirmations, delivery updates, and payout notifications.',
-                  },
-                  {
-                    key: 'newArtwork' as const,
-                    label: 'New artwork from followed artists',
-                    desc: 'Get notified when artists you follow upload new pieces.',
-                  },
-                  {
-                    key: 'marketing' as const,
-                    label: 'Newsletter & promotions',
-                    desc: 'Curated collections, platform updates, and occasional promotions.',
-                  },
-                ].map((pref) => (
-                  <label
-                    key={pref.key}
-                    className="flex items-start justify-between gap-4 p-4 border border-border rounded-xl"
+            {/* ═══════ Artist Profile ═══════ */}
+            {activeTab === 'artist' && isArtist && (
+              <section>
+                <Kicker>05 · Artist profile</Kicker>
+                <SectionTitle>
+                  Your <em style={{ fontStyle: 'italic' }}>public page.</em>
+                </SectionTitle>
+                <SectionIntro>
+                  What appears on signo.art/artists/you — bio, location, links,
+                  and the works you&apos;d lead with.
+                </SectionIntro>
+
+                <div style={{ marginBottom: '2.4rem' }}>
+                  <label htmlFor="artistBio" className="commission-label">
+                    Bio
+                  </label>
+                  <textarea
+                    id="artistBio"
+                    value={artistBio}
+                    onChange={(e) => setArtistBio(e.target.value)}
+                    rows={6}
+                    maxLength={1000}
+                    className="commission-field"
+                    style={{ resize: 'vertical' }}
+                    placeholder="A few lines on your practice, your studio, what drives the work."
+                  />
+                  <p
+                    className="font-serif"
+                    style={{
+                      marginTop: '0.5rem',
+                      fontSize: '0.72rem',
+                      fontStyle: 'italic',
+                      color: 'var(--color-stone)',
+                      textAlign: 'right',
+                    }}
                   >
-                    <div className="flex-1">
-                      <p className="text-sm font-medium">{pref.label}</p>
-                      <p className="text-xs text-muted mt-0.5">
-                        {pref.desc}
-                      </p>
-                    </div>
-                    <div className="relative mt-0.5">
-                      <input
-                        type="checkbox"
-                        checked={emailPrefs[pref.key]}
-                        disabled
-                        className="sr-only peer"
-                      />
-                      <div className="w-11 h-6 bg-border rounded-full peer-checked:bg-accent transition-colors" />
-                      <div className="absolute left-0.5 top-0.5 w-5 h-5 bg-white rounded-full shadow-sm transition-transform peer-checked:translate-x-5" />
-                    </div>
-                  </label>
-                ))}
-              </div>
-
-              <p className="text-xs text-warm-gray">
-                These preferences will become functional in a future update.
-              </p>
-            </div>
-          )}
-
-          {/* ═══════ Artist Profile ═══════ */}
-          {activeTab === 'artist' && isArtist && (
-            <div className="bg-white border border-border rounded-2xl p-6 md:p-8 space-y-6">
-              <div>
-                <h2 className="font-semibold text-lg">Artist Profile</h2>
-                <p className="text-sm text-muted mt-1">
-                  Information displayed on your public artist page.
-                </p>
-              </div>
-
-              {/* Bio */}
-              <div>
-                <label
-                  htmlFor="artistBio"
-                  className="block text-xs font-medium tracking-wide uppercase text-muted mb-2"
-                >
-                  Bio
-                </label>
-                <textarea
-                  id="artistBio"
-                  value={artistBio}
-                  onChange={(e) => setArtistBio(e.target.value)}
-                  rows={5}
-                  maxLength={1000}
-                  className="w-full px-4 py-3 bg-white border border-border rounded-xl text-sm placeholder:text-warm-gray transition-colors focus:border-accent focus:ring-1 focus:ring-accent/20 resize-none"
-                  placeholder="Tell collectors about yourself, your practice, and your inspirations..."
-                />
-                <p className="text-xs text-warm-gray mt-1.5 text-right">
-                  {artistBio.length}/1000
-                </p>
-              </div>
-
-              {/* Location */}
-              <div>
-                <label
-                  htmlFor="artistLocation"
-                  className="block text-xs font-medium tracking-wide uppercase text-muted mb-2"
-                >
-                  Location
-                </label>
-                <input
-                  id="artistLocation"
-                  type="text"
-                  value={artistLocation}
-                  onChange={(e) => setArtistLocation(e.target.value)}
-                  className="w-full px-4 py-3 bg-white border border-border rounded-xl text-sm placeholder:text-warm-gray transition-colors focus:border-accent focus:ring-1 focus:ring-accent/20"
-                  placeholder="Melbourne, VIC"
-                />
-              </div>
-
-              {/* State */}
-              <div>
-                <label
-                  htmlFor="artistState"
-                  className="block text-xs font-medium tracking-wide uppercase text-muted mb-2"
-                >
-                  State
-                </label>
-                <select
-                  id="artistState"
-                  value={artistState}
-                  onChange={(e) => setArtistState(e.target.value)}
-                  className="w-full px-4 py-3 bg-white border border-border rounded-xl text-sm transition-colors appearance-none focus:border-accent focus:ring-1 focus:ring-accent/20"
-                >
-                  <option value="">Select state</option>
-                  <option value="VIC">VIC</option>
-                  <option value="NSW">NSW</option>
-                  <option value="QLD">QLD</option>
-                  <option value="SA">SA</option>
-                  <option value="WA">WA</option>
-                  <option value="TAS">TAS</option>
-                  <option value="NT">NT</option>
-                  <option value="ACT">ACT</option>
-                </select>
-              </div>
-
-              {/* Social Links */}
-              <div className="space-y-4">
-                <p className="text-xs font-medium tracking-wide uppercase text-muted">
-                  Social Links
-                </p>
-                <div>
-                  <label htmlFor="instagram" className="flex items-center gap-2 text-sm text-muted mb-2">
-                    <AtSign className="h-4 w-4" /> Instagram
-                  </label>
-                  <input
-                    id="instagram"
-                    type="text"
-                    value={instagramUrl}
-                    onChange={(e) => setInstagramUrl(e.target.value)}
-                    className="w-full px-4 py-3 bg-white border border-border rounded-xl text-sm placeholder:text-warm-gray transition-colors focus:border-accent focus:ring-1 focus:ring-accent/20"
-                    placeholder="@handle or https://instagram.com/handle"
-                  />
-                </div>
-                <div>
-                  <label htmlFor="tiktok" className="flex items-center gap-2 text-sm text-muted mb-2">
-                    <AtSign className="h-4 w-4" /> TikTok
-                  </label>
-                  <input
-                    id="tiktok"
-                    type="text"
-                    value={tiktokUrl}
-                    onChange={(e) => setTiktokUrl(e.target.value)}
-                    className="w-full px-4 py-3 bg-white border border-border rounded-xl text-sm placeholder:text-warm-gray transition-colors focus:border-accent focus:ring-1 focus:ring-accent/20"
-                    placeholder="@handle or https://tiktok.com/@handle"
-                  />
-                </div>
-                <div>
-                  <label htmlFor="facebook" className="flex items-center gap-2 text-sm text-muted mb-2">
-                    <AtSign className="h-4 w-4" /> Facebook
-                  </label>
-                  <input
-                    id="facebook"
-                    type="text"
-                    value={facebookUrl}
-                    onChange={(e) => setFacebookUrl(e.target.value)}
-                    className="w-full px-4 py-3 bg-white border border-border rounded-xl text-sm placeholder:text-warm-gray transition-colors focus:border-accent focus:ring-1 focus:ring-accent/20"
-                    placeholder="https://facebook.com/yourpage"
-                  />
-                </div>
-                <div>
-                  <label htmlFor="youtube" className="flex items-center gap-2 text-sm text-muted mb-2">
-                    <AtSign className="h-4 w-4" /> YouTube
-                  </label>
-                  <input
-                    id="youtube"
-                    type="text"
-                    value={youtubeUrl}
-                    onChange={(e) => setYoutubeUrl(e.target.value)}
-                    className="w-full px-4 py-3 bg-white border border-border rounded-xl text-sm placeholder:text-warm-gray transition-colors focus:border-accent focus:ring-1 focus:ring-accent/20"
-                    placeholder="https://youtube.com/@channel"
-                  />
-                </div>
-                <div>
-                  <label htmlFor="website" className="flex items-center gap-2 text-sm text-muted mb-2">
-                    <Globe className="h-4 w-4" /> Website
-                  </label>
-                  <input
-                    id="website"
-                    type="url"
-                    value={websiteUrl}
-                    onChange={(e) => setWebsiteUrl(e.target.value)}
-                    className="w-full px-4 py-3 bg-white border border-border rounded-xl text-sm placeholder:text-warm-gray transition-colors focus:border-accent focus:ring-1 focus:ring-accent/20"
-                    placeholder="https://yourwebsite.com"
-                  />
-                </div>
-              </div>
-
-              {/* Featured Works */}
-              <div className="space-y-4 pt-2 border-t border-border">
-                <div>
-                  <p className="text-sm font-medium">Featured Works</p>
-                  <p className="text-xs text-warm-gray mt-0.5">
-                    Select up to 5 artworks to showcase at the top of your profile
+                    {artistBio.length} / 1000
                   </p>
                 </div>
 
-                {/* Selected featured artworks */}
-                {featuredArtworkObjects.length > 0 && (
-                  <div className="flex flex-wrap gap-3">
-                    {featuredArtworkObjects.map((artwork, index) => (
+                <div
+                  className="grid grid-cols-1 sm:grid-cols-2"
+                  style={{ gap: '1.4rem', marginBottom: '2.4rem' }}
+                >
+                  <div>
+                    <label
+                      htmlFor="artistLocation"
+                      className="commission-label"
+                    >
+                      Location
+                    </label>
+                    <input
+                      id="artistLocation"
+                      type="text"
+                      value={artistLocation}
+                      onChange={(e) => setArtistLocation(e.target.value)}
+                      className="commission-field"
+                      placeholder="Melbourne, VIC"
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="artistState" className="commission-label">
+                      State
+                    </label>
+                    <select
+                      id="artistState"
+                      value={artistState}
+                      onChange={(e) => setArtistState(e.target.value)}
+                      className="commission-field"
+                    >
+                      <option value="">Select</option>
+                      <option value="VIC">VIC</option>
+                      <option value="NSW">NSW</option>
+                      <option value="QLD">QLD</option>
+                      <option value="SA">SA</option>
+                      <option value="WA">WA</option>
+                      <option value="TAS">TAS</option>
+                      <option value="NT">NT</option>
+                      <option value="ACT">ACT</option>
+                    </select>
+                  </div>
+                </div>
+
+                {/* Social Links */}
+                <div style={{ marginBottom: '2.4rem' }}>
+                  <p className="commission-label">Elsewhere</p>
+                  <div
+                    style={{
+                      borderTop: '1px solid var(--color-border-strong)',
+                    }}
+                  >
+                    {[
+                      {
+                        id: 'instagram',
+                        label: 'Instagram',
+                        value: instagramUrl,
+                        set: setInstagramUrl,
+                        placeholder: '@handle or instagram.com/handle',
+                      },
+                      {
+                        id: 'tiktok',
+                        label: 'TikTok',
+                        value: tiktokUrl,
+                        set: setTiktokUrl,
+                        placeholder: '@handle',
+                      },
+                      {
+                        id: 'facebook',
+                        label: 'Facebook',
+                        value: facebookUrl,
+                        set: setFacebookUrl,
+                        placeholder: 'facebook.com/yourpage',
+                      },
+                      {
+                        id: 'youtube',
+                        label: 'YouTube',
+                        value: youtubeUrl,
+                        set: setYoutubeUrl,
+                        placeholder: 'youtube.com/@channel',
+                      },
+                      {
+                        id: 'website',
+                        label: 'Website',
+                        value: websiteUrl,
+                        set: setWebsiteUrl,
+                        placeholder: 'https://yourwebsite.com',
+                      },
+                    ].map((field) => (
                       <div
-                        key={artwork.id}
-                        className="relative group border border-border rounded-xl overflow-hidden"
-                        style={{ width: 120 }}
+                        key={field.id}
+                        style={{
+                          borderBottom: '1px solid var(--color-border)',
+                          padding: '1rem 0',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '1.4rem',
+                        }}
                       >
-                        <div className="relative w-full h-20">
-                          <Image
-                            src={(artwork.images as string[])?.[0] || '/placeholder.jpg'}
-                            alt={artwork.title}
-                            fill
-                            className="object-cover"
-                            sizes="120px"
-                          />
-                        </div>
-                        <div className="p-1.5">
-                          <p className="text-[11px] font-medium truncate">{artwork.title}</p>
-                          <p className="text-[10px] text-muted">{formatPrice(artwork.price_aud)}</p>
-                        </div>
-                        {/* Remove button */}
-                        <button
-                          type="button"
-                          onClick={() =>
-                            setFeaturedArtworkIds((ids) =>
-                              ids.filter((id) => id !== artwork.id)
-                            )
-                          }
-                          className="absolute top-1 right-1 w-5 h-5 rounded-full bg-black/60 hover:bg-black/80 flex items-center justify-center transition-colors"
-                          aria-label={`Remove ${artwork.title}`}
+                        <label
+                          htmlFor={field.id}
+                          className="font-serif"
+                          style={{
+                            fontSize: '0.75rem',
+                            letterSpacing: '0.18em',
+                            textTransform: 'uppercase',
+                            color: 'var(--color-stone)',
+                            fontStyle: 'italic',
+                            width: '6rem',
+                            flexShrink: 0,
+                          }}
                         >
-                          <X className="h-3 w-3 text-white" />
-                        </button>
-                        {/* Reorder buttons */}
-                        <div className="absolute top-1 left-1 flex flex-col gap-0.5">
-                          {index > 0 && (
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setFeaturedArtworkIds((ids) => {
-                                  const newIds = [...ids];
-                                  [newIds[index - 1], newIds[index]] = [newIds[index], newIds[index - 1]];
-                                  return newIds;
-                                });
-                              }}
-                              className="w-5 h-5 rounded-full bg-black/60 hover:bg-black/80 flex items-center justify-center transition-colors"
-                              aria-label="Move up"
-                            >
-                              <ArrowUp className="h-3 w-3 text-white" />
-                            </button>
-                          )}
-                          {index < featuredArtworkObjects.length - 1 && (
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setFeaturedArtworkIds((ids) => {
-                                  const newIds = [...ids];
-                                  [newIds[index], newIds[index + 1]] = [newIds[index + 1], newIds[index]];
-                                  return newIds;
-                                });
-                              }}
-                              className="w-5 h-5 rounded-full bg-black/60 hover:bg-black/80 flex items-center justify-center transition-colors"
-                              aria-label="Move down"
-                            >
-                              <ArrowDown className="h-3 w-3 text-white" />
-                            </button>
-                          )}
-                        </div>
+                          {field.label}
+                        </label>
+                        <input
+                          id={field.id}
+                          type="text"
+                          value={field.value}
+                          onChange={(e) => field.set(e.target.value)}
+                          placeholder={field.placeholder}
+                          className="font-serif"
+                          style={{
+                            flex: 1,
+                            background: 'none',
+                            border: 'none',
+                            padding: '0.3rem 0',
+                            fontSize: '0.95rem',
+                            color: 'var(--color-ink)',
+                            outline: 'none',
+                          }}
+                        />
                       </div>
                     ))}
                   </div>
-                )}
+                </div>
 
-                {/* Add artwork button */}
-                {featuredArtworkIds.length < 5 && (
-                  <div className="relative">
-                    <button
-                      type="button"
-                      onClick={() => setShowArtworkPicker(!showArtworkPicker)}
-                      className="inline-flex items-center gap-2 px-4 py-2 border border-dashed border-border rounded-xl text-sm text-muted hover:border-accent hover:text-accent transition-colors"
+                {/* Featured Works */}
+                <div style={{ marginBottom: '2.4rem' }}>
+                  <p className="commission-label">Featured works</p>
+                  <p
+                    style={{
+                      marginTop: '-0.6rem',
+                      marginBottom: '1.4rem',
+                      fontSize: '0.82rem',
+                      color: 'var(--color-stone)',
+                      fontWeight: 300,
+                      fontStyle: 'italic',
+                    }}
+                    className="font-serif"
+                  >
+                    Up to five works — these lead your profile.
+                  </p>
+
+                  {featuredArtworkObjects.length > 0 && (
+                    <ol
+                      style={{
+                        listStyle: 'none',
+                        padding: 0,
+                        margin: '0 0 1.4rem 0',
+                        borderTop: '1px solid var(--color-border-strong)',
+                      }}
                     >
-                      <Plus className="h-4 w-4" />
-                      Add artwork ({featuredArtworkIds.length}/5)
-                    </button>
+                      {featuredArtworkObjects.map((artwork, index) => (
+                        <li
+                          key={artwork.id}
+                          style={{
+                            borderBottom: '1px solid var(--color-border)',
+                            padding: '1rem 0',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '1.2rem',
+                          }}
+                        >
+                          <span
+                            style={{
+                              fontSize: '0.62rem',
+                              letterSpacing: '0.18em',
+                              color: 'var(--color-stone)',
+                              width: '1.5rem',
+                            }}
+                          >
+                            {String(index + 1).padStart(2, '0')}
+                          </span>
+                          <div
+                            style={{
+                              position: 'relative',
+                              width: 64,
+                              height: 64,
+                              background: 'var(--color-cream)',
+                              flexShrink: 0,
+                              overflow: 'hidden',
+                            }}
+                          >
+                            <Image
+                              src={
+                                (artwork.images as string[])?.[0] ||
+                                '/placeholder.jpg'
+                              }
+                              alt={artwork.title}
+                              fill
+                              className="object-cover"
+                              sizes="64px"
+                            />
+                          </div>
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <p
+                              className="font-serif"
+                              style={{
+                                fontSize: '1rem',
+                                color: 'var(--color-ink)',
+                                margin: 0,
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis',
+                                whiteSpace: 'nowrap',
+                              }}
+                            >
+                              {artwork.title}
+                            </p>
+                            <p
+                              style={{
+                                marginTop: '0.2rem',
+                                fontSize: '0.78rem',
+                                color: 'var(--color-stone)',
+                                fontWeight: 300,
+                              }}
+                            >
+                              {formatPrice(artwork.price_aud)}
+                            </p>
+                          </div>
+                          <div
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '1.2rem',
+                              flexShrink: 0,
+                            }}
+                          >
+                            <div
+                              style={{ display: 'flex', gap: '0.3rem' }}
+                              aria-label="Reorder"
+                            >
+                              <button
+                                type="button"
+                                disabled={index === 0}
+                                onClick={() => {
+                                  setFeaturedArtworkIds((ids) => {
+                                    const next = [...ids];
+                                    [next[index - 1], next[index]] = [
+                                      next[index],
+                                      next[index - 1],
+                                    ];
+                                    return next;
+                                  });
+                                }}
+                                aria-label="Move up"
+                                style={{
+                                  background: 'none',
+                                  border: 'none',
+                                  cursor:
+                                    index === 0 ? 'default' : 'pointer',
+                                  opacity: index === 0 ? 0.2 : 0.7,
+                                  fontSize: '0.9rem',
+                                  color: 'var(--color-stone-dark)',
+                                  padding: '0 0.2rem',
+                                }}
+                              >
+                                ↑
+                              </button>
+                              <button
+                                type="button"
+                                disabled={
+                                  index === featuredArtworkObjects.length - 1
+                                }
+                                onClick={() => {
+                                  setFeaturedArtworkIds((ids) => {
+                                    const next = [...ids];
+                                    [next[index], next[index + 1]] = [
+                                      next[index + 1],
+                                      next[index],
+                                    ];
+                                    return next;
+                                  });
+                                }}
+                                aria-label="Move down"
+                                style={{
+                                  background: 'none',
+                                  border: 'none',
+                                  cursor:
+                                    index ===
+                                    featuredArtworkObjects.length - 1
+                                      ? 'default'
+                                      : 'pointer',
+                                  opacity:
+                                    index ===
+                                    featuredArtworkObjects.length - 1
+                                      ? 0.2
+                                      : 0.7,
+                                  fontSize: '0.9rem',
+                                  color: 'var(--color-stone-dark)',
+                                  padding: '0 0.2rem',
+                                }}
+                              >
+                                ↓
+                              </button>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setFeaturedArtworkIds((ids) =>
+                                  ids.filter((id) => id !== artwork.id)
+                                )
+                              }
+                              className="font-serif"
+                              style={{
+                                fontSize: '0.68rem',
+                                letterSpacing: '0.18em',
+                                textTransform: 'uppercase',
+                                fontStyle: 'italic',
+                                color: 'var(--color-stone)',
+                                background: 'none',
+                                border: 'none',
+                                cursor: 'pointer',
+                                borderBottom:
+                                  '1px solid var(--color-border)',
+                                padding: '0.2rem 0',
+                              }}
+                            >
+                              Remove
+                            </button>
+                          </div>
+                        </li>
+                      ))}
+                    </ol>
+                  )}
 
-                    {showArtworkPicker && (
-                      <>
-                        <div className="fixed inset-0 z-10" onClick={() => { setShowArtworkPicker(false); setArtworkSearch(''); }} />
-                        <div className="absolute left-0 top-full mt-2 z-20 w-80 bg-white border border-border rounded-xl shadow-lg overflow-hidden animate-scale-in origin-top-left">
-                          {/* Search */}
-                          <div className="p-3 border-b border-border">
-                            <div className="relative">
-                              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted" />
+                  {featuredArtworkIds.length < 5 && (
+                    <div style={{ position: 'relative' }}>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setShowArtworkPicker(!showArtworkPicker)
+                        }
+                        className="font-serif editorial-link"
+                        style={{ fontStyle: 'italic' }}
+                      >
+                        + Add a work ({featuredArtworkIds.length}/5)
+                      </button>
+
+                      {showArtworkPicker && (
+                        <>
+                          <div
+                            style={{ position: 'fixed', inset: 0, zIndex: 10 }}
+                            onClick={() => {
+                              setShowArtworkPicker(false);
+                              setArtworkSearch('');
+                            }}
+                          />
+                          <div
+                            style={{
+                              position: 'absolute',
+                              left: 0,
+                              top: '100%',
+                              marginTop: '0.8rem',
+                              zIndex: 20,
+                              width: 340,
+                              background: 'var(--color-warm-white)',
+                              border: '1px solid var(--color-border-strong)',
+                              overflow: 'hidden',
+                            }}
+                          >
+                            <div
+                              style={{
+                                padding: '1rem 1.2rem',
+                                borderBottom:
+                                  '1px solid var(--color-border)',
+                              }}
+                            >
                               <input
                                 type="text"
                                 value={artworkSearch}
-                                onChange={(e) => setArtworkSearch(e.target.value)}
-                                placeholder="Search your artworks..."
-                                className="w-full pl-9 pr-3 py-2 bg-muted-bg border border-border rounded-lg text-sm placeholder:text-warm-gray focus:border-accent focus:ring-1 focus:ring-accent/20"
+                                onChange={(e) =>
+                                  setArtworkSearch(e.target.value)
+                                }
+                                placeholder="Search your works…"
                                 autoFocus
+                                className="font-serif"
+                                style={{
+                                  width: '100%',
+                                  background: 'none',
+                                  border: 'none',
+                                  fontSize: '0.88rem',
+                                  fontStyle: 'italic',
+                                  color: 'var(--color-ink)',
+                                  outline: 'none',
+                                }}
                               />
                             </div>
-                          </div>
-
-                          {/* Artwork list */}
-                          <div className="max-h-64 overflow-y-auto">
-                            {availableArtworks.length === 0 ? (
-                              <div className="p-4 text-center text-sm text-muted">
-                                <ImageIcon className="h-6 w-6 mx-auto mb-2 text-border" />
-                                {artworkSearch.trim()
-                                  ? 'No matching artworks found'
-                                  : 'No approved artworks available'}
-                              </div>
-                            ) : (
-                              availableArtworks.map((artwork) => (
-                                <button
-                                  key={artwork.id}
-                                  type="button"
-                                  onClick={() => {
-                                    setFeaturedArtworkIds((ids) => [...ids, artwork.id]);
-                                    if (featuredArtworkIds.length + 1 >= 5) {
-                                      setShowArtworkPicker(false);
-                                      setArtworkSearch('');
-                                    }
+                            <div
+                              style={{ maxHeight: 280, overflowY: 'auto' }}
+                            >
+                              {availableArtworks.length === 0 ? (
+                                <p
+                                  className="font-serif"
+                                  style={{
+                                    padding: '1.6rem 1.2rem',
+                                    fontSize: '0.82rem',
+                                    fontStyle: 'italic',
+                                    color: 'var(--color-stone)',
+                                    textAlign: 'center',
                                   }}
-                                  className="flex items-center gap-3 w-full px-3 py-2.5 text-left hover:bg-muted-bg transition-colors"
                                 >
-                                  <div className="relative w-12 h-12 rounded-lg overflow-hidden flex-shrink-0 bg-muted-bg">
-                                    <Image
-                                      src={(artwork.images as string[])?.[0] || '/placeholder.jpg'}
-                                      alt={artwork.title}
-                                      fill
-                                      className="object-cover"
-                                      sizes="48px"
-                                    />
-                                  </div>
-                                  <div className="flex-1 min-w-0">
-                                    <p className="text-sm font-medium truncate">{artwork.title}</p>
-                                    <p className="text-xs text-muted">{formatPrice(artwork.price_aud)}</p>
-                                  </div>
-                                  <Plus className="h-4 w-4 text-muted flex-shrink-0" />
-                                </button>
-                              ))
-                            )}
+                                  {artworkSearch.trim()
+                                    ? 'No matches.'
+                                    : 'No approved works yet.'}
+                                </p>
+                              ) : (
+                                availableArtworks.map((artwork) => (
+                                  <button
+                                    key={artwork.id}
+                                    type="button"
+                                    onClick={() => {
+                                      setFeaturedArtworkIds((ids) => [
+                                        ...ids,
+                                        artwork.id,
+                                      ]);
+                                      if (
+                                        featuredArtworkIds.length + 1 >=
+                                        5
+                                      ) {
+                                        setShowArtworkPicker(false);
+                                        setArtworkSearch('');
+                                      }
+                                    }}
+                                    style={{
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      gap: '1rem',
+                                      width: '100%',
+                                      padding: '0.8rem 1.2rem',
+                                      textAlign: 'left',
+                                      background: 'none',
+                                      border: 'none',
+                                      borderBottom:
+                                        '1px solid var(--color-border)',
+                                      cursor: 'pointer',
+                                    }}
+                                  >
+                                    <div
+                                      style={{
+                                        position: 'relative',
+                                        width: 40,
+                                        height: 40,
+                                        background: 'var(--color-cream)',
+                                        flexShrink: 0,
+                                        overflow: 'hidden',
+                                      }}
+                                    >
+                                      <Image
+                                        src={
+                                          (artwork.images as string[])?.[0] ||
+                                          '/placeholder.jpg'
+                                        }
+                                        alt={artwork.title}
+                                        fill
+                                        className="object-cover"
+                                        sizes="40px"
+                                      />
+                                    </div>
+                                    <div
+                                      style={{ flex: 1, minWidth: 0 }}
+                                    >
+                                      <p
+                                        className="font-serif"
+                                        style={{
+                                          fontSize: '0.92rem',
+                                          color: 'var(--color-ink)',
+                                          margin: 0,
+                                          overflow: 'hidden',
+                                          textOverflow: 'ellipsis',
+                                          whiteSpace: 'nowrap',
+                                        }}
+                                      >
+                                        {artwork.title}
+                                      </p>
+                                      <p
+                                        style={{
+                                          fontSize: '0.72rem',
+                                          color: 'var(--color-stone)',
+                                          marginTop: '0.15rem',
+                                        }}
+                                      >
+                                        {formatPrice(artwork.price_aud)}
+                                      </p>
+                                    </div>
+                                    <span
+                                      className="font-serif"
+                                      style={{
+                                        fontSize: '0.68rem',
+                                        letterSpacing: '0.18em',
+                                        textTransform: 'uppercase',
+                                        fontStyle: 'italic',
+                                        color: 'var(--color-stone)',
+                                      }}
+                                    >
+                                      Add
+                                    </span>
+                                  </button>
+                                ))
+                              )}
+                            </div>
                           </div>
-                        </div>
-                      </>
-                    )}
-                  </div>
-                )}
-              </div>
-
-              {/* Commissions toggle */}
-              <div className="flex items-start gap-3 pt-2 border-t border-border">
-                <button
-                  type="button"
-                  role="switch"
-                  aria-checked={acceptsCommissions}
-                  onClick={() => setAcceptsCommissions(!acceptsCommissions)}
-                  className={`relative mt-0.5 inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-accent/30 ${
-                    acceptsCommissions ? 'bg-accent' : 'bg-border'
-                  }`}
-                >
-                  <span
-                    className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
-                      acceptsCommissions ? 'translate-x-5' : 'translate-x-0'
-                    }`}
-                  />
-                </button>
-                <div>
-                  <p className="text-sm font-medium">Open to commissions</p>
-                  <p className="text-xs text-warm-gray mt-0.5">
-                    Show a &quot;Commission a Piece&quot; button on your profile so buyers can request custom work
-                  </p>
-                </div>
-              </div>
-
-              {artistStatus && (
-                <StatusMessage
-                  type={artistStatus.type}
-                  message={artistStatus.message}
-                />
-              )}
-
-              <div className="flex items-center gap-4">
-                <button
-                  type="button"
-                  onClick={saveArtistProfile}
-                  disabled={artistSaving}
-                  className="px-6 py-2.5 bg-primary text-white text-sm font-semibold rounded-full hover:bg-accent transition-colors disabled:opacity-50 inline-flex items-center gap-2"
-                >
-                  {artistSaving ? (
-                    <>
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                      Saving...
-                    </>
-                  ) : (
-                    'Save Changes'
-                  )}
-                </button>
-
-                <Link
-                  href="/artist/dashboard"
-                  className="text-sm text-muted hover:text-foreground transition-colors inline-flex items-center gap-1.5"
-                >
-                  Manage storefront <ExternalLink className="h-3.5 w-3.5" />
-                </Link>
-              </div>
-            </div>
-          )}
-
-          {/* ═══════ Subscription ═══════ */}
-          {activeTab === 'subscription' && isArtist && (() => {
-            const subStatus = user?.subscription_status || 'trial';
-            const statusLabel: Record<string, string> = {
-              trial: 'Free Plan',
-              pending_activation: 'Pending Activation',
-              active: 'Active — $30/mo',
-              past_due: 'Past Due',
-              paused: 'Paused',
-              cancelled: 'Cancelled',
-            };
-            const statusColor: Record<string, string> = {
-              trial: 'bg-accent text-white',
-              pending_activation: 'bg-amber-500 text-white',
-              active: 'bg-green-500 text-white',
-              past_due: 'bg-red-500 text-white',
-              paused: 'bg-gray-400 text-white',
-              cancelled: 'bg-gray-400 text-white',
-            };
-            const dotColor: Record<string, string> = {
-              trial: 'bg-accent',
-              pending_activation: 'bg-amber-500',
-              active: 'bg-green-500',
-              past_due: 'bg-red-500',
-              paused: 'bg-gray-400',
-              cancelled: 'bg-gray-400',
-            };
-            const statusDescription: Record<string, string> = {
-              trial: 'Your $30/month subscription starts after your first sale. No payment needed right now.',
-              pending_activation: 'Your first sale completed! Add a payment method to keep your listings live.',
-              active: 'Your subscription is active. Your listings are live.',
-              past_due: 'Your payment failed. Please update your payment method.',
-              paused: 'Your listings are paused. Add a payment method to reactivate.',
-              cancelled: 'Your subscription was cancelled. Resubscribe to get your listings back.',
-            };
-
-            return (
-              <div className="bg-white border border-border rounded-2xl p-6 md:p-8 space-y-6">
-                <div>
-                  <h2 className="font-semibold text-lg">Subscription</h2>
-                  <p className="text-sm text-muted mt-1">
-                    Your current plan and billing details.
-                  </p>
-                </div>
-
-                <div className={`p-5 rounded-xl ${
-                  subStatus === 'past_due' ? 'bg-red-50 border border-red-200' :
-                  subStatus === 'pending_activation' ? 'bg-amber-50 border border-amber-200' :
-                  subStatus === 'active' ? 'bg-green-50 border border-green-200' :
-                  'bg-accent-subtle border border-accent/10'
-                }`}>
-                  <div className="flex items-center gap-3 mb-2">
-                    <div className={`w-2.5 h-2.5 rounded-full ${dotColor[subStatus] || 'bg-accent'}`} />
-                    <p className="font-semibold text-sm">{statusLabel[subStatus] || subStatus}</p>
-                  </div>
-                  <p className="text-sm text-muted ml-5.5">
-                    {statusDescription[subStatus]}
-                  </p>
-                </div>
-
-                <div className="border border-border rounded-xl divide-y divide-border">
-                  <div className="flex items-center justify-between p-4">
-                    <span className="text-sm text-muted">Status</span>
-                    <span className={`text-xs font-medium px-2.5 py-1 rounded-full ${statusColor[subStatus] || 'bg-gray-100 text-gray-600'}`}>
-                      {statusLabel[subStatus] || subStatus}
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between p-4">
-                    <span className="text-sm text-muted">Price</span>
-                    <span className="text-sm font-medium">
-                      {subStatus === 'trial' ? 'Free (until first sale)' : '$30/month'}
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between p-4">
-                    <span className="text-sm text-muted">Commission rate</span>
-                    <span className="text-sm font-medium">0%</span>
-                  </div>
-                  <div className="flex items-center justify-between p-4">
-                    <span className="text-sm text-muted">Payout setup</span>
-                    <span className="text-sm font-medium">
-                      {user?.stripe_account_id ? (
-                        <span className="text-green-600">Connected</span>
-                      ) : (
-                        <Link href="/artist/settings/payouts" className="text-accent-dark hover:underline">
-                          Set up payouts
-                        </Link>
+                        </>
                       )}
-                    </span>
-                  </div>
+                    </div>
+                  )}
                 </div>
 
-                {subStatus !== 'trial' && (
-                  <Link
-                    href="/artist/subscribe"
-                    className="inline-flex items-center gap-2 px-5 py-2.5 bg-primary text-white text-sm font-semibold rounded-full hover:bg-accent transition-colors"
+                {/* Commissions toggle */}
+                <div
+                  style={{
+                    padding: '1.6rem 0',
+                    borderTop: '1px solid var(--color-border-strong)',
+                    borderBottom: '1px solid var(--color-border-strong)',
+                    marginBottom: '2rem',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    gap: '1.6rem',
+                  }}
+                >
+                  <div>
+                    <p
+                      className="font-serif"
+                      style={{
+                        fontSize: '1.05rem',
+                        color: 'var(--color-ink)',
+                        margin: 0,
+                        fontStyle: acceptsCommissions ? 'italic' : 'normal',
+                      }}
+                    >
+                      Open to commissions
+                    </p>
+                    <p
+                      style={{
+                        marginTop: '0.3rem',
+                        fontSize: '0.82rem',
+                        color: 'var(--color-stone)',
+                        fontWeight: 300,
+                        maxWidth: '52ch',
+                      }}
+                    >
+                      Show a &ldquo;commission a piece&rdquo; link on your
+                      profile so collectors can write to you about custom work.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={acceptsCommissions}
+                    onClick={() => setAcceptsCommissions(!acceptsCommissions)}
+                    className="font-serif"
+                    style={{
+                      flexShrink: 0,
+                      fontSize: '0.72rem',
+                      letterSpacing: '0.2em',
+                      textTransform: 'uppercase',
+                      fontStyle: 'italic',
+                      color: acceptsCommissions
+                        ? 'var(--color-ink)'
+                        : 'var(--color-stone)',
+                      background: 'none',
+                      border: 'none',
+                      cursor: 'pointer',
+                      padding: '0.3rem 0',
+                      borderBottom: acceptsCommissions
+                        ? '1px solid var(--color-ink)'
+                        : '1px solid var(--color-border)',
+                    }}
                   >
-                    <CreditCard className="h-4 w-4" />
-                    {subStatus === 'active' ? 'Manage Subscription' : 'Go to Subscription'}
+                    {acceptsCommissions ? 'On' : 'Off'}
+                  </button>
+                </div>
+
+                <StatusLine status={artistStatus} />
+
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '1.6rem',
+                    marginTop: '1.4rem',
+                    flexWrap: 'wrap',
+                  }}
+                >
+                  <button
+                    type="button"
+                    onClick={saveArtistProfile}
+                    disabled={artistSaving}
+                    className="artwork-primary-cta artwork-primary-cta--compact"
+                    style={{
+                      minWidth: '14rem',
+                      opacity: artistSaving ? 0.5 : 1,
+                    }}
+                  >
+                    {artistSaving ? 'Saving…' : 'Save changes'}
+                  </button>
+
+                  <Link
+                    href="/artist/dashboard"
+                    className="font-serif"
+                    style={{
+                      fontSize: '0.72rem',
+                      letterSpacing: '0.18em',
+                      textTransform: 'uppercase',
+                      fontStyle: 'italic',
+                      color: 'var(--color-stone)',
+                      textDecoration: 'none',
+                      borderBottom: '1px solid var(--color-border)',
+                      padding: '0.3rem 0',
+                    }}
+                  >
+                    Manage storefront →
                   </Link>
-                )}
+                </div>
+              </section>
+            )}
 
-                {subStatus === 'trial' && (
-                  <p className="text-xs text-warm-gray">
-                    Your subscription will start after your first sale. You&apos;ll have
-                    time to set up your payment method.
+            {/* ═══════ Subscription ═══════ */}
+            {activeTab === 'subscription' &&
+              isArtist &&
+              (() => {
+                const subStatus = user?.subscription_status || 'trial';
+                const statusLabel: Record<string, string> = {
+                  trial: 'Free plan',
+                  pending_activation: 'Pending activation',
+                  active: 'Active · $30 / month',
+                  past_due: 'Past due',
+                  paused: 'Paused',
+                  cancelled: 'Cancelled',
+                };
+                const statusDescription: Record<string, string> = {
+                  trial:
+                    'Your $30 / month subscription begins after your first sale. No payment needed yet.',
+                  pending_activation:
+                    'Your first sale has completed. Add a payment method to keep your listings live.',
+                  active:
+                    'Your subscription is active. Listings are live and zero commission.',
+                  past_due:
+                    'A payment failed. Please update your payment method to restore listings.',
+                  paused:
+                    'Your listings are paused. Add a payment method to reactivate.',
+                  cancelled:
+                    'Your subscription was cancelled. Resubscribe to bring your listings back.',
+                };
+
+                return (
+                  <section>
+                    <Kicker>06 · Subscription</Kicker>
+                    <SectionTitle>
+                      Your plan and{' '}
+                      <em style={{ fontStyle: 'italic' }}>billing.</em>
+                    </SectionTitle>
+                    <SectionIntro>
+                      {statusDescription[subStatus]}
+                    </SectionIntro>
+
+                    <dl
+                      style={{
+                        borderTop: '1px solid var(--color-border-strong)',
+                        margin: 0,
+                        padding: 0,
+                      }}
+                    >
+                      {[
+                        { label: 'Status', value: statusLabel[subStatus] || subStatus },
+                        {
+                          label: 'Price',
+                          value:
+                            subStatus === 'trial'
+                              ? 'Free — until first sale'
+                              : '$30 / month',
+                        },
+                        { label: 'Commission', value: '0%' },
+                        {
+                          label: 'Payouts',
+                          value: user?.stripe_account_id ? (
+                            <em style={{ fontStyle: 'italic' }}>Connected</em>
+                          ) : (
+                            <Link
+                              href="/artist/settings/payouts"
+                              className="editorial-link"
+                              style={{ fontStyle: 'italic' }}
+                            >
+                              Set up payouts
+                            </Link>
+                          ),
+                        },
+                      ].map((row, i) => (
+                        <div
+                          key={i}
+                          style={{
+                            borderBottom: '1px solid var(--color-border)',
+                            padding: '1.1rem 0',
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'baseline',
+                            gap: '2rem',
+                          }}
+                        >
+                          <dt
+                            style={{
+                              fontSize: '0.62rem',
+                              letterSpacing: '0.22em',
+                              textTransform: 'uppercase',
+                              color: 'var(--color-stone)',
+                            }}
+                          >
+                            {row.label}
+                          </dt>
+                          <dd
+                            className="font-serif"
+                            style={{
+                              fontSize: '1rem',
+                              color: 'var(--color-ink)',
+                              margin: 0,
+                            }}
+                          >
+                            {row.value}
+                          </dd>
+                        </div>
+                      ))}
+                    </dl>
+
+                    {subStatus !== 'trial' && (
+                      <Link
+                        href="/artist/subscribe"
+                        className="artwork-primary-cta artwork-primary-cta--compact"
+                        style={{
+                          minWidth: '16rem',
+                          marginTop: '2rem',
+                          display: 'inline-block',
+                        }}
+                      >
+                        {subStatus === 'active'
+                          ? 'Manage subscription'
+                          : 'Go to subscription'}
+                      </Link>
+                    )}
+                  </section>
+                );
+              })()}
+
+            {/* ═══════ Danger / Close account ═══════ */}
+            {activeTab === 'danger' && (
+              <section>
+                <Kicker>— The final page —</Kicker>
+                <SectionTitle>
+                  Close your <em style={{ fontStyle: 'italic' }}>account.</em>
+                </SectionTitle>
+                <SectionIntro>
+                  Permanently remove your profile and everything attached to
+                  it. Active orders must be completed or cancelled before the
+                  account can be closed.
+                </SectionIntro>
+
+                <div
+                  style={{
+                    borderTop: '1px solid var(--color-border-strong)',
+                    paddingTop: '1.6rem',
+                    marginBottom: '2rem',
+                  }}
+                >
+                  <p
+                    className="font-serif"
+                    style={{
+                      fontSize: '0.9rem',
+                      fontStyle: 'italic',
+                      color: 'var(--color-stone-dark)',
+                      maxWidth: '56ch',
+                      lineHeight: 1.6,
+                    }}
+                  >
+                    Your profile, your listings, your saved works and
+                    correspondence — all of it goes. There&apos;s no recovering
+                    it afterwards.
                   </p>
-                )}
-              </div>
-            );
-          })()}
-
-          {/* ═══════ Danger Zone ═══════ */}
-          {activeTab === 'danger' && (
-            <div className="bg-white border border-error/20 rounded-2xl p-6 md:p-8 space-y-6">
-              <div>
-                <h2 className="font-semibold text-lg text-error">Danger Zone</h2>
-                <p className="text-sm text-muted mt-1">
-                  Irreversible actions. Please be certain.
-                </p>
-              </div>
-
-              <div className="border border-error/20 rounded-xl p-5">
-                <h3 className="font-medium text-sm">Delete my account</h3>
-                <p className="text-sm text-muted mt-1">
-                  Permanently delete your account and all associated data. This
-                  action cannot be undone. Any active orders must be completed
-                  or cancelled first.
-                </p>
+                </div>
 
                 <button
                   type="button"
@@ -1397,98 +1936,238 @@ export default function SettingsPage() {
                     setDeleteConfirmText('');
                     setDeleteError(null);
                   }}
-                  className="mt-4 px-5 py-2 border border-error/30 text-error text-sm font-medium rounded-full hover:bg-error/5 transition-colors"
+                  className="font-serif"
+                  style={{
+                    fontSize: '0.72rem',
+                    letterSpacing: '0.2em',
+                    textTransform: 'uppercase',
+                    fontStyle: 'italic',
+                    color: 'var(--color-terracotta, #c45d3e)',
+                    background: 'none',
+                    border: '1px solid var(--color-terracotta, #c45d3e)',
+                    padding: '0.9rem 1.8rem',
+                    cursor: 'pointer',
+                  }}
                 >
-                  Delete my account
+                  Close my account
                 </button>
-              </div>
 
-              {/* Delete account modal */}
-              {showDeleteConfirm && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+                {showDeleteConfirm && (
                   <div
-                    className="absolute inset-0 bg-black/40"
-                    onClick={() => { setShowDeleteConfirm(false); setDeleteConfirmText(''); }}
-                  />
-                  <dialog
-                    open
-                    className="relative bg-white rounded-2xl shadow-xl max-w-md w-full p-6 space-y-4 z-10"
+                    style={{
+                      position: 'fixed',
+                      inset: 0,
+                      zIndex: 50,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      padding: '1.5rem',
+                    }}
                   >
-                    <h2 className="text-lg font-semibold text-primary">Delete your account?</h2>
-                    <p className="text-sm text-muted leading-relaxed">
-                      This will permanently delete your account, profile, and all your artwork listings. This action cannot be undone.
-                    </p>
+                    <div
+                      style={{
+                        position: 'absolute',
+                        inset: 0,
+                        background: 'rgba(20, 18, 15, 0.45)',
+                      }}
+                      onClick={() => {
+                        setShowDeleteConfirm(false);
+                        setDeleteConfirmText('');
+                      }}
+                    />
+                    <div
+                      role="dialog"
+                      aria-modal="true"
+                      style={{
+                        position: 'relative',
+                        zIndex: 10,
+                        maxWidth: '32rem',
+                        width: '100%',
+                        background: 'var(--color-warm-white)',
+                        padding: '2.4rem',
+                        border: '1px solid var(--color-border-strong)',
+                      }}
+                    >
+                      <p
+                        style={{
+                          fontSize: '0.62rem',
+                          letterSpacing: '0.22em',
+                          textTransform: 'uppercase',
+                          color: 'var(--color-terracotta, #c45d3e)',
+                          marginBottom: '1rem',
+                        }}
+                      >
+                        — Final confirmation —
+                      </p>
+                      <h2
+                        className="font-serif"
+                        style={{
+                          fontSize: 'clamp(1.5rem, 3vw, 2rem)',
+                          lineHeight: 1.1,
+                          color: 'var(--color-ink)',
+                          fontWeight: 400,
+                          marginBottom: '1rem',
+                        }}
+                      >
+                        Close your{' '}
+                        <em style={{ fontStyle: 'italic' }}>account?</em>
+                      </h2>
+                      <p
+                        style={{
+                          fontSize: '0.9rem',
+                          color: 'var(--color-stone-dark)',
+                          fontWeight: 300,
+                          lineHeight: 1.6,
+                          marginBottom: '1.6rem',
+                        }}
+                      >
+                        This removes your profile, listings, saved works, and
+                        correspondence. It cannot be undone.
+                      </p>
 
-                    {isArtist && artistStats && (artistStats.activeListings > 0 || artistStats.pendingOrders > 0) && (
-                      <div className="flex items-start gap-2.5 p-3 bg-amber-50 border border-amber-200 rounded-xl">
-                        <AlertCircle className="w-4 h-4 text-amber-600 mt-0.5 shrink-0" />
-                        <p className="text-sm text-amber-800">
-                          You have {artistStats.activeListings} active listing{artistStats.activeListings !== 1 ? 's' : ''}
-                          {artistStats.pendingOrders > 0 && <> and {artistStats.pendingOrders} pending order{artistStats.pendingOrders !== 1 ? 's' : ''}</>}.
-                          These will be cancelled.
+                      {isArtist &&
+                        artistStats &&
+                        (artistStats.activeListings > 0 ||
+                          artistStats.pendingOrders > 0) && (
+                          <p
+                            className="font-serif"
+                            style={{
+                              padding: '1rem 1.2rem',
+                              borderTop:
+                                '1px solid var(--color-terracotta, #c45d3e)',
+                              borderBottom:
+                                '1px solid var(--color-terracotta, #c45d3e)',
+                              fontSize: '0.85rem',
+                              fontStyle: 'italic',
+                              color: 'var(--color-ink)',
+                              marginBottom: '1.6rem',
+                              lineHeight: 1.5,
+                            }}
+                          >
+                            You currently have {artistStats.activeListings}{' '}
+                            active listing
+                            {artistStats.activeListings !== 1 ? 's' : ''}
+                            {artistStats.pendingOrders > 0 && (
+                              <>
+                                {' '}
+                                and {artistStats.pendingOrders} pending order
+                                {artistStats.pendingOrders !== 1 ? 's' : ''}
+                              </>
+                            )}
+                            . These will be cancelled.
+                          </p>
+                        )}
+
+                      <div style={{ marginBottom: '1.6rem' }}>
+                        <p
+                          className="commission-label"
+                          style={{
+                            color: 'var(--color-terracotta, #c45d3e)',
+                          }}
+                        >
+                          Type DELETE to confirm
                         </p>
-                      </div>
-                    )}
-
-                    <div>
-                      <label className="text-sm text-error font-medium block mb-2">
-                        Type <span className="font-mono bg-error/5 px-1.5 py-0.5 rounded">DELETE</span> to confirm:
-                      </label>
-                      <input
-                        type="text"
-                        value={deleteConfirmText}
-                        onChange={(e) => setDeleteConfirmText(e.target.value)}
-                        className="w-full px-4 py-2.5 bg-white border border-error/30 rounded-xl text-sm placeholder:text-warm-gray focus:border-error focus:ring-1 focus:ring-error/20"
-                        placeholder="Type DELETE"
-                        autoFocus
-                      />
-                    </div>
-
-                    {deleteError && (
-                      <p className="text-sm text-error">{deleteError}</p>
-                    )}
-
-                    <div className="flex items-center gap-3 pt-2">
-                      <button
-                        type="button"
-                        disabled={deleteConfirmText !== 'DELETE' || deleteLoading}
-                        className="px-5 py-2 bg-error text-white text-sm font-semibold rounded-full hover:bg-error/90 transition-colors disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-2"
-                        onClick={async () => {
-                          setDeleteLoading(true);
-                          setDeleteError(null);
-                          try {
-                            const res = await fetch('/api/account/delete', { method: 'POST' });
-                            if (!res.ok) {
-                              const body = await res.json().catch(() => ({}));
-                              throw new Error(body.error || 'Failed to delete account');
-                            }
-                            router.push('/');
-                          } catch (err) {
-                            setDeleteError(err instanceof Error ? err.message : 'Something went wrong');
-                            setDeleteLoading(false);
+                        <input
+                          type="text"
+                          value={deleteConfirmText}
+                          onChange={(e) =>
+                            setDeleteConfirmText(e.target.value)
                           }
+                          className="commission-field"
+                          placeholder="DELETE"
+                          autoFocus
+                        />
+                      </div>
+
+                      {deleteError && (
+                        <p
+                          className="font-serif"
+                          style={{
+                            fontSize: '0.85rem',
+                            fontStyle: 'italic',
+                            color: 'var(--color-terracotta, #c45d3e)',
+                            marginBottom: '1.2rem',
+                          }}
+                        >
+                          — {deleteError}
+                        </p>
+                      )}
+
+                      <div
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '1.6rem',
                         }}
                       >
-                        {deleteLoading && <Loader2 className="w-4 h-4 animate-spin" />}
-                        Delete my account
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setShowDeleteConfirm(false);
-                          setDeleteConfirmText('');
-                        }}
-                        className="px-5 py-2 text-sm text-muted hover:text-foreground transition-colors"
-                        disabled={deleteLoading}
-                      >
-                        Cancel
-                      </button>
+                        <button
+                          type="button"
+                          disabled={
+                            deleteConfirmText !== 'DELETE' || deleteLoading
+                          }
+                          onClick={async () => {
+                            setDeleteLoading(true);
+                            setDeleteError(null);
+                            try {
+                              const res = await fetch('/api/account/delete', {
+                                method: 'POST',
+                              });
+                              if (!res.ok) {
+                                const body = await res
+                                  .json()
+                                  .catch(() => ({}));
+                                throw new Error(
+                                  body.error || 'Failed to delete account'
+                                );
+                              }
+                              router.push('/');
+                            } catch (err) {
+                              setDeleteError(
+                                err instanceof Error
+                                  ? err.message
+                                  : 'Something went wrong'
+                              );
+                              setDeleteLoading(false);
+                            }
+                          }}
+                          className="font-serif"
+                          style={{
+                            fontSize: '0.72rem',
+                            letterSpacing: '0.2em',
+                            textTransform: 'uppercase',
+                            fontStyle: 'italic',
+                            color: 'var(--color-warm-white)',
+                            background:
+                              'var(--color-terracotta, #c45d3e)',
+                            border: 'none',
+                            padding: '0.9rem 1.8rem',
+                            cursor: 'pointer',
+                            opacity:
+                              deleteConfirmText !== 'DELETE' || deleteLoading
+                                ? 0.4
+                                : 1,
+                          }}
+                        >
+                          {deleteLoading ? 'Closing…' : 'Yes, close it'}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setShowDeleteConfirm(false);
+                            setDeleteConfirmText('');
+                          }}
+                          disabled={deleteLoading}
+                          className="editorial-link"
+                        >
+                          Cancel
+                        </button>
+                      </div>
                     </div>
-                  </dialog>
-                </div>
-              )}
-            </div>
-          )}
+                  </div>
+                )}
+              </section>
+            )}
+          </div>
         </div>
       </div>
     </div>

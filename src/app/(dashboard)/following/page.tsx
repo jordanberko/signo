@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
-import { Users, ArrowRight, Loader2, MapPin, Image as ImageIcon, UserMinus } from 'lucide-react';
 import Avatar from '@/components/ui/Avatar';
 import { useRequireAuth } from '@/lib/hooks/useRequireAuth';
 
@@ -58,7 +57,6 @@ export default function FollowingPage() {
     fetchFollowing();
   }, [authLoading, fetchFollowing]);
 
-  // Handle unfollow — optimistic fade out then remove
   const handleUnfollow = useCallback(async (artistId: string) => {
     setUnfollowing((prev) => new Set(prev).add(artistId));
 
@@ -68,7 +66,6 @@ export default function FollowingPage() {
       });
 
       if (!res.ok) {
-        // Revert on error
         setUnfollowing((prev) => {
           const next = new Set(prev);
           next.delete(artistId);
@@ -77,7 +74,6 @@ export default function FollowingPage() {
         return;
       }
     } catch {
-      // Revert on error
       setUnfollowing((prev) => {
         const next = new Set(prev);
         next.delete(artistId);
@@ -86,7 +82,6 @@ export default function FollowingPage() {
       return;
     }
 
-    // Remove from list after fade-out animation
     setTimeout(() => {
       setArtists((prev) => prev.filter((a) => a.id !== artistId));
       setUnfollowing((prev) => {
@@ -99,122 +94,259 @@ export default function FollowingPage() {
 
   if (authLoading) {
     return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="w-8 h-8 border-3 border-border border-t-primary rounded-full animate-spin" />
+      <div
+        style={{
+          minHeight: '60vh',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          background: 'var(--color-warm-white)',
+        }}
+      >
+        <p
+          className="font-serif"
+          style={{ fontStyle: 'italic', fontSize: '0.95rem', color: 'var(--color-stone)' }}
+        >
+          Loading…
+        </p>
       </div>
     );
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
-      {/* Header */}
-      <div className="mb-8">
-        <h1 className="font-editorial text-3xl md:text-4xl font-semibold">
-          Following
-        </h1>
-        <p className="text-muted mt-1.5">
-          {loading
-            ? 'Loading artists you follow...'
-            : artists.length > 0
-              ? `${artists.length} artist${artists.length === 1 ? '' : 's'} you follow`
-              : 'Artists you follow'}
-        </p>
-      </div>
-
-      {/* Content */}
-      {loading ? (
-        <div className="flex items-center justify-center py-24">
-          <Loader2 className="h-6 w-6 animate-spin text-muted" />
-        </div>
-      ) : error ? (
-        <div className="text-center py-24">
-          <p className="text-error mb-4">{error}</p>
-          <button
-            onClick={() => {
-              setLoading(true);
-              fetchFollowing();
+    <div style={{ background: 'var(--color-warm-white)', minHeight: '100vh' }}>
+      <div
+        className="px-6 sm:px-10"
+        style={{
+          maxWidth: '78rem',
+          margin: '0 auto',
+          paddingTop: 'clamp(7.5rem, 10vw, 9.5rem)',
+          paddingBottom: 'clamp(4rem, 7vw, 6rem)',
+        }}
+      >
+        {/* ── Editorial header ── */}
+        <header style={{ marginBottom: 'clamp(2.4rem, 4vw, 3.4rem)' }}>
+          <p
+            style={{
+              fontSize: '0.62rem',
+              letterSpacing: '0.22em',
+              textTransform: 'uppercase',
+              color: 'var(--color-stone)',
+              marginBottom: '1rem',
             }}
-            className="px-6 py-2.5 bg-primary text-white text-sm font-semibold rounded-full hover:bg-accent transition-colors"
           >
-            Try Again
-          </button>
-        </div>
-      ) : artists.length === 0 ? (
-        /* Empty state */
-        <div className="text-center py-24">
-          <div className="w-20 h-20 bg-muted-bg rounded-full flex items-center justify-center mx-auto mb-5">
-            <Users className="h-10 w-10 text-muted" />
-          </div>
-          <h2 className="font-editorial text-2xl font-semibold mb-2">
-            You&apos;re not following any artists yet
-          </h2>
-          <p className="text-muted mb-8 max-w-md mx-auto">
-            Browse artists to find ones you love. Follow them to stay updated on their latest work.
+            The Studio · Following
           </p>
-          <Link
-            href="/browse"
-            className="group inline-flex items-center gap-2 px-8 py-3 bg-primary text-white text-sm font-semibold rounded-full hover:bg-accent transition-colors duration-300"
+          <h1
+            className="font-serif"
+            style={{
+              fontSize: 'clamp(2rem, 4vw, 3rem)',
+              lineHeight: 1.05,
+              letterSpacing: '-0.015em',
+              color: 'var(--color-ink)',
+              fontWeight: 400,
+              marginBottom: '0.7rem',
+            }}
           >
-            Browse Artists
-            <ArrowRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
-          </Link>
-        </div>
-      ) : (
-        /* Artist grid */
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {artists.map((artist) => (
-            <div
-              key={artist.id}
-              style={{
-                opacity: unfollowing.has(artist.id) ? 0 : 1,
-                transform: unfollowing.has(artist.id)
-                  ? 'scale(0.95)'
-                  : 'scale(1)',
-                transition: 'opacity 400ms ease-out, transform 400ms ease-out',
-              }}
-              className="bg-white border border-border rounded-2xl p-6 hover:shadow-md transition-shadow"
-            >
-              <Link
-                href={`/artists/${artist.id}`}
-                className="flex items-center gap-4 no-underline"
-              >
-                <Avatar
-                  avatarUrl={artist.avatar_url}
-                  name={artist.full_name}
-                  size={64}
-                  className="flex-shrink-0"
-                />
-                <div className="flex-1 min-w-0">
-                  <h3 className="font-semibold text-foreground truncate">
-                    {artist.full_name}
-                  </h3>
-                  {artist.location && (
-                    <p className="text-sm text-muted flex items-center gap-1 mt-0.5">
-                      <MapPin className="h-3.5 w-3.5 flex-shrink-0" />
-                      <span className="truncate">{artist.location}</span>
-                    </p>
-                  )}
-                  <p className="text-sm text-muted flex items-center gap-1 mt-0.5">
-                    <ImageIcon className="h-3.5 w-3.5 flex-shrink-0" />
-                    {artist.artworkCount} artwork{artist.artworkCount === 1 ? '' : 's'}
-                  </p>
-                </div>
-              </Link>
+            Artists you <em style={{ fontStyle: 'italic' }}>track.</em>
+          </h1>
+          <p
+            style={{
+              fontSize: '0.92rem',
+              fontWeight: 300,
+              color: 'var(--color-stone-dark)',
+              lineHeight: 1.6,
+            }}
+          >
+            {loading
+              ? 'Retrieving your list…'
+              : artists.length > 0
+                ? `${artists.length} artist${artists.length === 1 ? '' : 's'} on your watch list.`
+                : 'A personal watch list of the artists whose work you want to follow.'}
+          </p>
+        </header>
 
-              <div className="mt-4 pt-4 border-t border-border">
-                <button
-                  onClick={() => handleUnfollow(artist.id)}
-                  disabled={unfollowing.has(artist.id)}
-                  className="inline-flex items-center gap-2 px-4 py-2 w-full justify-center border-2 border-border text-sm font-medium rounded-full text-muted hover:text-red-600 hover:border-red-300 hover:bg-red-50 transition-all duration-200"
+        {loading ? (
+          <p
+            className="font-serif"
+            style={{
+              padding: '3rem 0',
+              fontStyle: 'italic',
+              color: 'var(--color-stone)',
+            }}
+          >
+            Loading…
+          </p>
+        ) : error ? (
+          <div
+            style={{
+              paddingTop: '2rem',
+              borderTop: '1px solid var(--color-border)',
+            }}
+          >
+            <p
+              className="font-serif"
+              style={{
+                fontSize: '0.92rem',
+                color: 'var(--color-terracotta, #c45d3e)',
+                fontStyle: 'italic',
+                marginBottom: '1.4rem',
+              }}
+            >
+              {error}
+            </p>
+            <button
+              onClick={() => {
+                setLoading(true);
+                fetchFollowing();
+              }}
+              className="editorial-link"
+            >
+              Try again
+            </button>
+          </div>
+        ) : artists.length === 0 ? (
+          <div
+            style={{
+              paddingTop: '2rem',
+              borderTop: '1px solid var(--color-border)',
+              maxWidth: '46ch',
+            }}
+          >
+            <p
+              className="font-serif"
+              style={{
+                fontSize: 'clamp(1.4rem, 2.6vw, 1.9rem)',
+                lineHeight: 1.2,
+                color: 'var(--color-ink)',
+                fontStyle: 'italic',
+                fontWeight: 400,
+                marginTop: '1.4rem',
+              }}
+            >
+              You&apos;re not following anyone yet.
+            </p>
+            <p
+              style={{
+                marginTop: '1rem',
+                fontSize: '0.9rem',
+                color: 'var(--color-stone-dark)',
+                fontWeight: 300,
+                lineHeight: 1.6,
+              }}
+            >
+              When you find an artist whose work you want to stay close to, follow them from their
+              profile — they&apos;ll appear here.
+            </p>
+            <Link
+              href="/artists"
+              className="editorial-link"
+              style={{ marginTop: '1.6rem', display: 'inline-block' }}
+            >
+              Visit the artist directory →
+            </Link>
+          </div>
+        ) : (
+          <ul
+            style={{
+              listStyle: 'none',
+              padding: 0,
+              margin: 0,
+              borderTop: '1px solid var(--color-border-strong)',
+            }}
+          >
+            {artists.map((artist) => (
+              <li
+                key={artist.id}
+                style={{
+                  borderBottom: '1px solid var(--color-border)',
+                  opacity: unfollowing.has(artist.id) ? 0 : 1,
+                  transform: unfollowing.has(artist.id)
+                    ? 'translateY(-4px)'
+                    : 'translateY(0)',
+                  transition: 'opacity 350ms cubic-bezier(0.22, 1, 0.36, 1), transform 350ms cubic-bezier(0.22, 1, 0.36, 1)',
+                }}
+              >
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '1.4rem',
+                    padding: '1.4rem 0',
+                  }}
                 >
-                  <UserMinus className="h-4 w-4" />
-                  Unfollow
-                </button>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
+                  <Link
+                    href={`/artists/${artist.id}`}
+                    style={{
+                      flexShrink: 0,
+                      textDecoration: 'none',
+                      display: 'block',
+                    }}
+                  >
+                    <Avatar
+                      avatarUrl={artist.avatar_url}
+                      name={artist.full_name}
+                      size={64}
+                    />
+                  </Link>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <Link
+                      href={`/artists/${artist.id}`}
+                      className="font-serif"
+                      style={{
+                        fontSize: '1.2rem',
+                        color: 'var(--color-ink)',
+                        fontWeight: 400,
+                        textDecoration: 'none',
+                        display: 'block',
+                        lineHeight: 1.2,
+                      }}
+                    >
+                      {artist.full_name}
+                    </Link>
+                    <p
+                      style={{
+                        marginTop: '0.3rem',
+                        fontSize: '0.82rem',
+                        color: 'var(--color-stone-dark)',
+                        fontWeight: 300,
+                      }}
+                    >
+                      {artist.location && (
+                        <em style={{ fontStyle: 'italic' }}>{artist.location}</em>
+                      )}
+                      {artist.location && ' · '}
+                      <span style={{ color: 'var(--color-stone)' }}>
+                        {artist.artworkCount} work{artist.artworkCount === 1 ? '' : 's'}
+                      </span>
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => handleUnfollow(artist.id)}
+                    disabled={unfollowing.has(artist.id)}
+                    className="font-serif"
+                    style={{
+                      flexShrink: 0,
+                      fontSize: '0.68rem',
+                      letterSpacing: '0.18em',
+                      textTransform: 'uppercase',
+                      fontStyle: 'italic',
+                      color: 'var(--color-stone)',
+                      background: 'none',
+                      border: 'none',
+                      cursor: 'pointer',
+                      padding: '0.3rem 0',
+                      borderBottom: '1px solid var(--color-border)',
+                    }}
+                  >
+                    Unfollow
+                  </button>
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
     </div>
   );
 }

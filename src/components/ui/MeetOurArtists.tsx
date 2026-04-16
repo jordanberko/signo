@@ -2,8 +2,6 @@
 
 import Link from 'next/link';
 import Image from 'next/image';
-import { ArrowRight, MapPin } from 'lucide-react';
-import Avatar from '@/components/ui/Avatar';
 
 export interface SpotlightArtist {
   id: string;
@@ -17,95 +15,119 @@ export interface SpotlightArtist {
 }
 
 /**
- * MeetOurArtists — horizontal-scroll row of artist cards.
- * Only rendered when 3+ artists are passed in.
+ * MeetOurArtists — horizontal-scroll artist strip, Huxley-aligned.
+ *
+ * Each "card" is a 4:5 sample image above a light-first/bold-surname
+ * typographic treatment. No rounded container, no drop shadow, no
+ * metadata pills. Gated to 3+ artists so the strip never looks sparse.
  */
 export default function MeetOurArtists({ artists }: { artists: SpotlightArtist[] }) {
   if (artists.length < 3) return null;
 
   return (
-    <section className="py-20 md:py-28">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-end justify-between mb-8">
-          <div>
-            <p className="text-accent-dark text-xs font-semibold tracking-[0.2em] uppercase mb-2">
-              Our Community
-            </p>
-            <h2 className="font-editorial text-2xl md:text-3xl font-semibold text-primary">
-              Meet Our Artists
-            </h2>
-          </div>
-          <Link
-            href="/browse"
-            className="hidden sm:inline-flex items-center gap-2 text-sm font-medium text-primary hover:text-accent-dark transition-colors group"
+    <section className="py-20 md:py-28" style={{ borderTop: '1px solid var(--color-border)' }}>
+      <div className="px-6 sm:px-10">
+        <div className="flex items-baseline justify-between mb-10">
+          <h2
+            className="font-serif"
+            style={{
+              fontSize: '1.2rem',
+              fontWeight: 400,
+              color: 'var(--color-ink)',
+              letterSpacing: '-0.005em',
+              margin: 0,
+            }}
           >
-            Browse all artwork
-            <ArrowRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
+            Artists on Signo
+          </h2>
+          <Link href="/artists" className="editorial-link no-underline">
+            View all
           </Link>
         </div>
 
-        {/* Horizontal scroll container */}
-        <div className="flex gap-5 overflow-x-auto pb-4 -mx-4 px-4 sm:mx-0 sm:px-0 snap-x snap-mandatory scrollbar-hide">
+        {/* Horizontal scroll strip */}
+        <div className="flex gap-6 overflow-x-auto scrollbar-hide -mx-6 sm:-mx-10 px-6 sm:px-10 pb-2">
           {artists.map((artist) => (
             <Link
               key={artist.id}
               href={`/artists/${artist.id}`}
-              className="flex-shrink-0 w-[240px] sm:w-[260px] snap-start group"
+              className="shrink-0 no-underline block group"
+              style={{ width: 280 }}
             >
-              <div className="bg-white border border-border rounded-2xl overflow-hidden hover:border-accent/40 hover:-translate-y-1 hover:shadow-lg transition-all duration-300">
-                {/* Sample artwork as card header */}
-                <div className="aspect-[3/2] bg-sand relative overflow-hidden">
-                  {artist.sampleImages[0] ? (
-                    <Image
-                      src={artist.sampleImages[0]}
-                      alt={`Work by ${artist.fullName}`}
-                      fill
-                      className="object-cover group-hover:scale-105 transition-transform duration-500"
-                      sizes="260px"
-                    />
-                  ) : (
-                    <div className="w-full h-full bg-gradient-to-br from-stone-200 to-stone-300" />
-                  )}
-                </div>
-
-                {/* Artist info */}
-                <div className="p-4">
-                  <div className="flex items-center gap-3">
-                    {/* Avatar */}
-                    <Avatar
-                      avatarUrl={artist.avatarUrl}
-                      name={artist.fullName}
-                      size={40}
-                    />
-                    <div className="min-w-0">
-                      <p className="font-medium text-sm text-primary truncate">
-                        {artist.fullName}
-                      </p>
-                      {artist.location && (
-                        <p className="flex items-center gap-1 text-xs text-muted truncate">
-                          <MapPin className="h-3 w-3 flex-shrink-0" />
-                          {artist.location}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Artwork count pill */}
-                  <div className="mt-3 flex items-center justify-between">
-                    <span className="text-xs text-muted">
-                      {artist.artworkCount} artwork{artist.artworkCount !== 1 ? 's' : ''}
-                    </span>
-                    <span className="text-xs font-medium text-accent-dark group-hover:translate-x-0.5 transition-transform inline-flex items-center gap-1">
-                      View profile
-                      <ArrowRight className="h-3 w-3" />
-                    </span>
-                  </div>
-                </div>
+              <div
+                className="overflow-hidden mb-4"
+                style={{
+                  width: 280,
+                  height: 350,
+                  background: 'var(--color-cream)',
+                }}
+              >
+                {artist.sampleImages[0] ? (
+                  <Image
+                    src={artist.sampleImages[0]}
+                    alt={`Work by ${artist.fullName}`}
+                    width={280}
+                    height={350}
+                    className="w-full h-full object-cover"
+                    style={{
+                      transition: 'transform 1500ms cubic-bezier(0.22, 1, 0.36, 1), filter 350ms cubic-bezier(0.22, 1, 0.36, 1)',
+                      filter: 'grayscale(20%)',
+                    }}
+                    sizes="280px"
+                    onMouseOver={(e) => {
+                      (e.currentTarget as HTMLImageElement).style.transform = 'scale(1.03)';
+                      (e.currentTarget as HTMLImageElement).style.filter = 'grayscale(0%)';
+                    }}
+                    onMouseOut={(e) => {
+                      (e.currentTarget as HTMLImageElement).style.transform = 'scale(1)';
+                      (e.currentTarget as HTMLImageElement).style.filter = 'grayscale(20%)';
+                    }}
+                  />
+                ) : (
+                  <div className="w-full h-full" style={{ background: 'var(--color-cream)' }} />
+                )}
+              </div>
+              <ArtistName fullName={artist.fullName} />
+              <div
+                style={{
+                  fontSize: '0.72rem',
+                  fontWeight: 300,
+                  color: 'var(--color-stone)',
+                  marginTop: '0.3rem',
+                  letterSpacing: '0.02em',
+                }}
+              >
+                {artist.artworkCount} work{artist.artworkCount === 1 ? '' : 's'}
+                {artist.location ? ` · ${artist.location}` : ''}
               </div>
             </Link>
           ))}
         </div>
       </div>
     </section>
+  );
+}
+
+/** Light first name, bold surname — Huxley signature move. */
+function ArtistName({ fullName }: { fullName: string }) {
+  const parts = fullName.trim().split(' ').filter(Boolean);
+  const first = parts.length > 1 ? parts.slice(0, -1).join(' ') : '';
+  const last = parts[parts.length - 1] || fullName;
+
+  return (
+    <div
+      className="font-serif"
+      style={{
+        fontSize: '1.1rem',
+        color: 'var(--color-ink)',
+        letterSpacing: '-0.005em',
+        lineHeight: 1.2,
+      }}
+    >
+      {first && (
+        <span style={{ fontWeight: 300, color: 'var(--color-stone-dark)' }}>{first} </span>
+      )}
+      <span style={{ fontWeight: 500 }}>{last}</span>
+    </div>
   );
 }

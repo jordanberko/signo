@@ -1,29 +1,15 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, Suspense } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useSearchParams } from 'next/navigation';
-import {
-  Plus,
-  Edit,
-  Pause,
-  Play,
-  Trash2,
-  CheckCircle,
-  Send,
-  MoreVertical,
-  AlertCircle,
-  ImageIcon,
-  ArrowRight,
-} from 'lucide-react';
 import { formatPrice } from '@/lib/utils';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { useRequireAuth } from '@/lib/hooks/useRequireAuth';
 import type { Artwork, ArtworkStatus } from '@/types/database';
-import { Suspense } from 'react';
 
-// ── Status config ──
+// ── Types ──
 
 interface TabConfig {
   label: string;
@@ -33,21 +19,51 @@ interface TabConfig {
 const TABS: TabConfig[] = [
   { label: 'All', status: '' },
   { label: 'Drafts', status: 'draft' },
-  { label: 'Pending Review', status: 'pending_review' },
-  { label: 'Approved', status: 'approved' },
+  { label: 'In review', status: 'pending_review' },
+  { label: 'Live', status: 'approved' },
   { label: 'Sold', status: 'sold' },
   { label: 'Paused', status: 'paused' },
   { label: 'Rejected', status: 'rejected' },
 ];
 
-const STATUS_BADGE: Record<string, { bg: string; text: string; label: string }> = {
-  draft: { bg: 'bg-gray-100', text: 'text-gray-600', label: 'Draft' },
-  pending_review: { bg: 'bg-amber-50', text: 'text-amber-700', label: 'Pending Review' },
-  approved: { bg: 'bg-green-50', text: 'text-green-700', label: 'Live' },
-  sold: { bg: 'bg-blue-50', text: 'text-blue-700', label: 'Sold' },
-  paused: { bg: 'border border-border bg-white', text: 'text-gray-500', label: 'Paused' },
-  rejected: { bg: 'bg-red-50', text: 'text-red-600', label: 'Rejected' },
+const STATUS_LABEL: Record<string, string> = {
+  draft: 'Draft',
+  pending_review: 'In review',
+  approved: 'Live',
+  sold: 'Sold',
+  paused: 'Paused',
+  rejected: 'Rejected',
 };
+
+const KICKER: React.CSSProperties = {
+  fontSize: '0.62rem',
+  letterSpacing: '0.22em',
+  textTransform: 'uppercase',
+  color: 'var(--color-stone)',
+};
+
+// ── Spinner ──
+
+function EditorialSpinner({ label = 'Loading…' }: { label?: string }) {
+  return (
+    <div
+      style={{
+        minHeight: '60vh',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        background: 'var(--color-warm-white)',
+      }}
+    >
+      <p
+        className="font-serif"
+        style={{ fontStyle: 'italic', fontSize: '0.95rem', color: 'var(--color-stone)' }}
+      >
+        {label}
+      </p>
+    </div>
+  );
+}
 
 // ── Submitted banner ──
 
@@ -56,19 +72,44 @@ function SubmittedBanner() {
   const submitted = searchParams.get('submitted');
   if (submitted !== 'true') return null;
   return (
-    <div className="mb-6 p-4 bg-success/5 border border-success/20 text-success text-sm rounded-xl animate-fade-in flex items-start gap-3">
-      <CheckCircle className="h-5 w-5 flex-shrink-0 mt-0.5" />
-      <div>
-        <p className="font-medium">Your artwork has been submitted!</p>
-        <p className="text-success/80 mt-0.5">
-          We&apos;ll review it within 24–48 hours. You&apos;ll receive an email when it&apos;s approved.
-        </p>
-      </div>
+    <div
+      style={{
+        marginBottom: '2rem',
+        padding: '1.4rem 1.6rem',
+        background: 'var(--color-cream)',
+        borderTop: '1px solid var(--color-border-strong)',
+        borderBottom: '1px solid var(--color-border-strong)',
+      }}
+    >
+      <p style={{ ...KICKER, marginBottom: '0.6rem' }}>— Submitted —</p>
+      <p
+        className="font-serif"
+        style={{
+          fontSize: '1.05rem',
+          fontStyle: 'italic',
+          color: 'var(--color-ink)',
+          lineHeight: 1.4,
+        }}
+      >
+        Your work is with the editors.
+      </p>
+      <p
+        style={{
+          marginTop: '0.4rem',
+          fontSize: '0.88rem',
+          fontWeight: 300,
+          color: 'var(--color-stone-dark)',
+          lineHeight: 1.6,
+        }}
+      >
+        We review submissions within 24–48 hours. You&apos;ll get an email
+        when it&apos;s approved.
+      </p>
     </div>
   );
 }
 
-// ── Delete confirmation modal ──
+// ── Delete confirmation ──
 
 function DeleteModal({
   artworkTitle,
@@ -80,30 +121,101 @@ function DeleteModal({
   onCancel: () => void;
 }) {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
-      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onCancel} />
-      <div className="relative bg-white rounded-2xl shadow-xl max-w-sm w-full p-6 animate-scale-in">
-        <div className="w-12 h-12 bg-error/10 rounded-full flex items-center justify-center mx-auto mb-4">
-          <Trash2 className="h-5 w-5 text-error" />
-        </div>
-        <h3 className="font-editorial text-lg font-medium text-center">Delete artwork?</h3>
-        <p className="text-sm text-muted text-center mt-2">
-          &ldquo;{artworkTitle}&rdquo; will be permanently removed. This action cannot be undone.
+    <div
+      style={{
+        position: 'fixed',
+        inset: 0,
+        zIndex: 100,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '1.5rem',
+      }}
+    >
+      <div
+        onClick={onCancel}
+        style={{
+          position: 'absolute',
+          inset: 0,
+          background: 'rgba(20, 18, 14, 0.55)',
+        }}
+      />
+      <div
+        style={{
+          position: 'relative',
+          background: 'var(--color-warm-white)',
+          maxWidth: '32rem',
+          width: '100%',
+          padding: 'clamp(2rem, 4vw, 2.8rem)',
+          borderTop: '1px solid var(--color-terracotta, #c45d3e)',
+          borderBottom: '1px solid var(--color-terracotta, #c45d3e)',
+        }}
+      >
+        <p
+          style={{
+            ...KICKER,
+            color: 'var(--color-terracotta, #c45d3e)',
+            marginBottom: '0.9rem',
+          }}
+        >
+          — Remove this work —
         </p>
-        <div className="flex gap-3 mt-6">
-          <button
-            type="button"
-            onClick={onCancel}
-            className="flex-1 py-2.5 border border-border rounded-full text-sm font-medium hover:bg-muted-bg transition-colors"
-          >
-            Cancel
-          </button>
+        <h3
+          className="font-serif"
+          style={{
+            fontSize: 'clamp(1.3rem, 2.4vw, 1.7rem)',
+            lineHeight: 1.25,
+            color: 'var(--color-ink)',
+            fontWeight: 400,
+            marginBottom: '1rem',
+          }}
+        >
+          Remove <em style={{ fontStyle: 'italic' }}>{artworkTitle}</em>?
+        </h3>
+        <p
+          style={{
+            fontSize: '0.92rem',
+            fontWeight: 300,
+            color: 'var(--color-stone-dark)',
+            lineHeight: 1.6,
+            marginBottom: '2rem',
+          }}
+        >
+          This removes the listing and its images permanently. There is no
+          undo.
+        </p>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '1.6rem' }}>
           <button
             type="button"
             onClick={onConfirm}
-            className="flex-1 py-2.5 bg-error text-white rounded-full text-sm font-medium hover:bg-red-700 transition-colors"
+            className="font-serif"
+            style={{
+              background: 'var(--color-terracotta, #c45d3e)',
+              color: 'var(--color-warm-white)',
+              border: 'none',
+              padding: '0.9rem 1.6rem',
+              fontSize: '0.88rem',
+              letterSpacing: '0.14em',
+              textTransform: 'uppercase',
+              cursor: 'pointer',
+            }}
           >
-            Delete
+            Remove permanently
+          </button>
+          <button
+            type="button"
+            onClick={onCancel}
+            className="font-serif"
+            style={{
+              background: 'none',
+              border: 'none',
+              fontStyle: 'italic',
+              fontSize: '0.95rem',
+              color: 'var(--color-stone)',
+              cursor: 'pointer',
+            }}
+          >
+            Keep it
           </button>
         </div>
       </div>
@@ -111,7 +223,7 @@ function DeleteModal({
   );
 }
 
-// ── Action menu per artwork ──
+// ── Row actions menu ──
 
 function ArtworkActions({
   artwork,
@@ -125,86 +237,147 @@ function ArtworkActions({
   onDelete: () => void;
 }) {
   const [open, setOpen] = useState(false);
-
   return (
-    <div className="relative">
+    <div style={{ position: 'relative' }}>
       <button
         type="button"
         onClick={() => setOpen(!open)}
-        className="p-2 hover:bg-muted-bg rounded-lg transition-colors"
+        className="font-serif"
+        style={{
+          background: 'none',
+          border: 'none',
+          fontStyle: 'italic',
+          fontSize: '0.82rem',
+          color: 'var(--color-stone)',
+          cursor: 'pointer',
+          padding: '0.3rem 0',
+          borderBottom: '1px solid var(--color-border-strong)',
+          letterSpacing: '0.04em',
+        }}
       >
-        <MoreVertical className="h-4 w-4 text-muted" />
+        Actions ▾
       </button>
 
       {open && (
         <>
-          <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />
-          <div className="absolute right-0 bottom-full mb-1 z-20 w-48 bg-white border border-border rounded-xl shadow-lg py-1 animate-scale-in origin-bottom-right">
-            {/* Edit */}
-            <Link
-              href={
-                artwork.status === 'rejected'
-                  ? `/artist/artworks/${artwork.id}/edit`
-                  : `/artist/artworks/${artwork.id}/edit`
-              }
-              className="flex items-center gap-2.5 px-4 py-2.5 text-sm hover:bg-muted-bg transition-colors w-full"
-              onClick={() => setOpen(false)}
-            >
-              <Edit className="h-4 w-4 text-muted" />
-              {artwork.status === 'rejected' ? 'Edit & Resubmit' : 'Edit'}
-            </Link>
-
-            {/* Submit for review (drafts only) */}
+          <div
+            style={{ position: 'fixed', inset: 0, zIndex: 10 }}
+            onClick={() => setOpen(false)}
+          />
+          <ul
+            style={{
+              position: 'absolute',
+              right: 0,
+              marginTop: '0.6rem',
+              minWidth: '14rem',
+              background: 'var(--color-warm-white)',
+              border: '1px solid var(--color-border-strong)',
+              zIndex: 20,
+              listStyle: 'none',
+              padding: 0,
+              margin: 0,
+            }}
+          >
+            <li>
+              <Link
+                href={`/artist/artworks/${artwork.id}/edit`}
+                onClick={() => setOpen(false)}
+                className="font-serif"
+                style={{
+                  display: 'block',
+                  padding: '0.85rem 1.1rem',
+                  fontSize: '0.92rem',
+                  color: 'var(--color-ink)',
+                  textDecoration: 'none',
+                }}
+              >
+                {artwork.status === 'rejected' ? 'Edit & resubmit' : 'Edit'}
+              </Link>
+            </li>
             {artwork.status === 'draft' && (
-              <button
-                type="button"
-                onClick={() => { onSubmitForReview(); setOpen(false); }}
-                className="flex items-center gap-2.5 px-4 py-2.5 text-sm hover:bg-muted-bg transition-colors w-full text-left"
-              >
-                <Send className="h-4 w-4 text-accent-dark" />
-                Submit for Review
-              </button>
+              <li style={{ borderTop: '1px solid var(--color-border)' }}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    onSubmitForReview();
+                    setOpen(false);
+                  }}
+                  className="font-serif"
+                  style={{
+                    display: 'block',
+                    width: '100%',
+                    textAlign: 'left',
+                    padding: '0.85rem 1.1rem',
+                    fontSize: '0.92rem',
+                    color: 'var(--color-ink)',
+                    background: 'none',
+                    border: 'none',
+                    cursor: 'pointer',
+                  }}
+                >
+                  Submit for review
+                </button>
+              </li>
             )}
-
-            {/* Pause / Resume */}
             {(artwork.status === 'approved' || artwork.status === 'paused') && (
+              <li style={{ borderTop: '1px solid var(--color-border)' }}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    onTogglePause();
+                    setOpen(false);
+                  }}
+                  className="font-serif"
+                  style={{
+                    display: 'block',
+                    width: '100%',
+                    textAlign: 'left',
+                    padding: '0.85rem 1.1rem',
+                    fontSize: '0.92rem',
+                    color: 'var(--color-ink)',
+                    background: 'none',
+                    border: 'none',
+                    cursor: 'pointer',
+                  }}
+                >
+                  {artwork.status === 'paused'
+                    ? 'Resume listing'
+                    : 'Pause listing'}
+                </button>
+              </li>
+            )}
+            <li style={{ borderTop: '1px solid var(--color-border)' }}>
               <button
                 type="button"
-                onClick={() => { onTogglePause(); setOpen(false); }}
-                className="flex items-center gap-2.5 px-4 py-2.5 text-sm hover:bg-muted-bg transition-colors w-full text-left"
+                onClick={() => {
+                  onDelete();
+                  setOpen(false);
+                }}
+                className="font-serif"
+                style={{
+                  display: 'block',
+                  width: '100%',
+                  textAlign: 'left',
+                  padding: '0.85rem 1.1rem',
+                  fontSize: '0.92rem',
+                  fontStyle: 'italic',
+                  color: 'var(--color-terracotta, #c45d3e)',
+                  background: 'none',
+                  border: 'none',
+                  cursor: 'pointer',
+                }}
               >
-                {artwork.status === 'paused' ? (
-                  <>
-                    <Play className="h-4 w-4 text-success" />
-                    Resume Listing
-                  </>
-                ) : (
-                  <>
-                    <Pause className="h-4 w-4 text-muted" />
-                    Pause Listing
-                  </>
-                )}
+                Remove permanently
               </button>
-            )}
-
-            {/* Delete */}
-            <div className="border-t border-border my-1" />
-            <button
-              type="button"
-              onClick={() => { onDelete(); setOpen(false); }}
-              className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-error hover:bg-error/5 transition-colors w-full text-left"
-            >
-              <Trash2 className="h-4 w-4" />
-              Delete
-            </button>
-          </div>
+            </li>
+          </ul>
         </>
       )}
     </div>
   );
 }
 
-// ── Main page ──
+// ── Page ──
 
 export default function ArtistArtworksPage() {
   const { loading: authLoading } = useRequireAuth('artist');
@@ -224,7 +397,6 @@ export default function ArtistArtworksPage() {
     try {
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), 8000);
-
       const res = await fetch('/api/artworks/mine', {
         signal: controller.signal,
       });
@@ -239,7 +411,7 @@ export default function ArtistArtworksPage() {
       }
     } catch (err) {
       if ((err as Error).name === 'AbortError') {
-        console.error('[Artworks] Fetch timed out after 8s');
+        console.error('[Artworks] Fetch timed out');
       } else {
         console.error('[Artworks] Fetch exception:', err);
       }
@@ -252,19 +424,16 @@ export default function ArtistArtworksPage() {
     fetchArtworks();
   }, [authLoading, fetchArtworks]);
 
-  // Count per status
   const counts: Record<string, number> = { '': allArtworks.length };
   for (const a of allArtworks) {
     counts[a.status] = (counts[a.status] || 0) + 1;
   }
 
-  // Filter
   const activeStatus = TABS[activeTab].status;
   const filtered = activeStatus
     ? allArtworks.filter((a) => a.status === activeStatus)
     : allArtworks;
 
-  // Actions — use API routes for server-side validation & image cleanup
   async function submitForReview(id: string) {
     setActionError('');
     try {
@@ -286,7 +455,8 @@ export default function ArtistArtworksPage() {
   async function togglePause(artwork: Artwork) {
     setActionError('');
     try {
-      const newStatus: ArtworkStatus = artwork.status === 'paused' ? 'approved' : 'paused';
+      const newStatus: ArtworkStatus =
+        artwork.status === 'paused' ? 'approved' : 'paused';
       const res = await fetch(`/api/artworks/${artwork.id}/status`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
@@ -306,7 +476,9 @@ export default function ArtistArtworksPage() {
     if (!deleteTarget) return;
     setActionError('');
     try {
-      const res = await fetch(`/api/artworks/${deleteTarget.id}`, { method: 'DELETE' });
+      const res = await fetch(`/api/artworks/${deleteTarget.id}`, {
+        method: 'DELETE',
+      });
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
         throw new Error(body.error || 'Failed to delete artwork');
@@ -319,13 +491,10 @@ export default function ArtistArtworksPage() {
     }
   }
 
-  if (authLoading) return <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '60vh' }}><div style={{ width: 32, height: 32, border: '3px solid #E5E2DB', borderTopColor: '#2C2C2A', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} /><style>{'@keyframes spin { to { transform: rotate(360deg) } }'}</style></div>;
+  if (authLoading) return <EditorialSpinner />;
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <Suspense><SubmittedBanner /></Suspense>
-
-      {/* Delete Modal */}
+    <div style={{ background: 'var(--color-warm-white)', minHeight: '100vh' }}>
       {deleteTarget && (
         <DeleteModal
           artworkTitle={deleteTarget.title}
@@ -334,142 +503,349 @@ export default function ArtistArtworksPage() {
         />
       )}
 
-      {/* Error banner */}
-      {actionError && (
-        <div className="mb-4 p-3.5 bg-error/5 border border-error/20 rounded-xl flex items-center justify-between animate-fade-in">
-          <div className="flex items-center gap-2 text-sm text-error">
-            <AlertCircle className="h-4 w-4 flex-shrink-0" />
-            {actionError}
-          </div>
-          <button
-            type="button"
-            onClick={() => setActionError('')}
-            className="text-error/60 hover:text-error transition-colors ml-3"
+      <div
+        className="px-6 sm:px-10"
+        style={{
+          maxWidth: '78rem',
+          margin: '0 auto',
+          paddingTop: 'clamp(7.5rem, 10vw, 9.5rem)',
+          paddingBottom: 'clamp(4rem, 7vw, 6rem)',
+        }}
+      >
+        <Suspense>
+          <SubmittedBanner />
+        </Suspense>
+
+        {/* Error banner */}
+        {actionError && (
+          <div
+            style={{
+              marginBottom: '2rem',
+              padding: '1.2rem 0',
+              borderTop: '1px solid var(--color-terracotta, #c45d3e)',
+              borderBottom: '1px solid var(--color-terracotta, #c45d3e)',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              gap: '1rem',
+            }}
           >
-            <span className="sr-only">Dismiss</span>
-            &times;
-          </button>
-        </div>
-      )}
-
-      {/* Header */}
-      <div className="flex items-center justify-between mb-8">
-        <div>
-          <h1 className="font-editorial text-2xl md:text-3xl font-semibold">My Artworks</h1>
-          <p className="text-sm text-muted mt-1">Manage all your listings</p>
-        </div>
-        <Link
-          href="/artist/artworks/new"
-          className="inline-flex items-center gap-2 px-5 py-2.5 bg-primary text-white text-sm font-semibold rounded-full hover:bg-accent transition-colors duration-300"
-        >
-          <Plus className="h-4 w-4" />
-          Upload Artwork
-        </Link>
-      </div>
-
-      {/* Tabs */}
-      <div className="flex gap-2 mb-8 overflow-x-auto pb-1 -mx-4 px-4 sm:mx-0 sm:px-0">
-        {TABS.map((tab, i) => {
-          const count = counts[tab.status] || 0;
-          const isActive = activeTab === i;
-          return (
-            <button
-              key={tab.label}
-              onClick={() => setActiveTab(i)}
-              className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-all duration-200 ${
-                isActive
-                  ? 'bg-primary text-white'
-                  : 'bg-muted-bg text-foreground hover:bg-border'
-              }`}
+            <p
+              className="font-serif"
+              style={{
+                fontSize: '0.92rem',
+                fontStyle: 'italic',
+                color: 'var(--color-terracotta, #c45d3e)',
+              }}
             >
-              {tab.label}
-              {count > 0 && (
+              — {actionError}
+            </p>
+            <button
+              type="button"
+              onClick={() => setActionError('')}
+              className="font-serif"
+              style={{
+                background: 'none',
+                border: 'none',
+                fontSize: '0.82rem',
+                fontStyle: 'italic',
+                color: 'var(--color-stone)',
+                cursor: 'pointer',
+              }}
+            >
+              Dismiss
+            </button>
+          </div>
+        )}
+
+        {/* Header */}
+        <header
+          style={{
+            marginBottom: 'clamp(2.4rem, 4vw, 3.4rem)',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '1.4rem',
+          }}
+        >
+          <div>
+            <p style={{ ...KICKER, marginBottom: '1rem' }}>
+              The Studio · Listings
+            </p>
+            <h1
+              className="font-serif"
+              style={{
+                fontSize: 'clamp(2rem, 4vw, 3rem)',
+                lineHeight: 1.05,
+                letterSpacing: '-0.015em',
+                color: 'var(--color-ink)',
+                fontWeight: 400,
+                marginBottom: '0.7rem',
+              }}
+            >
+              Your <em style={{ fontStyle: 'italic' }}>catalogue.</em>
+            </h1>
+            <p
+              style={{
+                fontSize: '0.92rem',
+                fontWeight: 300,
+                color: 'var(--color-stone-dark)',
+                lineHeight: 1.6,
+                maxWidth: '48ch',
+              }}
+            >
+              Every work you&apos;ve brought to Signo — draft, in review,
+              live, or retired.
+            </p>
+          </div>
+          <Link
+            href="/artist/artworks/new"
+            className="artwork-primary-cta--compact"
+            style={{ alignSelf: 'flex-start' }}
+          >
+            Upload a new work
+          </Link>
+        </header>
+
+        {/* Tabs — typographic */}
+        <nav
+          style={{
+            display: 'flex',
+            flexWrap: 'wrap',
+            gap: '1.6rem 2.2rem',
+            marginBottom: '2rem',
+            paddingBottom: '1.2rem',
+            borderBottom: '1px solid var(--color-border-strong)',
+          }}
+        >
+          {TABS.map((tab, i) => {
+            const count = counts[tab.status] || 0;
+            const isActive = activeTab === i;
+            return (
+              <button
+                key={tab.label}
+                onClick={() => setActiveTab(i)}
+                className="font-serif"
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  cursor: 'pointer',
+                  padding: 0,
+                  fontSize: '0.95rem',
+                  fontStyle: isActive ? 'italic' : 'normal',
+                  color: isActive
+                    ? 'var(--color-ink)'
+                    : 'var(--color-stone)',
+                  display: 'inline-flex',
+                  alignItems: 'baseline',
+                  gap: '0.5rem',
+                  position: 'relative',
+                }}
+              >
+                {isActive && (
+                  <span
+                    aria-hidden
+                    style={{
+                      display: 'inline-block',
+                      width: 16,
+                      height: 1,
+                      background: 'var(--color-ink)',
+                      marginRight: 4,
+                      verticalAlign: 'middle',
+                    }}
+                  />
+                )}
+                {tab.label}
                 <span
-                  className={`text-xs px-1.5 py-0.5 rounded-full min-w-[20px] text-center ${
-                    isActive ? 'bg-white/20 text-white' : 'bg-border text-muted'
-                  }`}
+                  style={{
+                    fontSize: '0.7rem',
+                    fontStyle: 'italic',
+                    color: 'var(--color-stone)',
+                  }}
                 >
                   {count}
                 </span>
-              )}
-            </button>
-          );
-        })}
-      </div>
+              </button>
+            );
+          })}
+        </nav>
 
-      {/* Content */}
-      {loading ? (
-        <div className="flex items-center justify-center py-20">
-          <div className="w-8 h-8 border-2 border-accent border-t-transparent rounded-full animate-spin" />
-        </div>
-      ) : filtered.length === 0 ? (
-        /* Empty state */
-        <div className="text-center py-20 border-2 border-dashed border-border rounded-2xl">
-          <div className="w-16 h-16 bg-muted-bg rounded-full flex items-center justify-center mx-auto mb-4">
-            <ImageIcon className="h-7 w-7 text-muted" />
-          </div>
-          <h3 className="font-editorial text-lg font-medium mb-2">
-            {activeTab === 0 ? 'You haven\'t uploaded any artwork yet' : `No ${TABS[activeTab].label.toLowerCase()} artworks`}
-          </h3>
-          <p className="text-sm text-muted mb-6 max-w-sm mx-auto">
-            {activeTab === 0
-              ? 'Upload your first piece to start selling on Signo.'
-              : 'Artworks with this status will appear here.'}
+        {/* Content */}
+        {loading ? (
+          <p
+            className="font-serif"
+            style={{
+              fontStyle: 'italic',
+              fontSize: '0.95rem',
+              color: 'var(--color-stone)',
+              padding: '3rem 0',
+            }}
+          >
+            Gathering your catalogue…
           </p>
-          {activeTab === 0 && (
-            <Link
-              href="/artist/artworks/new"
-              className="inline-flex items-center gap-2 px-6 py-3 bg-primary text-white font-semibold rounded-full hover:bg-accent transition-colors duration-300"
+        ) : filtered.length === 0 ? (
+          <div
+            style={{
+              paddingTop: '2rem',
+              borderTop: '1px solid var(--color-border)',
+              maxWidth: '46ch',
+            }}
+          >
+            <p
+              className="font-serif"
+              style={{
+                fontSize: 'clamp(1.4rem, 2.6vw, 1.9rem)',
+                lineHeight: 1.2,
+                color: 'var(--color-ink)',
+                fontStyle: 'italic',
+                fontWeight: 400,
+                marginTop: '1.4rem',
+              }}
             >
-              Upload your first piece
-              <ArrowRight className="h-4 w-4" />
-            </Link>
-          )}
-        </div>
-      ) : (
-        /* Artwork grid */
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-          {filtered.map((artwork) => {
-            const badge = STATUS_BADGE[artwork.status] || STATUS_BADGE.draft;
-            const primaryImage = (artwork.images as string[])?.[0];
-
-            return (
-              <div
-                key={artwork.id}
-                className="bg-white border border-border rounded-2xl overflow-hidden hover:shadow-md transition-shadow duration-300 group"
+              {activeTab === 0
+                ? 'The catalogue is empty.'
+                : `Nothing ${TABS[activeTab].label.toLowerCase()}.`}
+            </p>
+            <p
+              style={{
+                marginTop: '1rem',
+                fontSize: '0.9rem',
+                color: 'var(--color-stone-dark)',
+                fontWeight: 300,
+                lineHeight: 1.6,
+              }}
+            >
+              {activeTab === 0
+                ? 'Upload your first piece and the rest of the studio will follow.'
+                : 'Works with this status will appear here once you have some.'}
+            </p>
+            {activeTab === 0 && (
+              <Link
+                href="/artist/artworks/new"
+                className="editorial-link"
+                style={{ marginTop: '1.6rem', display: 'inline-block' }}
               >
-                {/* Image */}
-                <Link href={`/artist/artworks/${artwork.id}/edit`} className="block">
-                  <div className="relative aspect-[4/3] bg-muted-bg overflow-hidden">
-                    {primaryImage ? (
-                      <Image
-                        src={primaryImage}
-                        alt={artwork.title}
-                        fill
-                        className="object-cover group-hover:scale-105 transition-transform duration-500"
-                        sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-                      />
-                    ) : (
-                      <div className="absolute inset-0 flex items-center justify-center">
-                        <ImageIcon className="h-10 w-10 text-border" />
-                      </div>
-                    )}
-                    {/* Status badge */}
-                    <div className="absolute top-3 left-3">
-                      <span className={`text-xs font-medium px-2.5 py-1 rounded-full ${badge.bg} ${badge.text}`}>
-                        {badge.label}
-                      </span>
-                    </div>
-                  </div>
-                </Link>
+                Upload your first piece
+              </Link>
+            )}
+          </div>
+        ) : (
+          <ul
+            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3"
+            style={{
+              listStyle: 'none',
+              padding: 0,
+              margin: 0,
+              columnGap: '1.8rem',
+              rowGap: '3.2rem',
+              borderTop: '1px solid var(--color-border-strong)',
+              paddingTop: '2.4rem',
+            }}
+          >
+            {filtered.map((artwork) => {
+              const primaryImage = (artwork.images as string[])?.[0];
+              const statusLabel =
+                STATUS_LABEL[artwork.status] || artwork.status;
 
-                {/* Info */}
-                <div className="p-4">
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="min-w-0">
-                      <h3 className="font-medium text-sm truncate">{artwork.title}</h3>
-                      <p className="text-lg font-bold mt-0.5">{formatPrice(artwork.price_aud)}</p>
+              return (
+                <li key={artwork.id} style={{ position: 'relative' }}>
+                  <Link
+                    href={`/artist/artworks/${artwork.id}/edit`}
+                    style={{
+                      display: 'block',
+                      textDecoration: 'none',
+                      color: 'inherit',
+                    }}
+                  >
+                    <div
+                      className="aspect-[4/5]"
+                      style={{
+                        position: 'relative',
+                        background: 'var(--color-cream)',
+                        overflow: 'hidden',
+                      }}
+                    >
+                      {primaryImage ? (
+                        <Image
+                          src={primaryImage}
+                          alt={artwork.title}
+                          fill
+                          style={{ objectFit: 'cover' }}
+                          sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                        />
+                      ) : (
+                        <p
+                          className="font-serif"
+                          style={{
+                            position: 'absolute',
+                            inset: 0,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            fontStyle: 'italic',
+                            fontSize: '0.85rem',
+                            color: 'var(--color-stone)',
+                          }}
+                        >
+                          No image yet
+                        </p>
+                      )}
                     </div>
+
+                    <div
+                      style={{
+                        marginTop: '0.9rem',
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'baseline',
+                        gap: '0.8rem',
+                      }}
+                    >
+                      <p style={{ ...KICKER, fontSize: '0.6rem' }}>
+                        {statusLabel}
+                      </p>
+                      <p
+                        className="font-serif"
+                        style={{
+                          fontSize: '0.78rem',
+                          fontStyle: 'italic',
+                          color: 'var(--color-stone)',
+                        }}
+                      >
+                        {new Date(artwork.created_at).toLocaleDateString(
+                          'en-AU',
+                          { day: 'numeric', month: 'short', year: 'numeric' }
+                        )}
+                      </p>
+                    </div>
+
+                    <h3
+                      className="font-serif"
+                      style={{
+                        marginTop: '0.5rem',
+                        fontSize: '1.1rem',
+                        fontWeight: 400,
+                        color: 'var(--color-ink)',
+                        lineHeight: 1.3,
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
+                      {artwork.title}
+                    </h3>
+                    <p
+                      className="font-serif"
+                      style={{
+                        marginTop: '0.3rem',
+                        fontSize: '0.95rem',
+                        color: 'var(--color-stone-dark)',
+                      }}
+                    >
+                      {formatPrice(artwork.price_aud)}
+                    </p>
+                  </Link>
+
+                  <div style={{ marginTop: '0.8rem' }}>
                     <ArtworkActions
                       artwork={artwork}
                       onSubmitForReview={() => submitForReview(artwork.id)}
@@ -478,30 +854,43 @@ export default function ArtistArtworksPage() {
                     />
                   </div>
 
-                  <p className="text-xs text-muted mt-2">
-                    {new Date(artwork.created_at).toLocaleDateString('en-AU', {
-                      day: 'numeric',
-                      month: 'short',
-                      year: 'numeric',
-                    })}
-                  </p>
-
-                  {/* Rejection reason */}
                   {artwork.status === 'rejected' && artwork.review_notes && (
-                    <div className="mt-3 p-3 bg-error/5 border border-error/15 rounded-xl flex gap-2.5">
-                      <AlertCircle className="h-4 w-4 text-error flex-shrink-0 mt-0.5" />
-                      <div>
-                        <p className="text-xs font-medium text-error">Rejection reason</p>
-                        <p className="text-xs text-error/80 mt-0.5 leading-relaxed">{artwork.review_notes}</p>
-                      </div>
+                    <div
+                      style={{
+                        marginTop: '0.9rem',
+                        padding: '0.9rem 0',
+                        borderTop: '1px solid var(--color-terracotta, #c45d3e)',
+                        borderBottom: '1px solid var(--color-terracotta, #c45d3e)',
+                      }}
+                    >
+                      <p
+                        style={{
+                          ...KICKER,
+                          color: 'var(--color-terracotta, #c45d3e)',
+                          marginBottom: '0.4rem',
+                        }}
+                      >
+                        — Editor&apos;s note —
+                      </p>
+                      <p
+                        className="font-serif"
+                        style={{
+                          fontSize: '0.85rem',
+                          fontStyle: 'italic',
+                          color: 'var(--color-ink)',
+                          lineHeight: 1.5,
+                        }}
+                      >
+                        {artwork.review_notes}
+                      </p>
                     </div>
                   )}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      )}
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </div>
     </div>
   );
 }

@@ -2,22 +2,41 @@ import type { Metadata, Viewport } from "next";
 import localFont from "next/font/local";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
+import PageTransition from "@/components/layout/PageTransition";
 import { AuthProvider } from "@/components/providers/AuthProvider";
 import "./globals.css";
 
-const switzer = localFont({
+// ── Display / editorial serif ──
+const bespokeSerif = localFont({
   src: [
     {
-      path: '../../public/fonts/Satoshi-Variable.woff2',
-      style: 'normal',
+      path: "../../public/fonts/BespokeSerif-Variable.woff2",
+      style: "normal",
+      weight: "300 800",
     },
     {
-      path: '../../public/fonts/Satoshi-VariableItalic.woff2',
-      style: 'italic',
+      path: "../../public/fonts/BespokeSerif-VariableItalic.woff2",
+      style: "italic",
+      weight: "300 800",
     },
   ],
-  variable: '--font-satoshi',
-  display: 'swap',
+  variable: "--font-serif",
+  display: "swap",
+  fallback: ["Georgia", "Times New Roman", "serif"],
+});
+
+// ── Body / UI sans ──
+const outfit = localFont({
+  src: [
+    {
+      path: "../../public/fonts/Outfit-Variable.woff2",
+      style: "normal",
+      weight: "100 900",
+    },
+  ],
+  variable: "--font-sans",
+  display: "swap",
+  fallback: ["system-ui", "-apple-system", "Helvetica Neue", "Arial", "sans-serif"],
 });
 
 export const metadata: Metadata = {
@@ -27,7 +46,7 @@ export const metadata: Metadata = {
     template: "%s — Signo",
   },
   description:
-    "Discover extraordinary art from Australian creators. A curated marketplace where artists keep 100% of every sale.",
+    "A curated Australian art marketplace. Zero commission. Artists keep 100% of every sale.",
   icons: {
     icon: { url: "/icon.svg", type: "image/svg+xml" },
     apple: "/apple-touch-icon.png",
@@ -54,7 +73,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: '#FAFAF5',
+  themeColor: "#fcfbf8",
 };
 
 export default function RootLayout({
@@ -65,12 +84,14 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${switzer.variable} h-full antialiased`}
+      className={`${bespokeSerif.variable} ${outfit.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col">
+      <body id="top" className="min-h-full flex flex-col">
         <AuthProvider>
           <Header />
-          <main className="flex-1">{children}</main>
+          <main className="flex-1">
+            <PageTransition>{children}</PageTransition>
+          </main>
           <Footer />
         </AuthProvider>
       </body>

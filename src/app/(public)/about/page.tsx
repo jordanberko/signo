@@ -1,146 +1,432 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { ArrowRight } from 'lucide-react';
 
 export const metadata: Metadata = {
-  title: 'About',
+  title: 'About — Signo',
   description:
-    'Learn about Signo — an Australian art marketplace where artists keep 100% of every sale. Zero commission, just a flat monthly subscription.',
+    'Signo is an Australian art marketplace where artists keep the full sale price. Zero commission, a flat monthly subscription, direct from the studio.',
 };
 
 export default function AboutPage() {
   return (
-    <div>
-      {/* Hero */}
-      <section className="bg-cream border-b border-border">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-16 md:py-24 text-center">
-          <p className="text-accent-dark text-sm font-medium tracking-[0.2em] uppercase mb-4">Our Story</p>
-          <h1 className="font-editorial text-4xl md:text-5xl lg:text-6xl font-medium leading-tight">
-            Art deserves a{' '}
-            <span className="italic text-accent-dark">fairer deal</span>
-          </h1>
-          <p className="mt-6 text-lg text-muted max-w-2xl mx-auto leading-relaxed">
-            We believe Australian artists deserve a platform that respects their work.
-            Signo charges zero commission — just a $30/month subscription, so artists keep everything they earn.
-          </p>
+    <div style={{ background: 'var(--color-warm-white)' }}>
+      {/* ── Editorial header ── */}
+      <header
+        className="px-6 sm:px-10"
+        style={{
+          paddingTop: 'clamp(4rem, 9vw, 7rem)',
+          paddingBottom: 'clamp(3rem, 6vw, 5rem)',
+        }}
+      >
+        <p
+          style={{
+            fontSize: '0.68rem',
+            letterSpacing: '0.22em',
+            textTransform: 'uppercase',
+            color: 'var(--color-stone)',
+            marginBottom: '1.2rem',
+          }}
+        >
+          Our Story
+        </p>
+        <h1
+          className="font-serif"
+          style={{
+            fontSize: 'clamp(2.6rem, 6vw, 4.8rem)',
+            lineHeight: 1.02,
+            letterSpacing: '-0.015em',
+            color: 'var(--color-ink)',
+            fontWeight: 400,
+            maxWidth: '20ch',
+            opacity: 0,
+            animation: 'fade-up 700ms cubic-bezier(0.22, 1, 0.36, 1) forwards',
+          }}
+        >
+          Art deserves a <em style={{ fontStyle: 'italic' }}>fairer deal.</em>
+        </h1>
+        <p
+          style={{
+            marginTop: '1.8rem',
+            fontSize: '1rem',
+            fontWeight: 300,
+            lineHeight: 1.7,
+            color: 'var(--color-stone-dark)',
+            maxWidth: '52ch',
+          }}
+        >
+          Signo is a small Australian marketplace built around a single idea: the artist should keep what the
+          work earns. No commission, no gallery cut, no layered middlemen — just a flat monthly subscription.
+        </p>
+      </header>
+
+      <div style={{ borderTop: '1px solid var(--color-border)' }} />
+
+      {/* ── Mission — editorial prose ── */}
+      <section
+        className="px-6 sm:px-10"
+        style={{
+          paddingTop: 'clamp(4rem, 7vw, 6rem)',
+          paddingBottom: 'clamp(4rem, 7vw, 6rem)',
+        }}
+      >
+        <div className="grid grid-cols-1 lg:grid-cols-12" style={{ gap: 'clamp(1.5rem, 4vw, 4rem)' }}>
+          <div className="lg:col-span-4">
+            <p
+              style={{
+                fontSize: '0.68rem',
+                letterSpacing: '0.22em',
+                textTransform: 'uppercase',
+                color: 'var(--color-stone)',
+                marginBottom: '1.2rem',
+              }}
+            >
+              The Mission
+            </p>
+            <h2
+              className="font-serif"
+              style={{
+                fontSize: 'clamp(1.8rem, 3.5vw, 2.8rem)',
+                lineHeight: 1.1,
+                color: 'var(--color-ink)',
+                fontWeight: 400,
+                letterSpacing: '-0.01em',
+                maxWidth: '16ch',
+              }}
+            >
+              The Australian market is <em style={{ fontStyle: 'italic' }}>thriving</em> — artists simply aren&apos;t.
+            </h2>
+          </div>
+          <div className="lg:col-span-8">
+            <p
+              style={{
+                fontSize: '1rem',
+                lineHeight: 1.75,
+                color: 'var(--color-stone-dark)',
+                fontWeight: 300,
+                maxWidth: '58ch',
+                marginBottom: '1.4rem',
+              }}
+            >
+              Traditional galleries take 40–60% of every sale. Even contemporary online marketplaces routinely
+              charge 30–35%. A work priced at $2,000 can quietly hand $800 of the artist&apos;s labour back to the
+              middle. We started Signo to refuse that arithmetic.
+            </p>
+            <p
+              style={{
+                fontSize: '1rem',
+                lineHeight: 1.75,
+                color: 'var(--color-stone-dark)',
+                fontWeight: 300,
+                maxWidth: '58ch',
+                marginBottom: '1.4rem',
+              }}
+            >
+              The platform connects artists directly with collectors, while still providing the curation,
+              protection, and clean commercial machinery that both sides need to trust the transaction. Every
+              piece passes a considered quality review. Every sale lands in the studio&apos;s own bank account.
+            </p>
+            <p
+              style={{
+                fontSize: '1rem',
+                lineHeight: 1.75,
+                color: 'var(--color-stone-dark)',
+                fontWeight: 300,
+                maxWidth: '58ch',
+              }}
+            >
+              We take care of the platform so artists can take care of the work.
+            </p>
+          </div>
         </div>
       </section>
 
-      {/* Mission */}
-      <section className="py-20 md:py-28">
-        <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
-          <div className="flex items-center gap-3 mb-2">
-            <div className="divider-accent" />
-            <p className="text-accent-dark text-sm font-medium tracking-[0.15em] uppercase">Our Mission</p>
+      <div style={{ borderTop: '1px solid var(--color-border)' }} />
+
+      {/* ── The Numbers — typographic comparison ── */}
+      <section
+        className="px-6 sm:px-10"
+        style={{
+          paddingTop: 'clamp(4rem, 7vw, 6rem)',
+          paddingBottom: 'clamp(4rem, 7vw, 6rem)',
+          background: 'var(--color-cream)',
+        }}
+      >
+        <div className="grid grid-cols-1 lg:grid-cols-12" style={{ gap: 'clamp(1.5rem, 4vw, 4rem)' }}>
+          <div className="lg:col-span-4">
+            <p
+              style={{
+                fontSize: '0.68rem',
+                letterSpacing: '0.22em',
+                textTransform: 'uppercase',
+                color: 'var(--color-stone)',
+                marginBottom: '1.2rem',
+              }}
+            >
+              The Numbers
+            </p>
+            <h2
+              className="font-serif"
+              style={{
+                fontSize: 'clamp(1.8rem, 3.5vw, 2.8rem)',
+                lineHeight: 1.1,
+                color: 'var(--color-ink)',
+                fontWeight: 400,
+                letterSpacing: '-0.01em',
+                maxWidth: '14ch',
+              }}
+            >
+              What the artist keeps on every <em style={{ fontStyle: 'italic' }}>$100.</em>
+            </h2>
           </div>
-          <p className="font-editorial text-2xl md:text-3xl font-semibold leading-relaxed">
-            The Australian art market is thriving, but artists are losing too much of their income to platform fees.
-          </p>
-          <p className="text-muted leading-relaxed">
-            Traditional galleries take 40-60%. Even popular online marketplaces charge up to 35%.
-            We started Signo to change that equation. Our platform connects artists directly with collectors,
-            removing unnecessary middlemen while still providing the curation and trust that buyers need.
-          </p>
-          <p className="text-muted leading-relaxed">
-            Every piece on Signo goes through our quality review process, ensuring a consistent standard
-            across the marketplace. We take care of the platform so artists can focus on what matters most — creating.
-          </p>
+          <dl className="lg:col-span-8 m-0">
+            <ComparisonRow label="Traditional gallery" value="$40–65" note="35–60% commission" />
+            <ComparisonRow label="Other online marketplaces" value="$65" note="~35% commission" />
+            <ComparisonRow label="Signo" value="$100" note="zero commission · $30/mo subscription" highlight />
+          </dl>
         </div>
       </section>
 
-      {/* Commission Comparison */}
-      <section className="py-16 md:py-20 bg-muted-bg border-y border-border">
-        <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-12">
-            <p className="text-accent-dark text-sm font-medium tracking-[0.15em] uppercase mb-3">The Numbers</p>
-            <h2 className="font-editorial text-3xl md:text-4xl font-semibold">Zero commission, transparent pricing</h2>
-          </div>
+      <div style={{ borderTop: '1px solid var(--color-border)' }} />
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div className="bg-white rounded-xl p-6 text-center border border-border">
-              <p className="text-xs text-warm-gray tracking-wider uppercase mb-3">Traditional Galleries</p>
-              <p className="font-editorial text-3xl font-semibold text-error/70">35-60%</p>
-              <p className="text-xs text-muted mt-2">Artists keep $40-65 per $100</p>
-            </div>
-            <div className="bg-white rounded-xl p-6 text-center border border-border">
-              <p className="text-xs text-warm-gray tracking-wider uppercase mb-3">Other Platforms</p>
-              <p className="font-editorial text-3xl font-semibold text-warm-gray">35%</p>
-              <p className="text-xs text-muted mt-2">Artists keep $65 per $100</p>
-            </div>
-            <div className="bg-white rounded-xl p-6 text-center border-2 border-accent relative">
-              <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-0.5 bg-accent text-white text-[10px] font-semibold tracking-wider uppercase rounded-full">
-                Signo
-              </div>
-              <p className="text-xs text-warm-gray tracking-wider uppercase mb-3">With Signo</p>
-              <p className="font-editorial text-3xl font-semibold text-accent-dark">0%</p>
-              <p className="text-xs text-muted mt-2">Artists keep $100 per $100 (plus $30/mo subscription)</p>
-            </div>
-          </div>
+      {/* ── Protections — two-column list ── */}
+      <section
+        className="px-6 sm:px-10"
+        style={{
+          paddingTop: 'clamp(4rem, 7vw, 6rem)',
+          paddingBottom: 'clamp(4rem, 7vw, 6rem)',
+        }}
+      >
+        <p
+          style={{
+            fontSize: '0.68rem',
+            letterSpacing: '0.22em',
+            textTransform: 'uppercase',
+            color: 'var(--color-stone)',
+            marginBottom: '1.2rem',
+          }}
+        >
+          Trust &amp; Safety
+        </p>
+        <h2
+          className="font-serif"
+          style={{
+            fontSize: 'clamp(2rem, 4vw, 3.2rem)',
+            lineHeight: 1.05,
+            color: 'var(--color-ink)',
+            fontWeight: 400,
+            letterSpacing: '-0.015em',
+            marginBottom: 'clamp(2.5rem, 5vw, 4rem)',
+            maxWidth: '16ch',
+          }}
+        >
+          How we protect <em style={{ fontStyle: 'italic' }}>both sides.</em>
+        </h2>
+
+        <div className="grid grid-cols-1 md:grid-cols-2" style={{ gap: 'clamp(2rem, 4vw, 4rem)' }}>
+          <ProtectionList
+            title="For collectors"
+            items={[
+              'Every payment held in escrow until delivery is confirmed',
+              '48-hour inspection window on receipt',
+              'Full refund on works damaged in transit — no return required',
+              'Every piece quality-reviewed before listing',
+              'Tracked shipping on all physical orders',
+            ]}
+          />
+          <ProtectionList
+            title="For artists"
+            items={[
+              'Keep the full sale price — zero commission',
+              'A single flat $30 / month subscription, nothing hidden',
+              'Price your own work — no minimums',
+              '24–48 hour review turnaround',
+              'Guaranteed payout after the inspection window',
+              'A direct, simple listing flow',
+            ]}
+          />
         </div>
       </section>
 
-      {/* Protections */}
-      <section className="py-20 md:py-28">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
-            <p className="text-accent-dark text-sm font-medium tracking-[0.15em] uppercase mb-3">Trust & Safety</p>
-            <h2 className="font-editorial text-3xl md:text-4xl font-semibold">How we protect everyone</h2>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <div className="p-8 bg-muted-bg rounded-2xl border border-border space-y-4">
-              <div className="w-2 h-2 bg-accent rounded-full" />
-              <h3 className="font-editorial text-xl font-medium">For Buyers</h3>
-              <ul className="text-sm text-muted space-y-2.5 leading-relaxed">
-                <li>All payments held in escrow until delivery confirmed</li>
-                <li>48-hour inspection window after delivery</li>
-                <li>Full refund for damaged items — no returns needed</li>
-                <li>Every artwork quality-reviewed before listing</li>
-                <li>Tracked shipping on all physical orders</li>
-              </ul>
-            </div>
-            <div className="p-8 bg-muted-bg rounded-2xl border border-border space-y-4">
-              <div className="w-2 h-2 bg-accent rounded-full" />
-              <h3 className="font-editorial text-xl font-medium">For Sellers</h3>
-              <ul className="text-sm text-muted space-y-2.5 leading-relaxed">
-                <li>Keep 100% of every sale</li>
-                <li>$30/month flat subscription — no hidden fees</li>
-                <li>Set your own prices — no minimums</li>
-                <li>Fast 24-48 hour artwork review</li>
-                <li>Guaranteed payouts after inspection window</li>
-                <li>Simple upload flow — list in minutes</li>
-              </ul>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* CTA */}
-      <section className="py-20 md:py-28 bg-primary text-white relative texture-grain overflow-hidden">
-        <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 text-center relative z-10">
-          <h2 className="font-editorial text-3xl md:text-4xl font-semibold leading-snug">
-            Ready to get started?
+      {/* ── CTA ── */}
+      <section
+        className="px-6 sm:px-10"
+        style={{
+          background: 'var(--color-ink)',
+          color: 'var(--color-warm-white)',
+          paddingTop: 'clamp(5rem, 9vw, 8rem)',
+          paddingBottom: 'clamp(5rem, 9vw, 8rem)',
+        }}
+      >
+        <div style={{ maxWidth: '58ch' }}>
+          <p
+            style={{
+              fontSize: '0.68rem',
+              letterSpacing: '0.22em',
+              textTransform: 'uppercase',
+              color: 'var(--color-stone)',
+              marginBottom: '1.4rem',
+            }}
+          >
+            Begin
+          </p>
+          <h2
+            className="font-serif"
+            style={{
+              fontSize: 'clamp(2.4rem, 5vw, 4rem)',
+              lineHeight: 1.05,
+              letterSpacing: '-0.015em',
+              color: 'var(--color-warm-white)',
+              fontWeight: 400,
+            }}
+          >
+            Whether you&apos;re making the work, or <em style={{ fontStyle: 'italic' }}>living with it.</em>
           </h2>
-          <p className="text-gray-400 mt-6 max-w-md mx-auto">
-            Whether you&apos;re an artist or a collector, Signo is built for you.
-          </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center mt-10">
+          <div
+            style={{
+              marginTop: '2.6rem',
+              display: 'flex',
+              gap: '2.2rem',
+              flexWrap: 'wrap',
+              alignItems: 'center',
+            }}
+          >
             <Link
               href="/register"
-              className="group inline-flex items-center justify-center gap-3 px-7 py-3.5 bg-accent text-primary font-semibold rounded-full hover:bg-accent-light transition-all duration-300"
+              style={{
+                display: 'inline-block',
+                padding: '1.05rem 1.8rem',
+                background: 'var(--color-warm-white)',
+                color: 'var(--color-ink)',
+                fontSize: '0.76rem',
+                letterSpacing: '0.18em',
+                textTransform: 'uppercase',
+                fontWeight: 400,
+                textDecoration: 'none',
+                border: '1px solid var(--color-warm-white)',
+              }}
             >
               Join Signo
-              <ArrowRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
             </Link>
             <Link
               href="/browse"
-              className="inline-flex items-center justify-center gap-2 px-7 py-3.5 border border-white/30 text-white font-medium rounded-full hover:bg-white hover:text-primary transition-all duration-300"
+              style={{
+                display: 'inline-block',
+                paddingBottom: '0.2rem',
+                borderBottom: '1px solid var(--color-stone-dark)',
+                fontSize: '0.78rem',
+                letterSpacing: '0.12em',
+                textTransform: 'uppercase',
+                fontWeight: 300,
+                color: 'var(--color-warm-white)',
+                textDecoration: 'none',
+              }}
             >
-              Browse Art
+              Browse the roster
             </Link>
           </div>
         </div>
       </section>
+    </div>
+  );
+}
+
+function ComparisonRow({
+  label,
+  value,
+  note,
+  highlight = false,
+}: {
+  label: string;
+  value: string;
+  note: string;
+  highlight?: boolean;
+}) {
+  return (
+    <div
+      style={{
+        display: 'grid',
+        gridTemplateColumns: 'minmax(0, 1fr) auto',
+        gap: '1.5rem',
+        alignItems: 'baseline',
+        padding: '1.6rem 0',
+        borderBottom: '1px solid var(--color-border)',
+      }}
+    >
+      <div>
+        <dt
+          style={{
+            fontSize: highlight ? '1rem' : '0.95rem',
+            color: 'var(--color-ink)',
+            fontWeight: highlight ? 400 : 300,
+            marginBottom: '0.35rem',
+            letterSpacing: highlight ? '0.01em' : 0,
+          }}
+        >
+          {label}
+        </dt>
+        <p
+          style={{
+            fontSize: '0.72rem',
+            letterSpacing: '0.1em',
+            textTransform: 'uppercase',
+            color: 'var(--color-stone)',
+            fontWeight: 300,
+          }}
+        >
+          {note}
+        </p>
+      </div>
+      <dd
+        className="font-serif"
+        style={{
+          fontSize: highlight ? 'clamp(2rem, 3.5vw, 2.8rem)' : 'clamp(1.4rem, 2vw, 1.8rem)',
+          color: 'var(--color-ink)',
+          fontWeight: 400,
+          margin: 0,
+          letterSpacing: '-0.015em',
+          fontStyle: highlight ? 'normal' : 'normal',
+        }}
+      >
+        {value}
+      </dd>
+    </div>
+  );
+}
+
+function ProtectionList({ title, items }: { title: string; items: string[] }) {
+  return (
+    <div>
+      <h3
+        className="font-serif"
+        style={{
+          fontSize: 'clamp(1.3rem, 2vw, 1.7rem)',
+          color: 'var(--color-ink)',
+          fontWeight: 400,
+          fontStyle: 'italic',
+          letterSpacing: '-0.005em',
+          marginBottom: '1.5rem',
+        }}
+      >
+        {title}
+      </h3>
+      <ul className="list-none p-0 m-0">
+        {items.map((item, i) => (
+          <li
+            key={i}
+            style={{
+              padding: '1rem 0',
+              borderTop: '1px solid var(--color-border)',
+              borderBottom: i === items.length - 1 ? '1px solid var(--color-border)' : 'none',
+              fontSize: '0.92rem',
+              lineHeight: 1.55,
+              color: 'var(--color-stone-dark)',
+              fontWeight: 300,
+            }}
+          >
+            {item}
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }

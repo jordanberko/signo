@@ -3,17 +3,6 @@
 import { useEffect, useState, Suspense } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import {
-  ArrowLeft,
-  Check,
-  Circle,
-  Loader2,
-  Package,
-  Truck,
-  ImageIcon,
-  AlertTriangle,
-  CheckCircle2,
-} from 'lucide-react';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { useRequireAuth } from '@/lib/hooks/useRequireAuth';
 import { formatPrice } from '@/lib/utils';
@@ -49,28 +38,29 @@ interface DisputeInfo {
   created_at: string;
 }
 
-const STATUS_CONFIG: Record<string, { label: string; color: string }> = {
-  paid: { label: 'Awaiting Shipment', color: 'bg-amber-50 text-amber-700' },
-  shipped: { label: 'Shipped', color: 'bg-blue-50 text-blue-700' },
-  delivered: { label: 'Delivered', color: 'bg-blue-50 text-blue-700' },
-  completed: { label: 'Completed', color: 'bg-green-50 text-green-700' },
-  disputed: { label: 'Disputed', color: 'bg-red-50 text-red-700' },
-  refunded: { label: 'Refunded', color: 'bg-gray-100 text-gray-600' },
-  cancelled: { label: 'Cancelled', color: 'bg-gray-100 text-gray-600' },
+const STATUS_LABEL: Record<string, string> = {
+  paid: 'Awaiting dispatch',
+  shipped: 'In transit',
+  delivered: 'Delivered',
+  completed: 'Completed',
+  disputed: 'Disputed',
+  refunded: 'Refunded',
+  cancelled: 'Cancelled',
 };
 
-const CARRIERS = [
-  'Australia Post',
-  'Sendle',
-  'StarTrack',
-  'Aramex',
-  'Other',
-];
+const CARRIERS = ['Australia Post', 'Sendle', 'StarTrack', 'Aramex', 'Other'];
 
 const DISPUTE_TYPE_LABELS: Record<string, string> = {
-  damaged: 'Item Damaged',
-  not_as_described: 'Not as Described',
-  not_received: 'Not Received',
+  damaged: 'Item damaged',
+  not_as_described: 'Not as described',
+  not_received: 'Not received',
+};
+
+const KICKER: React.CSSProperties = {
+  fontSize: '0.62rem',
+  letterSpacing: '0.22em',
+  textTransform: 'uppercase',
+  color: 'var(--color-stone)',
 };
 
 function formatDate(dateStr: string | null) {
@@ -84,7 +74,48 @@ function formatDate(dateStr: string | null) {
   });
 }
 
-// ── Inner content component ──
+// ── Shell ──
+
+function PageShell({ children }: { children: React.ReactNode }) {
+  return (
+    <div style={{ background: 'var(--color-warm-white)', minHeight: '100vh' }}>
+      <div
+        className="px-6 sm:px-10"
+        style={{
+          maxWidth: '56rem',
+          margin: '0 auto',
+          paddingTop: 'clamp(7.5rem, 10vw, 9.5rem)',
+          paddingBottom: 'clamp(4rem, 7vw, 6rem)',
+        }}
+      >
+        {children}
+      </div>
+    </div>
+  );
+}
+
+function EditorialSpinner({ label = 'Loading…' }: { label?: string }) {
+  return (
+    <div
+      style={{
+        minHeight: '60vh',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        background: 'var(--color-warm-white)',
+      }}
+    >
+      <p
+        className="font-serif"
+        style={{ fontStyle: 'italic', fontSize: '0.95rem', color: 'var(--color-stone)' }}
+      >
+        {label}
+      </p>
+    </div>
+  );
+}
+
+// ── Inner content ──
 
 function OrderContent({ orderId }: { orderId: string }) {
   const { user } = useAuth();
@@ -95,10 +126,9 @@ function OrderContent({ orderId }: { orderId: string }) {
   const [successMessage, setSuccessMessage] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
 
-  // Ship form state
   const [trackingNumber, setTrackingNumber] = useState('');
   const [carrier, setCarrier] = useState('');
-  const [packagingPhoto, setPackagingPhoto] = useState<File | null>(null);
+  const [, setPackagingPhoto] = useState<File | null>(null);
 
   async function fetchOrder() {
     if (!user) return;
@@ -109,12 +139,8 @@ function OrderContent({ orderId }: { orderId: string }) {
         return;
       }
       const data = await res.json();
-      if (data.order) {
-        setOrder(data.order as OrderDetail);
-      }
-      if (data.dispute) {
-        setDispute(data.dispute as DisputeInfo);
-      }
+      if (data.order) setOrder(data.order as OrderDetail);
+      if (data.dispute) setDispute(data.dispute as DisputeInfo);
     } catch (err) {
       console.error('[ArtistOrderDetail] Fetch error:', err);
     }
@@ -150,12 +176,11 @@ function OrderContent({ orderId }: { orderId: string }) {
         throw new Error(body.error || 'Failed to mark order as shipped');
       }
 
-      setSuccessMessage('Order marked as shipped successfully!');
+      setSuccessMessage('Order marked as dispatched.');
       setTrackingNumber('');
       setCarrier('');
       setPackagingPhoto(null);
 
-      // Refetch order
       setLoading(true);
       await fetchOrder();
     } catch (err) {
@@ -165,38 +190,51 @@ function OrderContent({ orderId }: { orderId: string }) {
     }
   }
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <Loader2 className="h-6 w-6 animate-spin text-muted" />
-      </div>
-    );
-  }
+  if (loading) return <EditorialSpinner label="Retrieving the order…" />;
 
   if (!order) {
     return (
-      <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="text-center py-20">
-          <Package className="h-10 w-10 text-muted mx-auto mb-3" />
-          <p className="font-medium mb-1">Order not found</p>
-          <p className="text-sm text-muted mb-4">
-            This order doesn&apos;t exist or you don&apos;t have access to it.
-          </p>
-          <Link
-            href="/artist/orders"
-            className="text-sm text-accent-dark hover:underline"
-          >
-            Back to orders
-          </Link>
-        </div>
-      </div>
+      <PageShell>
+        <Link
+          href="/artist/orders"
+          className="font-serif"
+          style={{
+            fontStyle: 'italic',
+            fontSize: '0.85rem',
+            color: 'var(--color-stone)',
+            textDecoration: 'none',
+            display: 'inline-block',
+            marginBottom: '2rem',
+          }}
+        >
+          ← All orders
+        </Link>
+        <p
+          className="font-serif"
+          style={{
+            fontSize: 'clamp(1.4rem, 2.6vw, 1.9rem)',
+            fontStyle: 'italic',
+            color: 'var(--color-ink)',
+            lineHeight: 1.2,
+          }}
+        >
+          Order not found.
+        </p>
+        <p
+          style={{
+            marginTop: '1rem',
+            fontSize: '0.9rem',
+            fontWeight: 300,
+            color: 'var(--color-stone-dark)',
+          }}
+        >
+          This order doesn&apos;t exist or isn&apos;t yours.
+        </p>
+      </PageShell>
     );
   }
 
-  const badge = STATUS_CONFIG[order.status] ?? {
-    label: order.status,
-    color: 'bg-gray-50 text-gray-600',
-  };
+  const label = STATUS_LABEL[order.status] ?? order.status;
   const salePrice = order.total_amount_aud ?? 0;
   const payout = order.artist_payout_aud ?? 0;
   const stripeFee = Math.round((salePrice - payout) * 100) / 100;
@@ -204,401 +242,635 @@ function OrderContent({ orderId }: { orderId: string }) {
   const thumbnail = artwork?.images?.[0];
   const address = order.shipping_address;
 
-  // Timeline step statuses
   const isShipped = ['shipped', 'delivered', 'completed'].includes(order.status);
   const isDelivered = ['delivered', 'completed'].includes(order.status);
   const isCompleted = order.status === 'completed';
 
+  const timeline: Array<{ title: string; date: string | null; done: boolean }> = [
+    { title: 'Order placed', date: formatDate(order.created_at), done: true },
+    { title: 'Payment confirmed', date: formatDate(order.created_at), done: true },
+    {
+      title: 'Dispatched',
+      date: isShipped && order.shipped_at ? formatDate(order.shipped_at) : 'Awaiting your dispatch',
+      done: isShipped,
+    },
+    {
+      title: 'Delivered',
+      date: isDelivered && order.delivered_at ? formatDate(order.delivered_at) : null,
+      done: isDelivered,
+    },
+    {
+      title: 'Completed · payout released',
+      date: isCompleted && order.payout_released_at ? formatDate(order.payout_released_at) : null,
+      done: isCompleted,
+    },
+  ];
+
   return (
-    <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <PageShell>
+      {/* Back */}
+      <Link
+        href="/artist/orders"
+        className="font-serif"
+        style={{
+          fontStyle: 'italic',
+          fontSize: '0.85rem',
+          color: 'var(--color-stone)',
+          textDecoration: 'none',
+          display: 'inline-block',
+          marginBottom: '2rem',
+        }}
+      >
+        ← All orders
+      </Link>
+
       {/* Header */}
-      <div className="mb-8">
-        <Link
-          href="/artist/orders"
-          className="inline-flex items-center gap-1.5 text-sm text-muted hover:text-foreground transition-colors mb-4"
+      <header
+        style={{
+          marginBottom: 'clamp(2.4rem, 4vw, 3.4rem)',
+          borderBottom: '1px solid var(--color-border-strong)',
+          paddingBottom: 'clamp(1.6rem, 3vw, 2.4rem)',
+        }}
+      >
+        <p style={{ ...KICKER, marginBottom: '1rem' }}>
+          The Studio · Order · {label}
+        </p>
+        <h1
+          className="font-serif"
+          style={{
+            fontSize: 'clamp(1.8rem, 3.6vw, 2.6rem)',
+            lineHeight: 1.1,
+            letterSpacing: '-0.015em',
+            color: 'var(--color-ink)',
+            fontWeight: 400,
+            marginBottom: '0.7rem',
+          }}
         >
-          <ArrowLeft className="h-4 w-4" />
-          Back to orders
-        </Link>
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold">Order Details</h1>
-            <p className="text-sm text-muted mt-1">
-              Order placed{' '}
-              {new Date(order.created_at).toLocaleDateString('en-AU', {
-                day: 'numeric',
-                month: 'long',
-                year: 'numeric',
-              })}
-            </p>
-          </div>
-          <span
-            className={`text-xs font-medium px-3 py-1.5 rounded-full ${badge.color}`}
+          {artwork?.title ?? 'Unknown work'}
+        </h1>
+        <p
+          className="font-serif"
+          style={{
+            fontSize: '0.88rem',
+            fontStyle: 'italic',
+            color: 'var(--color-stone)',
+          }}
+        >
+          Placed{' '}
+          {new Date(order.created_at).toLocaleDateString('en-AU', {
+            day: 'numeric',
+            month: 'long',
+            year: 'numeric',
+          })}
+        </p>
+      </header>
+
+      {/* Messages */}
+      {successMessage && (
+        <div
+          style={{
+            marginBottom: '2rem',
+            paddingBlock: '1.2rem',
+            borderTop: '1px solid var(--color-ink)',
+            borderBottom: '1px solid var(--color-ink)',
+          }}
+        >
+          <p
+            className="font-serif"
+            style={{
+              fontSize: '0.92rem',
+              fontStyle: 'italic',
+              color: 'var(--color-ink)',
+            }}
           >
-            {badge.label}
-          </span>
+            ✓ {successMessage}
+          </p>
         </div>
-      </div>
+      )}
+      {errorMessage && (
+        <div
+          style={{
+            marginBottom: '2rem',
+            paddingBlock: '1.2rem',
+            borderTop: '1px solid var(--color-terracotta, #c45d3e)',
+            borderBottom: '1px solid var(--color-terracotta, #c45d3e)',
+          }}
+        >
+          <p
+            className="font-serif"
+            style={{
+              fontSize: '0.92rem',
+              fontStyle: 'italic',
+              color: 'var(--color-terracotta, #c45d3e)',
+            }}
+          >
+            — {errorMessage}
+          </p>
+        </div>
+      )}
 
-      <div className="space-y-6">
-        {/* Success / Error messages */}
-        {successMessage && (
-          <div className="flex items-center gap-3 p-4 bg-green-50 border border-green-200 rounded-lg">
-            <CheckCircle2 className="h-5 w-5 text-green-600 flex-shrink-0" />
-            <p className="text-sm font-medium text-green-800">{successMessage}</p>
+      {/* Artwork */}
+      <section style={{ marginBottom: 'clamp(2.4rem, 4vw, 3.4rem)' }}>
+        <p style={{ ...KICKER, marginBottom: '1.2rem' }}>— The work —</p>
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'flex-start',
+            gap: '1.6rem',
+            paddingBottom: '1.6rem',
+            borderBottom: '1px solid var(--color-border)',
+          }}
+        >
+          <div
+            style={{
+              width: 96,
+              height: 120,
+              background: 'var(--color-cream)',
+              flexShrink: 0,
+              overflow: 'hidden',
+            }}
+          >
+            {thumbnail && (
+              <Image
+                src={thumbnail}
+                alt={artwork?.title ?? ''}
+                width={96}
+                height={120}
+                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+              />
+            )}
           </div>
-        )}
-        {errorMessage && (
-          <div className="flex items-center gap-3 p-4 bg-red-50 border border-red-200 rounded-lg">
-            <AlertTriangle className="h-5 w-5 text-red-600 flex-shrink-0" />
-            <p className="text-sm font-medium text-red-800">{errorMessage}</p>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <h2
+              className="font-serif"
+              style={{
+                fontSize: '1.2rem',
+                fontWeight: 400,
+                color: 'var(--color-ink)',
+                marginBottom: '0.3rem',
+              }}
+            >
+              {artwork?.title ?? 'Unknown'}
+            </h2>
+            {artwork?.medium && (
+              <p
+                className="font-serif"
+                style={{
+                  fontSize: '0.88rem',
+                  fontStyle: 'italic',
+                  color: 'var(--color-stone-dark)',
+                  marginBottom: '0.5rem',
+                }}
+              >
+                {artwork.medium}
+              </p>
+            )}
+            {artwork?.category && (
+              <p style={{ ...KICKER, fontSize: '0.58rem' }}>
+                {artwork.category}
+              </p>
+            )}
           </div>
-        )}
+        </div>
+      </section>
 
-        {/* Artwork card */}
-        <div className="bg-white border border-border rounded-2xl p-5">
-          <h2 className="font-semibold mb-4">Artwork</h2>
-          <div className="flex items-center gap-4">
-            <div className="w-20 h-20 rounded-xl bg-muted-bg flex-shrink-0 overflow-hidden">
-              {thumbnail ? (
-                <Image
-                  src={thumbnail}
-                  alt={artwork?.title ?? ''}
-                  width={80}
-                  height={80}
-                  className="w-full h-full object-cover"
-                />
-              ) : (
-                <div className="w-full h-full flex items-center justify-center">
-                  <ImageIcon className="h-6 w-6 text-border" />
-                </div>
-              )}
+      {/* Buyer */}
+      <section style={{ marginBottom: 'clamp(2.4rem, 4vw, 3.4rem)' }}>
+        <p style={{ ...KICKER, marginBottom: '1.2rem' }}>— The buyer —</p>
+        <p
+          className="font-serif"
+          style={{
+            fontSize: '1.05rem',
+            color: 'var(--color-ink)',
+            marginBottom: '1.4rem',
+          }}
+        >
+          {order.profiles?.full_name ?? 'Unknown'}
+        </p>
+        {address && (
+          <dl
+            style={{
+              margin: 0,
+              padding: '1.2rem 0',
+              borderTop: '1px solid var(--color-border)',
+              borderBottom: '1px solid var(--color-border)',
+            }}
+          >
+            <dt style={{ ...KICKER, marginBottom: '0.6rem' }}>
+              Shipping to
+            </dt>
+            <dd
+              style={{
+                margin: 0,
+                fontSize: '0.9rem',
+                color: 'var(--color-ink)',
+                fontWeight: 300,
+                lineHeight: 1.7,
+              }}
+            >
+              {address.line1 && <span style={{ display: 'block' }}>{address.line1}</span>}
+              {address.line2 && <span style={{ display: 'block' }}>{address.line2}</span>}
+              <span style={{ display: 'block' }}>
+                {[address.city, address.state, address.postal_code]
+                  .filter(Boolean)
+                  .join(', ')}
+              </span>
+              {address.country && <span style={{ display: 'block' }}>{address.country}</span>}
+            </dd>
+          </dl>
+        )}
+      </section>
+
+      {/* Payment summary */}
+      <section style={{ marginBottom: 'clamp(2.4rem, 4vw, 3.4rem)' }}>
+        <p style={{ ...KICKER, marginBottom: '1.2rem' }}>— The ledger —</p>
+        <dl
+          style={{
+            margin: 0,
+            padding: 0,
+            borderTop: '1px solid var(--color-border)',
+          }}
+        >
+          {[
+            { term: 'Sale price', val: formatPrice(salePrice), muted: false },
+            { term: 'Stripe processing', val: `−${formatPrice(stripeFee)}`, muted: true },
+          ].map((row) => (
+            <div
+              key={row.term}
+              style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'baseline',
+                padding: '1rem 0',
+                borderBottom: '1px solid var(--color-border)',
+              }}
+            >
+              <dt
+                style={{
+                  fontSize: '0.82rem',
+                  fontWeight: 300,
+                  color: 'var(--color-stone-dark)',
+                }}
+              >
+                {row.term}
+              </dt>
+              <dd
+                className="font-serif"
+                style={{
+                  margin: 0,
+                  fontSize: '0.95rem',
+                  fontStyle: row.muted ? 'italic' : 'normal',
+                  color: row.muted
+                    ? 'var(--color-stone)'
+                    : 'var(--color-ink)',
+                }}
+              >
+                {row.val}
+              </dd>
             </div>
-            <div>
-              <p className="font-medium">{artwork?.title ?? 'Unknown'}</p>
-              {artwork?.category && (
-                <span className="inline-block text-xs font-medium px-2 py-0.5 rounded-full bg-gray-100 text-gray-600 mt-1 capitalize">
-                  {artwork.category}
+          ))}
+          <div
+            style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'baseline',
+              padding: '1.4rem 0 0',
+            }}
+          >
+            <dt
+              style={{
+                ...KICKER,
+                marginTop: 0,
+              }}
+            >
+              You receive
+            </dt>
+            <dd
+              className="font-serif"
+              style={{
+                margin: 0,
+                fontSize: 'clamp(1.4rem, 2.6vw, 1.9rem)',
+                fontWeight: 400,
+                color: 'var(--color-ink)',
+                letterSpacing: '-0.01em',
+              }}
+            >
+              {formatPrice(payout)}
+            </dd>
+          </div>
+        </dl>
+      </section>
+
+      {/* Timeline */}
+      <section style={{ marginBottom: 'clamp(2.4rem, 4vw, 3.4rem)' }}>
+        <p style={{ ...KICKER, marginBottom: '1.2rem' }}>— The timeline —</p>
+        <ol
+          style={{
+            listStyle: 'none',
+            padding: 0,
+            margin: 0,
+            borderTop: '1px solid var(--color-border)',
+          }}
+        >
+          {timeline.map((step) => (
+            <li
+              key={step.title}
+              style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'baseline',
+                padding: '1.1rem 0',
+                borderBottom: '1px solid var(--color-border)',
+                gap: '1rem',
+                opacity: step.done ? 1 : 0.42,
+              }}
+            >
+              <span
+                className="font-serif"
+                style={{
+                  fontSize: '1rem',
+                  fontStyle: step.done ? 'italic' : 'normal',
+                  color: 'var(--color-ink)',
+                }}
+              >
+                {step.title}
+              </span>
+              {step.date && (
+                <span
+                  className="font-serif"
+                  style={{
+                    fontSize: '0.8rem',
+                    fontStyle: 'italic',
+                    color: 'var(--color-stone)',
+                    textAlign: 'right',
+                    flexShrink: 0,
+                  }}
+                >
+                  {step.date}
                 </span>
               )}
-              {artwork?.medium && (
-                <p className="text-sm text-muted mt-1">{artwork.medium}</p>
-              )}
-            </div>
-          </div>
-        </div>
+            </li>
+          ))}
+        </ol>
+      </section>
 
-        {/* Buyer info */}
-        <div className="bg-white border border-border rounded-2xl p-5">
-          <h2 className="font-semibold mb-4">Buyer</h2>
-          <p className="text-sm">{order.profiles?.full_name ?? 'Unknown'}</p>
-
-          {address && (
-            <div className="mt-4">
-              <p className="text-xs font-medium uppercase tracking-wide text-muted mb-2">
-                Shipping Address
-              </p>
-              <div className="text-sm text-muted space-y-0.5">
-                {address.line1 && <p>{address.line1}</p>}
-                {address.line2 && <p>{address.line2}</p>}
-                <p>
-                  {[address.city, address.state, address.postal_code]
-                    .filter(Boolean)
-                    .join(', ')}
-                </p>
-                {address.country && <p>{address.country}</p>}
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Payment summary */}
-        <div className="bg-white border border-border rounded-2xl p-5">
-          <h2 className="font-semibold mb-4">Payment Summary</h2>
-          <div className="space-y-3">
-            <div className="flex items-center justify-between text-sm">
-              <span className="text-muted">Sale price</span>
-              <span>{formatPrice(salePrice)}</span>
-            </div>
-            <div className="flex items-center justify-between text-sm">
-              <span className="text-muted">Stripe processing fee</span>
-              <span className="text-muted">&minus;{formatPrice(stripeFee)}</span>
-            </div>
-            <div className="border-t border-border pt-3 flex items-center justify-between">
-              <span className="font-semibold">You receive</span>
-              <span className="font-bold text-green-700 text-lg">
-                {formatPrice(payout)}
-              </span>
-            </div>
-          </div>
-        </div>
-
-        {/* Status timeline */}
-        <div className="bg-white border border-border rounded-2xl p-5">
-          <h2 className="font-semibold mb-4">Order Timeline</h2>
-          <div className="relative pl-8 space-y-6">
-            {/* Vertical line */}
-            <div className="absolute left-[11px] top-1 bottom-1 w-0.5 bg-border" />
-
-            {/* Order placed */}
-            <div className="relative">
-              <div className="absolute -left-8 w-6 h-6 rounded-full bg-green-100 flex items-center justify-center">
-                <Check className="h-3.5 w-3.5 text-green-600" />
-              </div>
-              <p className="font-medium text-sm">Order placed</p>
-              <p className="text-xs text-muted mt-0.5">
-                {formatDate(order.created_at)}
-              </p>
-            </div>
-
-            {/* Payment confirmed */}
-            <div className="relative">
-              <div className="absolute -left-8 w-6 h-6 rounded-full bg-green-100 flex items-center justify-center">
-                <Check className="h-3.5 w-3.5 text-green-600" />
-              </div>
-              <p className="font-medium text-sm">Payment confirmed</p>
-              <p className="text-xs text-muted mt-0.5">
-                {formatDate(order.created_at)}
-              </p>
-            </div>
-
-            {/* Shipped */}
-            <div className="relative">
-              <div
-                className={`absolute -left-8 w-6 h-6 rounded-full flex items-center justify-center ${
-                  isShipped
-                    ? 'bg-green-100'
-                    : 'bg-gray-100'
-                }`}
+      {/* Tracking info */}
+      {isShipped && order.shipping_tracking_number && (
+        <section style={{ marginBottom: 'clamp(2.4rem, 4vw, 3.4rem)' }}>
+          <p style={{ ...KICKER, marginBottom: '1.2rem' }}>— In transit —</p>
+          <dl
+            style={{
+              margin: 0,
+              display: 'grid',
+              gridTemplateColumns: '1fr 1fr',
+              gap: '1.2rem 2rem',
+              padding: '1.4rem 0',
+              borderTop: '1px solid var(--color-border)',
+              borderBottom: '1px solid var(--color-border)',
+            }}
+          >
+            <div>
+              <dt style={{ ...KICKER, marginBottom: '0.4rem' }}>Carrier</dt>
+              <dd
+                className="font-serif"
+                style={{
+                  margin: 0,
+                  fontSize: '0.95rem',
+                  color: 'var(--color-ink)',
+                }}
               >
-                {isShipped ? (
-                  <Check className="h-3.5 w-3.5 text-green-600" />
-                ) : (
-                  <Circle className="h-3.5 w-3.5 text-gray-400" />
-                )}
-              </div>
-              <p className="font-medium text-sm">Shipped</p>
-              <p className="text-xs text-muted mt-0.5">
-                {isShipped && order.shipped_at
-                  ? formatDate(order.shipped_at)
-                  : 'Awaiting your shipment'}
+                {order.shipping_carrier ?? '—'}
+              </dd>
+            </div>
+            <div>
+              <dt style={{ ...KICKER, marginBottom: '0.4rem' }}>
+                Tracking number
+              </dt>
+              <dd
+                style={{
+                  margin: 0,
+                  fontSize: '0.88rem',
+                  fontFamily:
+                    'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
+                  color: 'var(--color-ink)',
+                  wordBreak: 'break-all',
+                }}
+              >
+                {order.shipping_tracking_number}
+              </dd>
+            </div>
+          </dl>
+        </section>
+      )}
+
+      {/* Dispute alert */}
+      {order.status === 'disputed' && (
+        <section
+          style={{
+            marginBottom: 'clamp(2.4rem, 4vw, 3.4rem)',
+            padding: '1.6rem 0',
+            borderTop: '1px solid var(--color-terracotta, #c45d3e)',
+            borderBottom: '1px solid var(--color-terracotta, #c45d3e)',
+          }}
+        >
+          <p
+            style={{
+              ...KICKER,
+              color: 'var(--color-terracotta, #c45d3e)',
+              marginBottom: '0.9rem',
+            }}
+          >
+            — A dispute has been raised —
+          </p>
+          {dispute ? (
+            <>
+              <p
+                className="font-serif"
+                style={{
+                  fontSize: '1.1rem',
+                  fontStyle: 'italic',
+                  color: 'var(--color-ink)',
+                  marginBottom: '0.7rem',
+                  lineHeight: 1.3,
+                }}
+              >
+                {DISPUTE_TYPE_LABELS[dispute.type] ?? dispute.type}.
               </p>
-            </div>
-
-            {/* Delivered */}
-            <div className="relative">
-              <div
-                className={`absolute -left-8 w-6 h-6 rounded-full flex items-center justify-center ${
-                  isDelivered
-                    ? 'bg-green-100'
-                    : 'bg-gray-100'
-                }`}
+              <p
+                style={{
+                  fontSize: '0.9rem',
+                  fontWeight: 300,
+                  color: 'var(--color-stone-dark)',
+                  lineHeight: 1.6,
+                  marginBottom: '0.7rem',
+                }}
               >
-                {isDelivered ? (
-                  <Check className="h-3.5 w-3.5 text-green-600" />
-                ) : (
-                  <Circle className="h-3.5 w-3.5 text-gray-400" />
-                )}
-              </div>
-              <p className="font-medium text-sm">Delivered</p>
-              {isDelivered && order.delivered_at && (
-                <p className="text-xs text-muted mt-0.5">
-                  {formatDate(order.delivered_at)}
-                </p>
-              )}
-            </div>
-
-            {/* Completed */}
-            <div className="relative">
-              <div
-                className={`absolute -left-8 w-6 h-6 rounded-full flex items-center justify-center ${
-                  isCompleted
-                    ? 'bg-green-100'
-                    : 'bg-gray-100'
-                }`}
+                {dispute.description}
+              </p>
+              <p
+                className="font-serif"
+                style={{
+                  fontSize: '0.78rem',
+                  fontStyle: 'italic',
+                  color: 'var(--color-stone)',
+                }}
               >
-                {isCompleted ? (
-                  <Check className="h-3.5 w-3.5 text-green-600" />
-                ) : (
-                  <Circle className="h-3.5 w-3.5 text-gray-400" />
-                )}
-              </div>
-              <p className="font-medium text-sm">Completed &amp; Payout Released</p>
-              {isCompleted && order.payout_released_at && (
-                <p className="text-xs text-muted mt-0.5">
-                  {formatDate(order.payout_released_at)}
-                </p>
-              )}
-            </div>
-          </div>
-        </div>
-
-        {/* Tracking info (shown if shipped or later) */}
-        {isShipped && order.shipping_tracking_number && (
-          <div className="bg-white border border-border rounded-2xl p-5">
-            <h2 className="font-semibold mb-4 flex items-center gap-2">
-              <Truck className="h-5 w-5 text-blue-600" />
-              Tracking Information
-            </h2>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <p className="text-xs font-medium uppercase tracking-wide text-muted mb-1">
-                  Carrier
-                </p>
-                <p className="text-sm font-medium">
-                  {order.shipping_carrier ?? 'N/A'}
-                </p>
-              </div>
-              <div>
-                <p className="text-xs font-medium uppercase tracking-wide text-muted mb-1">
-                  Tracking Number
-                </p>
-                <p className="text-sm font-medium font-mono">
-                  {order.shipping_tracking_number}
-                </p>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Dispute alert */}
-        {order.status === 'disputed' && (
-          <div className="bg-red-50 border border-red-200 rounded-2xl p-5">
-            <div className="flex items-start gap-3">
-              <AlertTriangle className="h-5 w-5 text-red-600 flex-shrink-0 mt-0.5" />
-              <div>
-                <h2 className="font-semibold text-red-800">Dispute Raised</h2>
-                {dispute ? (
-                  <div className="mt-2 space-y-1">
-                    <p className="text-sm text-red-700">
-                      <span className="font-medium">Type:</span>{' '}
-                      {DISPUTE_TYPE_LABELS[dispute.type] ?? dispute.type}
-                    </p>
-                    <p className="text-sm text-red-700">
-                      <span className="font-medium">Description:</span>{' '}
-                      {dispute.description}
-                    </p>
-                    <p className="text-xs text-red-600 mt-2">
-                      Opened{' '}
-                      {new Date(dispute.created_at).toLocaleDateString('en-AU', {
-                        day: 'numeric',
-                        month: 'short',
-                        year: 'numeric',
-                      })}
-                    </p>
-                  </div>
-                ) : (
-                  <p className="text-sm text-red-700 mt-1">
-                    The buyer has raised a dispute on this order. Our team will review it shortly.
-                  </p>
-                )}
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Ship form (only when status is 'paid') */}
-        {order.status === 'paid' && (
-          <div className="bg-white border border-border rounded-2xl p-5">
-            <h2 className="font-semibold mb-1">Mark as Shipped</h2>
-            <p className="text-sm text-muted mb-5">
-              Enter your shipping details below to notify the buyer.
+                Opened{' '}
+                {new Date(dispute.created_at).toLocaleDateString('en-AU', {
+                  day: 'numeric',
+                  month: 'short',
+                  year: 'numeric',
+                })}
+              </p>
+            </>
+          ) : (
+            <p
+              style={{
+                fontSize: '0.9rem',
+                fontWeight: 300,
+                color: 'var(--color-stone-dark)',
+                lineHeight: 1.6,
+              }}
+            >
+              The buyer has raised a dispute. Our team will be in touch
+              shortly.
             </p>
+          )}
+        </section>
+      )}
 
-            <form onSubmit={handleShipOrder} className="space-y-4">
-              {/* Tracking number */}
-              <div>
-                <label
-                  htmlFor="tracking_number"
-                  className="block text-sm font-medium mb-1.5"
-                >
-                  Tracking Number <span className="text-red-500">*</span>
-                </label>
-                <input
-                  id="tracking_number"
-                  type="text"
-                  required
-                  value={trackingNumber}
-                  onChange={(e) => setTrackingNumber(e.target.value)}
-                  placeholder="e.g. AP123456789AU"
-                  className="w-full px-3.5 py-2.5 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-accent/30 focus:border-accent"
-                />
-              </div>
+      {/* Ship form */}
+      {order.status === 'paid' && (
+        <section style={{ marginBottom: 'clamp(2.4rem, 4vw, 3.4rem)' }}>
+          <p style={{ ...KICKER, marginBottom: '1rem' }}>— Dispatch —</p>
+          <h2
+            className="font-serif"
+            style={{
+              fontSize: 'clamp(1.4rem, 2.6vw, 1.9rem)',
+              lineHeight: 1.2,
+              color: 'var(--color-ink)',
+              fontWeight: 400,
+              marginBottom: '0.7rem',
+            }}
+          >
+            Mark this work as <em style={{ fontStyle: 'italic' }}>on its way.</em>
+          </h2>
+          <p
+            style={{
+              fontSize: '0.9rem',
+              fontWeight: 300,
+              color: 'var(--color-stone-dark)',
+              lineHeight: 1.6,
+              marginBottom: '2rem',
+              maxWidth: '52ch',
+            }}
+          >
+            Enter tracking details below — the buyer is notified, and your
+            payout is released when the work is confirmed delivered.
+          </p>
 
-              {/* Carrier */}
-              <div>
-                <label
-                  htmlFor="carrier"
-                  className="block text-sm font-medium mb-1.5"
-                >
-                  Carrier <span className="text-red-500">*</span>
-                </label>
-                <select
-                  id="carrier"
-                  required
-                  value={carrier}
-                  onChange={(e) => setCarrier(e.target.value)}
-                  className="w-full px-3.5 py-2.5 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-accent/30 focus:border-accent bg-white"
-                >
-                  <option value="">Select a carrier</option>
-                  {CARRIERS.map((c) => (
-                    <option key={c} value={c}>
-                      {c}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Packaging photo */}
-              <div>
-                <label
-                  htmlFor="packaging_photo"
-                  className="block text-sm font-medium mb-1.5"
-                >
-                  Packaging Photo{' '}
-                  <span className="text-muted font-normal">(optional)</span>
-                </label>
-                <input
-                  id="packaging_photo"
-                  type="file"
-                  accept="image/*"
-                  onChange={(e) =>
-                    setPackagingPhoto(e.target.files?.[0] ?? null)
-                  }
-                  className="w-full text-sm text-muted file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-gray-100 file:text-gray-700 hover:file:bg-gray-200"
-                />
-                <p className="text-xs text-muted mt-1">
-                  Helps resolve disputes if the buyer claims damage during shipping.
-                </p>
-              </div>
-
-              {/* Submit */}
-              <button
-                type="submit"
-                disabled={submitting || !trackingNumber.trim() || !carrier}
-                className="inline-flex items-center justify-center gap-2 w-full px-5 py-3 bg-primary text-white text-sm font-semibold rounded-lg hover:bg-primary-light transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          <form
+            onSubmit={handleShipOrder}
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '1.8rem',
+              maxWidth: '40rem',
+            }}
+          >
+            <div>
+              <label
+                htmlFor="tracking_number"
+                style={{ ...KICKER, display: 'block', marginBottom: '0.6rem' }}
               >
-                {submitting ? (
-                  <>
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    Confirming...
-                  </>
-                ) : (
-                  <>
-                    <Truck className="h-4 w-4" />
-                    Confirm Shipped
-                  </>
-                )}
-              </button>
-            </form>
-          </div>
-        )}
-      </div>
-    </div>
+                Tracking number
+              </label>
+              <input
+                id="tracking_number"
+                type="text"
+                required
+                value={trackingNumber}
+                onChange={(e) => setTrackingNumber(e.target.value)}
+                placeholder="AP123456789AU"
+                className="commission-field"
+              />
+            </div>
+
+            <div>
+              <label
+                htmlFor="carrier"
+                style={{ ...KICKER, display: 'block', marginBottom: '0.6rem' }}
+              >
+                Carrier
+              </label>
+              <select
+                id="carrier"
+                required
+                value={carrier}
+                onChange={(e) => setCarrier(e.target.value)}
+                className="commission-field"
+              >
+                <option value="">Select a carrier</option>
+                {CARRIERS.map((c) => (
+                  <option key={c} value={c}>
+                    {c}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label
+                htmlFor="packaging_photo"
+                style={{ ...KICKER, display: 'block', marginBottom: '0.6rem' }}
+              >
+                Packaging photo · optional
+              </label>
+              <input
+                id="packaging_photo"
+                type="file"
+                accept="image/*"
+                onChange={(e) =>
+                  setPackagingPhoto(e.target.files?.[0] ?? null)
+                }
+                style={{
+                  display: 'block',
+                  width: '100%',
+                  padding: '0.7rem 0',
+                  fontSize: '0.85rem',
+                  color: 'var(--color-stone-dark)',
+                  fontStyle: 'italic',
+                }}
+              />
+              <p
+                className="font-serif"
+                style={{
+                  marginTop: '0.4rem',
+                  fontSize: '0.78rem',
+                  fontStyle: 'italic',
+                  color: 'var(--color-stone)',
+                }}
+              >
+                Evidence of careful packaging — useful if a dispute is raised.
+              </p>
+            </div>
+
+            <button
+              type="submit"
+              disabled={submitting || !trackingNumber.trim() || !carrier}
+              className="artwork-primary-cta"
+              style={{ alignSelf: 'flex-start' }}
+            >
+              {submitting ? 'Confirming…' : 'Confirm dispatch'}
+            </button>
+          </form>
+        </section>
+      )}
+    </PageShell>
   );
 }
 
-// ── Page wrapper with params resolution ──
+// ── Wrapper ──
 
 export default function ArtistOrderDetailPage({
   params,
@@ -612,24 +884,11 @@ export default function ArtistOrderDetailPage({
     params.then((p) => setOrderId(p.id));
   }, [params]);
 
-  if (authLoading) return <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '60vh' }}><div style={{ width: 32, height: 32, border: '3px solid #E5E2DB', borderTopColor: '#2C2C2A', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} /><style>{'@keyframes spin { to { transform: rotate(360deg) } }'}</style></div>;
-
-  if (!orderId) {
-    return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <Loader2 className="h-6 w-6 animate-spin text-muted" />
-      </div>
-    );
-  }
+  if (authLoading) return <EditorialSpinner />;
+  if (!orderId) return <EditorialSpinner />;
 
   return (
-    <Suspense
-      fallback={
-        <div className="flex items-center justify-center min-h-[60vh]">
-          <Loader2 className="h-6 w-6 animate-spin text-muted" />
-        </div>
-      }
-    >
+    <Suspense fallback={<EditorialSpinner />}>
       <OrderContent orderId={orderId} />
     </Suspense>
   );

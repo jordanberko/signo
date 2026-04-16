@@ -1,7 +1,6 @@
 'use client';
 
-import { useCallback, useRef, useState } from 'react';
-import { Camera, Loader2, X } from 'lucide-react';
+import { useCallback, useRef, useState, type CSSProperties } from 'react';
 import Image from 'next/image';
 import { getInitials } from '@/lib/utils';
 
@@ -22,6 +21,12 @@ const ACCEPTED = '.jpg,.jpeg,.png,.webp';
 const ACCEPTED_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 const MAX_SIZE_MB = 10;
 
+const SERIF_ITALIC: CSSProperties = {
+  fontFamily: 'var(--font-serif), Georgia, serif',
+  fontStyle: 'italic',
+  fontWeight: 400,
+};
+
 export default function AvatarUpload({
   currentUrl = null,
   userName = '',
@@ -40,19 +45,18 @@ export default function AvatarUpload({
     async (file: File) => {
       setError('');
 
-      // Validate type
       if (!ACCEPTED_TYPES.includes(file.type)) {
         setError('Please use a JPG, PNG, or WebP image.');
         return;
       }
 
-      // Validate size
       if (file.size > MAX_SIZE_MB * 1024 * 1024) {
-        setError(`Image too large (${(file.size / 1024 / 1024).toFixed(1)} MB). Max is ${MAX_SIZE_MB} MB.`);
+        setError(
+          `Image too large (${(file.size / 1024 / 1024).toFixed(1)} MB). Max is ${MAX_SIZE_MB} MB.`
+        );
         return;
       }
 
-      // Show preview immediately
       const previewUrl = URL.createObjectURL(file);
       setPreview(previewUrl);
       setUploading(true);
@@ -85,92 +89,191 @@ export default function AvatarUpload({
   const displayUrl = preview || avatarUrl;
 
   return (
-    <div className="flex flex-col items-center gap-3">
-      {/* Avatar circle */}
-      <div className="relative group" style={{ width: size, height: size }}>
+    <div
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        gap: '1rem',
+      }}
+    >
+      {/* ── Portrait frame (square, hairline ink border) ── */}
+      <div
+        style={{
+          position: 'relative',
+          width: size,
+          height: size,
+          background: 'var(--color-cream)',
+          border: '1px solid var(--color-border-strong)',
+          overflow: 'hidden',
+        }}
+      >
+        {displayUrl ? (
+          <Image
+            src={displayUrl}
+            alt="Avatar"
+            width={size}
+            height={size}
+            style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+          />
+        ) : (
+          <div
+            style={{
+              width: '100%',
+              height: '100%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              background: 'var(--color-cream)',
+            }}
+          >
+            <span
+              className="font-serif"
+              style={{
+                fontSize: size * 0.32,
+                fontWeight: 400,
+                color: 'var(--color-stone-dark)',
+                fontStyle: 'italic',
+                letterSpacing: '-0.01em',
+              }}
+            >
+              {userName ? getInitials(userName) : '—'}
+            </span>
+          </div>
+        )}
+
+        {/* Upload progress overlay — typographic */}
+        {uploading && (
+          <div
+            style={{
+              position: 'absolute',
+              inset: 0,
+              background: 'rgba(26, 26, 24, 0.55)',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '0.4rem',
+              padding: '0.6rem',
+            }}
+          >
+            <p
+              style={{
+                ...SERIF_ITALIC,
+                fontSize: '0.95rem',
+                color: 'var(--color-warm-white)',
+                margin: 0,
+              }}
+            >
+              Uploading…
+            </p>
+            <div
+              style={{
+                width: '70%',
+                height: 1,
+                background: 'rgba(252, 251, 248, 0.25)',
+                overflow: 'hidden',
+              }}
+            >
+              <div
+                style={{
+                  width: `${progress}%`,
+                  height: '100%',
+                  background: 'var(--color-warm-white)',
+                  transition: 'width 350ms cubic-bezier(0.22, 1, 0.36, 1)',
+                }}
+              />
+            </div>
+          </div>
+        )}
+      </div>
+
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept={ACCEPTED}
+        style={{ display: 'none' }}
+        onChange={(e) => {
+          const file = e.target.files?.[0];
+          if (file) handleFileSelect(file);
+          e.target.value = '';
+        }}
+      />
+
+      {/* ── Action links ── */}
+      {!uploading && (
         <div
-          className="w-full h-full rounded-full overflow-hidden border-2 border-border bg-muted-bg transition-colors duration-200 group-hover:border-accent/40"
+          style={{
+            display: 'flex',
+            gap: '1.5rem',
+            alignItems: 'baseline',
+          }}
         >
-          {displayUrl ? (
-            <Image
-              src={displayUrl}
-              alt="Avatar"
-              width={size}
-              height={size}
-              className="w-full h-full object-cover"
-            />
-          ) : (
-            <div className="w-full h-full flex items-center justify-center bg-accent-subtle">
-              <span
-                className="font-editorial font-medium text-accent-dark"
-                style={{ fontSize: size * 0.3 }}
-              >
-                {userName ? getInitials(userName) : '?'}
-              </span>
-            </div>
-          )}
-
-          {/* Upload progress overlay */}
-          {uploading && (
-            <div className="absolute inset-0 rounded-full bg-black/40 flex items-center justify-center backdrop-blur-[2px]">
-              <div className="flex flex-col items-center gap-1">
-                <Loader2 className="h-6 w-6 text-white animate-spin" />
-                <span className="text-[10px] text-white font-medium">{progress}%</span>
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Camera button — click to upload */}
-        {!uploading && (
           <button
             type="button"
             onClick={() => fileInputRef.current?.click()}
-            className="absolute bottom-0 right-0 w-9 h-9 bg-white border-2 border-border rounded-full flex items-center justify-center shadow-sm hover:border-accent hover:bg-accent-subtle transition-all duration-200"
+            style={{
+              ...SERIF_ITALIC,
+              background: 'transparent',
+              border: 'none',
+              color: 'var(--color-ink)',
+              fontSize: '0.95rem',
+              cursor: 'pointer',
+              padding: 0,
+              borderBottom: '1px solid var(--color-stone)',
+              paddingBottom: '0.15rem',
+              transition: 'border-color 200ms cubic-bezier(0.22, 1, 0.36, 1)',
+            }}
+            onMouseOver={(e) =>
+              (e.currentTarget.style.borderBottomColor = 'var(--color-ink)')
+            }
+            onMouseOut={(e) =>
+              (e.currentTarget.style.borderBottomColor = 'var(--color-stone)')
+            }
           >
-            <Camera className="h-4 w-4 text-muted" />
+            {avatarUrl ? '— Change portrait' : '— Add portrait'}
           </button>
-        )}
 
-        {/* Remove button */}
-        {displayUrl && !uploading && (
-          <button
-            type="button"
-            onClick={removeAvatar}
-            className="absolute top-0 right-0 w-7 h-7 bg-white border-2 border-border rounded-full flex items-center justify-center shadow-sm opacity-0 group-hover:opacity-100 hover:border-error hover:bg-error hover:text-white transition-all duration-200"
-          >
-            <X className="h-3 w-3" />
-          </button>
-        )}
-
-        {/* Hidden file input */}
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept={ACCEPTED}
-          className="hidden"
-          onChange={(e) => {
-            const file = e.target.files?.[0];
-            if (file) handleFileSelect(file);
-            e.target.value = '';
-          }}
-        />
-      </div>
-
-      {/* Label */}
-      <button
-        type="button"
-        onClick={() => fileInputRef.current?.click()}
-        disabled={uploading}
-        className="text-xs text-accent-dark font-medium hover:text-accent-light transition-colors disabled:opacity-50"
-      >
-        {avatarUrl ? 'Change photo' : 'Upload photo'}
-      </button>
-
-      {/* Error */}
-      {error && (
-        <p className="text-xs text-error text-center max-w-[200px] animate-fade-in">{error}</p>
+          {displayUrl && (
+            <button
+              type="button"
+              onClick={removeAvatar}
+              style={{
+                ...SERIF_ITALIC,
+                background: 'transparent',
+                border: 'none',
+                color: 'var(--color-stone-dark)',
+                fontSize: '0.92rem',
+                cursor: 'pointer',
+                padding: 0,
+              }}
+              onMouseOver={(e) => (e.currentTarget.style.color = 'var(--color-ink)')}
+              onMouseOut={(e) =>
+                (e.currentTarget.style.color = 'var(--color-stone-dark)')
+              }
+            >
+              Remove
+            </button>
+          )}
+        </div>
       )}
+
+      {/* ── Error notice ── */}
+      {error && (
+        <p
+          style={{
+            ...SERIF_ITALIC,
+            fontSize: '0.88rem',
+            color: 'var(--color-terracotta, #c45d3e)',
+            textAlign: 'center',
+            maxWidth: 240,
+            margin: 0,
+          }}
+        >
+          {error}
+        </p>
+      )}
+
     </div>
   );
 }

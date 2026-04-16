@@ -1,104 +1,171 @@
+'use client';
+
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import NewsletterSignup from '@/components/ui/NewsletterSignup';
 
+/**
+ * Huxley-style informational footer.
+ *
+ * Intentionally quiet: serif wordmark, hairline divider, four link columns
+ * in small uppercase labels, stone-dark link colour, terracotta hover.
+ * No cards, no badges, no gradients, no illustrations.
+ */
 export default function Footer() {
+  const pathname = usePathname();
+  if (pathname.startsWith('/admin')) return null;
+
   return (
-    <footer className="bg-cream border-t border-border">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 md:py-20">
-        <div className="grid grid-cols-1 md:grid-cols-12 gap-12">
-          {/* Brand */}
-          <div className="md:col-span-2 space-y-5">
-            <h3 className="font-editorial text-3xl font-semibold tracking-wide text-primary">SIGNO</h3>
-            <p className="text-sm text-muted leading-relaxed max-w-xs">
-              A curated Australian art marketplace built on fairness.
-              Artists keep 100% of every sale.
-            </p>
-            {/* TODO: Add social links once accounts are created */}
-          </div>
-
-          {/* Explore */}
-          <div className="md:col-span-2 space-y-4">
-            <h4 className="text-xs font-semibold tracking-[0.2em] uppercase text-warm-gray">Explore</h4>
-            <nav className="flex flex-col gap-3">
-              <Link href="/browse" className="text-sm text-muted hover:text-primary transition-colors">
-                Browse Art
-              </Link>
-              <Link href="/how-it-works" className="text-sm text-muted hover:text-primary transition-colors">
-                How It Works
-              </Link>
-              <Link href="/about" className="text-sm text-muted hover:text-primary transition-colors">
-                About Signo
-              </Link>
-            </nav>
-          </div>
-
-          {/* Sell */}
-          <div className="md:col-span-2 space-y-4">
-            <h4 className="text-xs font-semibold tracking-[0.2em] uppercase text-warm-gray">Sell</h4>
-            <nav className="flex flex-col gap-3">
-              <Link href="/register" className="text-sm text-muted hover:text-primary transition-colors">
-                Start Selling
-              </Link>
-              <Link href="/seller-guide" className="text-sm text-muted hover:text-primary transition-colors">
-                Seller Guide
-              </Link>
-              <Link href="/pricing" className="text-sm text-muted hover:text-primary transition-colors">
-                Pricing Info
-              </Link>
-            </nav>
-          </div>
-
-          {/* Business */}
-          <div className="md:col-span-2 space-y-4">
-            <h4 className="text-xs font-semibold tracking-[0.2em] uppercase text-warm-gray">Business</h4>
-            <nav className="flex flex-col gap-3">
-              <Link href="/trade" className="text-sm text-muted hover:text-primary transition-colors">
-                Trade Enquiries
-              </Link>
-            </nav>
-          </div>
-
-          {/* Support */}
-          <div className="md:col-span-2 space-y-4">
-            <h4 className="text-xs font-semibold tracking-[0.2em] uppercase text-warm-gray">Support</h4>
-            <nav className="flex flex-col gap-3">
-              <Link href="/contact" className="text-sm text-muted hover:text-primary transition-colors">
-                Contact Us
-              </Link>
-              <Link href="/returns" className="text-sm text-muted hover:text-primary transition-colors">
-                Returns Policy
-              </Link>
-              <Link href="/privacy" className="text-sm text-muted hover:text-primary transition-colors">
-                Privacy
-              </Link>
-              <Link href="/terms" className="text-sm text-muted hover:text-primary transition-colors">
-                Terms of Service
-              </Link>
-            </nav>
-          </div>
-
-          {/* Newsletter signup */}
-          <div className="md:col-span-2 space-y-4">
-            <h4 className="text-xs font-semibold tracking-[0.2em] uppercase text-warm-gray">Stay in Touch</h4>
-            <p className="text-sm text-muted leading-relaxed">
-              New artists and collections, delivered to your inbox.
+    <footer
+      className="w-full"
+      style={{
+        background: 'var(--color-warm-white)',
+        borderTop: '1px solid var(--color-border)',
+        color: 'var(--color-stone-dark)',
+      }}
+    >
+      <div className="px-6 sm:px-10 pt-16 sm:pt-20 pb-10">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-[1.5fr_repeat(4,1fr)] gap-x-8 gap-y-12">
+          {/* Brand column */}
+          <div className="col-span-2 sm:col-span-3 lg:col-span-1" style={{ maxWidth: 320 }}>
+            <div
+              className="font-serif"
+              style={{
+                fontSize: '1.6rem',
+                color: 'var(--color-ink)',
+                letterSpacing: '-0.01em',
+                marginBottom: '0.9rem',
+              }}
+            >
+              Signo
+            </div>
+            <p
+              style={{
+                fontSize: '0.82rem',
+                fontWeight: 300,
+                lineHeight: 1.6,
+                color: 'var(--color-stone-dark)',
+                marginBottom: '1.4rem',
+              }}
+            >
+              A curated Australian art marketplace. Artists keep 100% of every
+              sale.
             </p>
             <NewsletterSignup />
           </div>
-        </div>
-      </div>
 
-      {/* Bottom bar */}
-      <div className="border-t border-border">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex flex-col sm:flex-row items-center justify-between gap-4">
-          <p className="text-xs text-warm-gray">
-            &copy; {new Date().getFullYear()} Signo. All rights reserved.
-          </p>
-          <p className="text-xs text-warm-gray/60">
-            Made with care in Australia
-          </p>
+          <FooterColumn
+            heading="Explore"
+            links={[
+              { href: '/browse', label: 'Browse art' },
+              { href: '/artists', label: 'Artists' },
+              { href: '/collections', label: 'Collections' },
+              { href: '/just-sold', label: 'Recently acquired' },
+              { href: '/how-it-works', label: 'How it works' },
+              { href: '/about', label: 'About' },
+            ]}
+          />
+
+          <FooterColumn
+            heading="Sell"
+            links={[
+              { href: '/register', label: 'Start selling' },
+              { href: '/seller-guide', label: 'Seller guide' },
+              { href: '/pricing', label: 'Pricing' },
+              { href: '/trade', label: 'Trade enquiries' },
+            ]}
+          />
+
+          <FooterColumn
+            heading="Support"
+            links={[
+              { href: '/contact', label: 'Contact' },
+              { href: '/returns', label: 'Returns' },
+              { href: '/privacy', label: 'Privacy' },
+              { href: '/terms', label: 'Terms' },
+            ]}
+          />
+
+          <FooterColumn
+            heading="Studio"
+            links={[
+              { href: '/art-advisory', label: 'Art advisory' },
+              { href: 'mailto:hello@signoart.com.au', label: 'hello@signoart.com.au' },
+            ]}
+          />
+        </div>
+
+        {/* Bottom bar */}
+        <div
+          className="mt-14 pt-8 flex flex-col sm:flex-row justify-between gap-3"
+          style={{
+            borderTop: '1px solid var(--color-border)',
+            fontSize: '0.7rem',
+            fontWeight: 300,
+            letterSpacing: '0.04em',
+            color: 'var(--color-stone)',
+          }}
+        >
+          <span>© {new Date().getFullYear()} Signo. All rights reserved.</span>
+          <span>Melbourne, Australia</span>
+          <a
+            href="#top"
+            onClick={(e) => { e.preventDefault(); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+            className="font-serif"
+            style={{
+              fontSize: '0.78rem',
+              fontStyle: 'italic',
+              color: 'var(--color-stone-dark)',
+              textDecoration: 'none',
+              cursor: 'pointer',
+            }}
+          >
+            Back to top
+          </a>
         </div>
       </div>
     </footer>
+  );
+}
+
+function FooterColumn({
+  heading,
+  links,
+}: {
+  heading: string;
+  links: { href: string; label: string }[];
+}) {
+  return (
+    <div>
+      <h4
+        style={{
+          fontSize: '0.66rem',
+          fontWeight: 500,
+          letterSpacing: '0.18em',
+          textTransform: 'uppercase',
+          color: 'var(--color-stone)',
+          marginBottom: '1.1rem',
+        }}
+      >
+        {heading}
+      </h4>
+      <ul className="list-none p-0 m-0 flex flex-col gap-2.5">
+        {links.map((l) => (
+          <li key={l.href + l.label}>
+            <Link
+              href={l.href}
+              className="no-underline footer-link"
+              style={{
+                fontSize: '0.82rem',
+                fontWeight: 300,
+                display: 'inline-block',
+              }}
+            >
+              {l.label}
+            </Link>
+          </li>
+        ))}
+      </ul>
+    </div>
   );
 }

@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
-import { ArrowRight } from 'lucide-react';
 import { formatPrice } from '@/lib/utils';
 
 interface SoldArtwork {
@@ -25,13 +24,13 @@ function timeAgo(dateString: string): string {
 
   if (seconds < 60) return 'Just now';
   const minutes = Math.floor(seconds / 60);
-  if (minutes < 60) return `${minutes} minute${minutes !== 1 ? 's' : ''} ago`;
+  if (minutes < 60) return `${minutes} min ago`;
   const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours} hour${hours !== 1 ? 's' : ''} ago`;
+  if (hours < 24) return `${hours} hr ago`;
   const days = Math.floor(hours / 24);
-  if (days < 30) return `${days} day${days !== 1 ? 's' : ''} ago`;
+  if (days < 30) return `${days} ${days === 1 ? 'day' : 'days'} ago`;
   const weeks = Math.floor(days / 7);
-  return `${weeks} week${weeks !== 1 ? 's' : ''} ago`;
+  return `${weeks} ${weeks === 1 ? 'wk' : 'wks'} ago`;
 }
 
 const PAGE_SIZE = 30;
@@ -49,7 +48,6 @@ export default function JustSoldPage() {
         const json = await res.json();
         const data = (json.data || []) as SoldArtwork[];
         setArtworks(data);
-        // If we got exactly the limit, there might be more
         setHasMore(data.length >= limit);
       }
     } catch (err) {
@@ -70,145 +68,250 @@ export default function JustSoldPage() {
   }
 
   return (
-    <div className="min-h-screen">
-      {/* Header */}
-      <section className="pt-16 pb-10 md:pt-24 md:pb-14">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <p className="text-accent-dark text-xs font-semibold tracking-[0.2em] uppercase mb-3">
-            Recent Sales
-          </p>
-          <h1 className="font-editorial text-4xl md:text-5xl lg:text-6xl font-medium text-primary">
-            Just Sold
-          </h1>
-          <p className="mt-4 text-lg text-muted max-w-md mx-auto">
-            See what collectors are buying on Signo.
-          </p>
-        </div>
-      </section>
+    <div style={{ background: 'var(--color-warm-white)' }}>
+      {/* ── Editorial header ── */}
+      <header
+        className="px-6 sm:px-10"
+        style={{
+          paddingTop: 'clamp(4rem, 9vw, 7rem)',
+          paddingBottom: 'clamp(2.5rem, 5vw, 4rem)',
+        }}
+      >
+        <p
+          style={{
+            fontSize: '0.68rem',
+            letterSpacing: '0.22em',
+            textTransform: 'uppercase',
+            color: 'var(--color-stone)',
+            marginBottom: '1.2rem',
+          }}
+        >
+          The Ledger
+        </p>
+        <h1
+          className="font-serif"
+          style={{
+            fontSize: 'clamp(2.6rem, 6vw, 4.8rem)',
+            lineHeight: 1.02,
+            letterSpacing: '-0.015em',
+            color: 'var(--color-ink)',
+            fontWeight: 400,
+            maxWidth: '22ch',
+          }}
+        >
+          Recently <em style={{ fontStyle: 'italic' }}>placed</em> — works already in their new homes.
+        </h1>
+        <p
+          style={{
+            marginTop: '1.6rem',
+            fontSize: '0.92rem',
+            fontWeight: 300,
+            lineHeight: 1.6,
+            color: 'var(--color-stone-dark)',
+            maxWidth: '46ch',
+          }}
+        >
+          {!loading && artworks.length > 0
+            ? `${artworks.length} ${artworks.length === 1 ? 'work' : 'works'} shown. Every sale goes directly to the studio — Signo takes no commission.`
+            : 'Every sale goes directly to the studio — Signo takes no commission.'}
+        </p>
+      </header>
 
-      {/* Grid */}
-      <section className="pb-20 md:pb-28">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          {loading ? (
-            /* Loading skeleton */
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-5 gap-y-10">
-              {Array.from({ length: 6 }).map((_, i) => (
-                <div key={i} className="animate-pulse">
-                  <div className="aspect-[4/5] bg-sand rounded-lg" />
-                  <div className="pt-4 space-y-2">
-                    <div className="h-4 bg-sand rounded w-3/4" />
-                    <div className="h-3 bg-sand/60 rounded w-1/2" />
-                    <div className="h-4 bg-sand rounded w-1/3" />
-                  </div>
-                </div>
+      <div style={{ borderTop: '1px solid var(--color-border)' }} />
+
+      {/* ── Ledger ── */}
+      <section
+        className="px-6 sm:px-10"
+        style={{ paddingTop: '3rem', paddingBottom: '6rem' }}
+      >
+        {loading ? (
+          <p
+            className="font-serif"
+            style={{
+              fontSize: '1.1rem',
+              fontStyle: 'italic',
+              color: 'var(--color-stone)',
+              fontWeight: 300,
+            }}
+          >
+            Loading the ledger…
+          </p>
+        ) : artworks.length === 0 ? (
+          <div style={{ maxWidth: '46ch', paddingTop: '2rem', paddingBottom: '4rem' }}>
+            <p
+              className="font-serif"
+              style={{
+                fontSize: 'clamp(1.6rem, 3vw, 2.2rem)',
+                lineHeight: 1.15,
+                color: 'var(--color-ink)',
+              }}
+            >
+              No recent sales to record.
+            </p>
+            <p
+              style={{
+                marginTop: '1rem',
+                marginBottom: '2rem',
+                fontSize: '0.88rem',
+                color: 'var(--color-stone-dark)',
+                fontWeight: 300,
+                lineHeight: 1.6,
+              }}
+            >
+              When a work finds its home, it is logged here.
+            </p>
+            <Link href="/browse" className="editorial-link">
+              Browse current works
+            </Link>
+          </div>
+        ) : (
+          <>
+            <ul className="list-none p-0 m-0">
+              {artworks.map((item, i) => (
+                <SoldRow key={item.artworkId} item={item} isFirst={i === 0} />
               ))}
-            </div>
-          ) : artworks.length === 0 ? (
-            /* Empty state */
-            <div className="text-center py-20">
-              <p className="text-muted text-lg mb-6">No recent sales to show yet.</p>
-              <Link
-                href="/browse"
-                className="inline-flex items-center gap-2 px-6 py-3 bg-accent text-white font-semibold rounded-full hover:bg-accent-dark transition-colors"
-              >
-                Browse Artwork
-                <ArrowRight className="h-4 w-4" />
-              </Link>
-            </div>
-          ) : (
-            <>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-5 gap-y-10">
-                {artworks.map((item) => (
-                  <SoldCard key={item.artworkId} item={item} />
-                ))}
-              </div>
+              <li style={{ borderTop: '1px solid var(--color-border)', height: 0 }} />
+            </ul>
 
-              {hasMore && (
-                <div className="text-center mt-12">
-                  <button
-                    onClick={handleLoadMore}
-                    disabled={loadingMore}
-                    className="inline-flex items-center gap-2 px-6 py-3 border border-border text-primary font-medium rounded-full hover:bg-cream transition-colors disabled:opacity-50"
-                  >
-                    {loadingMore ? 'Loading...' : 'Load more'}
-                  </button>
-                </div>
-              )}
-            </>
-          )}
-        </div>
+            {hasMore && (
+              <div style={{ marginTop: '3.5rem' }}>
+                <button
+                  onClick={handleLoadMore}
+                  disabled={loadingMore}
+                  className="editorial-link"
+                  style={{
+                    background: 'transparent',
+                    cursor: loadingMore ? 'default' : 'pointer',
+                    opacity: loadingMore ? 0.55 : 1,
+                  }}
+                >
+                  {loadingMore ? 'Loading…' : 'Load earlier sales'}
+                </button>
+              </div>
+            )}
+          </>
+        )}
       </section>
     </div>
   );
 }
 
-function SoldCard({ item }: { item: SoldArtwork }) {
+function SoldRow({ item, isFirst }: { item: SoldArtwork; isFirst: boolean }) {
   const hasDimensions = item.widthCm && item.heightCm;
 
   return (
-    <div className="group relative rounded-[10px] bg-white border border-border overflow-hidden transition-all duration-300 ease-out md:hover:-translate-y-1 md:hover:shadow-[0_16px_48px_rgba(0,0,0,0.08)]">
-      {/* Image */}
+    <li
+      style={{
+        borderTop: '1px solid var(--color-border)',
+        borderTopWidth: isFirst ? '1px' : '1px',
+      }}
+    >
       <Link
         href={`/artwork/${item.artworkId}`}
-        className="block overflow-hidden aspect-[4/5] bg-muted-bg relative"
+        className="artist-row"
+        style={{
+          display: 'grid',
+          gridTemplateColumns: '72px minmax(0,1fr) auto',
+          gap: 'clamp(1rem, 3vw, 2.4rem)',
+          alignItems: 'center',
+          padding: '1.6rem 0',
+          textDecoration: 'none',
+        }}
       >
-        {item.imageUrl ? (
-          <img
-            src={item.imageUrl}
-            alt={item.title}
-            className="block w-full h-full object-cover transition-transform duration-500 ease-out md:group-hover:scale-[1.03]"
-            loading="lazy"
-          />
-        ) : (
-          <div className="w-full h-full bg-gradient-to-br from-muted-bg to-border flex items-center justify-center">
-            <span className="text-warm-gray text-xs tracking-widest uppercase">No image</span>
-          </div>
-        )}
-
-        {/* Sold badge */}
-        <span className="absolute top-3 left-3 bg-black/60 text-white text-xs font-medium px-2 py-0.5 rounded-full">
-          Sold
-        </span>
-      </Link>
-
-      {/* Info */}
-      <div className="p-4 space-y-1.5">
-        <Link href={`/artwork/${item.artworkId}`} className="block">
-          <h3 className="font-editorial font-medium text-foreground truncate hover:text-accent transition-colors duration-200 text-[15px] leading-snug">
-            {item.title}
-          </h3>
-        </Link>
-
-        <Link
-          href={`/artists/${item.artistId}`}
-          className="block text-[13px] text-muted hover:text-accent transition-colors duration-200"
+        {/* Thumbnail */}
+        <div
+          className="relative flex-shrink-0"
+          style={{
+            width: 72,
+            height: 90,
+            background: 'var(--color-cream)',
+            overflow: 'hidden',
+          }}
         >
-          {item.artistName}
-        </Link>
+          {item.imageUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={item.imageUrl}
+              alt={item.title}
+              className="w-full h-full object-cover"
+              style={{ filter: 'grayscale(12%)' }}
+              loading="lazy"
+            />
+          ) : null}
+        </div>
 
-        {(item.medium || hasDimensions) && (
-          <div className="flex flex-wrap gap-1.5 pt-0.5">
-            {item.medium && (
-              <span className="px-2 py-0.5 bg-sand rounded text-[11.5px] text-muted leading-relaxed">
-                {item.medium}
-              </span>
-            )}
-            {hasDimensions && (
-              <span className="px-2 py-0.5 bg-sand rounded text-[11.5px] text-muted leading-relaxed">
-                {Math.round(item.widthCm!)} &times; {Math.round(item.heightCm!)} cm
-              </span>
-            )}
-          </div>
-        )}
+        {/* Title · artist · details */}
+        <div className="min-w-0">
+          <h2
+            className="font-serif"
+            style={{
+              fontSize: 'clamp(1.15rem, 1.8vw, 1.55rem)',
+              lineHeight: 1.2,
+              color: 'var(--color-ink)',
+              fontWeight: 400,
+              letterSpacing: '-0.01em',
+              margin: 0,
+              whiteSpace: 'nowrap',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+            }}
+          >
+            {item.title}
+          </h2>
+          <p
+            style={{
+              fontSize: '0.82rem',
+              color: 'var(--color-stone-dark)',
+              fontStyle: 'italic',
+              marginTop: '0.25rem',
+              fontWeight: 300,
+            }}
+          >
+            {item.artistName}
+          </p>
+          {(item.medium || hasDimensions) && (
+            <p
+              style={{
+                marginTop: '0.35rem',
+                fontSize: '0.72rem',
+                color: 'var(--color-stone)',
+                fontWeight: 300,
+                letterSpacing: '0.02em',
+              }}
+            >
+              {item.medium}
+              {item.medium && hasDimensions ? ' · ' : ''}
+              {hasDimensions && `${Math.round(item.widthCm!)} × ${Math.round(item.heightCm!)} cm`}
+            </p>
+          )}
+        </div>
 
-        <p className="font-semibold text-foreground text-lg pt-0.5 tracking-tight">
-          Sold for {formatPrice(item.price)}
-        </p>
-
-        <p className="text-xs text-muted">
-          {timeAgo(item.soldAt)}
-        </p>
-      </div>
-    </div>
+        {/* Price + time */}
+        <div style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
+          <p
+            className="font-serif"
+            style={{
+              fontSize: 'clamp(1rem, 1.4vw, 1.2rem)',
+              color: 'var(--color-ink)',
+              fontWeight: 400,
+              margin: 0,
+            }}
+          >
+            {formatPrice(item.price)}
+          </p>
+          <p
+            style={{
+              marginTop: '0.35rem',
+              fontSize: '0.62rem',
+              letterSpacing: '0.2em',
+              textTransform: 'uppercase',
+              color: 'var(--color-stone)',
+            }}
+          >
+            {timeAgo(item.soldAt)}
+          </p>
+        </div>
+      </Link>
+    </li>
   );
 }

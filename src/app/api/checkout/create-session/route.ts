@@ -170,7 +170,7 @@ export async function POST(request: Request) {
             ? JSON.stringify(shippingAddress)
             : '',
         },
-        success_url: `${appOrigin}/orders/{CHECKOUT_SESSION_ID}?success=true`,
+        success_url: `${appOrigin}/checkout/success?session_id={CHECKOUT_SESSION_ID}`,
         cancel_url: `${appOrigin}/artwork/${artwork.id}`,
       });
     } catch (stripeError) {

@@ -46,17 +46,7 @@ export default function AuthGate({
   if (!authorized) {
     return (
       <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '60vh' }}>
-        <div
-          style={{
-            width: 32,
-            height: 32,
-            border: '3px solid #E8E2D9',
-            borderTopColor: '#2C2C2A',
-            borderRadius: '50%',
-            animation: 'spin 0.6s linear infinite',
-          }}
-        />
-        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+        <span className="editorial-spinner" aria-label="Loading" />
       </div>
     );
   }

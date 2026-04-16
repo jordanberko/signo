@@ -9,29 +9,64 @@ export default function Error({
   reset: () => void;
 }) {
   return (
-    <div className="min-h-[70vh] flex items-center justify-center px-4">
-      <div className="text-center max-w-md">
-        <p className="text-accent-dark text-sm font-medium tracking-[0.2em] uppercase mb-4">
+    <div
+      className="min-h-[80vh] flex items-center"
+      style={{ paddingTop: '8rem' }}
+    >
+      <div className="px-6 sm:px-10 w-full">
+        <div
+          className="mb-6"
+          style={{
+            fontSize: '0.68rem',
+            letterSpacing: '0.18em',
+            textTransform: 'uppercase',
+            color: 'var(--color-stone)',
+            fontWeight: 400,
+          }}
+        >
           Error
-        </p>
-        <h1 className="font-editorial text-3xl md:text-4xl font-semibold text-primary mb-4">
-          Something went wrong
+        </div>
+        <h1
+          className="font-serif"
+          style={{
+            fontSize: 'clamp(2.8rem, 6vw, 5.5rem)',
+            fontWeight: 400,
+            lineHeight: 1.05,
+            letterSpacing: '-0.02em',
+            color: 'var(--color-ink)',
+            maxWidth: 900,
+            margin: 0,
+          }}
+        >
+          Something<br />
+          <em style={{ color: 'var(--color-terracotta)', fontStyle: 'italic' }}>
+            slipped out of frame.
+          </em>
         </h1>
-        <p className="text-muted leading-relaxed mb-8">
-          Please try again. If the problem persists, return to the home page.
+        <p
+          style={{
+            fontSize: '0.9rem',
+            fontWeight: 300,
+            lineHeight: 1.7,
+            color: 'var(--color-stone-dark)',
+            maxWidth: 420,
+            marginTop: '2rem',
+          }}
+        >
+          An unexpected error interrupted this page. You can try reloading, or
+          head back to the home page.
         </p>
-        <div className="flex flex-col sm:flex-row gap-3 justify-center">
+        <div className="mt-10 flex gap-8">
           <button
+            type="button"
             onClick={() => reset()}
-            className="inline-flex items-center justify-center px-6 py-3 bg-primary text-white font-semibold rounded-full hover:bg-primary/90 transition-colors"
+            className="editorial-link bg-transparent border-0 cursor-pointer p-0"
+            style={{ paddingBottom: '0.2rem' }}
           >
-            Try Again
+            Try again
           </button>
-          <Link
-            href="/"
-            className="inline-flex items-center justify-center px-6 py-3 border border-border text-primary font-medium rounded-full hover:bg-cream transition-colors"
-          >
-            Go Home
+          <Link href="/" className="editorial-link no-underline">
+            Return home
           </Link>
         </div>
       </div>

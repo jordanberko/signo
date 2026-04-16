@@ -2,66 +2,6 @@
 
 import { useState, useCallback, useEffect, useMemo } from 'react';
 import Link from 'next/link';
-import {
-  ArrowRight,
-  ArrowLeft,
-  Check,
-  MapPin,
-  Globe,
-  Link2,
-  Sparkles,
-  Package,
-  Clock,
-  Camera,
-  ShieldCheck,
-  Palette,
-  Loader2,
-  CreditCard,
-  Store,
-  MessageCircle,
-  BarChart3,
-  Search,
-  Shield,
-  Upload,
-  Zap,
-  X,
-} from 'lucide-react';
-
-function InstagramIcon({ className }: { className?: string }) {
-  return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <rect width="20" height="20" x="2" y="2" rx="5" ry="5" />
-      <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" />
-      <line x1="17.5" x2="17.51" y1="6.5" y2="6.5" />
-    </svg>
-  );
-}
-
-function TikTokIcon({ className }: { className?: string }) {
-  return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M9 12a4 4 0 1 0 4 4V4a5 5 0 0 0 5 5" />
-    </svg>
-  );
-}
-
-function FacebookIcon({ className }: { className?: string }) {
-  return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z" />
-    </svg>
-  );
-}
-
-function YouTubeIcon({ className }: { className?: string }) {
-  return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M2.5 17a24.12 24.12 0 0 1 0-10 2 2 0 0 1 1.4-1.4 49.56 49.56 0 0 1 16.2 0A2 2 0 0 1 21.5 7a24.12 24.12 0 0 1 0 10 2 2 0 0 1-1.4 1.4 49.55 49.55 0 0 1-16.2 0A2 2 0 0 1 2.5 17" />
-      <path d="m10 15 5-3-5-3z" />
-    </svg>
-  );
-}
-
 import { useAuth } from '@/components/providers/AuthProvider';
 import { useRequireAuth } from '@/lib/hooks/useRequireAuth';
 import AvatarUpload from '@/components/AvatarUpload';
@@ -72,7 +12,7 @@ import { formatPrice, calculateCommission } from '@/lib/utils';
 
 // ── Constants ──
 
-const TOTAL_STEPS = 6; // Welcome (0) + 4 steps + Done (5)
+const TOTAL_STEPS = 6; // 0 welcome, 1–4 steps, 5 done
 const DRAFT_KEY = 'signo_onboarding_draft';
 
 const MEDIUMS = [
@@ -88,14 +28,28 @@ const STYLES = [
 ];
 
 const COMMITMENTS = [
-  { icon: Package, text: 'I will ship all physical items with tracked shipping' },
-  { icon: Clock, text: 'I will ship within 7 days of a sale' },
-  { icon: Camera, text: 'I will photograph packaging before shipping' },
-  { icon: ShieldCheck, text: 'For orders over $500, I will use insured shipping with signature on delivery' },
-  { icon: Palette, text: 'All work I upload is my own original creation' },
+  'Every physical work is dispatched with tracked shipping.',
+  'All sales are dispatched within seven days.',
+  'Packaging is photographed before it leaves the studio.',
+  'Orders over $500 ship insured, signature on delivery.',
+  'Every work uploaded is my own original creation.',
 ];
 
-// ── Draft persistence helpers ──
+const STEP_META = [
+  { num: '01', label: 'Profile' },
+  { num: '02', label: 'Standards' },
+  { num: '03', label: 'First work' },
+  { num: '04', label: 'Payments' },
+];
+
+const KICKER: React.CSSProperties = {
+  fontSize: '0.62rem',
+  letterSpacing: '0.22em',
+  textTransform: 'uppercase',
+  color: 'var(--color-stone)',
+};
+
+// ── Draft persistence ──
 
 interface OnboardingDraft {
   fullName: string;
@@ -110,7 +64,6 @@ interface OnboardingDraft {
   youtube: string;
   website: string;
   agreedToTerms: boolean;
-  // Artwork fields
   artworkId: string;
   artworkImages: string[];
   artworkTitle: string;
@@ -149,6 +102,75 @@ function clearDraft() {
   }
 }
 
+// ── Helpers ──
+
+function EditorialSpinner({ label = 'Loading…' }: { label?: string }) {
+  return (
+    <div
+      style={{
+        minHeight: '60vh',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        background: 'var(--color-warm-white)',
+      }}
+    >
+      <p
+        className="font-serif"
+        style={{ fontStyle: 'italic', fontSize: '0.95rem', color: 'var(--color-stone)' }}
+      >
+        {label}
+      </p>
+    </div>
+  );
+}
+
+function FieldLabel({
+  children,
+  required,
+  aside,
+}: {
+  children: React.ReactNode;
+  required?: boolean;
+  aside?: React.ReactNode;
+}) {
+  return (
+    <p
+      style={{
+        ...KICKER,
+        marginBottom: '0.7rem',
+        display: 'flex',
+        alignItems: 'baseline',
+        justifyContent: 'space-between',
+        gap: '1rem',
+      }}
+    >
+      <span>
+        {children}
+        {required && (
+          <span style={{ marginLeft: '0.4rem', color: 'var(--color-terracotta, #c45d3e)' }}>
+            *
+          </span>
+        )}
+      </span>
+      {aside && (
+        <span
+          className="font-serif"
+          style={{
+            fontStyle: 'italic',
+            fontSize: '0.78rem',
+            color: 'var(--color-stone)',
+            letterSpacing: 0,
+            textTransform: 'none',
+          }}
+        >
+          {aside}
+        </span>
+      )}
+    </p>
+  );
+}
+
 // ── Component ──
 
 export default function ArtistOnboardingPage() {
@@ -156,21 +178,19 @@ export default function ArtistOnboardingPage() {
   const { user, refreshUser } = useAuth();
   const isBuyerUpgrade = user?.role === 'buyer';
 
-  // If user already completed onboarding, redirect to dashboard
   useEffect(() => {
     if (user && user.role === 'artist' && user.onboarding_completed) {
       window.location.href = '/artist/dashboard';
     }
   }, [user]);
 
-  // Load draft from localStorage
   const draft = useMemo(() => loadDraft(), []);
 
-  const [step, setStep] = useState(0); // 0 = welcome
+  const [step, setStep] = useState(0);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
 
-  // Step 1 — Profile & Art
+  // Step 1
   const [fullName, setFullName] = useState(draft.fullName ?? user?.full_name ?? '');
   const [bio, setBio] = useState(draft.bio ?? user?.bio ?? '');
   const [location, setLocation] = useState(draft.location ?? user?.location ?? '');
@@ -183,26 +203,28 @@ export default function ArtistOnboardingPage() {
   const [youtube, setYoutube] = useState(draft.youtube ?? user?.social_links?.youtube ?? '');
   const [website, setWebsite] = useState(draft.website ?? user?.social_links?.website ?? '');
 
-  // Step 2 — Standards
+  // Step 2
   const [agreedToTerms, setAgreedToTerms] = useState(draft.agreedToTerms ?? false);
 
-  // Step 3 — First Artwork
+  // Step 3
   const [artworkId] = useState(draft.artworkId ?? crypto.randomUUID());
   const [artworkImages, setArtworkImages] = useState<string[]>(draft.artworkImages ?? []);
   const [artworkTitle, setArtworkTitle] = useState(draft.artworkTitle ?? '');
   const [artworkDescription, setArtworkDescription] = useState(draft.artworkDescription ?? '');
   const [artworkMedium, setArtworkMedium] = useState(draft.artworkMedium ?? '');
   const [artworkStyle, setArtworkStyle] = useState(draft.artworkStyle ?? '');
-  const [artworkCategory, setArtworkCategory] = useState<'original' | 'print' | 'digital'>(draft.artworkCategory ?? 'original');
+  const [artworkCategory, setArtworkCategory] = useState<'original' | 'print' | 'digital'>(
+    draft.artworkCategory ?? 'original',
+  );
   const [artworkWidth, setArtworkWidth] = useState(draft.artworkWidth ?? '');
   const [artworkHeight, setArtworkHeight] = useState(draft.artworkHeight ?? '');
   const [artworkPrice, setArtworkPrice] = useState(draft.artworkPrice ?? '');
 
-  // Step 4 — Stripe Connect
+  // Step 4
   const [stripeLoading, setStripeLoading] = useState(false);
   const [stripeConnected, setStripeConnected] = useState(false);
 
-  // Sync user data into form when user loads (only if no draft)
+  // Sync from user when no draft
   useEffect(() => {
     if (!user) return;
     if (!draft.fullName && user.full_name) setFullName(user.full_name);
@@ -216,29 +238,26 @@ export default function ArtistOnboardingPage() {
     if (!draft.website && user.social_links?.website) setWebsite(user.social_links.website);
   }, [user, draft]);
 
-  // Pre-fill artwork medium from primary medium selection
   useEffect(() => {
     if (primaryMedium && !artworkMedium) {
       setArtworkMedium(primaryMedium);
     }
   }, [primaryMedium, artworkMedium]);
 
-  // Auto-save draft on changes
   useEffect(() => {
     saveDraft({
       fullName, bio, location, avatarUrl, primaryMedium, selectedStyles,
-      instagram, tiktok, facebook, youtube, website, agreedToTerms, artworkId, artworkImages,
-      artworkTitle, artworkDescription, artworkMedium, artworkStyle,
+      instagram, tiktok, facebook, youtube, website, agreedToTerms, artworkId,
+      artworkImages, artworkTitle, artworkDescription, artworkMedium, artworkStyle,
       artworkCategory, artworkWidth, artworkHeight, artworkPrice,
     });
   }, [
     fullName, bio, location, avatarUrl, primaryMedium, selectedStyles,
-    instagram, tiktok, facebook, youtube, website, agreedToTerms, artworkId, artworkImages,
-    artworkTitle, artworkDescription, artworkMedium, artworkStyle,
+    instagram, tiktok, facebook, youtube, website, agreedToTerms, artworkId,
+    artworkImages, artworkTitle, artworkDescription, artworkMedium, artworkStyle,
     artworkCategory, artworkWidth, artworkHeight, artworkPrice,
   ]);
 
-  // Check Stripe status on mount
   useEffect(() => {
     async function checkStripe() {
       try {
@@ -256,12 +275,14 @@ export default function ArtistOnboardingPage() {
     if (user) checkStripe();
   }, [user]);
 
-  // Validation
   const canProceedStep1 = fullName.trim().length > 0 && bio.trim().length >= 10;
   const canProceedStep2 = agreedToTerms;
-  const canProceedStep3 = artworkImages.length > 0 && artworkTitle.trim().length > 0 && artworkMedium.length > 0 && parseFloat(artworkPrice) >= 1;
+  const canProceedStep3 =
+    artworkImages.length > 0 &&
+    artworkTitle.trim().length > 0 &&
+    artworkMedium.length > 0 &&
+    parseFloat(artworkPrice) >= 1;
 
-  // Upload handlers
   const handleAvatarUpload = useCallback(
     async (file: File, onProgress: (p: number) => void) => {
       if (!user) throw new Error('Not authenticated');
@@ -278,16 +299,16 @@ export default function ArtistOnboardingPage() {
     [user, artworkId],
   );
 
-  // Toggle a style in the multi-select
   function toggleStyle(style: string) {
     setSelectedStyles((prev) =>
       prev.includes(style)
         ? prev.filter((s) => s !== style)
-        : prev.length < 5 ? [...prev, style] : prev,
+        : prev.length < 5
+        ? [...prev, style]
+        : prev,
     );
   }
 
-  // Save profile + artwork + complete onboarding
   async function saveAndComplete(skipArtwork: boolean) {
     if (!user) {
       setError('You appear to be signed out. Please refresh and sign in again.');
@@ -307,7 +328,6 @@ export default function ArtistOnboardingPage() {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 15000);
 
-      // 1. Save profile
       const profileRes = await fetch('/api/profile', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -328,7 +348,6 @@ export default function ArtistOnboardingPage() {
         throw new Error(body.error || 'Failed to save profile');
       }
 
-      // 2. Submit artwork (unless skipped)
       if (!skipArtwork && artworkImages.length > 0 && artworkTitle.trim()) {
         const artworkRes = await fetch('/api/artworks', {
           method: 'POST',
@@ -351,24 +370,22 @@ export default function ArtistOnboardingPage() {
         if (!artworkRes.ok) {
           const body = await artworkRes.json().catch(() => ({}));
           console.warn('[Onboarding] Artwork submit warning:', body.error);
-          // Don't block onboarding completion if artwork fails
         }
       }
 
       clearTimeout(timeoutId);
 
-      // 3. Refresh user context
       try {
         await Promise.race([
           refreshUser(),
           new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 5000)),
         ]);
       } catch {
-        // Profile was saved — proceed even if refresh fails
+        // profile saved even if refresh fails
       }
 
       clearDraft();
-      setStep(5); // Done screen
+      setStep(5);
     } catch (err) {
       console.error('[Onboarding] Save error:', err);
       if (err instanceof DOMException && err.name === 'AbortError') {
@@ -381,7 +398,6 @@ export default function ArtistOnboardingPage() {
     }
   }
 
-  // Stripe Connect
   async function handleConnectStripe() {
     setStripeLoading(true);
     try {
@@ -400,7 +416,6 @@ export default function ArtistOnboardingPage() {
     }
   }
 
-  // Navigation
   function nextStep() {
     setError('');
     setStep((s) => Math.min(s + 1, TOTAL_STEPS));
@@ -411,138 +426,218 @@ export default function ArtistOnboardingPage() {
     setStep((s) => Math.max(s - 1, 0));
   }
 
-  // Price calculation for artwork
   const priceCalc = useMemo(() => {
-    const price = parseFloat(artworkPrice);
-    if (!price || price < 1) return null;
-    return calculateCommission(price);
+    const p = parseFloat(artworkPrice);
+    if (!p || p < 1) return null;
+    return calculateCommission(p);
   }, [artworkPrice]);
 
-  // ── Render ──
-
-  if (authLoading) {
-    return (
-      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '60vh' }}>
-        <div style={{ width: 32, height: 32, border: '3px solid #E5E2DB', borderTopColor: '#2C2C2A', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
-        <style>{'@keyframes spin { to { transform: rotate(360deg) } }'}</style>
-      </div>
-    );
-  }
-
-  const STEP_LABELS = ['Welcome', 'Profile', 'Standards', 'Artwork', 'Payments', 'Done'];
+  if (authLoading) return <EditorialSpinner />;
 
   return (
-    <div className="min-h-[85vh] flex flex-col items-center px-4 py-10">
-      {/* Skip link (header) */}
-      {step > 0 && step < 5 && (
-        <div className="w-full max-w-lg flex justify-end mb-4">
-          <Link
-            href="/artist/dashboard"
-            className="text-xs text-muted hover:text-foreground transition-colors"
-          >
-            Skip for now →
-          </Link>
-        </div>
-      )}
-
-      {/* Progress bar — visible on steps 1-4 */}
-      {step >= 1 && step <= 4 && (
-        <div className="w-full max-w-lg mb-10">
-          <div className="flex items-center justify-between mb-3">
-            {[1, 2, 3, 4].map((s) => (
-              <div key={s} className="flex items-center">
-                <div
-                  className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-medium transition-all duration-300 ${
-                    s < step
-                      ? 'bg-accent text-white'
-                      : s === step
-                      ? 'bg-primary text-white'
-                      : 'bg-muted-bg text-muted'
-                  }`}
-                >
-                  {s < step ? <Check className="h-4 w-4" /> : s}
-                </div>
-                {s < 4 && (
-                  <div
-                    className={`hidden sm:block w-20 md:w-28 h-0.5 mx-2 transition-colors duration-300 ${
-                      s < step ? 'bg-accent' : 'bg-border'
-                    }`}
-                  />
-                )}
-              </div>
-            ))}
-          </div>
-          <div className="flex justify-between text-[11px] text-muted tracking-wide uppercase px-1">
-            <span>Profile</span>
-            <span>Standards</span>
-            <span>Artwork</span>
-            <span>Payments</span>
-          </div>
-        </div>
-      )}
-
-      {/* Step content */}
-      <div className="w-full max-w-lg animate-fade-in">
-
-        {/* ────────────── STEP 0: Welcome ────────────── */}
-        {step === 0 && (
-          <div className="space-y-8 text-center">
-            <div className="flex justify-center">
-              <div className="w-20 h-20 bg-accent-subtle rounded-full flex items-center justify-center">
-                <Palette className="h-9 w-9 text-accent-dark" />
-              </div>
-            </div>
-
-            <div>
-              <h1 className="font-editorial text-3xl md:text-4xl font-semibold">
-                Welcome to Signo
-              </h1>
-              <p className="text-muted mt-3 max-w-sm mx-auto leading-relaxed">
-                Let&apos;s get your artist profile set up and your first artwork listed. This takes about 5 minutes.
-              </p>
-            </div>
-
-            <div className="space-y-3 text-left max-w-xs mx-auto">
-              {[
-                { icon: Palette, label: 'Set up your artist profile' },
-                { icon: ShieldCheck, label: 'Agree to our quality standards' },
-                { icon: Upload, label: 'List your first artwork' },
-                { icon: CreditCard, label: 'Connect payments (optional)' },
-              ].map((item, i) => (
-                <div key={i} className="flex items-center gap-3">
-                  <div className="w-8 h-8 bg-accent-subtle rounded-full flex items-center justify-center flex-shrink-0">
-                    <item.icon className="h-4 w-4 text-accent-dark" />
-                  </div>
-                  <p className="text-sm">{item.label}</p>
-                </div>
-              ))}
-            </div>
-
-            <button
-              type="button"
-              onClick={nextStep}
-              className="px-10 py-3.5 bg-primary text-white font-semibold rounded-full hover:bg-accent transition-colors duration-300 inline-flex items-center gap-2"
+    <div style={{ background: 'var(--color-warm-white)', minHeight: '100vh' }}>
+      <div
+        className="px-6 sm:px-10"
+        style={{
+          maxWidth: '46rem',
+          margin: '0 auto',
+          paddingTop: 'clamp(7.5rem, 10vw, 9.5rem)',
+          paddingBottom: 'clamp(4rem, 7vw, 6rem)',
+        }}
+      >
+        {/* Skip for now (visible 1–4) */}
+        {step > 0 && step < 5 && (
+          <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '1rem' }}>
+            <Link
+              href="/artist/dashboard"
+              className="font-serif"
+              style={{
+                fontStyle: 'italic',
+                fontSize: '0.85rem',
+                color: 'var(--color-stone)',
+                textDecoration: 'none',
+              }}
             >
-              Get Started
-              <ArrowRight className="h-4 w-4" />
+              Skip for now →
+            </Link>
+          </div>
+        )}
+
+        {/* ───── STEP 0: Welcome ───── */}
+        {step === 0 && (
+          <div>
+            <p style={{ ...KICKER, marginBottom: '1rem' }}>— An introduction —</p>
+            <h1
+              className="font-serif"
+              style={{
+                fontSize: 'clamp(2.4rem, 5vw, 3.6rem)',
+                lineHeight: 1.02,
+                letterSpacing: '-0.02em',
+                color: 'var(--color-ink)',
+                fontWeight: 400,
+                marginBottom: '1rem',
+              }}
+            >
+              Welcome to <em style={{ fontStyle: 'italic' }}>Signo.</em>
+            </h1>
+            <p
+              style={{
+                fontSize: '1rem',
+                fontWeight: 300,
+                color: 'var(--color-stone-dark)',
+                lineHeight: 1.65,
+                maxWidth: '52ch',
+                marginBottom: '2.6rem',
+              }}
+            >
+              A short setup, perhaps five minutes, and your studio is live. We&apos;ll
+              take you through four things: your profile, the selling standards we
+              ask everyone to hold, your first work, and payments.
+            </p>
+
+            <ol
+              style={{
+                listStyle: 'none',
+                padding: 0,
+                margin: '0 0 2.6rem',
+                borderTop: '1px solid var(--color-border-strong)',
+              }}
+            >
+              {STEP_META.map((s) => (
+                <li
+                  key={s.num}
+                  style={{
+                    borderBottom: '1px solid var(--color-border)',
+                    display: 'grid',
+                    gridTemplateColumns: '3.2rem 1fr',
+                    alignItems: 'baseline',
+                    gap: '1.4rem',
+                    padding: '1.2rem 0',
+                  }}
+                >
+                  <span
+                    className="font-serif"
+                    style={{
+                      fontStyle: 'italic',
+                      fontSize: '0.9rem',
+                      color: 'var(--color-stone)',
+                    }}
+                  >
+                    {s.num}
+                  </span>
+                  <p
+                    className="font-serif"
+                    style={{
+                      fontSize: '1.05rem',
+                      color: 'var(--color-ink)',
+                      margin: 0,
+                    }}
+                  >
+                    {s.label}
+                  </p>
+                </li>
+              ))}
+            </ol>
+
+            <button type="button" onClick={nextStep} className="artwork-primary-cta">
+              Begin →
             </button>
           </div>
         )}
 
-        {/* ────────────── STEP 1: Profile & Art ────────────── */}
+        {/* ───── Step indicator (1–4) ───── */}
+        {step >= 1 && step <= 4 && (
+          <nav
+            aria-label="Progress"
+            style={{
+              marginBottom: 'clamp(2.4rem, 4vw, 3.4rem)',
+              borderTop: '1px solid var(--color-border)',
+              borderBottom: '1px solid var(--color-border)',
+            }}
+          >
+            <ol
+              style={{
+                display: 'grid',
+                gridTemplateColumns: `repeat(${STEP_META.length}, 1fr)`,
+                margin: 0,
+                padding: 0,
+                listStyle: 'none',
+              }}
+            >
+              {STEP_META.map((s, i) => {
+                const num = i + 1;
+                const done = num < step;
+                const active = num === step;
+                return (
+                  <li
+                    key={s.num}
+                    style={{
+                      borderLeft: i === 0 ? 'none' : '1px solid var(--color-border)',
+                      padding: '1.1rem 0.8rem',
+                      opacity: active || done ? 1 : 0.4,
+                    }}
+                  >
+                    <p
+                      className="font-serif"
+                      style={{
+                        fontStyle: 'italic',
+                        fontSize: '0.85rem',
+                        color: 'var(--color-stone)',
+                        margin: 0,
+                      }}
+                    >
+                      {done ? '✓' : s.num}
+                    </p>
+                    <p
+                      className="font-serif"
+                      style={{
+                        fontSize: '0.95rem',
+                        color: active ? 'var(--color-ink)' : 'var(--color-stone-dark)',
+                        fontStyle: active ? 'italic' : 'normal',
+                        margin: '0.2rem 0 0',
+                      }}
+                    >
+                      {s.label}
+                    </p>
+                  </li>
+                );
+              })}
+            </ol>
+          </nav>
+        )}
+
+        {/* ───── STEP 1: Profile ───── */}
         {step === 1 && (
-          <div className="space-y-8">
-            <div className="text-center">
-              <h1 className="font-editorial text-2xl md:text-3xl font-semibold">
-                Set up your profile
-              </h1>
-              <p className="text-sm text-muted mt-2">
-                Tell buyers about yourself and your art.
-              </p>
-            </div>
+          <div>
+            <p style={{ ...KICKER, marginBottom: '1rem' }}>— Your profile —</p>
+            <h1
+              className="font-serif"
+              style={{
+                fontSize: 'clamp(1.8rem, 3.4vw, 2.4rem)',
+                lineHeight: 1.1,
+                color: 'var(--color-ink)',
+                fontWeight: 400,
+                marginBottom: '0.7rem',
+              }}
+            >
+              Introduce <em style={{ fontStyle: 'italic' }}>yourself.</em>
+            </h1>
+            <p
+              style={{
+                fontSize: '0.92rem',
+                fontWeight: 300,
+                color: 'var(--color-stone-dark)',
+                lineHeight: 1.6,
+                marginBottom: '2.4rem',
+                maxWidth: '52ch',
+              }}
+            >
+              A photograph, a name, a few sentences. Buyers connect with the person
+              as much as the work.
+            </p>
 
             {/* Avatar */}
-            <div className="flex justify-center">
+            <div style={{ display: 'flex', justifyContent: 'flex-start', marginBottom: '2rem' }}>
               <AvatarUpload
                 currentUrl={avatarUrl}
                 userName={fullName}
@@ -552,156 +647,146 @@ export default function ArtistOnboardingPage() {
               />
             </div>
 
-            {/* Full Name */}
-            <div>
-              <label htmlFor="fullName" className="block text-xs font-medium tracking-wide uppercase text-muted mb-2">
-                Display Name <span className="text-error">*</span>
-              </label>
+            <div style={{ marginBottom: '1.8rem' }}>
+              <FieldLabel required>Display name</FieldLabel>
               <input
                 id="fullName"
                 type="text"
                 value={fullName}
                 onChange={(e) => setFullName(e.target.value)}
-                className="w-full px-4 py-3 bg-white border border-border rounded-xl text-sm placeholder:text-warm-gray transition-colors focus:border-accent focus:ring-1 focus:ring-accent/20"
-                placeholder="Your name as it appears to buyers"
+                className="commission-field"
+                placeholder="Your name, as it appears to buyers"
                 autoComplete="name"
               />
             </div>
 
-            {/* Location */}
-            <div>
-              <label htmlFor="location" className="block text-xs font-medium tracking-wide uppercase text-muted mb-2">
-                Location
-              </label>
-              <div className="relative">
-                <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-warm-gray" />
-                <input
-                  id="location"
-                  type="text"
-                  value={location}
-                  onChange={(e) => setLocation(e.target.value)}
-                  className="w-full pl-11 pr-4 py-3 bg-white border border-border rounded-xl text-sm placeholder:text-warm-gray transition-colors focus:border-accent focus:ring-1 focus:ring-accent/20"
-                  placeholder="Melbourne, VIC"
-                />
-              </div>
+            <div style={{ marginBottom: '1.8rem' }}>
+              <FieldLabel>Location</FieldLabel>
+              <input
+                id="location"
+                type="text"
+                value={location}
+                onChange={(e) => setLocation(e.target.value)}
+                className="commission-field"
+                placeholder="Melbourne, VIC"
+              />
             </div>
 
-            {/* Bio */}
-            <div>
-              <label htmlFor="bio" className="block text-xs font-medium tracking-wide uppercase text-muted mb-2">
-                Short Bio <span className="text-error">*</span>
-              </label>
+            <div style={{ marginBottom: '1.8rem' }}>
+              <FieldLabel required aside={`${bio.length}/200`}>Short bio</FieldLabel>
               <textarea
                 id="bio"
                 value={bio}
                 onChange={(e) => setBio(e.target.value.slice(0, 200))}
-                rows={3}
-                className="w-full px-4 py-3 bg-white border border-border rounded-xl text-sm placeholder:text-warm-gray transition-colors resize-none focus:border-accent focus:ring-1 focus:ring-accent/20"
-                placeholder="Share your artistic journey and what inspires your work..."
+                rows={4}
+                className="commission-field"
+                style={{ resize: 'vertical', fontFamily: 'inherit' }}
+                placeholder="Your practice, what inspires you, how you work…"
               />
-              <div className="flex justify-between mt-1.5">
-                <p className="text-xs text-muted">
-                  {bio.length < 10 ? 'Minimum 10 characters' : ''}
-                </p>
-                <p className={`text-xs ${bio.length >= 180 ? 'text-error' : 'text-warm-gray'}`}>
-                  {bio.length}/200
-                </p>
-              </div>
+              <p
+                className="font-serif"
+                style={{
+                  marginTop: '0.5rem',
+                  fontSize: '0.82rem',
+                  fontStyle: 'italic',
+                  color:
+                    bio.length > 0 && bio.trim().length < 10
+                      ? 'var(--color-terracotta)'
+                      : 'var(--color-stone-dark)',
+                }}
+              >
+                <em>A few words on your practice. Ten characters or more.</em>
+              </p>
             </div>
 
-            {/* Primary Medium */}
-            <div>
-              <label htmlFor="primaryMedium" className="block text-xs font-medium tracking-wide uppercase text-muted mb-2">
-                Primary Medium
-              </label>
+            <div style={{ marginBottom: '1.8rem' }}>
+              <FieldLabel>Primary medium</FieldLabel>
               <select
                 id="primaryMedium"
                 value={primaryMedium}
                 onChange={(e) => setPrimaryMedium(e.target.value)}
-                className="w-full px-4 py-3 bg-white border border-border rounded-xl text-sm transition-colors focus:border-accent focus:ring-1 focus:ring-accent/20 appearance-none"
+                className="commission-field"
               >
-                <option value="">Select your primary medium...</option>
+                <option value="">Select your primary medium…</option>
                 {MEDIUMS.map((m) => (
-                  <option key={m} value={m}>{m}</option>
+                  <option key={m} value={m}>
+                    {m}
+                  </option>
                 ))}
               </select>
             </div>
 
-            {/* Styles */}
-            <div>
-              <label className="block text-xs font-medium tracking-wide uppercase text-muted mb-2">
-                Styles you work in <span className="text-warm-gray">(select up to 5)</span>
-              </label>
-              <div className="flex flex-wrap gap-2">
-                {STYLES.map((s) => (
-                  <button
-                    key={s}
-                    type="button"
-                    onClick={() => toggleStyle(s)}
-                    className={`px-3.5 py-1.5 rounded-full text-sm transition-all ${
-                      selectedStyles.includes(s)
-                        ? 'bg-accent text-white font-medium'
-                        : 'bg-white border border-border text-foreground hover:border-accent/40'
-                    }`}
-                  >
-                    {s}
-                  </button>
-                ))}
+            <div style={{ marginBottom: '1.8rem' }}>
+              <FieldLabel aside={`${selectedStyles.length}/5`}>Styles you work in</FieldLabel>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+                {STYLES.map((s) => {
+                  const selected = selectedStyles.includes(s);
+                  return (
+                    <button
+                      key={s}
+                      type="button"
+                      onClick={() => toggleStyle(s)}
+                      className="font-serif"
+                      style={{
+                        fontSize: '0.88rem',
+                        color: selected ? 'var(--color-ink)' : 'var(--color-stone)',
+                        fontStyle: selected ? 'italic' : 'normal',
+                        padding: '0.3rem 0.8rem',
+                        background: 'none',
+                        border: selected
+                          ? '1px solid var(--color-ink)'
+                          : '1px solid var(--color-border)',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      {s}
+                    </button>
+                  );
+                })}
               </div>
             </div>
 
-            {/* Social links */}
-            <div className="space-y-3 pt-2">
-              <p className="text-xs font-medium tracking-wide uppercase text-muted">
-                Social Links <span className="text-warm-gray">(optional)</span>
-              </p>
-              <div className="relative">
-                <InstagramIcon className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-warm-gray" />
+            <div>
+              <FieldLabel aside="Optional">Social links</FieldLabel>
+              <div
+                style={{
+                  display: 'grid',
+                  gap: '0.8rem',
+                }}
+              >
                 <input
                   type="text"
                   value={instagram}
                   onChange={(e) => setInstagram(e.target.value)}
-                  className="w-full pl-11 pr-4 py-3 bg-white border border-border rounded-xl text-sm placeholder:text-warm-gray transition-colors focus:border-accent focus:ring-1 focus:ring-accent/20"
+                  className="commission-field"
                   placeholder="Instagram @handle or URL"
                 />
-              </div>
-              <div className="relative">
-                <TikTokIcon className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-warm-gray" />
                 <input
                   type="text"
                   value={tiktok}
                   onChange={(e) => setTiktok(e.target.value)}
-                  className="w-full pl-11 pr-4 py-3 bg-white border border-border rounded-xl text-sm placeholder:text-warm-gray transition-colors focus:border-accent focus:ring-1 focus:ring-accent/20"
+                  className="commission-field"
                   placeholder="TikTok @handle or URL"
                 />
-              </div>
-              <div className="relative">
-                <FacebookIcon className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-warm-gray" />
                 <input
                   type="text"
                   value={facebook}
                   onChange={(e) => setFacebook(e.target.value)}
-                  className="w-full pl-11 pr-4 py-3 bg-white border border-border rounded-xl text-sm placeholder:text-warm-gray transition-colors focus:border-accent focus:ring-1 focus:ring-accent/20"
+                  className="commission-field"
                   placeholder="Facebook page URL"
                 />
-              </div>
-              <div className="relative">
-                <YouTubeIcon className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-warm-gray" />
                 <input
                   type="text"
                   value={youtube}
                   onChange={(e) => setYoutube(e.target.value)}
-                  className="w-full pl-11 pr-4 py-3 bg-white border border-border rounded-xl text-sm placeholder:text-warm-gray transition-colors focus:border-accent focus:ring-1 focus:ring-accent/20"
+                  className="commission-field"
                   placeholder="YouTube channel URL"
                 />
-              </div>
-              <div className="relative">
-                <Globe className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-warm-gray" />
                 <input
                   type="url"
                   value={website}
                   onChange={(e) => setWebsite(e.target.value)}
-                  className="w-full pl-11 pr-4 py-3 bg-white border border-border rounded-xl text-sm placeholder:text-warm-gray transition-colors focus:border-accent focus:ring-1 focus:ring-accent/20"
+                  className="commission-field"
                   placeholder="https://yourwebsite.com"
                 />
               </div>
@@ -709,88 +794,191 @@ export default function ArtistOnboardingPage() {
           </div>
         )}
 
-        {/* ────────────── STEP 2: Standards ────────────── */}
+        {/* ───── STEP 2: Standards ───── */}
         {step === 2 && (
-          <div className="space-y-8">
-            <div className="text-center">
-              <h1 className="font-editorial text-2xl md:text-3xl font-semibold">
-                Our selling standards
-              </h1>
-              <p className="text-sm text-muted mt-2">
-                These commitments protect buyers and build trust in the Signo community.
-              </p>
-            </div>
+          <div>
+            <p style={{ ...KICKER, marginBottom: '1rem' }}>— Selling standards —</p>
+            <h1
+              className="font-serif"
+              style={{
+                fontSize: 'clamp(1.8rem, 3.4vw, 2.4rem)',
+                lineHeight: 1.1,
+                color: 'var(--color-ink)',
+                fontWeight: 400,
+                marginBottom: '0.7rem',
+              }}
+            >
+              The shared <em style={{ fontStyle: 'italic' }}>promise.</em>
+            </h1>
+            <p
+              style={{
+                fontSize: '0.92rem',
+                fontWeight: 300,
+                color: 'var(--color-stone-dark)',
+                lineHeight: 1.6,
+                marginBottom: '2.4rem',
+                maxWidth: '52ch',
+              }}
+            >
+              A few commitments that protect buyers and keep the Signo wall one
+              worth trusting. Read them, agree, and we&apos;ll move on.
+            </p>
 
-            <div className="space-y-3">
-              {COMMITMENTS.map((c, i) => (
-                <div
+            <ol
+              style={{
+                listStyle: 'none',
+                padding: 0,
+                margin: '0 0 2rem',
+                borderTop: '1px solid var(--color-border)',
+              }}
+            >
+              {COMMITMENTS.map((text, i) => (
+                <li
                   key={i}
-                  className="flex items-start gap-4 p-4 bg-white border border-border rounded-xl"
+                  style={{
+                    borderBottom: '1px solid var(--color-border)',
+                    display: 'grid',
+                    gridTemplateColumns: '3rem 1fr',
+                    gap: '1rem',
+                    alignItems: 'baseline',
+                    padding: '1.1rem 0',
+                  }}
                 >
-                  <div className="w-9 h-9 bg-accent-subtle rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
-                    <c.icon className="h-4 w-4 text-accent-dark" />
-                  </div>
-                  <p className="text-sm leading-relaxed">{c.text}</p>
-                </div>
+                  <span
+                    className="font-serif"
+                    style={{
+                      fontStyle: 'italic',
+                      fontSize: '0.9rem',
+                      color: 'var(--color-stone)',
+                    }}
+                  >
+                    {String(i + 1).padStart(2, '0')}
+                  </span>
+                  <p
+                    className="font-serif"
+                    style={{
+                      fontSize: '1rem',
+                      color: 'var(--color-ink)',
+                      lineHeight: 1.55,
+                      margin: 0,
+                    }}
+                  >
+                    {text}
+                  </p>
+                </li>
               ))}
-            </div>
+            </ol>
 
-            <label className="flex items-start gap-3 cursor-pointer group p-4 bg-cream border border-border rounded-xl">
-              <div className="relative flex-shrink-0 mt-0.5">
-                <input
-                  type="checkbox"
-                  checked={agreedToTerms}
-                  onChange={(e) => setAgreedToTerms(e.target.checked)}
-                  className="sr-only peer"
-                />
-                <div className="w-5 h-5 border-2 border-border rounded transition-colors peer-checked:border-accent peer-checked:bg-accent group-hover:border-warm-gray flex items-center justify-center">
-                  {agreedToTerms && <Check className="h-3 w-3 text-white" />}
-                </div>
-              </div>
-              <span className="text-sm leading-tight">
+            {/* Agreement */}
+            <label
+              style={{
+                display: 'flex',
+                alignItems: 'flex-start',
+                gap: '0.9rem',
+                padding: '1.2rem 0',
+                borderTop: '1px solid var(--color-ink)',
+                borderBottom: '1px solid var(--color-ink)',
+                cursor: 'pointer',
+                marginBottom: '2rem',
+              }}
+            >
+              <input
+                type="checkbox"
+                checked={agreedToTerms}
+                onChange={(e) => setAgreedToTerms(e.target.checked)}
+                style={{ marginTop: '0.3rem', accentColor: 'var(--color-ink)' }}
+              />
+              <span
+                className="font-serif"
+                style={{
+                  fontSize: '0.95rem',
+                  color: 'var(--color-ink)',
+                  lineHeight: 1.55,
+                }}
+              >
                 I agree to Signo&apos;s{' '}
-                <Link href="/terms" className="text-accent-dark underline">
+                <Link
+                  href="/terms"
+                  style={{
+                    color: 'var(--color-ink)',
+                    textDecoration: 'underline',
+                  }}
+                >
                   artist terms
                 </Link>{' '}
-                and shipping standards outlined above.
+                and to the shipping standards above.
               </span>
             </label>
 
-            {/* Subscription info — collapsed into a single card */}
-            <div className="p-5 bg-white border border-border rounded-xl space-y-3">
-              <div className="flex items-center gap-3">
-                <div className="w-9 h-9 bg-accent-subtle rounded-full flex items-center justify-center flex-shrink-0">
-                  <CreditCard className="h-4 w-4 text-accent-dark" />
-                </div>
-                <div>
-                  <p className="text-sm font-medium">Free until your first sale — then $30/month</p>
-                  <p className="text-xs text-muted mt-0.5">0% commission. You keep 100% of every sale. No payment needed to get started.</p>
-                </div>
-              </div>
-              <p className="text-xs text-warm-gray">
-                We&apos;ll notify you before billing begins. No credit card required.
+            {/* Pricing note */}
+            <section
+              style={{
+                padding: '1.4rem 0',
+                borderTop: '1px solid var(--color-border)',
+                borderBottom: '1px solid var(--color-border)',
+              }}
+            >
+              <p style={{ ...KICKER, marginBottom: '0.6rem' }}>— The cost —</p>
+              <p
+                className="font-serif"
+                style={{
+                  fontSize: '1rem',
+                  fontStyle: 'italic',
+                  color: 'var(--color-ink)',
+                  lineHeight: 1.55,
+                  marginBottom: '0.5rem',
+                }}
+              >
+                Free until your first sale, then $30 a month.
               </p>
-            </div>
+              <p
+                style={{
+                  fontSize: '0.88rem',
+                  fontWeight: 300,
+                  color: 'var(--color-stone-dark)',
+                  lineHeight: 1.65,
+                }}
+              >
+                Zero commission, always. You keep one hundred percent of every
+                sale. No payment is required to start, and we&apos;ll let you
+                know before billing begins.
+              </p>
+            </section>
           </div>
         )}
 
-        {/* ────────────── STEP 3: First Artwork ────────────── */}
+        {/* ───── STEP 3: First Artwork ───── */}
         {step === 3 && (
-          <div className="space-y-6">
-            <div className="text-center">
-              <h1 className="font-editorial text-2xl md:text-3xl font-semibold">
-                List your first artwork
-              </h1>
-              <p className="text-sm text-muted mt-2">
-                Upload at least one photo and set your price. You can add more details later.
-              </p>
-            </div>
+          <div>
+            <p style={{ ...KICKER, marginBottom: '1rem' }}>— First work —</p>
+            <h1
+              className="font-serif"
+              style={{
+                fontSize: 'clamp(1.8rem, 3.4vw, 2.4rem)',
+                lineHeight: 1.1,
+                color: 'var(--color-ink)',
+                fontWeight: 400,
+                marginBottom: '0.7rem',
+              }}
+            >
+              Place a work <em style={{ fontStyle: 'italic' }}>on the wall.</em>
+            </h1>
+            <p
+              style={{
+                fontSize: '0.92rem',
+                fontWeight: 300,
+                color: 'var(--color-stone-dark)',
+                lineHeight: 1.6,
+                marginBottom: '2.4rem',
+                maxWidth: '52ch',
+              }}
+            >
+              A photograph, a title, a price. You can always add more detail
+              later — or skip this step entirely.
+            </p>
 
-            {/* Image upload */}
-            <div>
-              <label className="block text-xs font-medium tracking-wide uppercase text-muted mb-2">
-                Photos <span className="text-error">*</span>
-              </label>
+            <div style={{ marginBottom: '1.8rem' }}>
+              <FieldLabel required>Photographs</FieldLabel>
               <ImageUpload
                 maxFiles={4}
                 maxSizeMB={15}
@@ -800,388 +988,609 @@ export default function ArtistOnboardingPage() {
               />
             </div>
 
-            {/* Title */}
-            <div>
-              <label htmlFor="artTitle" className="block text-xs font-medium tracking-wide uppercase text-muted mb-2">
-                Title <span className="text-error">*</span>
-              </label>
+            <div style={{ marginBottom: '1.8rem' }}>
+              <FieldLabel required>Title</FieldLabel>
               <input
                 id="artTitle"
                 type="text"
                 value={artworkTitle}
                 onChange={(e) => setArtworkTitle(e.target.value)}
-                className="w-full px-4 py-3 bg-white border border-border rounded-xl text-sm placeholder:text-warm-gray transition-colors focus:border-accent focus:ring-1 focus:ring-accent/20"
-                placeholder="Give your artwork a title"
+                className="commission-field"
+                placeholder="Give your work a title"
               />
             </div>
 
-            {/* Description */}
-            <div>
-              <label htmlFor="artDesc" className="block text-xs font-medium tracking-wide uppercase text-muted mb-2">
-                Description
-              </label>
+            <div style={{ marginBottom: '1.8rem' }}>
+              <FieldLabel aside={`${artworkDescription.length}/1000`}>Description</FieldLabel>
               <textarea
                 id="artDesc"
                 value={artworkDescription}
                 onChange={(e) => setArtworkDescription(e.target.value.slice(0, 1000))}
-                rows={3}
-                className="w-full px-4 py-3 bg-white border border-border rounded-xl text-sm placeholder:text-warm-gray transition-colors resize-none focus:border-accent focus:ring-1 focus:ring-accent/20"
-                placeholder="Tell the story behind this piece..."
+                rows={4}
+                className="commission-field"
+                style={{ resize: 'vertical', fontFamily: 'inherit' }}
+                placeholder="Tell the story behind this piece…"
               />
             </div>
 
-            {/* Medium & Style — row */}
-            <div className="grid grid-cols-2 gap-4">
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(14rem, 1fr))',
+                gap: '1.4rem',
+                marginBottom: '1.8rem',
+              }}
+            >
               <div>
-                <label htmlFor="artMedium" className="block text-xs font-medium tracking-wide uppercase text-muted mb-2">
-                  Medium <span className="text-error">*</span>
-                </label>
+                <FieldLabel required>Medium</FieldLabel>
                 <select
                   id="artMedium"
                   value={artworkMedium}
                   onChange={(e) => setArtworkMedium(e.target.value)}
-                  className="w-full px-4 py-3 bg-white border border-border rounded-xl text-sm transition-colors focus:border-accent focus:ring-1 focus:ring-accent/20 appearance-none"
+                  className="commission-field"
                 >
-                  <option value="">Select...</option>
+                  <option value="">Select…</option>
                   {MEDIUMS.map((m) => (
-                    <option key={m} value={m}>{m}</option>
+                    <option key={m} value={m}>
+                      {m}
+                    </option>
                   ))}
                 </select>
               </div>
               <div>
-                <label htmlFor="artStyle" className="block text-xs font-medium tracking-wide uppercase text-muted mb-2">
-                  Style
-                </label>
+                <FieldLabel>Style</FieldLabel>
                 <select
                   id="artStyle"
                   value={artworkStyle}
                   onChange={(e) => setArtworkStyle(e.target.value)}
-                  className="w-full px-4 py-3 bg-white border border-border rounded-xl text-sm transition-colors focus:border-accent focus:ring-1 focus:ring-accent/20 appearance-none"
+                  className="commission-field"
                 >
-                  <option value="">Select...</option>
+                  <option value="">Select…</option>
                   {STYLES.map((s) => (
-                    <option key={s} value={s}>{s}</option>
+                    <option key={s} value={s}>
+                      {s}
+                    </option>
                   ))}
                 </select>
               </div>
             </div>
 
-            {/* Category */}
-            <div>
-              <label className="block text-xs font-medium tracking-wide uppercase text-muted mb-2">
-                Artwork Type
-              </label>
-              <div className="grid grid-cols-3 gap-2">
-                {(['original', 'print', 'digital'] as const).map((cat) => (
-                  <button
-                    key={cat}
-                    type="button"
-                    onClick={() => setArtworkCategory(cat)}
-                    className={`py-2.5 rounded-xl text-sm font-medium transition-all ${
-                      artworkCategory === cat
-                        ? 'bg-accent text-white'
-                        : 'bg-white border border-border text-foreground hover:border-accent/40'
-                    }`}
-                  >
-                    {cat === 'original' ? 'Original' : cat === 'print' ? 'Print' : 'Digital'}
-                  </button>
-                ))}
-              </div>
+            <div style={{ marginBottom: '1.8rem' }}>
+              <FieldLabel>Type</FieldLabel>
+              <ul
+                style={{
+                  listStyle: 'none',
+                  padding: 0,
+                  margin: 0,
+                  borderTop: '1px solid var(--color-border)',
+                }}
+              >
+                {(['original', 'print', 'digital'] as const).map((cat) => {
+                  const selected = artworkCategory === cat;
+                  const label =
+                    cat === 'original' ? 'Original' : cat === 'print' ? 'Print' : 'Digital';
+                  return (
+                    <li
+                      key={cat}
+                      style={{ borderBottom: '1px solid var(--color-border)' }}
+                    >
+                      <button
+                        type="button"
+                        onClick={() => setArtworkCategory(cat)}
+                        style={{
+                          width: '100%',
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'baseline',
+                          padding: '0.9rem 0',
+                          background: 'none',
+                          border: 'none',
+                          cursor: 'pointer',
+                        }}
+                      >
+                        <span
+                          className="font-serif"
+                          style={{
+                            fontSize: '1rem',
+                            color: 'var(--color-ink)',
+                            fontStyle: selected ? 'italic' : 'normal',
+                          }}
+                        >
+                          {label}
+                        </span>
+                        <span
+                          className="font-serif"
+                          style={{
+                            fontStyle: 'italic',
+                            fontSize: '0.88rem',
+                            color: selected ? 'var(--color-ink)' : 'var(--color-stone)',
+                          }}
+                        >
+                          {selected ? '✓ Selected' : 'Select'}
+                        </span>
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
             </div>
 
-            {/* Dimensions — row */}
-            <div className="grid grid-cols-2 gap-4">
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(10rem, 1fr))',
+                gap: '1.4rem',
+                marginBottom: '1.8rem',
+              }}
+            >
               <div>
-                <label htmlFor="artWidth" className="block text-xs font-medium tracking-wide uppercase text-muted mb-2">
-                  Width (cm)
-                </label>
+                <FieldLabel>Width (cm)</FieldLabel>
                 <input
                   id="artWidth"
                   type="number"
                   value={artworkWidth}
                   onChange={(e) => setArtworkWidth(e.target.value)}
-                  className="w-full px-4 py-3 bg-white border border-border rounded-xl text-sm placeholder:text-warm-gray transition-colors focus:border-accent focus:ring-1 focus:ring-accent/20"
+                  className="commission-field"
                   placeholder="e.g. 60"
                   min="1"
                 />
               </div>
               <div>
-                <label htmlFor="artHeight" className="block text-xs font-medium tracking-wide uppercase text-muted mb-2">
-                  Height (cm)
-                </label>
+                <FieldLabel>Height (cm)</FieldLabel>
                 <input
                   id="artHeight"
                   type="number"
                   value={artworkHeight}
                   onChange={(e) => setArtworkHeight(e.target.value)}
-                  className="w-full px-4 py-3 bg-white border border-border rounded-xl text-sm placeholder:text-warm-gray transition-colors focus:border-accent focus:ring-1 focus:ring-accent/20"
+                  className="commission-field"
                   placeholder="e.g. 80"
                   min="1"
                 />
               </div>
             </div>
 
-            {/* Price */}
             <div>
-              <label htmlFor="artPrice" className="block text-xs font-medium tracking-wide uppercase text-muted mb-2">
-                Price (AUD) <span className="text-error">*</span>
-              </label>
-              <div className="relative">
-                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm text-muted">$</span>
+              <FieldLabel required>Price (AUD)</FieldLabel>
+              <div style={{ position: 'relative' }}>
+                <span
+                  className="font-serif"
+                  style={{
+                    position: 'absolute',
+                    left: '0.4rem',
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    color: 'var(--color-stone)',
+                  }}
+                >
+                  $
+                </span>
                 <input
                   id="artPrice"
                   type="number"
                   value={artworkPrice}
                   onChange={(e) => setArtworkPrice(e.target.value)}
-                  className="w-full pl-8 pr-4 py-3 bg-white border border-border rounded-xl text-sm placeholder:text-warm-gray transition-colors focus:border-accent focus:ring-1 focus:ring-accent/20"
+                  className="commission-field"
+                  style={{ paddingLeft: '1.4rem' }}
                   placeholder="0.00"
                   min="1"
                   step="0.01"
                 />
               </div>
               {priceCalc && (
-                <div className="mt-2 p-3 bg-accent-subtle/50 rounded-lg text-xs text-muted space-y-0.5">
-                  <div className="flex justify-between">
-                    <span>Sale price</span>
-                    <span>{formatPrice(parseFloat(artworkPrice))}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Stripe fee (~1.75% + 30c)</span>
-                    <span>−{formatPrice(priceCalc.stripeFee)}</span>
-                  </div>
-                  <div className="flex justify-between font-medium text-foreground pt-1 border-t border-border">
-                    <span>You receive</span>
-                    <span>{formatPrice(priceCalc.artistPayout)}</span>
-                  </div>
-                </div>
+                <dl
+                  style={{
+                    margin: '1rem 0 0',
+                    padding: '1rem 0 0',
+                    borderTop: '1px solid var(--color-border)',
+                  }}
+                >
+                  {[
+                    { term: 'Sale price', val: formatPrice(parseFloat(artworkPrice)) },
+                    { term: 'Stripe fee', val: `− ${formatPrice(priceCalc.stripeFee)}` },
+                    { term: 'You receive', val: formatPrice(priceCalc.artistPayout) },
+                  ].map((row, i, arr) => (
+                    <div
+                      key={row.term}
+                      style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'baseline',
+                        padding: '0.5rem 0',
+                        borderBottom:
+                          i === arr.length - 1
+                            ? 'none'
+                            : '1px solid var(--color-border)',
+                      }}
+                    >
+                      <dt style={KICKER}>{row.term}</dt>
+                      <dd
+                        className="font-serif"
+                        style={{
+                          margin: 0,
+                          fontSize: i === arr.length - 1 ? '1.1rem' : '0.9rem',
+                          color: 'var(--color-ink)',
+                        }}
+                      >
+                        {row.val}
+                      </dd>
+                    </div>
+                  ))}
+                </dl>
               )}
             </div>
           </div>
         )}
 
-        {/* ────────────── STEP 4: Connect Payments ────────────── */}
+        {/* ───── STEP 4: Payments ───── */}
         {step === 4 && (
-          <div className="space-y-8">
-            <div className="text-center">
-              <h1 className="font-editorial text-2xl md:text-3xl font-semibold">
-                Connect payments
-              </h1>
-              <p className="text-sm text-muted mt-2">
-                Connect Stripe to receive payouts when your artwork sells.
-              </p>
-            </div>
+          <div>
+            <p style={{ ...KICKER, marginBottom: '1rem' }}>— Payments —</p>
+            <h1
+              className="font-serif"
+              style={{
+                fontSize: 'clamp(1.8rem, 3.4vw, 2.4rem)',
+                lineHeight: 1.1,
+                color: 'var(--color-ink)',
+                fontWeight: 400,
+                marginBottom: '0.7rem',
+              }}
+            >
+              Connect your <em style={{ fontStyle: 'italic' }}>bank.</em>
+            </h1>
+            <p
+              style={{
+                fontSize: '0.92rem',
+                fontWeight: 300,
+                color: 'var(--color-stone-dark)',
+                lineHeight: 1.6,
+                marginBottom: '2.4rem',
+                maxWidth: '52ch',
+              }}
+            >
+              Stripe handles the plumbing. When a work sells and the inspection
+              window closes, the funds land in your account directly.
+            </p>
 
-            <div className="bg-white border border-border rounded-2xl p-6 space-y-5">
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 bg-accent-subtle rounded-xl flex items-center justify-center flex-shrink-0">
-                  <Zap className="h-6 w-6 text-accent-dark" />
-                </div>
-                <div>
-                  <p className="font-medium">Stripe Connect</p>
-                  <p className="text-xs text-muted mt-0.5">Secure payments powered by Stripe</p>
-                </div>
-              </div>
-
-              <div className="h-px bg-border" />
-
-              <div className="space-y-2.5">
+            <section
+              style={{
+                marginBottom: '2rem',
+                padding: '1.6rem 0',
+                borderTop: '1px solid var(--color-border-strong)',
+                borderBottom: '1px solid var(--color-border-strong)',
+              }}
+            >
+              <p style={{ ...KICKER, marginBottom: '1rem' }}>— What you get —</p>
+              <ul
+                style={{
+                  listStyle: 'none',
+                  padding: 0,
+                  margin: 0,
+                }}
+              >
                 {[
-                  'You keep 100% of every sale',
-                  'Only Stripe\'s processing fee (~1.75% + 30c)',
-                  'Direct deposits to your bank account',
-                  'Daily payouts once connected',
+                  'You keep every cent of every sale.',
+                  'Only Stripe&apos;s processing fee applies (~1.75% + 30¢).',
+                  'Direct deposits straight to your bank account.',
+                  'Daily payouts, once you&apos;re connected.',
                 ].map((text, i) => (
-                  <div key={i} className="flex items-center gap-2.5">
-                    <Check className="h-4 w-4 text-accent flex-shrink-0" />
-                    <p className="text-sm">{text}</p>
-                  </div>
+                  <li
+                    key={i}
+                    className="font-serif"
+                    style={{
+                      fontSize: '0.95rem',
+                      color: 'var(--color-ink)',
+                      lineHeight: 1.55,
+                      padding: '0.5rem 0',
+                      display: 'flex',
+                      gap: '0.7rem',
+                    }}
+                  >
+                    <span
+                      style={{
+                        fontStyle: 'italic',
+                        color: 'var(--color-stone)',
+                      }}
+                    >
+                      —
+                    </span>
+                    <span dangerouslySetInnerHTML={{ __html: text }} />
+                  </li>
                 ))}
+              </ul>
+            </section>
+
+            {stripeConnected ? (
+              <div
+                style={{
+                  padding: '1.2rem 0',
+                  borderTop: '1px solid var(--color-ink)',
+                  borderBottom: '1px solid var(--color-ink)',
+                  marginBottom: '2rem',
+                }}
+              >
+                <p style={{ ...KICKER, marginBottom: '0.4rem' }}>— Connected —</p>
+                <p
+                  className="font-serif"
+                  style={{
+                    fontSize: '0.95rem',
+                    fontStyle: 'italic',
+                    color: 'var(--color-ink)',
+                  }}
+                >
+                  ✓ Stripe is connected and ready to receive payments.
+                </p>
               </div>
-
-              <div className="h-px bg-border" />
-
-              {stripeConnected ? (
-                <div className="flex items-center gap-3 p-3.5 bg-green-50 border border-green-200 rounded-xl">
-                  <Check className="h-5 w-5 text-green-600 flex-shrink-0" />
-                  <p className="text-sm text-green-700 font-medium">Stripe is connected and ready to receive payments.</p>
-                </div>
-              ) : (
+            ) : (
+              <div style={{ marginBottom: '1.6rem' }}>
                 <button
                   type="button"
                   onClick={handleConnectStripe}
                   disabled={stripeLoading}
-                  className="w-full py-3.5 bg-[#635BFF] text-white font-semibold rounded-xl hover:bg-[#5851DB] transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                  className="artwork-primary-cta"
                 >
-                  {stripeLoading ? (
-                    <>
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                      Connecting...
-                    </>
-                  ) : (
-                    <>
-                      Connect with Stripe
-                      <ArrowRight className="h-4 w-4" />
-                    </>
-                  )}
+                  {stripeLoading ? 'Connecting…' : 'Connect with Stripe →'}
                 </button>
-              )}
-            </div>
+              </div>
+            )}
 
-            <p className="text-xs text-center text-warm-gray">
+            <p
+              className="font-serif"
+              style={{
+                fontSize: '0.85rem',
+                fontStyle: 'italic',
+                color: 'var(--color-stone)',
+                marginBottom: '1.6rem',
+              }}
+            >
               You can always connect Stripe later from your{' '}
-              <Link href="/artist/settings/payouts" className="text-accent-dark underline">
+              <Link
+                href="/artist/settings/payouts"
+                style={{ color: 'var(--color-ink)', textDecoration: 'underline' }}
+              >
                 payout settings
-              </Link>.
+              </Link>
+              .
             </p>
 
             {error && (
-              <div className="p-3.5 bg-error/5 border border-error/20 text-error text-sm rounded-xl animate-fade-in">
-                {error}
+              <div
+                style={{
+                  padding: '1.2rem 0',
+                  borderTop: '1px solid var(--color-terracotta, #c45d3e)',
+                  borderBottom: '1px solid var(--color-terracotta, #c45d3e)',
+                  marginBottom: '1.6rem',
+                }}
+              >
+                <p
+                  className="font-serif"
+                  style={{
+                    fontSize: '0.92rem',
+                    fontStyle: 'italic',
+                    color: 'var(--color-terracotta, #c45d3e)',
+                  }}
+                >
+                  — {error}
+                </p>
               </div>
             )}
           </div>
         )}
 
-        {/* ────────────── STEP 5: Done ────────────── */}
+        {/* ───── STEP 5: Done ───── */}
         {step === 5 && (
-          <div className="space-y-8 text-center">
-            <div className="flex justify-center">
-              <div className="w-20 h-20 bg-accent-subtle rounded-full flex items-center justify-center animate-scale-in">
-                <Sparkles className="h-9 w-9 text-accent-dark" />
-              </div>
-            </div>
-
-            <div>
-              <h1 className="font-editorial text-2xl md:text-3xl font-semibold">
-                You&apos;re all set!
-              </h1>
-              {artworkImages.length > 0 ? (
-                <p className="text-sm text-muted mt-2 max-w-sm mx-auto">
-                  Your artwork is under review. We&apos;ll notify you when it goes live — usually within 24-48 hours.
-                </p>
-              ) : (
-                <p className="text-sm text-muted mt-2 max-w-sm mx-auto">
-                  Your artist profile is ready. Upload your first artwork when you&apos;re ready.
-                </p>
-              )}
-            </div>
+          <div>
+            <p style={{ ...KICKER, marginBottom: '1rem' }}>— All set —</p>
+            <h1
+              className="font-serif"
+              style={{
+                fontSize: 'clamp(2.2rem, 4.4vw, 3.2rem)',
+                lineHeight: 1.05,
+                letterSpacing: '-0.02em',
+                color: 'var(--color-ink)',
+                fontWeight: 400,
+                marginBottom: '1rem',
+              }}
+            >
+              Your studio is <em style={{ fontStyle: 'italic' }}>live.</em>
+            </h1>
+            {artworkImages.length > 0 ? (
+              <p
+                style={{
+                  fontSize: '1rem',
+                  fontWeight: 300,
+                  color: 'var(--color-stone-dark)',
+                  lineHeight: 1.65,
+                  maxWidth: '52ch',
+                  marginBottom: '2.6rem',
+                }}
+              >
+                Your first work is with the editors now. We read every submission
+                within a day or two, and you&apos;ll hear from us the moment it
+                goes live on the wall.
+              </p>
+            ) : (
+              <p
+                style={{
+                  fontSize: '1rem',
+                  fontWeight: 300,
+                  color: 'var(--color-stone-dark)',
+                  lineHeight: 1.65,
+                  maxWidth: '52ch',
+                  marginBottom: '2.6rem',
+                }}
+              >
+                Your profile is ready. Upload a work whenever you&apos;re ready.
+              </p>
+            )}
 
             {/* Profile preview */}
-            <div className="bg-white border border-border rounded-2xl p-6 text-left max-w-sm mx-auto">
-              <div className="flex items-center gap-4 mb-4">
-                <Avatar
-                  avatarUrl={avatarUrl}
-                  name={fullName}
-                  size={56}
-                />
+            <section
+              style={{
+                marginBottom: '2.6rem',
+                padding: '1.8rem 0',
+                borderTop: '1px solid var(--color-border-strong)',
+                borderBottom: '1px solid var(--color-border-strong)',
+              }}
+            >
+              <p style={{ ...KICKER, marginBottom: '1rem' }}>— The wall —</p>
+              <div
+                style={{
+                  display: 'flex',
+                  gap: '1.2rem',
+                  alignItems: 'center',
+                  marginBottom: bio ? '1rem' : 0,
+                }}
+              >
+                <Avatar avatarUrl={avatarUrl} name={fullName} size={64} />
                 <div>
-                  <p className="font-medium">{fullName}</p>
+                  <p
+                    className="font-serif"
+                    style={{
+                      fontSize: '1.2rem',
+                      color: 'var(--color-ink)',
+                      margin: 0,
+                    }}
+                  >
+                    {fullName}
+                  </p>
                   {location && (
-                    <p className="text-xs text-muted flex items-center gap-1 mt-0.5">
-                      <MapPin className="h-3 w-3" /> {location}
+                    <p
+                      className="font-serif"
+                      style={{
+                        fontStyle: 'italic',
+                        fontSize: '0.88rem',
+                        color: 'var(--color-stone)',
+                        margin: '0.2rem 0 0',
+                      }}
+                    >
+                      {location}
                     </p>
                   )}
                 </div>
               </div>
               {bio && (
-                <p className="text-sm text-muted leading-relaxed line-clamp-3">{bio}</p>
+                <p
+                  style={{
+                    fontSize: '0.92rem',
+                    fontWeight: 300,
+                    color: 'var(--color-stone-dark)',
+                    lineHeight: 1.65,
+                    maxWidth: '58ch',
+                  }}
+                >
+                  {bio}
+                </p>
               )}
               {(instagram || tiktok || facebook || youtube || website) && (
-                <div className="flex flex-wrap items-center gap-3 mt-3 pt-3 border-t border-border">
-                  {instagram && (
-                    <span className="text-xs text-muted flex items-center gap-1">
-                      <InstagramIcon className="h-3 w-3" /> Instagram
-                    </span>
-                  )}
-                  {tiktok && (
-                    <span className="text-xs text-muted flex items-center gap-1">
-                      <TikTokIcon className="h-3 w-3" /> TikTok
-                    </span>
-                  )}
-                  {facebook && (
-                    <span className="text-xs text-muted flex items-center gap-1">
-                      <FacebookIcon className="h-3 w-3" /> Facebook
-                    </span>
-                  )}
-                  {youtube && (
-                    <span className="text-xs text-muted flex items-center gap-1">
-                      <YouTubeIcon className="h-3 w-3" /> YouTube
-                    </span>
-                  )}
-                  {website && (
-                    <span className="text-xs text-muted flex items-center gap-1">
-                      <Globe className="h-3 w-3" /> Website
-                    </span>
-                  )}
-                </div>
+                <p
+                  className="font-serif"
+                  style={{
+                    marginTop: '1rem',
+                    fontSize: '0.85rem',
+                    fontStyle: 'italic',
+                    color: 'var(--color-stone)',
+                  }}
+                >
+                  {[
+                    instagram && 'Instagram',
+                    tiktok && 'TikTok',
+                    facebook && 'Facebook',
+                    youtube && 'YouTube',
+                    website && 'Website',
+                  ]
+                    .filter(Boolean)
+                    .join(' · ')}
+                </p>
               )}
-            </div>
+            </section>
 
-            {/* CTAs */}
-            <div className="flex flex-col gap-3 max-w-xs mx-auto">
-              <Link
-                href="/artist/dashboard"
-                className="w-full py-3.5 bg-primary text-white font-semibold rounded-full hover:bg-accent transition-colors duration-300 flex items-center justify-center gap-2"
-              >
-                Go to Dashboard
-                <ArrowRight className="h-4 w-4" />
+            <div
+              style={{
+                display: 'flex',
+                gap: '1.4rem',
+                alignItems: 'center',
+                flexWrap: 'wrap',
+              }}
+            >
+              <Link href="/artist/dashboard" className="artwork-primary-cta">
+                Go to the studio →
               </Link>
               {artworkImages.length === 0 && (
                 <Link
                   href="/artist/artworks/new"
-                  className="w-full py-3 text-accent-dark font-medium text-sm hover:text-foreground transition-colors text-center"
+                  className="font-serif"
+                  style={{
+                    fontStyle: 'italic',
+                    fontSize: '0.95rem',
+                    color: 'var(--color-stone)',
+                    textDecoration: 'none',
+                  }}
                 >
-                  Upload your first artwork
+                  — Upload your first work
                 </Link>
               )}
             </div>
           </div>
         )}
 
-        {/* ────────────── Navigation buttons ────────────── */}
+        {/* ───── Navigation (1–4) ───── */}
         {step >= 1 && step <= 4 && (
-          <div className="flex items-center justify-between mt-10 pt-6 border-t border-border">
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: '1rem',
+              marginTop: 'clamp(2.4rem, 4vw, 3.4rem)',
+              paddingTop: '1.6rem',
+              borderTop: '1px solid var(--color-border-strong)',
+            }}
+          >
             <button
               type="button"
               onClick={prevStep}
-              className="flex items-center gap-2 text-sm text-muted hover:text-foreground transition-colors"
+              className="font-serif"
+              style={{
+                background: 'none',
+                border: 'none',
+                fontStyle: 'italic',
+                fontSize: '0.9rem',
+                color: 'var(--color-stone)',
+                cursor: 'pointer',
+                padding: 0,
+              }}
             >
-              <ArrowLeft className="h-4 w-4" /> Back
+              ← Back
             </button>
 
-            <div className="flex items-center gap-3">
-              {/* Skip artwork step */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '1.4rem' }}>
               {step === 3 && (
                 <button
                   type="button"
-                  onClick={() => {
-                    setStep(4);
+                  onClick={() => setStep(4)}
+                  className="font-serif"
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    fontStyle: 'italic',
+                    fontSize: '0.9rem',
+                    color: 'var(--color-stone)',
+                    cursor: 'pointer',
+                    padding: 0,
                   }}
-                  className="text-sm text-muted hover:text-foreground transition-colors"
                 >
                   Skip for now
                 </button>
               )}
 
-              {/* Step 4: Complete (save everything) */}
               {step === 4 ? (
                 <button
                   type="button"
                   onClick={() => saveAndComplete(artworkImages.length === 0)}
                   disabled={saving}
-                  className="px-8 py-3 bg-primary text-white font-semibold rounded-full hover:bg-accent transition-colors duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                  className="artwork-primary-cta"
                 >
-                  {saving ? (
-                    <>
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                      Saving...
-                    </>
-                  ) : (
-                    <>
-                      Complete Setup
-                      <Check className="h-4 w-4" />
-                    </>
-                  )}
+                  {saving ? 'Saving…' : 'Complete setup ✓'}
                 </button>
               ) : (
                 <button
@@ -1192,20 +1601,34 @@ export default function ArtistOnboardingPage() {
                     (step === 2 && !canProceedStep2) ||
                     (step === 3 && !canProceedStep3)
                   }
-                  className="px-8 py-3 bg-primary text-white font-semibold rounded-full hover:bg-accent transition-colors duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                  className="artwork-primary-cta"
                 >
-                  Continue
-                  <ArrowRight className="h-4 w-4" />
+                  Continue →
                 </button>
               )}
             </div>
           </div>
         )}
 
-        {/* Error display */}
         {error && step !== 4 && (
-          <div className="mt-4 p-3.5 bg-error/5 border border-error/20 text-error text-sm rounded-xl animate-fade-in">
-            {error}
+          <div
+            style={{
+              marginTop: '1.4rem',
+              padding: '1.2rem 0',
+              borderTop: '1px solid var(--color-terracotta, #c45d3e)',
+              borderBottom: '1px solid var(--color-terracotta, #c45d3e)',
+            }}
+          >
+            <p
+              className="font-serif"
+              style={{
+                fontSize: '0.92rem',
+                fontStyle: 'italic',
+                color: 'var(--color-terracotta, #c45d3e)',
+              }}
+            >
+              — {error}
+            </p>
           </div>
         )}
       </div>

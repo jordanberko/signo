@@ -3,13 +3,6 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import {
-  Package,
-  ArrowRight,
-  Loader2,
-  ImageIcon,
-  AlertCircle,
-} from 'lucide-react';
 import { useRequireAuth } from '@/lib/hooks/useRequireAuth';
 import { formatPrice, getStatusStyle, formatStatus } from '@/lib/utils';
 
@@ -28,7 +21,6 @@ interface OrderRow {
     full_name: string;
   } | null;
 }
-
 
 // ── Component ──
 
@@ -74,112 +66,277 @@ export default function OrdersPage() {
 
   if (authLoading || loading) {
     return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <Loader2 className="h-6 w-6 animate-spin text-muted" />
+      <div
+        style={{
+          background: 'var(--color-warm-white)',
+          minHeight: '60vh',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}
+      >
+        <p
+          className="font-serif"
+          style={{
+            fontStyle: 'italic',
+            color: 'var(--color-stone)',
+            fontSize: '0.95rem',
+          }}
+        >
+          Retrieving your orders…
+        </p>
       </div>
     );
   }
 
   return (
-    <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
-      <div className="mb-8">
-        <h1 className="font-editorial text-3xl md:text-4xl font-semibold">
-          My Orders
-        </h1>
-        <p className="text-muted mt-1.5">
-          {orders.length > 0
-            ? `${orders.length} order${orders.length === 1 ? '' : 's'}`
-            : 'Your purchase history'}
-        </p>
-      </div>
-
-      {error && (
-        <div className="mb-6 p-4 bg-error/5 border border-error/20 rounded-xl flex items-center gap-3 text-sm text-error">
-          <AlertCircle className="h-4 w-4 flex-shrink-0" />
-          {error}
-        </div>
-      )}
-
-      {orders.length === 0 && !error ? (
-        <div className="text-center py-24">
-          <div className="w-20 h-20 bg-muted-bg rounded-full flex items-center justify-center mx-auto mb-5">
-            <Package className="h-10 w-10 text-muted" />
-          </div>
-          <h2 className="font-editorial text-2xl font-semibold mb-2">
-            No orders yet
-          </h2>
-          <p className="text-muted mb-8 max-w-md mx-auto">
-            When you purchase artwork, your orders will appear here.
-          </p>
-          <Link
-            href="/browse"
-            className="group inline-flex items-center gap-2 px-8 py-3 bg-primary text-white text-sm font-semibold rounded-full hover:bg-accent transition-colors duration-300"
+    <div style={{ background: 'var(--color-warm-white)', minHeight: '100vh' }}>
+      <div
+        className="px-6 sm:px-10"
+        style={{
+          maxWidth: '68rem',
+          margin: '0 auto',
+          paddingTop: 'clamp(7.5rem, 10vw, 9.5rem)',
+          paddingBottom: 'clamp(4rem, 7vw, 6rem)',
+        }}
+      >
+        {/* ── Editorial header ── */}
+        <header style={{ marginBottom: 'clamp(2.4rem, 4vw, 3.4rem)' }}>
+          <p
+            style={{
+              fontSize: '0.62rem',
+              letterSpacing: '0.22em',
+              textTransform: 'uppercase',
+              color: 'var(--color-stone)',
+              marginBottom: '1rem',
+            }}
           >
-            Browse Artwork
-            <ArrowRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
-          </Link>
-        </div>
-      ) : (
-        <div className="space-y-4">
-          {orders.map((order) => {
-            const artwork = order.artworks;
-            const artist = order.profiles;
-            const image = artwork?.images?.[0];
+            The Studio · Orders
+          </p>
+          <h1
+            className="font-serif"
+            style={{
+              fontSize: 'clamp(2rem, 4vw, 3rem)',
+              lineHeight: 1.05,
+              letterSpacing: '-0.015em',
+              color: 'var(--color-ink)',
+              fontWeight: 400,
+              marginBottom: '0.7rem',
+            }}
+          >
+            Your <em style={{ fontStyle: 'italic' }}>acquisitions.</em>
+          </h1>
+          <p
+            style={{
+              fontSize: '0.92rem',
+              fontWeight: 300,
+              color: 'var(--color-stone-dark)',
+              lineHeight: 1.6,
+            }}
+          >
+            {orders.length > 0
+              ? `${orders.length} order${orders.length === 1 ? '' : 's'} on record.`
+              : 'A record of every work you acquire through Signo will live here.'}
+          </p>
+        </header>
 
-            return (
-              <Link
-                key={order.id}
-                href={`/orders/${order.id}`}
-                className="flex items-center gap-4 p-4 bg-white border border-border rounded-xl hover:border-accent/40 hover:shadow-sm transition-all group"
-              >
-                {/* Thumbnail */}
-                <div className="w-16 h-16 rounded-lg bg-muted-bg flex-shrink-0 overflow-hidden">
-                  {image ? (
-                    <Image
-                      src={image}
-                      alt={artwork?.title || 'Artwork'}
-                      width={64}
-                      height={64}
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center">
-                      <ImageIcon className="h-5 w-5 text-border" />
-                    </div>
-                  )}
-                </div>
+        {error && (
+          <p
+            className="font-serif"
+            style={{
+              marginBottom: '2rem',
+              fontSize: '0.92rem',
+              color: 'var(--color-terracotta, #c45d3e)',
+              fontStyle: 'italic',
+              fontWeight: 400,
+              lineHeight: 1.5,
+              paddingBottom: '1rem',
+              borderBottom: '1px solid var(--color-border)',
+            }}
+          >
+            {error}
+          </p>
+        )}
 
-                {/* Info */}
-                <div className="flex-1 min-w-0">
-                  <p className="font-medium text-sm truncate">
-                    {artwork?.title || 'Unknown Artwork'}
-                  </p>
-                  <p className="text-xs text-muted mt-0.5">
-                    {artist?.full_name || 'Unknown Artist'} &middot;{' '}
-                    {new Date(order.created_at).toLocaleDateString('en-AU', {
-                      day: 'numeric',
-                      month: 'short',
-                      year: 'numeric',
-                    })}
-                  </p>
-                  <div className="flex items-center gap-2 mt-1.5">
-                    <span className="text-sm font-medium">
-                      {formatPrice(order.total_amount_aud)}
-                    </span>
-                    <span
-                      className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${getStatusStyle(order.status)}`}
+        {orders.length === 0 && !error ? (
+          <div
+            style={{
+              padding: '2.5rem 0',
+              maxWidth: '46ch',
+              borderTop: '1px solid var(--color-border)',
+            }}
+          >
+            <p
+              className="font-serif"
+              style={{
+                fontSize: 'clamp(1.5rem, 3vw, 2rem)',
+                lineHeight: 1.2,
+                color: 'var(--color-ink)',
+                fontStyle: 'italic',
+                fontWeight: 400,
+                marginTop: '2rem',
+              }}
+            >
+              No acquisitions yet.
+            </p>
+            <p
+              style={{
+                marginTop: '1rem',
+                fontSize: '0.9rem',
+                color: 'var(--color-stone-dark)',
+                fontWeight: 300,
+                lineHeight: 1.6,
+              }}
+            >
+              When you acquire a work through Signo, the order and its full history will appear here.
+            </p>
+            <Link
+              href="/browse"
+              className="editorial-link"
+              style={{ marginTop: '1.6rem', display: 'inline-block' }}
+            >
+              Browse the collection
+            </Link>
+          </div>
+        ) : (
+          <ul
+            style={{
+              listStyle: 'none',
+              padding: 0,
+              margin: 0,
+              borderTop: '1px solid var(--color-border-strong)',
+            }}
+          >
+            {orders.map((order) => {
+              const artwork = order.artworks;
+              const artist = order.profiles;
+              const image = artwork?.images?.[0];
+
+              return (
+                <li
+                  key={order.id}
+                  style={{ borderBottom: '1px solid var(--color-border)' }}
+                >
+                  <Link
+                    href={`/orders/${order.id}`}
+                    className="order-row"
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '1.4rem',
+                      padding: '1.4rem 0',
+                      textDecoration: 'none',
+                    }}
+                  >
+                    <div
+                      style={{
+                        width: 72,
+                        height: 72,
+                        background: 'var(--color-cream)',
+                        flexShrink: 0,
+                        overflow: 'hidden',
+                      }}
                     >
-                      {formatStatus(order.status)}
-                    </span>
-                  </div>
-                </div>
+                      {image && (
+                        <Image
+                          src={image}
+                          alt={artwork?.title || 'Artwork'}
+                          width={72}
+                          height={72}
+                          style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                        />
+                      )}
+                    </div>
 
-                <ArrowRight className="h-4 w-4 text-muted flex-shrink-0 group-hover:text-accent-dark transition-colors" />
-              </Link>
-            );
-          })}
-        </div>
-      )}
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <p
+                        className="font-serif"
+                        style={{
+                          fontSize: '1.1rem',
+                          color: 'var(--color-ink)',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap',
+                          margin: 0,
+                          lineHeight: 1.3,
+                        }}
+                      >
+                        {artwork?.title || 'Unknown artwork'}
+                      </p>
+                      <p
+                        style={{
+                          fontSize: '0.82rem',
+                          color: 'var(--color-stone-dark)',
+                          marginTop: '0.25rem',
+                          fontWeight: 300,
+                        }}
+                      >
+                        {artist?.full_name || 'Unknown artist'} ·{' '}
+                        <span style={{ color: 'var(--color-stone)' }}>
+                          {new Date(order.created_at).toLocaleDateString('en-AU', {
+                            day: 'numeric',
+                            month: 'long',
+                            year: 'numeric',
+                          })}
+                        </span>
+                      </p>
+                    </div>
+
+                    <div
+                      style={{
+                        textAlign: 'right',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'flex-end',
+                        gap: '0.4rem',
+                        flexShrink: 0,
+                      }}
+                    >
+                      <p
+                        className="font-serif"
+                        style={{
+                          fontSize: '1.05rem',
+                          color: 'var(--color-ink)',
+                          margin: 0,
+                        }}
+                      >
+                        {formatPrice(order.total_amount_aud)}
+                      </p>
+                      <span
+                        className={`dashboard-status-pill ${getStatusStyle(order.status)}`}
+                        style={{
+                          fontSize: '0.58rem',
+                          letterSpacing: '0.16em',
+                          textTransform: 'uppercase',
+                          padding: '0.2rem 0.55rem',
+                          fontWeight: 400,
+                        }}
+                      >
+                        {formatStatus(order.status)}
+                      </span>
+                    </div>
+
+                    <span
+                      className="font-serif hidden sm:inline"
+                      style={{
+                        color: 'var(--color-stone)',
+                        fontStyle: 'italic',
+                        fontSize: '0.75rem',
+                        letterSpacing: '0.14em',
+                        textTransform: 'uppercase',
+                        marginLeft: '0.8rem',
+                        flexShrink: 0,
+                      }}
+                    >
+                      View →
+                    </span>
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </div>
     </div>
   );
 }

@@ -3,12 +3,6 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import {
-  Package,
-  Loader2,
-  ImageIcon,
-  ArrowRight,
-} from 'lucide-react';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { useRequireAuth } from '@/lib/hooks/useRequireAuth';
 import { formatPrice } from '@/lib/utils';
@@ -25,18 +19,42 @@ interface OrderRow {
   profiles: { full_name: string } | null;
 }
 
-const STATUS_CONFIG: Record<string, { label: string; color: string }> = {
-  paid: { label: 'Awaiting Shipment', color: 'bg-amber-50 text-amber-700' },
-  shipped: { label: 'Shipped', color: 'bg-blue-50 text-blue-700' },
-  delivered: { label: 'Delivered', color: 'bg-blue-50 text-blue-700' },
-  completed: { label: 'Completed', color: 'bg-green-50 text-green-700' },
-  disputed: { label: 'Disputed', color: 'bg-red-50 text-red-700' },
-  refunded: { label: 'Refunded', color: 'bg-gray-100 text-gray-600' },
-  cancelled: { label: 'Cancelled', color: 'bg-gray-100 text-gray-600' },
+const STATUS_LABEL: Record<string, string> = {
+  paid: 'Awaiting dispatch',
+  shipped: 'In transit',
+  delivered: 'Delivered',
+  completed: 'Completed',
+  disputed: 'Disputed',
+  refunded: 'Refunded',
+  cancelled: 'Cancelled',
 };
 
-function getStatusBadge(status: string) {
-  return STATUS_CONFIG[status] ?? { label: status, color: 'bg-gray-50 text-gray-600' };
+const KICKER: React.CSSProperties = {
+  fontSize: '0.62rem',
+  letterSpacing: '0.22em',
+  textTransform: 'uppercase',
+  color: 'var(--color-stone)',
+};
+
+function EditorialSpinner({ label = 'Loading…' }: { label?: string }) {
+  return (
+    <div
+      style={{
+        minHeight: '60vh',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        background: 'var(--color-warm-white)',
+      }}
+    >
+      <p
+        className="font-serif"
+        style={{ fontStyle: 'italic', fontSize: '0.95rem', color: 'var(--color-stone)' }}
+      >
+        {label}
+      </p>
+    </div>
+  );
 }
 
 // ── Component ──
@@ -49,7 +67,6 @@ export default function ArtistOrdersPage() {
 
   useEffect(() => {
     if (!user) return;
-
     async function fetchOrders() {
       try {
         const res = await fetch('/api/artist/orders');
@@ -62,236 +79,437 @@ export default function ArtistOrdersPage() {
         setLoading(false);
       }
     }
-
     fetchOrders();
   }, [user]);
 
-  if (authLoading) return <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '60vh' }}><div style={{ width: 32, height: 32, border: '3px solid #E5E2DB', borderTopColor: '#2C2C2A', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} /><style>{'@keyframes spin { to { transform: rotate(360deg) } }'}</style></div>;
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <Loader2 className="h-6 w-6 animate-spin text-muted" />
-      </div>
-    );
-  }
+  if (authLoading) return <EditorialSpinner />;
+  if (loading) return <EditorialSpinner label="Retrieving your orders…" />;
 
   return (
-    <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold">Orders</h1>
-        <p className="text-sm text-muted mt-1">Manage your incoming orders</p>
-      </div>
-
-      {orders.length === 0 ? (
-        /* Empty state */
-        <div className="text-center py-20 border-2 border-dashed border-border rounded-2xl">
-          <div className="w-16 h-16 bg-muted-bg rounded-full flex items-center justify-center mx-auto mb-4">
-            <Package className="h-7 w-7 text-muted" />
-          </div>
-          <h3 className="font-medium text-lg mb-2">No orders yet</h3>
-          <p className="text-sm text-muted mb-6 max-w-sm mx-auto">
-            Once buyers purchase your artwork, orders will appear here for you to manage and ship.
+    <div style={{ background: 'var(--color-warm-white)', minHeight: '100vh' }}>
+      <div
+        className="px-6 sm:px-10"
+        style={{
+          maxWidth: '72rem',
+          margin: '0 auto',
+          paddingTop: 'clamp(7.5rem, 10vw, 9.5rem)',
+          paddingBottom: 'clamp(4rem, 7vw, 6rem)',
+        }}
+      >
+        {/* Header */}
+        <header style={{ marginBottom: 'clamp(2.4rem, 4vw, 3.4rem)' }}>
+          <p style={{ ...KICKER, marginBottom: '1rem' }}>
+            The Studio · Orders
           </p>
-          <Link
-            href="/artist/artworks"
-            className="inline-flex items-center gap-2 text-accent-dark font-medium hover:underline"
+          <h1
+            className="font-serif"
+            style={{
+              fontSize: 'clamp(2rem, 4vw, 3rem)',
+              lineHeight: 1.05,
+              letterSpacing: '-0.015em',
+              color: 'var(--color-ink)',
+              fontWeight: 400,
+              marginBottom: '0.7rem',
+            }}
           >
-            View your listings <ArrowRight className="h-4 w-4" />
-          </Link>
-        </div>
-      ) : (
-        <div>
-          {/* Desktop table */}
-          <div className="hidden md:block bg-white border border-border rounded-2xl overflow-hidden">
-            <table className="w-full">
+            Works <em style={{ fontStyle: 'italic' }}>changing hands.</em>
+          </h1>
+          <p
+            style={{
+              fontSize: '0.92rem',
+              fontWeight: 300,
+              color: 'var(--color-stone-dark)',
+              lineHeight: 1.6,
+              maxWidth: '48ch',
+            }}
+          >
+            {orders.length > 0
+              ? `${orders.length} ${orders.length === 1 ? 'order' : 'orders'} to attend to — dispatch, track, and close out.`
+              : 'A quiet ledger of every sale — from payment to dispatch to completion.'}
+          </p>
+        </header>
+
+        {orders.length === 0 ? (
+          <div
+            style={{
+              paddingTop: '2rem',
+              borderTop: '1px solid var(--color-border)',
+              maxWidth: '46ch',
+            }}
+          >
+            <p
+              className="font-serif"
+              style={{
+                fontSize: 'clamp(1.4rem, 2.6vw, 1.9rem)',
+                lineHeight: 1.2,
+                color: 'var(--color-ink)',
+                fontStyle: 'italic',
+                fontWeight: 400,
+                marginTop: '1.4rem',
+              }}
+            >
+              No orders yet.
+            </p>
+            <p
+              style={{
+                marginTop: '1rem',
+                fontSize: '0.9rem',
+                color: 'var(--color-stone-dark)',
+                fontWeight: 300,
+                lineHeight: 1.6,
+              }}
+            >
+              When a collector takes a work home, it will settle here — with
+              their details, your share, and a clear next step.
+            </p>
+            <Link
+              href="/artist/artworks"
+              className="editorial-link"
+              style={{ marginTop: '1.6rem', display: 'inline-block' }}
+            >
+              View your listings
+            </Link>
+          </div>
+        ) : (
+          <>
+            {/* Desktop table */}
+            <table
+              className="hidden md:table"
+              style={{
+                width: '100%',
+                borderCollapse: 'collapse',
+                borderTop: '1px solid var(--color-border-strong)',
+              }}
+            >
               <thead>
-                <tr className="text-left text-xs font-medium tracking-wide uppercase text-muted border-b border-border bg-cream">
-                  <th className="px-5 py-3.5">Artwork</th>
-                  <th className="px-5 py-3.5">Buyer</th>
-                  <th className="px-5 py-3.5">Sale Price</th>
-                  <th className="px-5 py-3.5">Stripe Fee</th>
-                  <th className="px-5 py-3.5">You Receive</th>
-                  <th className="px-5 py-3.5">Date</th>
-                  <th className="px-5 py-3.5">Status</th>
-                  <th className="px-5 py-3.5"></th>
+                <tr>
+                  {['Work', 'Buyer', 'Sale', 'Fee', 'Your share', 'Date', 'Status', ''].map(
+                    (h, i) => (
+                      <th
+                        key={i}
+                        style={{
+                          ...KICKER,
+                          padding: '1rem 0.8rem',
+                          textAlign: i >= 2 && i <= 4 ? 'right' : 'left',
+                          borderBottom: '1px solid var(--color-border)',
+                          fontWeight: 400,
+                        }}
+                      >
+                        {h}
+                      </th>
+                    )
+                  )}
                 </tr>
               </thead>
               <tbody>
                 {orders.map((order) => {
-                  const badge = getStatusBadge(order.status);
                   const artwork = order.artworks;
                   const thumbnail = artwork?.images?.[0];
                   const salePrice = order.total_amount_aud ?? 0;
                   const payout = order.artist_payout_aud ?? 0;
-                  const stripeFee = Math.round((salePrice - payout) * 100) / 100;
+                  const stripeFee =
+                    Math.round((salePrice - payout) * 100) / 100;
+                  const label = STATUS_LABEL[order.status] ?? order.status;
 
                   return (
                     <tr
                       key={order.id}
-                      className="border-b border-border last:border-0 hover:bg-cream/50 transition-colors"
+                      style={{ borderBottom: '1px solid var(--color-border)' }}
                     >
-                      <td className="px-5 py-4">
-                        <div className="flex items-center gap-3">
-                          <div className="w-12 h-12 rounded-lg bg-muted-bg flex-shrink-0 overflow-hidden">
-                            {thumbnail ? (
+                      <td style={{ padding: '1.2rem 0.8rem' }}>
+                        <div
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '1rem',
+                          }}
+                        >
+                          <div
+                            style={{
+                              width: 52,
+                              height: 52,
+                              background: 'var(--color-cream)',
+                              flexShrink: 0,
+                              overflow: 'hidden',
+                            }}
+                          >
+                            {thumbnail && (
                               <Image
                                 src={thumbnail}
                                 alt={artwork?.title ?? ''}
-                                width={48}
-                                height={48}
-                                className="w-full h-full object-cover"
+                                width={52}
+                                height={52}
+                                style={{
+                                  width: '100%',
+                                  height: '100%',
+                                  objectFit: 'cover',
+                                }}
                               />
-                            ) : (
-                              <div className="w-full h-full flex items-center justify-center">
-                                <ImageIcon className="h-4 w-4 text-border" />
-                              </div>
                             )}
                           </div>
-                          <span className="font-medium text-sm truncate max-w-[180px]">
+                          <span
+                            className="font-serif"
+                            style={{
+                              fontSize: '1rem',
+                              color: 'var(--color-ink)',
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                              whiteSpace: 'nowrap',
+                              maxWidth: 200,
+                            }}
+                          >
                             {artwork?.title ?? 'Unknown'}
                           </span>
                         </div>
                       </td>
-                      <td className="px-5 py-4 text-sm text-muted">
+                      <td
+                        style={{
+                          padding: '1.2rem 0.8rem',
+                          fontSize: '0.88rem',
+                          color: 'var(--color-stone-dark)',
+                          fontWeight: 300,
+                        }}
+                      >
                         {order.profiles?.full_name ?? 'Unknown'}
                       </td>
-                      <td className="px-5 py-4 text-sm">
+                      <td
+                        className="font-serif"
+                        style={{
+                          padding: '1.2rem 0.8rem',
+                          fontSize: '0.95rem',
+                          textAlign: 'right',
+                          color: 'var(--color-ink)',
+                        }}
+                      >
                         {formatPrice(salePrice)}
                       </td>
-                      <td className="px-5 py-4 text-sm text-muted">
-                        &minus;{formatPrice(stripeFee)}
+                      <td
+                        style={{
+                          padding: '1.2rem 0.8rem',
+                          fontSize: '0.85rem',
+                          fontStyle: 'italic',
+                          color: 'var(--color-stone)',
+                          textAlign: 'right',
+                          fontWeight: 300,
+                        }}
+                      >
+                        −{formatPrice(stripeFee)}
                       </td>
-                      <td className="px-5 py-4 text-sm font-semibold text-green-700">
+                      <td
+                        className="font-serif"
+                        style={{
+                          padding: '1.2rem 0.8rem',
+                          fontSize: '1rem',
+                          textAlign: 'right',
+                          color: 'var(--color-ink)',
+                        }}
+                      >
                         {formatPrice(payout)}
                       </td>
-                      <td className="px-5 py-4 text-sm text-muted">
-                        {new Date(order.created_at).toLocaleDateString('en-AU', {
-                          day: 'numeric',
-                          month: 'short',
-                          year: 'numeric',
-                        })}
-                      </td>
-                      <td className="px-5 py-4">
-                        <span
-                          className={`text-xs font-medium px-2.5 py-1 rounded-full ${badge.color}`}
-                        >
-                          {badge.label}
-                        </span>
-                      </td>
-                      <td className="px-5 py-4">
-                        {order.status === 'paid' ? (
-                          <Link
-                            href={`/artist/orders/${order.id}`}
-                            className="inline-flex items-center gap-1.5 text-sm font-medium text-accent-dark hover:underline"
-                          >
-                            Ship Order
-                            <ArrowRight className="h-3.5 w-3.5" />
-                          </Link>
-                        ) : (
-                          <Link
-                            href={`/artist/orders/${order.id}`}
-                            className="text-sm text-muted hover:text-foreground transition-colors"
-                          >
-                            View
-                          </Link>
+                      <td
+                        className="font-serif"
+                        style={{
+                          padding: '1.2rem 0.8rem',
+                          fontSize: '0.8rem',
+                          fontStyle: 'italic',
+                          color: 'var(--color-stone)',
+                        }}
+                      >
+                        {new Date(order.created_at).toLocaleDateString(
+                          'en-AU',
+                          { day: 'numeric', month: 'short' }
                         )}
+                      </td>
+                      <td
+                        style={{
+                          ...KICKER,
+                          padding: '1.2rem 0.8rem',
+                          fontSize: '0.6rem',
+                        }}
+                      >
+                        {label}
+                      </td>
+                      <td style={{ padding: '1.2rem 0.8rem' }}>
+                        <Link
+                          href={`/artist/orders/${order.id}`}
+                          className="font-serif"
+                          style={{
+                            fontStyle: 'italic',
+                            fontSize: '0.88rem',
+                            color: 'var(--color-ink)',
+                            textDecoration: 'none',
+                            borderBottom:
+                              order.status === 'paid'
+                                ? '1px solid var(--color-ink)'
+                                : '1px solid var(--color-border-strong)',
+                            paddingBottom: '0.15rem',
+                          }}
+                        >
+                          {order.status === 'paid' ? 'Dispatch →' : 'Open →'}
+                        </Link>
                       </td>
                     </tr>
                   );
                 })}
               </tbody>
             </table>
-          </div>
 
-          {/* Mobile cards */}
-          <div className="md:hidden space-y-3">
-            {orders.map((order) => {
-              const badge = getStatusBadge(order.status);
-              const artwork = order.artworks;
-              const thumbnail = artwork?.images?.[0];
-              const salePrice = order.total_amount_aud ?? 0;
-              const payout = order.artist_payout_aud ?? 0;
-              const stripeFee = Math.round((salePrice - payout) * 100) / 100;
+            {/* Mobile list */}
+            <ul
+              className="md:hidden"
+              style={{
+                listStyle: 'none',
+                padding: 0,
+                margin: 0,
+                borderTop: '1px solid var(--color-border-strong)',
+              }}
+            >
+              {orders.map((order) => {
+                const artwork = order.artworks;
+                const thumbnail = artwork?.images?.[0];
+                const salePrice = order.total_amount_aud ?? 0;
+                const payout = order.artist_payout_aud ?? 0;
+                const stripeFee =
+                  Math.round((salePrice - payout) * 100) / 100;
+                const label = STATUS_LABEL[order.status] ?? order.status;
 
-              return (
-                <div
-                  key={order.id}
-                  className="bg-white border border-border rounded-2xl p-4"
-                >
-                  <div className="flex items-start gap-3">
-                    <div className="w-14 h-14 rounded-xl bg-muted-bg flex-shrink-0 overflow-hidden">
-                      {thumbnail ? (
-                        <Image
-                          src={thumbnail}
-                          alt={artwork?.title ?? ''}
-                          width={56}
-                          height={56}
-                          className="w-full h-full object-cover"
-                        />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center">
-                          <ImageIcon className="h-5 w-5 text-border" />
-                        </div>
-                      )}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-start justify-between gap-2">
-                        <p className="font-medium text-sm truncate">
-                          {artwork?.title ?? 'Unknown'}
-                        </p>
-                        <span
-                          className={`text-xs font-medium px-2 py-0.5 rounded-full flex-shrink-0 ${badge.color}`}
-                        >
-                          {badge.label}
-                        </span>
-                      </div>
-                      <p className="text-xs text-muted mt-0.5">
-                        {order.profiles?.full_name ?? 'Unknown'} &middot;{' '}
-                        {new Date(order.created_at).toLocaleDateString('en-AU', {
-                          day: 'numeric',
-                          month: 'short',
-                          year: 'numeric',
-                        })}
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-3 gap-3 mt-3 pt-3 border-t border-border">
-                    <div>
-                      <p className="text-[10px] text-muted uppercase tracking-wide">Sale</p>
-                      <p className="text-sm font-medium">{formatPrice(salePrice)}</p>
-                    </div>
-                    <div>
-                      <p className="text-[10px] text-muted uppercase tracking-wide">Stripe Fee</p>
-                      <p className="text-sm text-muted">&minus;{formatPrice(stripeFee)}</p>
-                    </div>
-                    <div>
-                      <p className="text-[10px] text-muted uppercase tracking-wide">Yours</p>
-                      <p className="text-sm font-bold text-green-700">
-                        {formatPrice(payout)}
-                      </p>
-                    </div>
-                  </div>
-
-                  {order.status === 'paid' && (
-                    <div className="mt-3 pt-3 border-t border-border">
-                      <Link
-                        href={`/artist/orders/${order.id}`}
-                        className="inline-flex items-center justify-center gap-2 w-full px-4 py-2.5 bg-primary text-white text-sm font-medium rounded-lg hover:bg-primary-light transition-colors"
+                return (
+                  <li
+                    key={order.id}
+                    style={{
+                      borderBottom: '1px solid var(--color-border)',
+                      padding: '1.4rem 0',
+                    }}
+                  >
+                    <Link
+                      href={`/artist/orders/${order.id}`}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'flex-start',
+                        gap: '1rem',
+                        textDecoration: 'none',
+                        color: 'inherit',
+                      }}
+                    >
+                      <div
+                        style={{
+                          width: 60,
+                          height: 60,
+                          background: 'var(--color-cream)',
+                          flexShrink: 0,
+                          overflow: 'hidden',
+                        }}
                       >
-                        Ship Order
-                        <ArrowRight className="h-4 w-4" />
-                      </Link>
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
+                        {thumbnail && (
+                          <Image
+                            src={thumbnail}
+                            alt={artwork?.title ?? ''}
+                            width={60}
+                            height={60}
+                            style={{
+                              width: '100%',
+                              height: '100%',
+                              objectFit: 'cover',
+                            }}
+                          />
+                        )}
+                      </div>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div
+                          style={{
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'baseline',
+                            gap: '0.8rem',
+                          }}
+                        >
+                          <p
+                            className="font-serif"
+                            style={{
+                              fontSize: '1rem',
+                              margin: 0,
+                              color: 'var(--color-ink)',
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                              whiteSpace: 'nowrap',
+                            }}
+                          >
+                            {artwork?.title ?? 'Unknown'}
+                          </p>
+                          <span
+                            style={{ ...KICKER, fontSize: '0.58rem', flexShrink: 0 }}
+                          >
+                            {label}
+                          </span>
+                        </div>
+                        <p
+                          style={{
+                            marginTop: '0.3rem',
+                            fontSize: '0.8rem',
+                            fontWeight: 300,
+                            color: 'var(--color-stone-dark)',
+                          }}
+                        >
+                          {order.profiles?.full_name ?? 'Unknown'} ·{' '}
+                          {new Date(order.created_at).toLocaleDateString(
+                            'en-AU',
+                            { day: 'numeric', month: 'short' }
+                          )}
+                        </p>
+                        <div
+                          style={{
+                            marginTop: '0.5rem',
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'baseline',
+                          }}
+                        >
+                          <span
+                            style={{
+                              fontSize: '0.78rem',
+                              fontStyle: 'italic',
+                              color: 'var(--color-stone)',
+                              fontWeight: 300,
+                            }}
+                          >
+                            {formatPrice(salePrice)} −{' '}
+                            {formatPrice(stripeFee)} fee
+                          </span>
+                          <span
+                            className="font-serif"
+                            style={{
+                              fontSize: '1rem',
+                              color: 'var(--color-ink)',
+                            }}
+                          >
+                            {formatPrice(payout)}
+                          </span>
+                        </div>
+                        {order.status === 'paid' && (
+                          <p
+                            className="font-serif"
+                            style={{
+                              marginTop: '0.6rem',
+                              fontSize: '0.85rem',
+                              fontStyle: 'italic',
+                              color: 'var(--color-ink)',
+                              borderBottom: '1px solid var(--color-ink)',
+                              display: 'inline-block',
+                              paddingBottom: '0.1rem',
+                            }}
+                          >
+                            Dispatch this order →
+                          </p>
+                        )}
+                      </div>
+                    </Link>
+                  </li>
+                );
+              })}
+            </ul>
+          </>
+        )}
+      </div>
     </div>
   );
 }

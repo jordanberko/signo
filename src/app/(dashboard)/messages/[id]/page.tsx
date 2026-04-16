@@ -2,18 +2,11 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import Link from 'next/link';
-import {
-  ArrowLeft,
-  Send,
-  Loader2,
-  CheckCheck,
-  ImageIcon,
-  RefreshCw,
-} from 'lucide-react';
+import Image from 'next/image';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { useRequireAuth } from '@/lib/hooks/useRequireAuth';
 import { createClient } from '@/lib/supabase/client';
-import { getInitials } from '@/lib/utils';
+import Avatar from '@/components/ui/Avatar';
 
 // ── Types ──
 
@@ -80,6 +73,33 @@ function isSameDay(d1: string, d2: string): boolean {
   );
 }
 
+// ── Spinner ──
+
+function EditorialSpinner({ label = 'Loading…' }: { label?: string }) {
+  return (
+    <div
+      style={{
+        minHeight: '60vh',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        background: 'var(--color-warm-white)',
+      }}
+    >
+      <p
+        className="font-serif"
+        style={{
+          fontStyle: 'italic',
+          fontSize: '0.95rem',
+          color: 'var(--color-stone)',
+        }}
+      >
+        {label}
+      </p>
+    </div>
+  );
+}
+
 // ── Component ──
 
 export default function ConversationPage({
@@ -103,7 +123,6 @@ export default function ConversationPage({
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  // Resolve params
   useEffect(() => {
     params.then((p) => {
       setConversationId(p.id);
@@ -114,57 +133,51 @@ export default function ConversationPage({
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, []);
 
-  // Load conversation data via server API route
-  const loadConversation = useCallback(
-    async (convoId: string) => {
-      setError(null);
+  const loadConversation = useCallback(async (convoId: string) => {
+    setError(null);
 
-      try {
-        const controller = new AbortController();
-        const timeout = setTimeout(() => controller.abort(), 8000);
+    try {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 8000);
 
-        const res = await fetch(`/api/messages/${convoId}`, {
-          signal: controller.signal,
-        });
-        clearTimeout(timeout);
+      const res = await fetch(`/api/messages/${convoId}`, {
+        signal: controller.signal,
+      });
+      clearTimeout(timeout);
 
-        if (!res.ok) {
-          const data = await res.json().catch(() => ({}));
-          setError(data.error || `Failed to load conversation (${res.status})`);
-          setLoading(false);
-          return;
-        }
-
-        const json = await res.json();
-        setOtherUser(json.otherUser);
-        setArtwork(json.artwork);
-        setMessages(json.messages || []);
-
-        // Mark messages as read
-        fetch('/api/messages/read', {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ conversation_id: convoId }),
-        }).catch(() => {});
-      } catch (err) {
-        if (err instanceof DOMException && err.name === 'AbortError') {
-          setError('Could not load conversation — request timed out.');
-        } else {
-          setError('Could not load conversation. Please try again.');
-        }
-      } finally {
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        setError(data.error || `Failed to load conversation (${res.status})`);
         setLoading(false);
+        return;
       }
-    },
-    []
-  );
+
+      const json = await res.json();
+      setOtherUser(json.otherUser);
+      setArtwork(json.artwork);
+      setMessages(json.messages || []);
+
+      fetch('/api/messages/read', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ conversation_id: convoId }),
+      }).catch(() => {});
+    } catch (err) {
+      if (err instanceof DOMException && err.name === 'AbortError') {
+        setError('Could not load conversation — request timed out.');
+      } else {
+        setError('Could not load conversation. Please try again.');
+      }
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
     if (!conversationId || !user) return;
     loadConversation(conversationId);
   }, [conversationId, user, loadConversation]);
 
-  // Safety timeout
   useEffect(() => {
     if (!loading) return;
     const t = setTimeout(() => {
@@ -176,14 +189,12 @@ export default function ConversationPage({
     return () => clearTimeout(t);
   }, [loading]);
 
-  // Scroll to bottom when messages change
   useEffect(() => {
     if (messages.length > 0) {
       scrollToBottom();
     }
   }, [messages, scrollToBottom]);
 
-  // Real-time: subscribe to new messages in this conversation
   useEffect(() => {
     if (!conversationId) return;
 
@@ -204,7 +215,6 @@ export default function ConversationPage({
             return [...prev, payload.new];
           });
 
-          // Mark as read if from other user
           if (payload.new.sender_id !== user?.id) {
             fetch('/api/messages/read', {
               method: 'PUT',
@@ -235,7 +245,6 @@ export default function ConversationPage({
     };
   }, [conversationId, user?.id]);
 
-  // Auto-resize textarea
   function handleTextareaChange(e: React.ChangeEvent<HTMLTextAreaElement>) {
     const value = e.target.value;
     if (value.length <= 2000) {
@@ -244,12 +253,13 @@ export default function ConversationPage({
     const el = textareaRef.current;
     if (el) {
       el.style.height = 'auto';
-      el.style.height = Math.min(el.scrollHeight, 120) + 'px';
+      el.style.height = Math.min(el.scrollHeight, 140) + 'px';
     }
   }
 
   async function handleSend() {
-    if (!newMessage.trim() || sending || sendCooldown || !conversationId) return;
+    if (!newMessage.trim() || sending || sendCooldown || !conversationId)
+      return;
 
     setSending(true);
     setSendCooldown(true);
@@ -270,18 +280,15 @@ export default function ConversationPage({
         if (textareaRef.current) {
           textareaRef.current.style.height = 'auto';
         }
-        // Optimistically add message if real-time hasn't delivered it
         if (data) {
           setMessages((prev) => {
             if (prev.some((m) => m.id === data.id)) return prev;
             return [...prev, data as MessageRow];
           });
         }
-      } else {
-        const data = await res.json().catch(() => ({}));
-        // Send failed silently — user sees no new message appear
       }
-    } catch (err) {
+    } catch {
+      // silent failure — real-time will catch up
     } finally {
       setSending(false);
       setTimeout(() => setSendCooldown(false), 500);
@@ -295,39 +302,71 @@ export default function ConversationPage({
     }
   }
 
-  // ── Auth loading ──
-  if (authLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="w-8 h-8 border-2 border-border border-t-primary rounded-full animate-spin" />
+  // ── Shell helper ──
+  const pageShell = (children: React.ReactNode) => (
+    <div style={{ background: 'var(--color-warm-white)', minHeight: '100vh' }}>
+      <div
+        className="px-6 sm:px-10"
+        style={{
+          maxWidth: '52rem',
+          margin: '0 auto',
+          paddingTop: 'clamp(7.5rem, 10vw, 9.5rem)',
+          paddingBottom: 'clamp(4rem, 7vw, 6rem)',
+        }}
+      >
+        {children}
       </div>
-    );
-  }
+    </div>
+  );
 
-  // ── Data loading ──
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <Loader2 className="h-6 w-6 animate-spin text-muted" />
-      </div>
-    );
-  }
+  if (authLoading) return <EditorialSpinner />;
+  if (loading) return <EditorialSpinner label="Retrieving the thread…" />;
 
-  // ── Error state ──
   if (error) {
-    return (
-      <div className="max-w-2xl mx-auto px-4 py-16 text-center">
-        <h1 className="font-editorial text-2xl font-semibold mb-2">
-          Something went wrong
+    return pageShell(
+      <>
+        <p
+          style={{
+            fontSize: '0.62rem',
+            letterSpacing: '0.22em',
+            textTransform: 'uppercase',
+            color: 'var(--color-stone)',
+            marginBottom: '1.2rem',
+          }}
+        >
+          — Unable to load —
+        </p>
+        <h1
+          className="font-serif"
+          style={{
+            fontSize: 'clamp(1.9rem, 3.6vw, 2.6rem)',
+            lineHeight: 1.1,
+            color: 'var(--color-ink)',
+            fontWeight: 400,
+            marginBottom: '1.2rem',
+          }}
+        >
+          The thread didn&apos;t open.
         </h1>
-        <p className="text-muted mb-6">{error}</p>
-        <div className="flex gap-3 justify-center">
+        <p
+          style={{
+            fontSize: '0.95rem',
+            color: 'var(--color-stone-dark)',
+            fontWeight: 300,
+            lineHeight: 1.6,
+            marginBottom: '2rem',
+            maxWidth: '52ch',
+          }}
+        >
+          {error}
+        </p>
+        <div style={{ display: 'flex', gap: '1.6rem', alignItems: 'center' }}>
           <Link
             href="/messages"
-            className="inline-flex items-center gap-2 px-6 py-3 border border-border font-medium rounded-full hover:bg-cream transition-colors"
+            className="artwork-primary-cta artwork-primary-cta--compact"
+            style={{ minWidth: '13rem' }}
           >
-            <ArrowLeft className="h-4 w-4" />
-            Back
+            ← Back to messages
           </Link>
           <button
             onClick={() => {
@@ -337,33 +376,61 @@ export default function ConversationPage({
                 loadConversation(conversationId);
               }
             }}
-            className="inline-flex items-center gap-2 px-6 py-3 bg-primary text-white font-semibold rounded-full hover:bg-accent hover:text-primary transition-colors"
+            className="editorial-link"
           >
-            <RefreshCw className="h-4 w-4" />
-            Try Again
+            Try again
           </button>
         </div>
-      </div>
+      </>
     );
   }
 
-  // ── Conversation not found ──
   if (!otherUser) {
-    return (
-      <div className="max-w-2xl mx-auto px-4 py-16 text-center">
-        <h1 className="font-editorial text-2xl font-semibold mb-2">
-          Conversation not found
+    return pageShell(
+      <>
+        <p
+          style={{
+            fontSize: '0.62rem',
+            letterSpacing: '0.22em',
+            textTransform: 'uppercase',
+            color: 'var(--color-stone)',
+            marginBottom: '1.2rem',
+          }}
+        >
+          — Not found —
+        </p>
+        <h1
+          className="font-serif"
+          style={{
+            fontSize: 'clamp(1.9rem, 3.6vw, 2.6rem)',
+            lineHeight: 1.1,
+            color: 'var(--color-ink)',
+            fontWeight: 400,
+            marginBottom: '1.2rem',
+          }}
+        >
+          This thread has closed.
         </h1>
-        <p className="text-muted mb-6">
-          This conversation may have been deleted.
+        <p
+          style={{
+            fontSize: '0.95rem',
+            color: 'var(--color-stone-dark)',
+            fontWeight: 300,
+            lineHeight: 1.6,
+            marginBottom: '2rem',
+            maxWidth: '52ch',
+          }}
+        >
+          The conversation may have been deleted.
         </p>
         <Link
           href="/messages"
-          className="inline-flex items-center gap-2 px-6 py-3 bg-primary text-white font-semibold rounded-full hover:bg-accent hover:text-primary transition-colors"
+          className="artwork-primary-cta artwork-primary-cta--compact"
+          style={{ minWidth: '13rem' }}
         >
-          Back to Messages
+          ← Back to messages
         </Link>
-      </div>
+      </>
     );
   }
 
@@ -372,173 +439,345 @@ export default function ConversationPage({
 
   return (
     <div
-      className="max-w-3xl mx-auto px-4 sm:px-6 flex flex-col"
-      style={{ height: 'calc(100vh - 64px)' }}
+      style={{
+        background: 'var(--color-warm-white)',
+        minHeight: '100vh',
+        display: 'flex',
+        flexDirection: 'column',
+      }}
     >
-      {/* ── Header ── */}
-      <div className="flex items-center gap-3 py-4 border-b border-border flex-shrink-0">
+      <div
+        className="px-6 sm:px-10"
+        style={{
+          width: '100%',
+          maxWidth: '52rem',
+          margin: '0 auto',
+          flex: 1,
+          display: 'flex',
+          flexDirection: 'column',
+          paddingTop: 'clamp(7rem, 9vw, 8.5rem)',
+          paddingBottom: '1.5rem',
+          minHeight: '100vh',
+        }}
+      >
+        {/* ── Back link ── */}
         <Link
           href="/messages"
-          className="p-1.5 -ml-1.5 hover:bg-cream rounded-full transition-colors"
+          className="font-serif"
+          style={{
+            display: 'inline-block',
+            marginBottom: '1.6rem',
+            fontSize: '0.68rem',
+            letterSpacing: '0.22em',
+            textTransform: 'uppercase',
+            fontStyle: 'italic',
+            color: 'var(--color-stone)',
+            textDecoration: 'none',
+            alignSelf: 'flex-start',
+          }}
         >
-          <ArrowLeft className="h-5 w-5 text-muted" />
+          ← All messages
         </Link>
 
-        <div className="w-10 h-10 rounded-full bg-muted-bg flex items-center justify-center overflow-hidden flex-shrink-0">
-          {otherUser.avatar_url ? (
-            <img
-              src={otherUser.avatar_url}
-              alt={otherUser.full_name ?? ''}
-              className="w-full h-full object-cover"
-            />
-          ) : (
-            <span className="text-sm font-bold text-muted">
-              {getInitials(otherUser.full_name || '?')}
-            </span>
-          )}
-        </div>
+        {/* ── Thread header ── */}
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '1.2rem',
+            paddingBottom: '1.4rem',
+            borderBottom: '1px solid var(--color-border-strong)',
+            flexShrink: 0,
+          }}
+        >
+          <Avatar
+            avatarUrl={otherUser.avatar_url}
+            name={otherUser.full_name || '?'}
+            size={52}
+          />
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <p
+              style={{
+                fontSize: '0.62rem',
+                letterSpacing: '0.22em',
+                textTransform: 'uppercase',
+                color: 'var(--color-stone)',
+                marginBottom: '0.3rem',
+              }}
+            >
+              In correspondence with
+            </p>
+            <p
+              className="font-serif"
+              style={{
+                fontSize: '1.3rem',
+                color: 'var(--color-ink)',
+                fontWeight: 400,
+                margin: 0,
+                lineHeight: 1.2,
+              }}
+            >
+              {otherUser.full_name || 'Unknown'}
+            </p>
+            {artwork && (
+              <Link
+                href={`/artwork/${artwork.id}`}
+                className="font-serif"
+                style={{
+                  display: 'inline-block',
+                  marginTop: '0.25rem',
+                  fontSize: '0.82rem',
+                  color: 'var(--color-stone-dark)',
+                  fontStyle: 'italic',
+                  textDecoration: 'none',
+                  borderBottom: '1px solid var(--color-border)',
+                }}
+              >
+                Re · {artwork.title}
+              </Link>
+            )}
+          </div>
 
-        <div className="flex-1 min-w-0">
-          <p className="font-medium text-sm truncate">
-            {otherUser.full_name || 'Unknown User'}
-          </p>
-          {artwork && (
+          {artwork && artwork.images?.[0] && (
             <Link
               href={`/artwork/${artwork.id}`}
-              className="text-xs text-accent-dark hover:underline truncate block"
+              style={{
+                width: 52,
+                height: 52,
+                background: 'var(--color-cream)',
+                flexShrink: 0,
+                overflow: 'hidden',
+                display: 'block',
+              }}
             >
-              Re: {artwork.title}
+              <Image
+                src={artwork.images[0]}
+                alt={artwork.title}
+                width={52}
+                height={52}
+                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+              />
             </Link>
           )}
         </div>
 
-        {artwork && artwork.images?.[0] && (
-          <Link
-            href={`/artwork/${artwork.id}`}
-            className="w-10 h-10 rounded-lg bg-muted-bg flex-shrink-0 overflow-hidden"
-          >
-            <img
-              src={artwork.images[0]}
-              alt={artwork.title}
-              className="w-full h-full object-cover"
-            />
-          </Link>
-        )}
-      </div>
-
-      {/* ── Messages ── */}
-      <div className="flex-1 overflow-y-auto py-4 space-y-1 min-h-0">
-        {messages.length === 0 && (
-          <div className="text-center py-12">
-            <div className="w-14 h-14 bg-cream rounded-full flex items-center justify-center mx-auto mb-4">
-              {artwork && artwork.images?.[0] ? (
-                <img
-                  src={artwork.images[0]}
-                  alt=""
-                  className="w-full h-full object-cover rounded-full"
-                />
-              ) : (
-                <ImageIcon className="h-6 w-6 text-warm-gray" />
-              )}
-            </div>
-            <p className="text-muted text-sm">
-              Start the conversation — say hello!
-            </p>
-          </div>
-        )}
-
-        {messages.map((msg, index) => {
-          const isOwn = msg.sender_id === user?.id;
-          const showDateSep =
-            index === 0 ||
-            !isSameDay(messages[index - 1].created_at, msg.created_at);
-
-          return (
-            <div key={msg.id}>
-              {showDateSep && (
-                <div className="flex items-center justify-center py-3">
-                  <span className="px-3 py-1 bg-cream text-[11px] font-medium text-warm-gray rounded-full">
-                    {formatDateSeparator(msg.created_at)}
-                  </span>
-                </div>
-              )}
-              <div
-                className={`flex ${isOwn ? 'justify-end' : 'justify-start'} mb-1`}
+        {/* ── Messages stream ── */}
+        <div
+          style={{
+            flex: 1,
+            overflowY: 'auto',
+            padding: '2rem 0 1rem',
+            minHeight: 0,
+          }}
+        >
+          {messages.length === 0 && (
+            <div style={{ padding: '4rem 0', textAlign: 'left' }}>
+              <p
+                style={{
+                  fontSize: '0.62rem',
+                  letterSpacing: '0.22em',
+                  textTransform: 'uppercase',
+                  color: 'var(--color-stone)',
+                  marginBottom: '0.8rem',
+                }}
               >
-                <div
-                  className={`max-w-[75%] sm:max-w-[65%] px-4 py-2.5 rounded-2xl ${
-                    isOwn
-                      ? 'bg-primary text-white rounded-br-md'
-                      : 'bg-cream text-foreground rounded-bl-md'
-                  }`}
-                >
-                  <p className="text-sm whitespace-pre-wrap break-words leading-relaxed">
-                    {msg.content}
-                  </p>
+                — A fresh page —
+              </p>
+              <p
+                className="font-serif"
+                style={{
+                  fontSize: 'clamp(1.4rem, 2.6vw, 1.8rem)',
+                  fontStyle: 'italic',
+                  color: 'var(--color-ink)',
+                  fontWeight: 400,
+                  lineHeight: 1.2,
+                  maxWidth: '36ch',
+                }}
+              >
+                Open with a line. A greeting is enough to begin.
+              </p>
+            </div>
+          )}
+
+          {messages.map((msg, index) => {
+            const isOwn = msg.sender_id === user?.id;
+            const showDateSep =
+              index === 0 ||
+              !isSameDay(messages[index - 1].created_at, msg.created_at);
+
+            return (
+              <div key={msg.id}>
+                {showDateSep && (
                   <div
-                    className={`flex items-center gap-1 mt-1 ${
-                      isOwn ? 'justify-end' : 'justify-start'
-                    }`}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '1rem',
+                      padding: '1.8rem 0 1.2rem',
+                    }}
                   >
                     <span
-                      className={`text-[10px] ${
-                        isOwn ? 'text-white/60' : 'text-warm-gray'
-                      }`}
+                      style={{
+                        flex: 1,
+                        height: 1,
+                        background: 'var(--color-border)',
+                      }}
+                    />
+                    <span
+                      style={{
+                        fontSize: '0.6rem',
+                        letterSpacing: '0.22em',
+                        textTransform: 'uppercase',
+                        color: 'var(--color-stone)',
+                        whiteSpace: 'nowrap',
+                      }}
                     >
-                      {formatTime(msg.created_at)}
+                      {formatDateSeparator(msg.created_at)}
                     </span>
-                    {isOwn && (
-                      <CheckCheck
-                        className={`h-3 w-3 ${
-                          msg.is_read ? 'text-accent' : 'text-white/40'
-                        }`}
-                      />
-                    )}
+                    <span
+                      style={{
+                        flex: 1,
+                        height: 1,
+                        background: 'var(--color-border)',
+                      }}
+                    />
+                  </div>
+                )}
+                <div
+                  style={{
+                    display: 'flex',
+                    justifyContent: isOwn ? 'flex-end' : 'flex-start',
+                    marginBottom: '0.9rem',
+                  }}
+                >
+                  <div style={{ maxWidth: '78%' }}>
+                    <p
+                      style={{
+                        fontSize: '0.6rem',
+                        letterSpacing: '0.18em',
+                        textTransform: 'uppercase',
+                        color: 'var(--color-stone)',
+                        marginBottom: '0.35rem',
+                        textAlign: isOwn ? 'right' : 'left',
+                      }}
+                    >
+                      {isOwn ? 'You' : otherUser.full_name?.split(' ')[0] || '—'}
+                      {' · '}
+                      <span style={{ fontStyle: 'italic', textTransform: 'none', letterSpacing: 'normal' }}>
+                        {formatTime(msg.created_at)}
+                      </span>
+                      {isOwn && msg.is_read && (
+                        <>
+                          {' · '}
+                          <span
+                            style={{
+                              fontStyle: 'italic',
+                              textTransform: 'none',
+                              letterSpacing: 'normal',
+                              color: 'var(--color-stone-dark)',
+                            }}
+                          >
+                            read
+                          </span>
+                        </>
+                      )}
+                    </p>
+                    <div
+                      style={{
+                        padding: '0.9rem 1.1rem',
+                        background: isOwn
+                          ? 'var(--color-ink)'
+                          : 'var(--color-cream)',
+                        color: isOwn
+                          ? 'var(--color-warm-white)'
+                          : 'var(--color-ink)',
+                      }}
+                    >
+                      <p
+                        style={{
+                          fontSize: '0.95rem',
+                          lineHeight: 1.55,
+                          margin: 0,
+                          whiteSpace: 'pre-wrap',
+                          wordBreak: 'break-word',
+                          fontWeight: 300,
+                        }}
+                      >
+                        {msg.content}
+                      </p>
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
-          );
-        })}
-        <div ref={messagesEndRef} />
-      </div>
+            );
+          })}
+          <div ref={messagesEndRef} />
+        </div>
 
-      {/* ── Input ── */}
-      <div className="flex-shrink-0 border-t border-border py-3">
-        <div className="flex items-end gap-2">
-          <div className="flex-1 relative">
-            <textarea
-              ref={textareaRef}
-              value={newMessage}
-              onChange={handleTextareaChange}
-              onKeyDown={handleKeyDown}
-              placeholder="Type a message..."
-              rows={1}
-              maxLength={2000}
-              className="w-full px-4 py-3 bg-cream border border-border rounded-2xl text-sm placeholder:text-warm-gray resize-none focus:bg-white focus:border-accent transition-colors"
-              style={{ maxHeight: 120 }}
-            />
-            {showCharCount && (
-              <span
-                className={`absolute bottom-1.5 right-3 text-[10px] ${
-                  charCount > 1950 ? 'text-red-500' : 'text-warm-gray'
-                }`}
-              >
-                {charCount}/2000
-              </span>
-            )}
-          </div>
-          <button
-            onClick={handleSend}
-            disabled={!newMessage.trim() || sending || sendCooldown}
-            className="flex-shrink-0 w-11 h-11 bg-accent text-primary rounded-full flex items-center justify-center hover:bg-accent-light transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+        {/* ── Composer ── */}
+        <div
+          style={{
+            flexShrink: 0,
+            borderTop: '1px solid var(--color-border-strong)',
+            paddingTop: '1.2rem',
+          }}
+        >
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'flex-end',
+              gap: '1rem',
+            }}
           >
-            {sending ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <Send className="h-4 w-4" />
-            )}
-          </button>
+            <div style={{ flex: 1, position: 'relative' }}>
+              <textarea
+                ref={textareaRef}
+                value={newMessage}
+                onChange={handleTextareaChange}
+                onKeyDown={handleKeyDown}
+                placeholder="Write a line…"
+                rows={1}
+                maxLength={2000}
+                className="commission-field"
+                style={{
+                  resize: 'none',
+                  maxHeight: 140,
+                  minHeight: 48,
+                  fontSize: '0.95rem',
+                }}
+              />
+              {showCharCount && (
+                <span
+                  style={{
+                    position: 'absolute',
+                    bottom: 6,
+                    right: 10,
+                    fontSize: '0.65rem',
+                    color:
+                      charCount > 1950
+                        ? 'var(--color-terracotta, #c45d3e)'
+                        : 'var(--color-stone)',
+                    fontStyle: 'italic',
+                  }}
+                  className="font-serif"
+                >
+                  {charCount} / 2000
+                </span>
+              )}
+            </div>
+            <button
+              onClick={handleSend}
+              disabled={!newMessage.trim() || sending || sendCooldown}
+              className="artwork-primary-cta artwork-primary-cta--compact"
+              style={{
+                minWidth: '8rem',
+                opacity:
+                  !newMessage.trim() || sending || sendCooldown ? 0.4 : 1,
+              }}
+            >
+              {sending ? 'Sending…' : 'Send'}
+            </button>
+          </div>
         </div>
       </div>
     </div>

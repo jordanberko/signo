@@ -23,6 +23,20 @@ function getResend(): Resend {
 const FROM_ADDRESS = process.env.RESEND_FROM_ADDRESS || 'Signo <onboarding@resend.dev>';
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://signoart.com.au';
 
+// ── Editorial palette (mirrors --color-* tokens in src/app/globals.css) ──
+
+const INK = '#1a1a18';
+const STONE = '#b8b2a4';
+const STONE_DARK = '#8a8478';
+const WARM_WHITE = '#fcfbf8';
+const CREAM = '#f7f5f0';
+const BORDER = '#e8e6e1'; // visual stand-in for rgba(26,26,24,0.08); email clients prefer solid hex
+const TERRACOTTA = '#c45d3e';
+
+// Email-safe font stacks
+const SERIF = "Georgia, 'Times New Roman', 'Didot', serif";
+const SANS = "'Helvetica Neue', Helvetica, Arial, sans-serif";
+
 // ── HTML Escaping ──
 
 /** Escape user-supplied strings before interpolating into HTML templates. */
@@ -37,6 +51,12 @@ function escapeHtml(str: string): string {
 
 // ── Shared HTML Template ──
 
+/**
+ * Editorial email wrapper.
+ * — Warm-white ground, no rounded card.
+ * — Serif wordmark "Signo." with italic full-stop.
+ * — Hairline footer with tag-line and preferences link.
+ */
 function emailWrapper(content: string): string {
   return `<!DOCTYPE html>
 <html lang="en">
@@ -45,38 +65,41 @@ function emailWrapper(content: string): string {
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Signo</title>
 </head>
-<body style="margin:0;padding:0;background-color:#faf8f4;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;">
-  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#faf8f4;">
+<body style="margin:0;padding:0;background-color:${WARM_WHITE};font-family:${SANS};color:${INK};">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:${WARM_WHITE};">
     <tr>
-      <td align="center" style="padding:40px 16px;">
+      <td align="center" style="padding:56px 20px 48px 20px;">
         <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;margin:0 auto;">
 
-          <!-- Logo -->
+          <!-- Wordmark -->
           <tr>
-            <td align="center" style="padding-bottom:32px;">
-              <a href="${APP_URL}" style="text-decoration:none;">
-                <span style="font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;font-size:28px;font-weight:500;color:#1a1a1a;letter-spacing:0.08em;">SIGNO</span><span style="font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;font-size:28px;font-weight:500;color:#6b7c4e;font-style:italic;">.</span>
+            <td align="center" style="padding-bottom:44px;">
+              <a href="${APP_URL}" style="text-decoration:none;display:inline-block;">
+                <span style="font-family:${SERIF};font-size:30px;font-weight:400;color:${INK};letter-spacing:0.04em;">Signo</span><span style="font-family:${SERIF};font-size:30px;font-weight:400;color:${INK};font-style:italic;">.</span>
               </a>
             </td>
           </tr>
 
-          <!-- Content Card -->
+          <!-- Content -->
           <tr>
-            <td style="background-color:#ffffff;border-radius:16px;padding:40px 36px;border:1px solid #e8e6e1;">
+            <td style="padding:0 4px;">
               ${content}
             </td>
           </tr>
 
-          <!-- Footer -->
+          <!-- Footer hairline -->
           <tr>
-            <td align="center" style="padding-top:32px;padding-bottom:16px;">
-              <p style="font-size:12px;color:#7a7a72;margin:0 0 8px 0;line-height:1.6;">
-                &copy; 2026 Signo. A curated marketplace for Australian artists.
-              </p>
-              <p style="font-size:11px;color:#a0a0a0;margin:0;">
-                <!-- TODO: Build email preferences page and replace this placeholder -->
-                <a href="${APP_URL}/settings" style="color:#6b7c4e;text-decoration:underline;">Email preferences</a>
-              </p>
+            <td style="padding:48px 4px 0 4px;">
+              <div style="border-top:1px solid ${BORDER};padding-top:24px;">
+                <p style="font-family:${SERIF};font-size:13px;font-style:italic;color:${STONE};margin:0 0 10px 0;line-height:1.7;text-align:center;">
+                  Signo &mdash; a curated room for Australian artists.
+                </p>
+                <p style="font-family:${SANS};font-size:10px;color:${STONE};margin:0;text-align:center;letter-spacing:0.18em;text-transform:uppercase;">
+                  <a href="${APP_URL}" style="color:${STONE};text-decoration:none;">signoart.com.au</a>
+                  &nbsp;&middot;&nbsp;
+                  <a href="${APP_URL}/settings" style="color:${STONE};text-decoration:none;">Email preferences</a>
+                </p>
+              </div>
             </td>
           </tr>
 
@@ -94,18 +117,82 @@ function formatCurrency(amount: number): string {
   return `$${amount.toFixed(2)}`;
 }
 
+/**
+ * Editorial CTA — ink-bordered rectangle with serif italic label and arrow.
+ * Replaces the legacy sage-pill button.
+ */
 function ctaButton(text: string, url: string): string {
-  return `<table role="presentation" cellpadding="0" cellspacing="0" style="margin:28px 0 8px 0;">
+  return `<table role="presentation" cellpadding="0" cellspacing="0" style="margin:32px 0 8px 0;">
     <tr>
-      <td style="background-color:#6b7c4e;border-radius:50px;padding:14px 32px;">
-        <a href="${url}" style="color:#ffffff;font-size:14px;font-weight:600;text-decoration:none;display:inline-block;">${text}</a>
+      <td style="border:1px solid ${INK};padding:16px 28px;">
+        <a href="${url}" style="font-family:${SERIF};font-size:15px;font-style:italic;color:${INK};text-decoration:none;display:inline-block;letter-spacing:0.01em;">${text}&nbsp;&rarr;</a>
       </td>
     </tr>
   </table>`;
 }
 
+/** A secondary, text-only link in the editorial style. */
+function textLink(text: string, url: string): string {
+  return `<a href="${url}" style="font-family:${SERIF};font-size:14px;font-style:italic;color:${INK};text-decoration:underline;text-decoration-thickness:1px;text-underline-offset:3px;">${text}</a>`;
+}
+
 function divider(): string {
-  return `<hr style="border:none;border-top:1px solid #e8e6e1;margin:24px 0;" />`;
+  return `<hr style="border:none;border-top:1px solid ${BORDER};margin:32px 0;" />`;
+}
+
+/** Small uppercase kicker label ("ORDER CONFIRMED", "NEW SALE", etc.). */
+function kicker(text: string): string {
+  return `<p style="font-family:${SANS};font-size:10px;font-weight:400;color:${STONE};margin:0 0 20px 0;letter-spacing:0.22em;text-transform:uppercase;">${text}</p>`;
+}
+
+/** Large serif headline, optional italic accent portion. */
+function headline(text: string, italicTail?: string): string {
+  const tail = italicTail ? ` <em style="font-style:italic;">${italicTail}</em>` : '';
+  return `<h1 style="font-family:${SERIF};font-size:34px;font-weight:400;color:${INK};margin:0 0 22px 0;line-height:1.15;letter-spacing:-0.01em;">${text}${tail}</h1>`;
+}
+
+/** Serif body paragraph, lighter weight for editorial feel. */
+function lede(text: string): string {
+  return `<p style="font-family:${SERIF};font-size:17px;font-weight:400;color:${STONE_DARK};margin:0 0 24px 0;line-height:1.6;">${text}</p>`;
+}
+
+/** Smaller sans body paragraph for secondary copy. */
+function body(text: string, marginBottom = 20): string {
+  return `<p style="font-family:${SANS};font-size:14px;color:${STONE_DARK};margin:0 0 ${marginBottom}px 0;line-height:1.7;">${text}</p>`;
+}
+
+/**
+ * Hairline ledger row — kicker label, value. Used in place of rounded tables.
+ * Pass an array of [label, value, valueStyle?] tuples.
+ */
+function ledger(rows: Array<[string, string, string?]>): string {
+  const cells = rows
+    .map(([label, value, extra]) => {
+      const valueStyle = `font-family:${SERIF};font-size:15px;color:${INK};${extra || ''}`;
+      return `<tr>
+        <td style="padding:14px 0;border-top:1px solid ${BORDER};width:40%;font-family:${SANS};font-size:10px;color:${STONE};letter-spacing:0.22em;text-transform:uppercase;vertical-align:top;">${label}</td>
+        <td style="padding:14px 0;border-top:1px solid ${BORDER};${valueStyle}">${value}</td>
+      </tr>`;
+    })
+    .join('');
+
+  return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-bottom:1px solid ${BORDER};margin:8px 0 24px 0;">
+    ${cells}
+  </table>`;
+}
+
+/** Numbered list with serif italic index in its own left column. */
+function numberedList(items: string[]): string {
+  const rows = items
+    .map((item, i) => {
+      const n = String(i + 1).padStart(2, '0');
+      return `<tr>
+        <td style="padding:12px 0;border-top:1px solid ${BORDER};width:44px;font-family:${SERIF};font-size:14px;font-style:italic;color:${STONE};vertical-align:top;">${n}</td>
+        <td style="padding:12px 0;border-top:1px solid ${BORDER};font-family:${SERIF};font-size:15px;color:${INK};line-height:1.6;vertical-align:top;">${item}</td>
+      </tr>`;
+    })
+    .join('');
+  return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-bottom:1px solid ${BORDER};margin:8px 0 24px 0;">${rows}</table>`;
 }
 
 // ── Safe Send Helper ──
@@ -158,31 +245,28 @@ export interface OrderConfirmationData {
 
 export async function sendOrderConfirmation(data: OrderConfirmationData) {
   const imageBlock = data.artworkImageUrl
-    ? `<img src="${data.artworkImageUrl}" alt="${escapeHtml(data.artworkTitle)}" style="width:100%;max-width:480px;border-radius:12px;margin-bottom:24px;display:block;" />`
+    ? `<div style="margin:4px 0 32px 0;background-color:${CREAM};">
+        <img src="${data.artworkImageUrl}" alt="${escapeHtml(data.artworkTitle)}" style="width:100%;max-width:552px;display:block;border:0;" />
+      </div>`
     : '';
 
   const html = emailWrapper(`
-    <h1 style="font-family:Georgia,'Times New Roman',serif;font-size:24px;font-weight:500;color:#1a1a1a;margin:0 0 8px 0;">Order confirmed</h1>
-    <p style="font-size:14px;color:#7a7a72;margin:0 0 24px 0;line-height:1.6;">
-      Thank you for your purchase, ${escapeHtml(data.buyerName || 'there')}. Here are the details.
-    </p>
+    ${kicker('Order confirmed')}
+    ${headline('Thank you,', escapeHtml(data.buyerName || 'friend') + '.')}
+    ${lede(`Your order for &ldquo;${escapeHtml(data.artworkTitle)}&rdquo; by ${escapeHtml(data.artistName)} has been received. Payment is held securely until delivery is confirmed.`)}
 
     ${imageBlock}
 
-    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="font-size:14px;color:#1a1a1a;line-height:1.8;">
-      <tr><td style="color:#7a7a72;padding-right:12px;white-space:nowrap;">Artwork</td><td style="font-weight:500;">${escapeHtml(data.artworkTitle)}</td></tr>
-      <tr><td style="color:#7a7a72;padding-right:12px;white-space:nowrap;">Artist</td><td>${escapeHtml(data.artistName)}</td></tr>
-      <tr><td style="color:#7a7a72;padding-right:12px;white-space:nowrap;">Total paid</td><td style="font-weight:600;">${formatCurrency(data.totalAmount)}</td></tr>
-      <tr><td style="color:#7a7a72;padding-right:12px;white-space:nowrap;">Order ID</td><td style="font-family:monospace;font-size:12px;">${escapeHtml(data.orderId)}</td></tr>
-    </table>
+    ${ledger([
+      ['Artwork', escapeHtml(data.artworkTitle), 'font-style:italic;'],
+      ['Artist', escapeHtml(data.artistName)],
+      ['Total paid', formatCurrency(data.totalAmount)],
+      ['Order', `<span style="font-family:${SANS};font-size:11px;color:${STONE};letter-spacing:0.08em;">${escapeHtml(data.orderId)}</span>`],
+    ])}
 
-    ${divider()}
+    ${body('The artist will dispatch your artwork within seven days. A tracking notification will follow once it leaves the studio.')}
 
-    <p style="font-size:13px;color:#7a7a72;margin:0;line-height:1.6;">
-      Your payment is held securely until delivery is confirmed. The artist will ship your artwork within 7 days. You'll receive a tracking notification once it's on its way.
-    </p>
-
-    ${ctaButton('View Order', `${APP_URL}/orders/${data.orderId}`)}
+    ${ctaButton('View order', `${APP_URL}/orders/${data.orderId}`)}
   `);
 
   return safeSend({
@@ -208,36 +292,32 @@ export interface NewSaleData {
 }
 
 export async function sendNewSaleNotification(data: NewSaleData) {
-  const locationLine = data.buyerCity || data.buyerState
-    ? `<tr><td style="color:#7a7a72;padding-right:12px;white-space:nowrap;">Ships to</td><td>${[data.buyerCity, data.buyerState].filter((s): s is string => Boolean(s)).map(escapeHtml).join(', ')}</td></tr>`
-    : '';
+  const location = [data.buyerCity, data.buyerState].filter((s): s is string => Boolean(s)).join(', ');
+  const rows: Array<[string, string, string?]> = [
+    ['Artwork', escapeHtml(data.artworkTitle), 'font-style:italic;'],
+    ['Sale price', formatCurrency(data.salePrice)],
+    ['Your payout', formatCurrency(data.artistPayout), 'font-weight:500;'],
+  ];
+  if (location) rows.push(['Ships to', escapeHtml(location)]);
 
   const html = emailWrapper(`
-    <h1 style="font-family:Georgia,'Times New Roman',serif;font-size:24px;font-weight:500;color:#1a1a1a;margin:0 0 8px 0;">You made a sale!</h1>
-    <p style="font-size:14px;color:#7a7a72;margin:0 0 24px 0;line-height:1.6;">
-      Congratulations, ${escapeHtml(data.artistName || 'there')}. Your artwork has been purchased.
-    </p>
+    ${kicker('A new sale')}
+    ${headline('A work has found', 'its home.')}
+    ${lede(`Congratulations, ${escapeHtml(data.artistName || 'there')}. A collector has just bought your piece.`)}
 
-    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="font-size:14px;color:#1a1a1a;line-height:1.8;">
-      <tr><td style="color:#7a7a72;padding-right:12px;white-space:nowrap;">Artwork</td><td style="font-weight:500;">${escapeHtml(data.artworkTitle)}</td></tr>
-      <tr><td style="color:#7a7a72;padding-right:12px;white-space:nowrap;">Sale price</td><td style="font-weight:600;">${formatCurrency(data.salePrice)}</td></tr>
-      <tr><td style="color:#7a7a72;padding-right:12px;white-space:nowrap;">Your payout</td><td style="font-weight:600;color:#6b7c4e;">${formatCurrency(data.artistPayout)}</td></tr>
-      ${locationLine}
-    </table>
+    ${ledger(rows)}
 
     ${divider()}
 
-    <p style="font-size:13px;color:#1a1a1a;margin:0 0 4px 0;font-weight:600;">What to do next</p>
-    <p style="font-size:13px;color:#7a7a72;margin:0;line-height:1.6;">
-      Package the artwork carefully and ship it within <strong style="color:#1a1a1a;">7 days</strong>. Once shipped, update the order with the tracking number so the buyer can follow along.
-    </p>
+    <p style="font-family:${SERIF};font-size:15px;color:${INK};margin:0 0 8px 0;font-style:italic;">&mdash; What to do next</p>
+    ${body('Package the work with care and dispatch within seven days. Once it ships, add the tracking number to the order so the buyer can follow along.')}
 
-    ${ctaButton('View Order & Ship', `${APP_URL}/artist/orders`)}
+    ${ctaButton('Open the order', `${APP_URL}/artist/orders`)}
   `);
 
   return safeSend({
     to: data.artistEmail,
-    subject: `New sale — "${escapeHtml(data.artworkTitle)}"`,
+    subject: `A new sale — "${escapeHtml(data.artworkTitle)}"`,
     html,
   });
 }
@@ -255,17 +335,16 @@ export interface ArtworkApprovedData {
 
 export async function sendArtworkApproved(data: ArtworkApprovedData) {
   const html = emailWrapper(`
-    <h1 style="font-family:Georgia,'Times New Roman',serif;font-size:24px;font-weight:500;color:#1a1a1a;margin:0 0 8px 0;">Your artwork is live</h1>
-    <p style="font-size:14px;color:#7a7a72;margin:0 0 24px 0;line-height:1.6;">
-      Great news, ${escapeHtml(data.artistName || 'there')}. Your artwork "<strong style="color:#1a1a1a;">${escapeHtml(data.artworkTitle)}</strong>" has been reviewed and approved. It's now visible to collectors on Signo.
-    </p>
+    ${kicker('Approved')}
+    ${headline('Your work is', 'on the wall.')}
+    ${lede(`${escapeHtml(data.artistName || 'Hello')}, &ldquo;${escapeHtml(data.artworkTitle)}&rdquo; has been reviewed and approved. It is now live on Signo and visible to collectors.`)}
 
-    ${ctaButton('View Your Artwork', `${APP_URL}/artwork/${data.artworkId}`)}
+    ${ctaButton('View your listing', `${APP_URL}/artwork/${data.artworkId}`)}
   `);
 
   return safeSend({
     to: data.artistEmail,
-    subject: `Approved — "${escapeHtml(data.artworkTitle)}" is now live on Signo`,
+    subject: `Approved — "${escapeHtml(data.artworkTitle)}" is now live`,
     html,
   });
 }
@@ -283,26 +362,27 @@ export interface ArtworkRejectedData {
 
 export async function sendArtworkRejected(data: ArtworkRejectedData) {
   const notesBlock = data.reviewNotes
-    ? `<div style="background-color:#faf8f4;border-radius:8px;padding:16px;margin:16px 0;">
-        <p style="font-size:12px;color:#7a7a72;margin:0 0 4px 0;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;">Review Notes</p>
-        <p style="font-size:14px;color:#1a1a1a;margin:0;line-height:1.6;">${escapeHtml(data.reviewNotes)}</p>
+    ? `<div style="border-top:1px solid ${TERRACOTTA};border-bottom:1px solid ${TERRACOTTA};padding:20px 0;margin:24px 0;">
+        <p style="font-family:${SANS};font-size:10px;color:${TERRACOTTA};margin:0 0 10px 0;letter-spacing:0.22em;text-transform:uppercase;">&mdash; Editor&rsquo;s note</p>
+        <p style="font-family:${SERIF};font-size:16px;font-style:italic;color:${INK};margin:0;line-height:1.6;">&ldquo;${escapeHtml(data.reviewNotes)}&rdquo;</p>
       </div>`
     : '';
 
   const html = emailWrapper(`
-    <h1 style="font-family:Georgia,'Times New Roman',serif;font-size:24px;font-weight:500;color:#1a1a1a;margin:0 0 8px 0;">Artwork needs changes</h1>
-    <p style="font-size:14px;color:#7a7a72;margin:0 0 16px 0;line-height:1.6;">
-      Hi ${escapeHtml(data.artistName || 'there')}, your artwork "<strong style="color:#1a1a1a;">${escapeHtml(data.artworkTitle)}</strong>" wasn't approved this time. Please review the notes below and re-submit when ready.
-    </p>
+    ${kicker('Needs changes')}
+    ${headline('A note from', 'the editor.')}
+    ${lede(`Hello ${escapeHtml(data.artistName || 'there')}, &ldquo;${escapeHtml(data.artworkTitle)}&rdquo; hasn&rsquo;t been approved this time. Read the notes below, make your changes, and resubmit when you&rsquo;re ready.`)}
 
     ${notesBlock}
 
-    ${ctaButton('Go to Dashboard', `${APP_URL}/artist/dashboard`)}
+    ${body('When you save the revised work, it will automatically return to the review queue. No new submission needed.')}
+
+    ${ctaButton('Revise the work', `${APP_URL}/artist/artworks`)}
   `);
 
   return safeSend({
     to: data.artistEmail,
-    subject: `Update needed — "${escapeHtml(data.artworkTitle)}"`,
+    subject: `Revisions requested — "${escapeHtml(data.artworkTitle)}"`,
     html,
   });
 }
@@ -321,28 +401,24 @@ export interface ShippingConfirmationData {
 }
 
 export async function sendShippingConfirmation(data: ShippingConfirmationData) {
-  const trackingBlock = data.trackingNumber
-    ? `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="font-size:14px;color:#1a1a1a;line-height:1.8;margin-top:16px;">
-        <tr><td style="color:#7a7a72;padding-right:12px;white-space:nowrap;">Carrier</td><td>${escapeHtml(data.carrier || 'Not specified')}</td></tr>
-        <tr><td style="color:#7a7a72;padding-right:12px;white-space:nowrap;">Tracking</td><td style="font-family:monospace;font-size:13px;font-weight:500;">${escapeHtml(data.trackingNumber)}</td></tr>
-      </table>`
-    : '';
+  const rows: Array<[string, string, string?]> = [
+    ['Artwork', escapeHtml(data.artworkTitle), 'font-style:italic;'],
+  ];
+  if (data.carrier) rows.push(['Carrier', escapeHtml(data.carrier)]);
+  if (data.trackingNumber) rows.push(['Tracking', `<span style="font-family:${SANS};font-size:12px;color:${INK};letter-spacing:0.06em;">${escapeHtml(data.trackingNumber)}</span>`]);
 
   const html = emailWrapper(`
-    <h1 style="font-family:Georgia,'Times New Roman',serif;font-size:24px;font-weight:500;color:#1a1a1a;margin:0 0 8px 0;">Your artwork is on its way</h1>
-    <p style="font-size:14px;color:#7a7a72;margin:0 0 16px 0;line-height:1.6;">
-      Hi ${escapeHtml(data.buyerName || 'there')}, "<strong style="color:#1a1a1a;">${escapeHtml(data.artworkTitle)}</strong>" has been shipped.
-    </p>
+    ${kicker('Shipped')}
+    ${headline('Your work is', 'on its way.')}
+    ${lede(`${escapeHtml(data.buyerName || 'Hello')}, &ldquo;${escapeHtml(data.artworkTitle)}&rdquo; has left the studio and is heading to you.`)}
 
-    ${trackingBlock}
+    ${ledger(rows)}
 
     ${divider()}
 
-    <p style="font-size:13px;color:#7a7a72;margin:0;line-height:1.6;">
-      Once it arrives, you'll have a <strong style="color:#1a1a1a;">48-hour inspection window</strong> to confirm everything looks perfect. After that, payment is released to the artist.
-    </p>
+    ${body('Once the work arrives you&rsquo;ll have a forty-eight hour window to inspect it. After that, payment is released to the artist.')}
 
-    ${ctaButton('Track Order', `${APP_URL}/orders/${data.orderId}`)}
+    ${ctaButton('Track the order', `${APP_URL}/orders/${data.orderId}`)}
   `);
 
   return safeSend({
@@ -366,18 +442,17 @@ export interface PayoutReleasedData {
 
 export async function sendPayoutReleased(data: PayoutReleasedData) {
   const html = emailWrapper(`
-    <h1 style="font-family:Georgia,'Times New Roman',serif;font-size:24px;font-weight:500;color:#1a1a1a;margin:0 0 8px 0;">Payment released</h1>
-    <p style="font-size:14px;color:#7a7a72;margin:0 0 24px 0;line-height:1.6;">
-      Hi ${escapeHtml(data.artistName || 'there')}, the buyer has confirmed receipt of "<strong style="color:#1a1a1a;">${escapeHtml(data.artworkTitle)}</strong>".
-    </p>
+    ${kicker('Payment released')}
+    ${headline('The work arrived.', 'Payment is yours.')}
+    ${lede(`Hello ${escapeHtml(data.artistName || 'there')}, the buyer has confirmed receipt of &ldquo;${escapeHtml(data.artworkTitle)}&rdquo;.`)}
 
-    <div style="background-color:#f0f4eb;border-radius:12px;padding:24px;text-align:center;margin-bottom:16px;">
-      <p style="font-size:12px;color:#6b7c4e;margin:0 0 4px 0;font-weight:600;text-transform:uppercase;letter-spacing:0.1em;">Payout amount</p>
-      <p style="font-size:32px;font-weight:700;color:#1a1a1a;margin:0;">${formatCurrency(data.payoutAmount)}</p>
-      <p style="font-size:12px;color:#7a7a72;margin:8px 0 0 0;">Transferred to your connected Stripe account</p>
+    <div style="border-top:1px solid ${INK};border-bottom:1px solid ${INK};padding:28px 0;margin:28px 0;text-align:center;">
+      <p style="font-family:${SANS};font-size:10px;color:${STONE};margin:0 0 10px 0;letter-spacing:0.22em;text-transform:uppercase;">Payout</p>
+      <p style="font-family:${SERIF};font-size:42px;font-weight:400;color:${INK};margin:0;letter-spacing:-0.01em;">${formatCurrency(data.payoutAmount)}</p>
+      <p style="font-family:${SERIF};font-size:14px;font-style:italic;color:${STONE};margin:10px 0 0 0;">&mdash; transferred to your Stripe account.</p>
     </div>
 
-    ${ctaButton('View Earnings', `${APP_URL}/artist/earnings`)}
+    ${ctaButton('View earnings', `${APP_URL}/artist/earnings`)}
   `);
 
   return safeSend({
@@ -401,23 +476,20 @@ export interface OrderCancelledData {
 
 export async function sendOrderCancelled(data: OrderCancelledData) {
   const html = emailWrapper(`
-    <h1 style="font-family:Georgia,'Times New Roman',serif;font-size:24px;font-weight:500;color:#1a1a1a;margin:0 0 8px 0;">Order cancelled</h1>
-    <p style="font-size:14px;color:#7a7a72;margin:0 0 24px 0;line-height:1.6;">
-      Hi ${escapeHtml(data.buyerName || 'there')}, your order for "<strong style="color:#1a1a1a;">${escapeHtml(data.artworkTitle)}</strong>" has been cancelled. A full refund has been issued to your original payment method. Refunds typically appear within 5–10 business days.
-    </p>
+    ${kicker('Order cancelled')}
+    ${headline('Your order has', 'been cancelled.')}
+    ${lede(`Hello ${escapeHtml(data.buyerName || 'there')}, your order for &ldquo;${escapeHtml(data.artworkTitle)}&rdquo; has been cancelled and a full refund has been issued to your original payment method. Refunds typically appear within five to ten business days.`)}
 
-    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="font-size:14px;color:#1a1a1a;line-height:1.8;">
-      <tr><td style="color:#7a7a72;padding-right:12px;white-space:nowrap;">Order ID</td><td style="font-family:monospace;font-size:12px;">${escapeHtml(data.orderId)}</td></tr>
-      <tr><td style="color:#7a7a72;padding-right:12px;white-space:nowrap;">Reason</td><td>${escapeHtml(data.reason)}</td></tr>
-    </table>
+    ${ledger([
+      ['Order', `<span style="font-family:${SANS};font-size:11px;color:${STONE};letter-spacing:0.06em;">${escapeHtml(data.orderId)}</span>`],
+      ['Reason', escapeHtml(data.reason)],
+    ])}
 
     ${divider()}
 
-    <p style="font-size:13px;color:#7a7a72;margin:0;line-height:1.6;">
-      If you have any questions, please reply to this email and we'll be happy to help.
-    </p>
+    ${body('If you have any questions, simply reply to this email and we&rsquo;ll be happy to help.')}
 
-    ${ctaButton('Browse Artwork', `${APP_URL}/browse`)}
+    ${ctaButton('Keep looking', `${APP_URL}/browse`)}
   `);
 
   return safeSend({
@@ -439,49 +511,42 @@ export interface WelcomeEmailData {
 
 export async function sendWelcomeEmail(data: WelcomeEmailData) {
   const isArtist = data.role === 'artist';
+  const firstName = (data.name || '').split(' ')[0] || 'friend';
 
-  const artistBlock = isArtist
-    ? `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top:20px;">
-        <tr>
-          <td style="background-color:#faf8f4;border-radius:8px;padding:16px;">
-            <p style="font-size:13px;color:#1a1a1a;margin:0 0 4px 0;font-weight:600;">Ready to sell?</p>
-            <p style="font-size:13px;color:#7a7a72;margin:0;line-height:1.6;">
-              Complete your artist onboarding to upload your first artwork. Your account is completely free until your first sale. After that, it's just $30/month — zero commission.
-            </p>
-          </td>
-        </tr>
-      </table>`
-    : '';
+  const principles = isArtist
+    ? [
+        'A curated room &mdash; every work is reviewed before it goes live.',
+        'Free to list until your first sale, then thirty dollars a month.',
+        'Payouts go straight to your Stripe account after delivery.',
+        'Keep the rights to your work, always.',
+      ]
+    : [
+        'A curated room &mdash; every work is reviewed before it goes live.',
+        'Payment is held securely until your artwork is in your hands.',
+        'Forty-eight hours to inspect the work after delivery.',
+        'All artists are based in Australia.',
+      ];
 
-  const ctaText = isArtist ? 'Start Onboarding' : 'Browse Artwork';
+  const ctaText = isArtist ? 'Begin your onboarding' : 'Start looking';
   const ctaUrl = isArtist ? `${APP_URL}/artist/onboarding` : `${APP_URL}/browse`;
 
   const html = emailWrapper(`
-    <h1 style="font-family:Georgia,'Times New Roman',serif;font-size:24px;font-weight:500;color:#1a1a1a;margin:0 0 8px 0;">Welcome to Signo</h1>
-    <p style="font-size:14px;color:#7a7a72;margin:0 0 20px 0;line-height:1.6;">
-      Hi ${escapeHtml(data.name || 'there')}, thanks for joining. Signo is a curated marketplace for Australian artists — where quality matters and creativity thrives.
-    </p>
+    ${kicker('Welcome')}
+    ${headline(`Hello, ${escapeHtml(firstName)}.`, '')}
+    ${lede(
+      isArtist
+        ? 'You&rsquo;ve joined a small, careful marketplace for Australian artists. What follows is a short list of the things that matter here.'
+        : 'You&rsquo;ve joined a small, careful marketplace for original Australian art. What follows is a short list of the things that matter here.'
+    )}
 
-    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="font-size:13px;color:#7a7a72;line-height:1.8;">
-      <tr>
-        <td style="padding:4px 0;"><span style="color:#6b7c4e;font-weight:600;">&#10003;</span>&nbsp;&nbsp;Every piece is reviewed for quality</td>
-      </tr>
-      <tr>
-        <td style="padding:4px 0;"><span style="color:#6b7c4e;font-weight:600;">&#10003;</span>&nbsp;&nbsp;Secure checkout with buyer protection</td>
-      </tr>
-      <tr>
-        <td style="padding:4px 0;"><span style="color:#6b7c4e;font-weight:600;">&#10003;</span>&nbsp;&nbsp;Artists keep 100% — zero commission</td>
-      </tr>
-    </table>
-
-    ${artistBlock}
+    ${numberedList(principles)}
 
     ${ctaButton(ctaText, ctaUrl)}
   `);
 
   return safeSend({
     to: data.email,
-    subject: `Welcome to Signo${isArtist ? ' — let\'s get your art online' : ''}`,
+    subject: isArtist ? 'Welcome to Signo — let&rsquo;s get your work online' : 'Welcome to Signo',
     html,
   });
 }
@@ -502,47 +567,37 @@ export async function sendFirstSaleActivation(data: FirstSaleActivationData) {
   const firstName = (data.artistName || 'there').split(' ')[0];
 
   const html = emailWrapper(`
-    <h1 style="font-family:Georgia,'Times New Roman',serif;font-size:28px;font-weight:500;color:#1a1a1a;margin:0 0 24px 0;text-align:center;">Your first sale is complete!</h1>
+    ${kicker('Your first sale')}
+    ${headline('A milestone,', escapeHtml(firstName) + '.')}
+    ${lede(`You just sold &ldquo;${escapeHtml(data.artworkTitle)}&rdquo; for ${formatCurrency(data.saleAmount)}. The funds are on their way to your bank account. This is a big moment &mdash; congratulations.`)}
 
-    <p style="font-size:15px;color:#1a1a1a;margin:0 0 16px 0;line-height:1.7;">
-      Hey ${escapeHtml(firstName)},
-    </p>
+    ${ledger([
+      ['Sale', formatCurrency(data.saleAmount)],
+      ['Your payout', formatCurrency(data.payoutAmount), 'font-weight:500;'],
+    ])}
 
-    <p style="font-size:15px;color:#1a1a1a;margin:0 0 24px 0;line-height:1.7;">
-      You just sold <strong>${escapeHtml(data.artworkTitle)}</strong> for ${formatCurrency(data.saleAmount)}! The funds are on their way to your bank account. This is a big moment &mdash; congratulations.
-    </p>
+    <p style="font-family:${SERIF};font-size:15px;color:${INK};margin:0 0 8px 0;font-style:italic;">&mdash; And one practical note</p>
+    ${body('Until now, your listings have been free. From here, your $30&thinsp;/&thinsp;month subscription begins. Add a payment method within fourteen days to keep your work visible. If you don&rsquo;t, your listings will quietly pause &mdash; nothing is deleted, and you can reactivate at any time.')}
 
-    <p style="font-size:15px;color:#1a1a1a;margin:0 0 28px 0;line-height:1.7;">
-      Because you&rsquo;ve been listing for free on Signo, your $30/month subscription will now begin. If you don&rsquo;t add a payment method within 14 days, your listings will be automatically paused &mdash; not deleted. You can reactivate anytime.
-    </p>
+    ${ctaButton('Add payment method', `${APP_URL}/artist/subscribe`)}
 
-    ${ctaButton('Add Payment Method', `${APP_URL}/artist/subscribe`)}
-
-    <!-- What happens next box -->
-    <div style="background-color:#faf8f4;border:1px solid #e8e6e1;border-radius:12px;padding:24px;margin:28px 0 0 0;">
-      <p style="font-size:14px;font-weight:600;color:#1a1a1a;margin:0 0 16px 0;">What happens next:</p>
-      <table role="presentation" cellpadding="0" cellspacing="0" style="font-size:14px;color:#4a4a4a;line-height:2;">
-        <tr><td style="padding-right:10px;vertical-align:top;color:#6b7c4e;">&#10003;</td><td>Your artwork stays on Signo (nothing is deleted)</td></tr>
-        <tr><td style="padding-right:10px;vertical-align:top;color:#6b7c4e;">&#10003;</td><td>You keep 100% of this sale minus Stripe fees</td></tr>
-        <tr><td style="padding-right:10px;vertical-align:top;color:#6b7c4e;">&#10003;</td><td>$30/month subscription begins when you add payment</td></tr>
-        <tr><td style="padding-right:10px;vertical-align:top;color:#6b7c4e;">&#10003;</td><td>Cancel anytime &mdash; your listings just get paused</td></tr>
-        <tr><td style="padding-right:10px;vertical-align:top;color:#b08d3e;">&#9203;</td><td>14 days to add a payment method before listings pause</td></tr>
-      </table>
-    </div>
+    ${numberedList([
+      'Your work stays on Signo &mdash; nothing is deleted.',
+      'You keep this sale in full, less Stripe fees.',
+      'The subscription begins when you add payment.',
+      'Cancel at any time &mdash; listings simply pause.',
+    ])}
 
     ${divider()}
 
-    <p style="font-size:14px;color:#7a7a72;margin:0 0 4px 0;line-height:1.6;">
-      Thanks for being part of Signo. We&rsquo;re excited to see what you create next.
-    </p>
-    <p style="font-size:14px;color:#7a7a72;margin:0;line-height:1.6;">
-      &mdash; The Signo Team
+    <p style="font-family:${SERIF};font-size:15px;font-style:italic;color:${STONE};margin:0;line-height:1.7;text-align:center;">
+      Thank you for being part of Signo. We&rsquo;re eager to see what comes next.
     </p>
   `);
 
   return safeSend({
     to: data.email,
-    subject: 'Congratulations on your first sale! \u{1F389}',
+    subject: 'A milestone — your first sale on Signo',
     html,
   });
 }
@@ -564,29 +619,30 @@ export interface DeliveryConfirmationData {
 
 export async function sendDeliveryConfirmationEmail(data: DeliveryConfirmationData) {
   const imageBlock = data.artworkImageUrl
-    ? `<img src="${data.artworkImageUrl}" alt="${escapeHtml(data.artworkTitle)}" style="width:100%;max-width:480px;border-radius:12px;margin-bottom:24px;display:block;" />`
+    ? `<div style="margin:4px 0 32px 0;background-color:${CREAM};">
+        <img src="${data.artworkImageUrl}" alt="${escapeHtml(data.artworkTitle)}" style="width:100%;max-width:552px;display:block;border:0;" />
+      </div>`
     : '';
 
   const html = emailWrapper(`
-    <h1 style="font-family:Georgia,'Times New Roman',serif;font-size:24px;font-weight:500;color:#1a1a1a;margin:0 0 8px 0;">Your artwork should have arrived!</h1>
-    <p style="font-size:14px;color:#7a7a72;margin:0 0 24px 0;line-height:1.6;">
-      Hi ${escapeHtml(data.buyerName || 'there')}, your artwork &ldquo;<strong style="color:#1a1a1a;">${escapeHtml(data.artworkTitle)}</strong>&rdquo; by ${escapeHtml(data.artistName)} should now be with you. You have <strong style="color:#1a1a1a;">48 hours</strong> to inspect it. If everything looks good, you don&rsquo;t need to do anything &mdash; payment will release to the artist automatically.
-    </p>
+    ${kicker('Delivered')}
+    ${headline('Your work has', 'arrived.')}
+    ${lede(`Hello ${escapeHtml(data.buyerName || 'there')}, &ldquo;${escapeHtml(data.artworkTitle)}&rdquo; by ${escapeHtml(data.artistName)} should now be with you. You have forty-eight hours to inspect the work. If everything is in order, do nothing &mdash; payment will release to the artist automatically.`)}
 
     ${imageBlock}
 
-    ${ctaButton('Report a Problem', `${APP_URL}/orders/${data.orderId}`)}
+    ${ctaButton('Report a problem', `${APP_URL}/orders/${data.orderId}`)}
 
     ${divider()}
 
-    <p style="font-size:13px;color:#7a7a72;margin:0;line-height:1.6;">
-      If you&rsquo;re happy with your artwork, no action needed. Enjoy your new piece!
+    <p style="font-family:${SERIF};font-size:15px;font-style:italic;color:${STONE};margin:0;line-height:1.7;">
+      If all is well, no action is needed. Enjoy living with the work.
     </p>
   `);
 
   return safeSend({
     to: data.buyerEmail,
-    subject: `Your artwork has been delivered — "${escapeHtml(data.artworkTitle)}"`,
+    subject: `Delivered — "${escapeHtml(data.artworkTitle)}"`,
     html,
   });
 }
@@ -607,32 +663,26 @@ export interface DisputeAcknowledgementData {
 
 export async function sendDisputeAcknowledgementEmail(data: DisputeAcknowledgementData) {
   const html = emailWrapper(`
-    <h1 style="font-family:Georgia,'Times New Roman',serif;font-size:24px;font-weight:500;color:#1a1a1a;margin:0 0 8px 0;">We&rsquo;re looking into it</h1>
-    <p style="font-size:14px;color:#7a7a72;margin:0 0 24px 0;line-height:1.6;">
-      Hi ${escapeHtml(data.buyerName || 'there')}, we&rsquo;ve received your report about &ldquo;<strong style="color:#1a1a1a;">${escapeHtml(data.artworkTitle)}</strong>&rdquo; by ${escapeHtml(data.artistName)}. Our team will review your case and respond within <strong style="color:#1a1a1a;">24 hours</strong>. Your payment remains held securely in escrow while we resolve this.
-    </p>
+    ${kicker('We have your report')}
+    ${headline('We are looking', 'into it.')}
+    ${lede(`Hello ${escapeHtml(data.buyerName || 'there')}, we&rsquo;ve received your report about &ldquo;${escapeHtml(data.artworkTitle)}&rdquo; by ${escapeHtml(data.artistName)}. Our team will review your case and respond within twenty-four hours. Your payment remains held in escrow while we resolve this.`)}
 
-    <div style="background-color:#faf8f4;border:1px solid #e8e6e1;border-radius:12px;padding:24px;margin-bottom:24px;">
-      <p style="font-size:14px;font-weight:600;color:#1a1a1a;margin:0 0 12px 0;">What happens next:</p>
-      <p style="font-size:13px;color:#7a7a72;margin:0;line-height:1.8;">
-        We&rsquo;ll reach out to both you and the artist to understand the situation. Our goal is a fair resolution for everyone.
-      </p>
-    </div>
-
-    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="font-size:14px;color:#1a1a1a;line-height:1.8;margin-bottom:16px;">
-      <tr><td style="color:#7a7a72;padding-right:12px;white-space:nowrap;">Order ID</td><td style="font-family:monospace;font-size:12px;">${escapeHtml(data.orderId)}</td></tr>
-    </table>
+    ${ledger([
+      ['Order', `<span style="font-family:${SANS};font-size:11px;color:${STONE};letter-spacing:0.06em;">${escapeHtml(data.orderId)}</span>`],
+      ['Report', escapeHtml(data.disputeReason), 'font-style:italic;'],
+    ])}
 
     ${divider()}
 
-    <p style="font-size:13px;color:#7a7a72;margin:0;line-height:1.6;">
-      If you need to add information, reply to this email or contact us at <a href="mailto:hello@signoart.com.au" style="color:#6b7c4e;text-decoration:underline;">hello@signoart.com.au</a>.
-    </p>
+    <p style="font-family:${SERIF};font-size:15px;color:${INK};margin:0 0 8px 0;font-style:italic;">&mdash; What happens next</p>
+    ${body('We&rsquo;ll contact both you and the artist to understand the situation fully. Our aim is a fair resolution for everyone.')}
+
+    ${body(`If you need to add information, reply to this email or write to ${textLink('hello@signoart.com.au', 'mailto:hello@signoart.com.au')}.`)}
   `);
 
   return safeSend({
     to: data.buyerEmail,
-    subject: `We've received your report — Order #${escapeHtml(data.orderId.slice(0, 8))}`,
+    subject: `We have your report — Order ${escapeHtml(data.orderId.slice(0, 8))}`,
     html,
   });
 }
@@ -648,16 +698,13 @@ export interface ListingsPausedData {
 
 export async function sendListingsPaused(data: ListingsPausedData) {
   const html = emailWrapper(`
-    <h1 style="font-family:Georgia,'Times New Roman',serif;font-size:24px;font-weight:500;color:#1a1a1a;margin:0 0 8px 0;">Your Signo listings have been paused</h1>
-    <p style="font-size:14px;color:#7a7a72;margin:0 0 24px 0;line-height:1.6;">
-      Hi ${escapeHtml(data.artistName || 'there')}, your 14-day grace period has ended. Your listings are hidden from buyers until you add a payment method.
-    </p>
+    ${kicker('Listings paused')}
+    ${headline('A quiet pause,', 'not the end.')}
+    ${lede(`Hello ${escapeHtml(data.artistName || 'there')}, your fourteen-day grace period has ended and your listings are now hidden from collectors.`)}
 
-    <p style="font-size:14px;color:#7a7a72;margin:0 0 24px 0;line-height:1.6;">
-      Your artworks haven't been deleted — they'll go live again as soon as you subscribe.
-    </p>
+    ${body('Nothing has been deleted. Your work will reappear the moment you add a payment method and reactivate your subscription.')}
 
-    ${ctaButton('Reactivate Your Listings', `${APP_URL}/artist/subscribe`)}
+    ${ctaButton('Reactivate listings', `${APP_URL}/artist/subscribe`)}
   `);
 
   return safeSend({
@@ -668,7 +715,7 @@ export async function sendListingsPaused(data: ListingsPausedData) {
 }
 
 // ════════════════════════════════════════════════════════════════════
-// 10. GRACE PERIOD REMINDER (to artist — approaching deadline)
+// 10b. GRACE PERIOD REMINDER (to artist — approaching deadline)
 // ════════════════════════════════════════════════════════════════════
 
 export interface GracePeriodReminderData {
@@ -678,22 +725,20 @@ export interface GracePeriodReminderData {
 }
 
 export async function sendGracePeriodReminder(data: GracePeriodReminderData) {
+  const dayWord = data.daysRemaining === 1 ? 'day' : 'days';
   const html = emailWrapper(`
-    <h1 style="font-family:Georgia,'Times New Roman',serif;font-size:24px;font-weight:500;color:#1a1a1a;margin:0 0 8px 0;">Friendly reminder</h1>
-    <p style="font-size:14px;color:#7a7a72;margin:0 0 24px 0;line-height:1.6;">
-      Hi ${escapeHtml(data.artistName || 'there')}, you have <strong style="color:#1a1a1a;">${data.daysRemaining} day${data.daysRemaining === 1 ? '' : 's'}</strong> left to add a payment method for your Signo subscription.
-    </p>
+    ${kicker('A gentle reminder')}
+    ${headline(`${data.daysRemaining} ${dayWord}`, 'remain.')}
+    ${lede(`Hello ${escapeHtml(data.artistName || 'there')}, there ${data.daysRemaining === 1 ? 'is' : 'are'} ${data.daysRemaining} ${dayWord} left to add a payment method for your Signo subscription.`)}
 
-    <p style="font-size:14px;color:#7a7a72;margin:0 0 24px 0;line-height:1.6;">
-      If you don't add a payment method before the deadline, your listings will be paused and hidden from buyers. Don't worry — your artworks won't be deleted and you can reactivate anytime.
-    </p>
+    ${body('If you don&rsquo;t add one before the deadline, your listings will pause and be hidden from collectors. Nothing is deleted &mdash; you can reactivate at any time.')}
 
-    ${ctaButton('Add Payment Method', `${APP_URL}/artist/subscribe`)}
+    ${ctaButton('Add payment method', `${APP_URL}/artist/subscribe`)}
   `);
 
   return safeSend({
     to: data.email,
-    subject: `Reminder: Add your payment method \u2014 ${data.daysRemaining} day${data.daysRemaining === 1 ? '' : 's'} left`,
+    subject: `${data.daysRemaining} ${dayWord} left — add your payment method`,
     html,
   });
 }
@@ -717,28 +762,29 @@ export interface NewArtworkFollowNotificationData {
 
 export async function sendNewArtworkFollowNotification(data: NewArtworkFollowNotificationData) {
   const imageBlock = data.artworkImageUrl
-    ? `<img src="${data.artworkImageUrl}" alt="${escapeHtml(data.artworkTitle)}" style="width:100%;max-width:480px;border-radius:12px;margin-bottom:24px;display:block;" />`
+    ? `<div style="margin:4px 0 32px 0;background-color:${CREAM};">
+        <img src="${data.artworkImageUrl}" alt="${escapeHtml(data.artworkTitle)}" style="width:100%;max-width:552px;display:block;border:0;" />
+      </div>`
     : '';
 
   const html = emailWrapper(`
-    <h1 style="font-family:Georgia,'Times New Roman',serif;font-size:24px;font-weight:500;color:#1a1a1a;margin:0 0 8px 0;">New artwork by ${escapeHtml(data.artistName)}</h1>
-    <p style="font-size:14px;color:#7a7a72;margin:0 0 24px 0;line-height:1.6;">
-      Hi ${escapeHtml(data.followerName || 'there')}, ${escapeHtml(data.artistName)} just listed a new artwork on Signo.
-    </p>
+    ${kicker('New work')}
+    ${headline(`A new piece by`, escapeHtml(data.artistName) + '.')}
+    ${lede(`Hello ${escapeHtml(data.followerName || 'there')}, ${escapeHtml(data.artistName)} has just added a new work to their room on Signo.`)}
 
     ${imageBlock}
 
-    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="font-size:14px;color:#1a1a1a;line-height:1.8;">
-      <tr><td style="color:#7a7a72;padding-right:12px;white-space:nowrap;">Artwork</td><td style="font-weight:500;">${escapeHtml(data.artworkTitle)}</td></tr>
-      <tr><td style="color:#7a7a72;padding-right:12px;white-space:nowrap;">Artist</td><td><a href="${APP_URL}/artists/${data.artistId}" style="color:#6b7c4e;text-decoration:underline;">${escapeHtml(data.artistName)}</a></td></tr>
-    </table>
+    ${ledger([
+      ['Work', escapeHtml(data.artworkTitle), 'font-style:italic;'],
+      ['Artist', `<a href="${APP_URL}/artists/${data.artistId}" style="color:${INK};text-decoration:underline;text-decoration-thickness:1px;text-underline-offset:3px;">${escapeHtml(data.artistName)}</a>`],
+    ])}
 
-    ${ctaButton('View Artwork', `${APP_URL}/artwork/${data.artworkId}`)}
+    ${ctaButton('View the work', `${APP_URL}/artwork/${data.artworkId}`)}
   `);
 
   return safeSend({
     to: data.followerEmail,
-    subject: `New artwork by ${escapeHtml(data.artistName)} — "${escapeHtml(data.artworkTitle)}"`,
+    subject: `A new work by ${escapeHtml(data.artistName)} — "${escapeHtml(data.artworkTitle)}"`,
     html,
   });
 }
@@ -758,34 +804,31 @@ export interface TradeEnquiryNotificationData {
 }
 
 export async function sendTradeEnquiryNotification(data: TradeEnquiryNotificationData) {
-  const phoneLine = data.phone
-    ? `<tr><td style="color:#7a7a72;padding-right:12px;white-space:nowrap;">Phone</td><td>${escapeHtml(data.phone)}</td></tr>`
-    : '';
+  const rows: Array<[string, string, string?]> = [
+    ['Business', escapeHtml(data.businessName), 'font-style:italic;'],
+    ['Contact', escapeHtml(data.contactName)],
+    ['Email', `<a href="mailto:${escapeHtml(data.email)}" style="color:${INK};text-decoration:underline;">${escapeHtml(data.email)}</a>`],
+  ];
+  if (data.phone) rows.push(['Phone', escapeHtml(data.phone)]);
+  rows.push(['Industry', escapeHtml(data.businessType)]);
+  rows.push(['Budget', escapeHtml(data.budgetRange), 'font-weight:500;']);
 
   const html = emailWrapper(`
-    <h1 style="font-family:Georgia,'Times New Roman',serif;font-size:24px;font-weight:500;color:#1a1a1a;margin:0 0 8px 0;">New trade enquiry</h1>
-    <p style="font-size:14px;color:#7a7a72;margin:0 0 24px 0;line-height:1.6;">
-      A new trade enquiry has been submitted on Signo.
-    </p>
+    ${kicker('Trade enquiry')}
+    ${headline('A new trade', 'enquiry.')}
+    ${lede(`A new enquiry has arrived through the trade form on Signo.`)}
 
-    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="font-size:14px;color:#1a1a1a;line-height:1.8;">
-      <tr><td style="color:#7a7a72;padding-right:12px;white-space:nowrap;">Business</td><td style="font-weight:500;">${escapeHtml(data.businessName)}</td></tr>
-      <tr><td style="color:#7a7a72;padding-right:12px;white-space:nowrap;">Contact</td><td>${escapeHtml(data.contactName)}</td></tr>
-      <tr><td style="color:#7a7a72;padding-right:12px;white-space:nowrap;">Email</td><td><a href="mailto:${escapeHtml(data.email)}" style="color:#6b7c4e;text-decoration:underline;">${escapeHtml(data.email)}</a></td></tr>
-      ${phoneLine}
-      <tr><td style="color:#7a7a72;padding-right:12px;white-space:nowrap;">Industry</td><td>${escapeHtml(data.businessType)}</td></tr>
-      <tr><td style="color:#7a7a72;padding-right:12px;white-space:nowrap;">Budget</td><td style="font-weight:600;">${escapeHtml(data.budgetRange)}</td></tr>
-    </table>
+    ${ledger(rows)}
 
     ${divider()}
 
-    <p style="font-size:12px;color:#7a7a72;margin:0 0 4px 0;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;">Description</p>
-    <p style="font-size:14px;color:#1a1a1a;margin:0;line-height:1.6;">${escapeHtml(data.description)}</p>
+    <p style="font-family:${SANS};font-size:10px;color:${STONE};margin:0 0 12px 0;letter-spacing:0.22em;text-transform:uppercase;">Description</p>
+    <p style="font-family:${SERIF};font-size:16px;color:${INK};margin:0;line-height:1.7;font-style:italic;">&ldquo;${escapeHtml(data.description)}&rdquo;</p>
   `);
 
   return safeSend({
     to: 'hello@signoart.com.au',
-    subject: `Trade enquiry from ${escapeHtml(data.businessName)}`,
+    subject: `Trade enquiry — ${escapeHtml(data.businessName)}`,
     html,
   });
 }

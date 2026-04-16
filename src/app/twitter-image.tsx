@@ -1,8 +1,15 @@
 import { ImageResponse } from 'next/og';
 
-export const alt = 'Signo — Where Art Finds Its People';
+export const alt = 'Signo — A curated room for Australian artists';
 export const size = { width: 1200, height: 630 };
 export const contentType = 'image/png';
+
+// Editorial palette — mirrors --color-* tokens in globals.css
+const INK = '#1a1a18';
+const STONE = '#b8b2a4';
+const STONE_DARK = '#8a8478';
+const WARM_WHITE = '#fcfbf8';
+const TERRACOTTA = '#c45d3e';
 
 export default function TwitterImage() {
   return new ImageResponse(
@@ -13,59 +20,80 @@ export default function TwitterImage() {
           height: '100%',
           display: 'flex',
           flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center',
-          background: '#F5F2ED',
+          alignItems: 'flex-start',
+          justifyContent: 'space-between',
+          padding: '88px 96px',
+          background: WARM_WHITE,
           fontFamily: 'Georgia, serif',
         }}
       >
         <div
           style={{
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            right: 0,
-            height: 6,
-            background: '#6b7c4e',
-          }}
-        />
-
-        <div
-          style={{
-            fontSize: 72,
-            fontWeight: 700,
-            color: '#111111',
-            letterSpacing: 8,
-            marginBottom: 24,
+            display: 'flex',
+            alignItems: 'center',
+            width: '100%',
+            justifyContent: 'space-between',
+            fontSize: 16,
+            letterSpacing: '0.22em',
+            textTransform: 'uppercase',
+            color: STONE,
+            fontFamily: 'Helvetica Neue, Arial, sans-serif',
           }}
         >
-          SIGNO
+          <span>signoart.com.au</span>
+          <span>est. 2026</span>
         </div>
 
         <div
           style={{
-            fontSize: 32,
-            color: '#111111',
-            fontStyle: 'normal',
             display: 'flex',
-            gap: 8,
+            flexDirection: 'column',
+            color: INK,
+            fontSize: 124,
+            fontWeight: 400,
+            lineHeight: 1,
+            letterSpacing: '-0.02em',
           }}
         >
-          <span>Where Art Finds</span>
-          <span style={{ fontStyle: 'italic', color: '#B8965A' }}>
-            Its People
+          <span>Where art</span>
+          <span style={{ display: 'flex', alignItems: 'baseline' }}>
+            <span>finds&nbsp;</span>
+            <span style={{ fontStyle: 'italic', color: TERRACOTTA }}>its people.</span>
           </span>
         </div>
 
         <div
           style={{
-            fontSize: 18,
-            color: '#78716c',
-            marginTop: 20,
-            fontFamily: 'Arial, sans-serif',
+            display: 'flex',
+            alignItems: 'baseline',
+            justifyContent: 'space-between',
+            width: '100%',
           }}
         >
-          A curated Australian art marketplace. Zero commission.
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'baseline',
+              fontSize: 56,
+              fontWeight: 400,
+              color: INK,
+              letterSpacing: '-0.005em',
+            }}
+          >
+            <span>Signo</span>
+            <span style={{ fontStyle: 'italic' }}>.</span>
+          </div>
+          <div
+            style={{
+              fontFamily: 'Helvetica Neue, Arial, sans-serif',
+              fontSize: 18,
+              color: STONE_DARK,
+              letterSpacing: '0.18em',
+              textTransform: 'uppercase',
+            }}
+          >
+            A curated room for Australian artists
+          </div>
         </div>
       </div>
     ),

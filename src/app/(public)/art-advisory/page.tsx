@@ -2,18 +2,6 @@
 
 import { useState, useCallback } from 'react';
 import Link from 'next/link';
-import {
-  Sofa,
-  Bed,
-  Monitor,
-  UtensilsCrossed,
-  DoorOpen,
-  LayoutGrid,
-  ArrowLeft,
-  ArrowRight,
-  RotateCcw,
-  Loader2,
-} from 'lucide-react';
 import ArtworkCard from '@/components/ui/ArtworkCard';
 
 // ── Constants ──
@@ -53,29 +41,22 @@ const COLOUR_PALETTE = [
   { name: 'Cream/Beige', value: 'cream', hex: '#D4C5A9' },
 ];
 
-const ROOMS = [
-  { label: 'Living Room', icon: Sofa },
-  { label: 'Bedroom', icon: Bed },
-  { label: 'Office', icon: Monitor },
-  { label: 'Dining Room', icon: UtensilsCrossed },
-  { label: 'Hallway', icon: DoorOpen },
-  { label: 'Other', icon: LayoutGrid },
-];
+const ROOMS = ['Living Room', 'Bedroom', 'Office', 'Dining Room', 'Hallway', 'Other'];
 
 const SIZES = [
   { label: 'Small', desc: 'Under 40cm', value: 'small' },
-  { label: 'Medium', desc: '40 - 100cm', value: 'medium' },
-  { label: 'Large', desc: '100 - 150cm', value: 'large' },
-  { label: 'Extra Large', desc: '150cm+', value: 'extra-large' },
+  { label: 'Medium', desc: '40 – 100cm', value: 'medium' },
+  { label: 'Large', desc: '100 – 150cm', value: 'large' },
+  { label: 'Extra Large', desc: '150cm +', value: 'extra-large' },
   { label: 'Not Sure', desc: 'Show all sizes', value: '' },
 ];
 
 const BUDGETS = [
   { label: 'Under $200', min: 0, max: 200 },
-  { label: '$200 - $500', min: 200, max: 500 },
-  { label: '$500 - $1,000', min: 500, max: 1000 },
-  { label: '$1,000 - $3,000', min: 1000, max: 3000 },
-  { label: '$3,000+', min: 3000, max: 0 },
+  { label: '$200 – $500', min: 200, max: 500 },
+  { label: '$500 – $1,000', min: 500, max: 1000 },
+  { label: '$1,000 – $3,000', min: 1000, max: 3000 },
+  { label: '$3,000 +', min: 3000, max: 0 },
 ];
 
 const TOTAL_STEPS = 5;
@@ -97,6 +78,34 @@ interface Artwork {
   profiles: { id: string; full_name: string } | null;
 }
 
+// ── Shared styles ──
+
+const kickerStyle: React.CSSProperties = {
+  fontSize: '0.62rem',
+  letterSpacing: '0.22em',
+  textTransform: 'uppercase',
+  color: 'var(--color-stone)',
+  marginBottom: '1rem',
+};
+
+const headlineStyle: React.CSSProperties = {
+  fontSize: 'clamp(2rem, 4.5vw, 3.4rem)',
+  lineHeight: 1.04,
+  letterSpacing: '-0.015em',
+  color: 'var(--color-ink)',
+  fontWeight: 400,
+  maxWidth: '22ch',
+};
+
+const subStyle: React.CSSProperties = {
+  marginTop: '1.2rem',
+  fontSize: '1rem',
+  fontWeight: 300,
+  lineHeight: 1.7,
+  color: 'var(--color-stone-dark)',
+  maxWidth: '48ch',
+};
+
 // ── Component ──
 
 export default function ArtAdvisoryPage() {
@@ -115,7 +124,7 @@ export default function ArtAdvisoryPage() {
   const [results, setResults] = useState<Artwork[]>([]);
   const [loading, setLoading] = useState(false);
   const [relaxed, setRelaxed] = useState(false);
-  const [searched, setSearched] = useState(false);
+  const [, setSearched] = useState(false);
 
   const goTo = useCallback((target: number, dir: 'forward' | 'back') => {
     setDirection(dir);
@@ -162,82 +171,10 @@ export default function ArtAdvisoryPage() {
     });
   }, []);
 
-  const buildUrl = useCallback(
-    (opts?: { skipColours?: boolean; skipStyles?: boolean; skipSize?: boolean }) => {
-      const params = new URLSearchParams();
-      if (!opts?.skipStyles && selectedStyles.length > 0) {
-        params.set('styles', selectedStyles.join(','));
-      }
-      if (!opts?.skipColours && selectedColours.length > 0) {
-        params.set('colors', selectedColours.join(','));
-      }
-      if (!opts?.skipSize && size) {
-        // Map extra-large to large for the API (both use > 100cm)
-        const sizeParam = size === 'extra-large' ? 'large' : size;
-        params.set('size', sizeParam);
-      }
-      if (budget) {
-        if (budget.min > 0) params.set('priceMin', String(budget.min));
-        if (budget.max > 0) params.set('priceMax', String(budget.max));
-      }
-      params.set('limit', '24');
-      return `/api/artworks/browse?${params.toString()}`;
-    },
-    [selectedStyles, selectedColours, size, budget],
-  );
-
-  const fetchResults = useCallback(async () => {
-    setLoading(true);
-    setRelaxed(false);
-    setSearched(true);
-
-    try {
-      // Try with all criteria
-      const res1 = await fetch(buildUrl());
-      const json1 = await res1.json();
-      if ((json1.data || []).length >= 4) {
-        setResults(json1.data);
-        setLoading(false);
-        return;
-      }
-
-      // Relax: remove colour filter
-      const res2 = await fetch(buildUrl({ skipColours: true }));
-      const json2 = await res2.json();
-      if ((json2.data || []).length >= 4) {
-        setResults(json2.data);
-        setRelaxed(true);
-        setLoading(false);
-        return;
-      }
-
-      // Relax: remove style filter too
-      const res3 = await fetch(buildUrl({ skipColours: true, skipStyles: true }));
-      const json3 = await res3.json();
-      if ((json3.data || []).length >= 4) {
-        setResults(json3.data);
-        setRelaxed(true);
-        setLoading(false);
-        return;
-      }
-
-      // Relax: remove size filter too
-      const res4 = await fetch(buildUrl({ skipColours: true, skipStyles: true, skipSize: true }));
-      const json4 = await res4.json();
-      setResults(json4.data || []);
-      if ((json4.data || []).length > 0) setRelaxed(true);
-      setLoading(false);
-    } catch {
-      setLoading(false);
-    }
-  }, [buildUrl]);
-
   const selectBudget = useCallback(
     (b: { min: number; max: number }) => {
       setBudget(b);
-      // Need to set budget before fetching — use a microtask so state is committed
       setTimeout(() => {
-        // Budget will be stale in the closure, so build URL manually
         const params = new URLSearchParams();
         if (selectedStyles.length > 0) params.set('styles', selectedStyles.join(','));
         if (selectedColours.length > 0) params.set('colors', selectedColours.join(','));
@@ -248,7 +185,7 @@ export default function ArtAdvisoryPage() {
         if (b.max > 0) params.set('priceMax', String(b.max));
         params.set('limit', '24');
 
-        setStep(6); // Results step
+        setStep(6);
         setLoading(true);
         setRelaxed(false);
         setSearched(true);
@@ -264,7 +201,6 @@ export default function ArtAdvisoryPage() {
               return;
             }
 
-            // Relax: remove colour
             params.delete('colors');
             const res2 = await fetch(`/api/artworks/browse?${params.toString()}`);
             const json2 = await res2.json();
@@ -275,7 +211,6 @@ export default function ArtAdvisoryPage() {
               return;
             }
 
-            // Relax: remove styles
             params.delete('styles');
             const res3 = await fetch(`/api/artworks/browse?${params.toString()}`);
             const json3 = await res3.json();
@@ -286,7 +221,6 @@ export default function ArtAdvisoryPage() {
               return;
             }
 
-            // Relax: remove size
             params.delete('size');
             const res4 = await fetch(`/api/artworks/browse?${params.toString()}`);
             const json4 = await res4.json();
@@ -316,312 +250,558 @@ export default function ArtAdvisoryPage() {
     setTransitioning(false);
   }, []);
 
-  // ── Render ──
-
-  // Results view
+  // ── Results view ──
   if (step === 6) {
     return (
-      <div className="min-h-screen bg-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 md:py-20">
+      <div style={{ background: 'var(--color-warm-white)', minHeight: '100vh' }}>
+        <header
+          className="px-6 sm:px-10"
+          style={{
+            paddingTop: 'clamp(4rem, 9vw, 7rem)',
+            paddingBottom: 'clamp(2.5rem, 5vw, 4rem)',
+          }}
+        >
+          <p style={kickerStyle}>Advisory · Results</p>
           {loading ? (
-            <div className="flex flex-col items-center justify-center py-32">
-              <Loader2 className="h-8 w-8 text-accent animate-spin mb-4" />
-              <p className="text-muted text-sm">Finding your perfect artworks...</p>
-            </div>
-          ) : (
+            <h1 className="font-serif" style={headlineStyle}>
+              Finding your <em style={{ fontStyle: 'italic' }}>matches…</em>
+            </h1>
+          ) : results.length > 0 ? (
             <>
-              <div className="text-center mb-12">
-                {results.length > 0 ? (
+              <h1 className="font-serif" style={headlineStyle}>
+                {relaxed ? (
                   <>
-                    <h1 className="font-editorial text-3xl md:text-4xl font-semibold text-primary mb-3">
-                      {relaxed ? 'Close matches' : `We found ${results.length} artwork${results.length === 1 ? '' : 's'} for you`}
-                    </h1>
-                    {relaxed && (
-                      <p className="text-muted text-sm">
-                        We broadened the search a little to show you more options.
-                      </p>
-                    )}
+                    Close <em style={{ fontStyle: 'italic' }}>matches.</em>
                   </>
                 ) : (
                   <>
-                    <h1 className="font-editorial text-3xl md:text-4xl font-semibold text-primary mb-3">
-                      No exact matches found
-                    </h1>
-                    <p className="text-muted text-sm">
-                      Try different criteria or browse all available artwork.
-                    </p>
+                    {results.length} {results.length === 1 ? 'artwork' : 'artworks'}{' '}
+                    <em style={{ fontStyle: 'italic' }}>for you.</em>
                   </>
                 )}
-              </div>
-
-              {results.length > 0 && (
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-x-5 gap-y-10 mb-12">
-                  {results.map((artwork) => (
-                    <ArtworkCard
-                      key={artwork.id}
-                      id={artwork.id}
-                      title={artwork.title}
-                      artistName={artwork.profiles?.full_name || 'Unknown'}
-                      artistId={artwork.artist_id}
-                      price={artwork.price_aud}
-                      imageUrl={(artwork.images || [])[0] || ''}
-                      medium={artwork.medium}
-                      category={artwork.category}
-                      widthCm={artwork.width_cm}
-                      heightCm={artwork.height_cm}
-                      availability={artwork.availability}
-                    />
-                  ))}
-                </div>
+              </h1>
+              {relaxed && (
+                <p style={subStyle}>
+                  We broadened the search a little to surface more options worth considering.
+                </p>
               )}
-
-              <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-                <button
-                  onClick={startOver}
-                  className="inline-flex items-center gap-2 px-6 py-3 border border-border text-primary font-medium rounded-full hover:bg-cream hover:scale-[0.98] active:scale-[0.96] transition-all duration-200"
-                >
-                  <RotateCcw className="h-4 w-4" />
-                  Start Over
-                </button>
-                <Link
-                  href="/browse"
-                  className="inline-flex items-center gap-2 px-6 py-3 bg-accent text-white font-semibold rounded-full hover:bg-accent-dark hover:scale-[0.98] active:scale-[0.96] transition-all duration-200"
-                >
-                  Browse All Artwork
-                  <ArrowRight className="h-4 w-4" />
-                </Link>
-              </div>
+            </>
+          ) : (
+            <>
+              <h1 className="font-serif" style={headlineStyle}>
+                No exact <em style={{ fontStyle: 'italic' }}>matches.</em>
+              </h1>
+              <p style={subStyle}>
+                Try different criteria, or browse the full roster.
+              </p>
             </>
           )}
-        </div>
+        </header>
+
+        <div style={{ borderTop: '1px solid var(--color-border)' }} />
+
+        <section
+          className="px-6 sm:px-10"
+          style={{
+            paddingTop: 'clamp(3rem, 6vw, 5rem)',
+            paddingBottom: 'clamp(5rem, 9vw, 8rem)',
+          }}
+        >
+          {results.length > 0 && !loading && (
+            <div
+              className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4"
+              style={{ gap: 'clamp(1.8rem, 3vw, 2.6rem) clamp(1rem, 2vw, 1.6rem)', marginBottom: 'clamp(3rem, 6vw, 5rem)' }}
+            >
+              {results.map((artwork) => (
+                <ArtworkCard
+                  key={artwork.id}
+                  id={artwork.id}
+                  title={artwork.title}
+                  artistName={artwork.profiles?.full_name || 'Unknown'}
+                  artistId={artwork.artist_id}
+                  price={artwork.price_aud}
+                  imageUrl={(artwork.images || [])[0] || ''}
+                  medium={artwork.medium}
+                  category={artwork.category}
+                  widthCm={artwork.width_cm}
+                  heightCm={artwork.height_cm}
+                  availability={artwork.availability}
+                />
+              ))}
+            </div>
+          )}
+
+          <div
+            style={{
+              display: 'flex',
+              gap: '2.2rem',
+              flexWrap: 'wrap',
+              alignItems: 'center',
+              borderTop: '1px solid var(--color-border)',
+              paddingTop: '2.4rem',
+            }}
+          >
+            <button
+              type="button"
+              onClick={startOver}
+              className="editorial-link"
+              style={{ background: 'transparent', cursor: 'pointer' }}
+            >
+              ← Start over
+            </button>
+            <Link
+              href="/browse"
+              style={{
+                display: 'inline-block',
+                paddingBottom: '0.2rem',
+                borderBottom: '1px solid var(--color-stone)',
+                fontSize: '0.78rem',
+                letterSpacing: '0.12em',
+                textTransform: 'uppercase',
+                fontWeight: 300,
+                color: 'var(--color-ink)',
+                textDecoration: 'none',
+              }}
+            >
+              Browse all artwork
+            </Link>
+          </div>
+        </section>
       </div>
     );
   }
 
-  // Quiz steps
+  // ── Quiz steps ──
   return (
-    <div className="min-h-screen bg-[#faf8f4] flex flex-col">
-      {/* Progress bar */}
-      <div className="w-full h-1 bg-border/40">
+    <div
+      style={{
+        background: 'var(--color-warm-white)',
+        minHeight: '100vh',
+        display: 'flex',
+        flexDirection: 'column',
+      }}
+    >
+      {/* Hairline progress */}
+      <div style={{ width: '100%', height: '1px', background: 'var(--color-border)' }}>
         <div
-          className="h-full bg-accent transition-all duration-500 ease-out"
-          style={{ width: `${(step / TOTAL_STEPS) * 100}%` }}
+          style={{
+            height: '100%',
+            background: 'var(--color-ink)',
+            width: `${(step / TOTAL_STEPS) * 100}%`,
+            transition: 'width 350ms cubic-bezier(0.22, 1, 0.36, 1)',
+          }}
         />
       </div>
 
       {/* Step indicator + back */}
-      <div className="max-w-3xl mx-auto w-full px-4 sm:px-6 pt-6 flex items-center justify-between">
+      <div
+        className="px-6 sm:px-10"
+        style={{
+          paddingTop: 'clamp(1.8rem, 3vw, 2.4rem)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+        }}
+      >
         {step > 1 ? (
           <button
+            type="button"
             onClick={goBack}
-            className="inline-flex items-center gap-1.5 text-sm text-muted hover:text-primary transition-colors"
+            className="editorial-link"
+            style={{ background: 'transparent', cursor: 'pointer' }}
           >
-            <ArrowLeft className="h-4 w-4" />
-            Back
+            ← Back
           </button>
         ) : (
           <span />
         )}
-        <span className="text-xs text-muted tracking-wide">
-          Step {step} of {TOTAL_STEPS}
+        <span
+          className="font-serif"
+          style={{
+            fontSize: '0.82rem',
+            color: 'var(--color-stone)',
+            fontStyle: 'italic',
+          }}
+        >
+          Step {String(step).padStart(2, '0')} <span style={{ color: 'var(--color-stone)' }}>/</span>{' '}
+          {String(TOTAL_STEPS).padStart(2, '0')}
         </span>
       </div>
 
       {/* Step content */}
-      <div className="flex-1 flex items-start justify-center pt-8 md:pt-16 pb-16 px-4 sm:px-6">
+      <div
+        className="px-6 sm:px-10"
+        style={{
+          flex: 1,
+          paddingTop: 'clamp(3rem, 7vw, 6rem)',
+          paddingBottom: 'clamp(4rem, 8vw, 7rem)',
+        }}
+      >
         <div
-          className={`max-w-2xl w-full transition-all duration-200 ease-out ${
-            transitioning
-              ? 'opacity-0 translate-x-4'
-              : 'opacity-100 translate-x-0'
-          }`}
           style={{
+            maxWidth: '56rem',
+            margin: '0 auto',
             transform: transitioning
               ? direction === 'forward'
                 ? 'translateX(16px)'
                 : 'translateX(-16px)'
               : 'translateX(0)',
+            opacity: transitioning ? 0 : 1,
+            transition: 'opacity 200ms cubic-bezier(0.22, 1, 0.36, 1), transform 200ms cubic-bezier(0.22, 1, 0.36, 1)',
           }}
         >
-          {/* Step 1: Room */}
+          {/* ─ Step 1: Room ─ */}
           {step === 1 && (
             <div>
-              <h1 className="font-editorial text-3xl md:text-4xl font-semibold text-primary text-center mb-2">
-                What room is this for?
+              <p style={kickerStyle}>The Brief</p>
+              <h1 className="font-serif" style={headlineStyle}>
+                Which room is this <em style={{ fontStyle: 'italic' }}>for?</em>
               </h1>
-              <p className="text-muted text-center mb-10 text-sm">
-                This helps us suggest the right feel and scale.
+              <p style={subStyle}>
+                It tells us something about scale, atmosphere, and how the work will be lived with.
               </p>
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-                {ROOMS.map(({ label, icon: Icon }) => (
-                  <button
-                    key={label}
-                    onClick={() => selectRoom(label)}
-                    className={`flex flex-col items-center gap-3 p-6 rounded-2xl border-2 transition-all duration-200 hover:scale-[0.98] active:scale-[0.96] ${
-                      room === label
-                        ? 'border-accent bg-white shadow-sm'
-                        : 'border-border/60 bg-white/60 hover:border-accent/40 hover:bg-white'
-                    }`}
-                  >
-                    <Icon className="h-7 w-7 text-accent-dark" />
-                    <span className="text-sm font-medium text-primary">{label}</span>
-                  </button>
-                ))}
-              </div>
+              <ChoiceList
+                items={ROOMS.map((label) => ({ label }))}
+                selected={room}
+                onSelect={(v) => selectRoom(v)}
+              />
             </div>
           )}
 
-          {/* Step 2: Size */}
+          {/* ─ Step 2: Size ─ */}
           {step === 2 && (
             <div>
-              <h1 className="font-editorial text-3xl md:text-4xl font-semibold text-primary text-center mb-2">
-                What size are you looking for?
+              <p style={kickerStyle}>Dimensions</p>
+              <h1 className="font-serif" style={headlineStyle}>
+                What <em style={{ fontStyle: 'italic' }}>size?</em>
               </h1>
-              <p className="text-muted text-center mb-10 text-sm">
-                Select the size that fits your space best.
+              <p style={subStyle}>
+                Roughly — measurements in the broadest axis. Pick Not Sure to keep the field open.
               </p>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-lg mx-auto">
-                {SIZES.map((s) => (
-                  <button
-                    key={s.label}
-                    onClick={() => selectSize(s.value)}
-                    className={`flex flex-col items-center gap-1 p-5 rounded-2xl border-2 transition-all duration-200 hover:scale-[0.98] active:scale-[0.96] ${
-                      size === s.value
-                        ? 'border-accent bg-white shadow-sm'
-                        : 'border-border/60 bg-white/60 hover:border-accent/40 hover:bg-white'
-                    }`}
-                  >
-                    <span className="text-sm font-medium text-primary">{s.label}</span>
-                    <span className="text-xs text-muted">{s.desc}</span>
-                  </button>
-                ))}
-              </div>
+              <ChoiceList
+                items={SIZES.map((s) => ({ label: s.label, detail: s.desc, value: s.value }))}
+                selected={size}
+                onSelect={(v) => selectSize(v)}
+              />
             </div>
           )}
 
-          {/* Step 3: Styles */}
+          {/* ─ Step 3: Styles ─ */}
           {step === 3 && (
             <div>
-              <h1 className="font-editorial text-3xl md:text-4xl font-semibold text-primary text-center mb-2">
-                What styles do you love?
+              <p style={kickerStyle}>Style · Pick up to 3</p>
+              <h1 className="font-serif" style={headlineStyle}>
+                What styles <em style={{ fontStyle: 'italic' }}>resonate?</em>
               </h1>
-              <p className="text-muted text-center mb-10 text-sm">
-                Pick up to 3 styles that resonate with you.
+              <p style={subStyle}>
+                Choose up to three. You can skip this step entirely and we&apos;ll cast a wider net.
               </p>
-              <div className="flex flex-wrap justify-center gap-3 mb-10">
+
+              <div
+                style={{
+                  marginTop: '2.5rem',
+                  display: 'flex',
+                  flexWrap: 'wrap',
+                  gap: '0.8rem 1.2rem',
+                }}
+              >
                 {STYLES.map((s) => {
                   const selected = selectedStyles.includes(s);
+                  const disabled = !selected && selectedStyles.length >= 3;
                   return (
                     <button
                       key={s}
+                      type="button"
                       onClick={() => toggleStyle(s)}
-                      className={`px-5 py-2.5 rounded-full border-2 text-sm font-medium transition-all duration-200 hover:scale-[0.98] ${
-                        selected
-                          ? 'border-accent bg-accent/10 text-accent-dark'
-                          : selectedStyles.length >= 3
-                            ? 'border-border/40 bg-white/40 text-muted/50 cursor-not-allowed'
-                            : 'border-border/60 bg-white/60 text-primary hover:border-accent/40 hover:bg-white'
-                      }`}
+                      disabled={disabled}
+                      className="font-serif"
+                      style={{
+                        background: 'transparent',
+                        border: 'none',
+                        padding: '0.4rem 0',
+                        fontSize: '1.05rem',
+                        fontStyle: selected ? 'italic' : 'normal',
+                        color: selected
+                          ? 'var(--color-ink)'
+                          : disabled
+                            ? 'var(--color-stone)'
+                            : 'var(--color-ink)',
+                        borderBottom: selected
+                          ? '1px solid var(--color-ink)'
+                          : '1px solid transparent',
+                        cursor: disabled ? 'not-allowed' : 'pointer',
+                        opacity: disabled ? 0.4 : 1,
+                        letterSpacing: '-0.005em',
+                      }}
                     >
                       {s}
                     </button>
                   );
                 })}
               </div>
-              <div className="flex justify-center">
+
+              <div
+                style={{
+                  marginTop: '3rem',
+                  borderTop: '1px solid var(--color-border)',
+                  paddingTop: '2rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '2rem',
+                  flexWrap: 'wrap',
+                }}
+              >
                 <button
+                  type="button"
                   onClick={() => goTo(4, 'forward')}
-                  className="inline-flex items-center gap-2 px-8 py-3 bg-accent text-white font-semibold rounded-full hover:bg-accent-dark hover:scale-[0.98] active:scale-[0.96] transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed"
+                  className="artwork-primary-cta artwork-primary-cta--compact"
+                  style={{ minWidth: '12rem' }}
                 >
-                  Next
-                  <ArrowRight className="h-4 w-4" />
+                  Continue →
                 </button>
+                {selectedStyles.length === 0 && (
+                  <span
+                    style={{
+                      fontSize: '0.82rem',
+                      color: 'var(--color-stone)',
+                      fontStyle: 'italic',
+                    }}
+                  >
+                    or skip this step
+                  </span>
+                )}
               </div>
-              {selectedStyles.length === 0 && (
-                <p className="text-center text-xs text-muted mt-3">
-                  You can also skip this step
-                </p>
-              )}
             </div>
           )}
 
-          {/* Step 4: Colours */}
+          {/* ─ Step 4: Colours ─ */}
           {step === 4 && (
             <div>
-              <h1 className="font-editorial text-3xl md:text-4xl font-semibold text-primary text-center mb-2">
-                What colours speak to you?
+              <p style={kickerStyle}>Palette · Pick up to 3</p>
+              <h1 className="font-serif" style={headlineStyle}>
+                Which colours <em style={{ fontStyle: 'italic' }}>speak?</em>
               </h1>
-              <p className="text-muted text-center mb-10 text-sm">
-                Pick up to 3 colours you'd love to see.
+              <p style={subStyle}>
+                Pick up to three notes you&apos;d like to see surface in the selection.
               </p>
-              <div className="flex flex-wrap justify-center gap-4 mb-10">
+
+              <div
+                style={{
+                  marginTop: '2.5rem',
+                  display: 'flex',
+                  flexWrap: 'wrap',
+                  gap: '1.6rem 1.8rem',
+                }}
+              >
                 {COLOUR_PALETTE.map((c) => {
                   const selected = selectedColours.includes(c.value);
+                  const disabled = !selected && selectedColours.length >= 3;
                   return (
                     <button
                       key={c.value}
+                      type="button"
                       onClick={() => toggleColour(c.value)}
-                      className={`flex flex-col items-center gap-1.5 transition-all duration-200 hover:scale-105 ${
-                        selectedColours.length >= 3 && !selected
-                          ? 'opacity-30 cursor-not-allowed'
-                          : ''
-                      }`}
+                      disabled={disabled}
                       title={c.name}
+                      style={{
+                        background: 'transparent',
+                        border: 'none',
+                        padding: 0,
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        gap: '0.55rem',
+                        cursor: disabled ? 'not-allowed' : 'pointer',
+                        opacity: disabled ? 0.3 : 1,
+                        transition: 'opacity 200ms',
+                      }}
                     >
-                      <div
-                        className={`w-12 h-12 rounded-full border-[3px] transition-all duration-200 ${
-                          selected
-                            ? 'border-accent scale-110 shadow-md'
-                            : 'border-transparent hover:border-accent/30'
-                        }`}
-                        style={{ backgroundColor: c.hex }}
+                      <span
+                        style={{
+                          width: '2.6rem',
+                          height: '2.6rem',
+                          borderRadius: '50%',
+                          background: c.hex,
+                          border: selected
+                            ? '1px solid var(--color-ink)'
+                            : '1px solid var(--color-border)',
+                          boxShadow: selected
+                            ? '0 0 0 3px var(--color-warm-white), 0 0 0 4px var(--color-ink)'
+                            : 'none',
+                          transition: 'box-shadow 200ms',
+                        }}
                       />
-                      <span className="text-[11px] text-muted">{c.name}</span>
+                      <span
+                        style={{
+                          fontSize: '0.68rem',
+                          letterSpacing: '0.08em',
+                          textTransform: 'uppercase',
+                          color: selected ? 'var(--color-ink)' : 'var(--color-stone)',
+                          fontWeight: selected ? 400 : 300,
+                        }}
+                      >
+                        {c.name}
+                      </span>
                     </button>
                   );
                 })}
               </div>
-              <div className="flex justify-center">
+
+              <div
+                style={{
+                  marginTop: '3rem',
+                  borderTop: '1px solid var(--color-border)',
+                  paddingTop: '2rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '2rem',
+                  flexWrap: 'wrap',
+                }}
+              >
                 <button
+                  type="button"
                   onClick={() => goTo(5, 'forward')}
-                  className="inline-flex items-center gap-2 px-8 py-3 bg-accent text-white font-semibold rounded-full hover:bg-accent-dark hover:scale-[0.98] active:scale-[0.96] transition-all duration-200"
+                  className="artwork-primary-cta artwork-primary-cta--compact"
+                  style={{ minWidth: '12rem' }}
                 >
-                  Next
-                  <ArrowRight className="h-4 w-4" />
+                  Continue →
                 </button>
+                {selectedColours.length === 0 && (
+                  <span
+                    style={{
+                      fontSize: '0.82rem',
+                      color: 'var(--color-stone)',
+                      fontStyle: 'italic',
+                    }}
+                  >
+                    or skip this step
+                  </span>
+                )}
               </div>
-              {selectedColours.length === 0 && (
-                <p className="text-center text-xs text-muted mt-3">
-                  You can also skip this step
-                </p>
-              )}
             </div>
           )}
 
-          {/* Step 5: Budget */}
+          {/* ─ Step 5: Budget ─ */}
           {step === 5 && (
             <div>
-              <h1 className="font-editorial text-3xl md:text-4xl font-semibold text-primary text-center mb-2">
-                What's your budget?
+              <p style={kickerStyle}>Budget</p>
+              <h1 className="font-serif" style={headlineStyle}>
+                What are you <em style={{ fontStyle: 'italic' }}>working with?</em>
               </h1>
-              <p className="text-muted text-center mb-10 text-sm">
-                Select a range and we'll find the best matches.
+              <p style={subStyle}>
+                A range is fine — we&apos;ll shortlist pieces that sit comfortably inside it.
               </p>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-lg mx-auto">
-                {BUDGETS.map((b) => (
-                  <button
-                    key={b.label}
-                    onClick={() => selectBudget({ min: b.min, max: b.max })}
-                    className="flex items-center justify-center p-5 rounded-2xl border-2 border-border/60 bg-white/60 text-sm font-medium text-primary hover:border-accent/40 hover:bg-white hover:scale-[0.98] active:scale-[0.96] transition-all duration-200"
-                  >
-                    {b.label}
-                  </button>
-                ))}
-              </div>
+              <ChoiceList
+                items={BUDGETS.map((b) => ({ label: b.label, value: `${b.min}-${b.max}` }))}
+                selected={budget ? `${budget.min}-${budget.max}` : ''}
+                onSelect={(value) => {
+                  const match = BUDGETS.find((b) => `${b.min}-${b.max}` === value);
+                  if (match) selectBudget({ min: match.min, max: match.max });
+                }}
+              />
             </div>
           )}
         </div>
       </div>
     </div>
+  );
+}
+
+// ── Reusable editorial choice list ──
+
+function ChoiceList({
+  items,
+  selected,
+  onSelect,
+}: {
+  items: Array<{ label: string; detail?: string; value?: string }>;
+  selected: string;
+  onSelect: (value: string) => void;
+}) {
+  return (
+    <ol className="list-none p-0 m-0" style={{ marginTop: '2.5rem' }}>
+      {items.map((item, i) => {
+        const value = item.value ?? item.label;
+        const isSelected = selected === value;
+        return (
+          <li
+            key={item.label}
+            style={{
+              borderTop: '1px solid var(--color-border)',
+              borderBottom: i === items.length - 1 ? '1px solid var(--color-border)' : 'none',
+            }}
+          >
+            <button
+              type="button"
+              onClick={() => onSelect(value)}
+              style={{
+                width: '100%',
+                background: 'transparent',
+                border: 'none',
+                padding: '1.4rem 0',
+                display: 'grid',
+                gridTemplateColumns: '2.4rem minmax(0, 1fr) auto',
+                gap: '1rem',
+                alignItems: 'baseline',
+                textAlign: 'left',
+                cursor: 'pointer',
+              }}
+            >
+              <span
+                className="font-serif"
+                style={{
+                  fontSize: '0.9rem',
+                  color: 'var(--color-stone)',
+                  fontStyle: 'italic',
+                }}
+              >
+                {String(i + 1).padStart(2, '0')}
+              </span>
+              <span>
+                <span
+                  className="font-serif"
+                  style={{
+                    display: 'block',
+                    fontSize: 'clamp(1.15rem, 2vw, 1.5rem)',
+                    color: 'var(--color-ink)',
+                    fontStyle: isSelected ? 'italic' : 'normal',
+                    fontWeight: 400,
+                    letterSpacing: '-0.005em',
+                  }}
+                >
+                  {item.label}
+                </span>
+                {item.detail && (
+                  <span
+                    style={{
+                      display: 'block',
+                      fontSize: '0.78rem',
+                      letterSpacing: '0.08em',
+                      textTransform: 'uppercase',
+                      color: 'var(--color-stone)',
+                      marginTop: '0.3rem',
+                      fontWeight: 300,
+                    }}
+                  >
+                    {item.detail}
+                  </span>
+                )}
+              </span>
+              <span
+                style={{
+                  fontSize: '0.78rem',
+                  letterSpacing: '0.12em',
+                  textTransform: 'uppercase',
+                  color: isSelected ? 'var(--color-ink)' : 'var(--color-stone)',
+                  fontWeight: 300,
+                }}
+              >
+                →
+              </span>
+            </button>
+          </li>
+        );
+      })}
+    </ol>
   );
 }

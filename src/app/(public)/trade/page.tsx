@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import { Send } from 'lucide-react';
 
 export default function TradePage() {
   const [formState, setFormState] = useState<'idle' | 'submitting' | 'success' | 'error'>('idle');
@@ -51,191 +50,340 @@ export default function TradePage() {
   }
 
   return (
-    <div>
-      {/* Hero */}
-      <section className="bg-cream border-b border-border">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-16 md:py-24 text-center">
-          <p className="text-accent-dark text-sm font-medium tracking-[0.2em] uppercase mb-4">Business</p>
-          <h1 className="font-editorial text-4xl md:text-5xl lg:text-6xl font-medium leading-tight">
-            Art for your business
-          </h1>
-          <p className="mt-6 text-lg text-muted max-w-xl mx-auto leading-relaxed">
-            Hotels, restaurants, offices, and architects &mdash; we can help you find the perfect pieces for your space.
-          </p>
-        </div>
-      </section>
+    <div style={{ background: 'var(--color-warm-white)' }}>
+      {/* ── Editorial header ── */}
+      <header
+        className="px-6 sm:px-10"
+        style={{
+          paddingTop: 'clamp(4rem, 9vw, 7rem)',
+          paddingBottom: 'clamp(3rem, 6vw, 5rem)',
+        }}
+      >
+        <p
+          style={{
+            fontSize: '0.68rem',
+            letterSpacing: '0.22em',
+            textTransform: 'uppercase',
+            color: 'var(--color-stone)',
+            marginBottom: '1.2rem',
+          }}
+        >
+          Trade &amp; Hospitality
+        </p>
+        <h1
+          className="font-serif"
+          style={{
+            fontSize: 'clamp(2.6rem, 6vw, 4.8rem)',
+            lineHeight: 1.02,
+            letterSpacing: '-0.015em',
+            color: 'var(--color-ink)',
+            fontWeight: 400,
+            maxWidth: '22ch',
+          }}
+        >
+          Art for hotels, restaurants &amp; <em style={{ fontStyle: 'italic' }}>considered spaces.</em>
+        </h1>
+        <p
+          style={{
+            marginTop: '1.8rem',
+            fontSize: '1rem',
+            fontWeight: 300,
+            lineHeight: 1.7,
+            color: 'var(--color-stone-dark)',
+            maxWidth: '52ch',
+          }}
+        >
+          Commercial interiors, architectural projects, boutique hospitality — tell us about the space and we&apos;ll
+          quietly put a short list of original works in front of you, selected from the Signo roster.
+        </p>
+      </header>
 
-      <section className="py-20 md:py-28">
-        <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
-          {formState === 'success' ? (
-            <div className="bg-accent/5 border border-accent/20 rounded-2xl p-10 text-center">
-              <div className="w-14 h-14 bg-accent/10 rounded-full flex items-center justify-center mx-auto mb-6">
-                <Send className="w-6 h-6 text-accent-dark" />
-              </div>
-              <h2 className="font-editorial text-2xl font-semibold mb-3">Enquiry received!</h2>
-              <p className="text-muted leading-relaxed max-w-sm mx-auto">
-                Thanks for getting in touch. Our team will review your enquiry and respond within 48 hours.
-              </p>
-              <button
-                onClick={() => {
-                  setFormState('idle');
-                  setForm({
-                    business_name: '',
-                    contact_name: '',
-                    email: '',
-                    phone: '',
-                    business_type: '',
-                    description: '',
-                    budget_range: '',
-                  });
-                }}
-                className="mt-6 text-sm text-accent-dark hover:underline"
-              >
-                Submit another enquiry
-              </button>
-            </div>
-          ) : (
-            <form onSubmit={handleSubmit} className="space-y-6">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                <div>
-                  <label htmlFor="business_name" className="block text-sm font-medium mb-2">
-                    Business Name
-                  </label>
-                  <input
-                    type="text"
-                    id="business_name"
-                    name="business_name"
-                    required
-                    value={form.business_name}
-                    onChange={handleChange}
-                    className="w-full px-4 py-3 bg-muted-bg border border-border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-accent/30 focus:border-accent transition-colors"
-                    placeholder="Your business name"
-                  />
-                </div>
-                <div>
-                  <label htmlFor="contact_name" className="block text-sm font-medium mb-2">
-                    Contact Name
-                  </label>
-                  <input
-                    type="text"
-                    id="contact_name"
-                    name="contact_name"
-                    required
-                    value={form.contact_name}
-                    onChange={handleChange}
-                    className="w-full px-4 py-3 bg-muted-bg border border-border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-accent/30 focus:border-accent transition-colors"
-                    placeholder="Your name"
-                  />
-                </div>
-              </div>
+      <div style={{ borderTop: '1px solid var(--color-border)' }} />
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                <div>
-                  <label htmlFor="email" className="block text-sm font-medium mb-2">
-                    Email
-                  </label>
-                  <input
-                    type="email"
-                    id="email"
-                    name="email"
-                    required
-                    value={form.email}
-                    onChange={handleChange}
-                    className="w-full px-4 py-3 bg-muted-bg border border-border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-accent/30 focus:border-accent transition-colors"
-                    placeholder="you@business.com"
-                  />
-                </div>
-                <div>
-                  <label htmlFor="phone" className="block text-sm font-medium mb-2">
-                    Phone <span className="text-muted font-normal">(optional)</span>
-                  </label>
-                  <input
-                    type="tel"
-                    id="phone"
-                    name="phone"
-                    value={form.phone}
-                    onChange={handleChange}
-                    className="w-full px-4 py-3 bg-muted-bg border border-border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-accent/30 focus:border-accent transition-colors"
-                    placeholder="+61 400 000 000"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label htmlFor="business_type" className="block text-sm font-medium mb-2">
-                  Type of Business
-                </label>
-                <select
-                  id="business_type"
-                  name="business_type"
-                  required
-                  value={form.business_type}
-                  onChange={handleChange}
-                  className="w-full px-4 py-3 bg-muted-bg border border-border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-accent/30 focus:border-accent transition-colors appearance-none"
+      <section
+        className="px-6 sm:px-10"
+        style={{
+          paddingTop: 'clamp(4rem, 7vw, 6rem)',
+          paddingBottom: 'clamp(5rem, 9vw, 8rem)',
+        }}
+      >
+        <div className="grid grid-cols-1 lg:grid-cols-12" style={{ gap: 'clamp(2.5rem, 5vw, 5rem)' }}>
+          <div className="lg:col-span-4">
+            <p
+              style={{
+                fontSize: '0.62rem',
+                letterSpacing: '0.22em',
+                textTransform: 'uppercase',
+                color: 'var(--color-stone)',
+                marginBottom: '1.2rem',
+              }}
+            >
+              How it works
+            </p>
+            <ol className="list-none p-0 m-0">
+              {[
+                'Submit your brief — space, style, budget.',
+                'We assemble a shortlist from the roster within 48 hours.',
+                'We facilitate studio visits, framing &amp; logistics.',
+                'You buy directly from the artist, through Signo.',
+              ].map((step, i) => (
+                <li
+                  key={i}
+                  style={{
+                    display: 'grid',
+                    gridTemplateColumns: '2.4rem 1fr',
+                    gap: '1rem',
+                    padding: '1.1rem 0',
+                    borderTop: '1px solid var(--color-border)',
+                    borderBottom: i === 3 ? '1px solid var(--color-border)' : 'none',
+                    alignItems: 'baseline',
+                  }}
                 >
-                  <option value="" disabled>Select your industry</option>
-                  <option value="Hotel / Hospitality">Hotel / Hospitality</option>
-                  <option value="Restaurant / Caf&eacute;">Restaurant / Caf&eacute;</option>
-                  <option value="Office / Corporate">Office / Corporate</option>
-                  <option value="Architecture / Interior Design">Architecture / Interior Design</option>
-                  <option value="Healthcare">Healthcare</option>
-                  <option value="Education">Education</option>
-                  <option value="Retail">Retail</option>
-                  <option value="Other">Other</option>
-                </select>
-              </div>
+                  <span
+                    className="font-serif"
+                    style={{
+                      fontSize: '0.9rem',
+                      color: 'var(--color-stone)',
+                      fontStyle: 'italic',
+                    }}
+                  >
+                    {String(i + 1).padStart(2, '0')}
+                  </span>
+                  <span
+                    style={{
+                      fontSize: '0.92rem',
+                      color: 'var(--color-ink)',
+                      fontWeight: 300,
+                      lineHeight: 1.55,
+                    }}
+                    dangerouslySetInnerHTML={{ __html: step }}
+                  />
+                </li>
+              ))}
+            </ol>
+          </div>
 
+          <div className="lg:col-span-8">
+            {formState === 'success' ? (
               <div>
-                <label htmlFor="description" className="block text-sm font-medium mb-2">
-                  What are you looking for?
-                </label>
-                <textarea
-                  id="description"
-                  name="description"
-                  required
-                  rows={6}
-                  value={form.description}
-                  onChange={handleChange}
-                  className="w-full px-4 py-3 bg-muted-bg border border-border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-accent/30 focus:border-accent transition-colors resize-none"
-                  placeholder="Tell us about your space, the style you're after, number of pieces, any size requirements..."
-                />
-              </div>
-
-              <div>
-                <label htmlFor="budget_range" className="block text-sm font-medium mb-2">
-                  Budget Range
-                </label>
-                <select
-                  id="budget_range"
-                  name="budget_range"
-                  required
-                  value={form.budget_range}
-                  onChange={handleChange}
-                  className="w-full px-4 py-3 bg-muted-bg border border-border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-accent/30 focus:border-accent transition-colors appearance-none"
+                <p
+                  style={{
+                    fontSize: '0.68rem',
+                    letterSpacing: '0.22em',
+                    textTransform: 'uppercase',
+                    color: 'var(--color-stone)',
+                    marginBottom: '1.2rem',
+                  }}
                 >
-                  <option value="" disabled>Select a range</option>
-                  <option value="Under $1,000">Under $1,000</option>
-                  <option value="$1,000–$5,000">$1,000–$5,000</option>
-                  <option value="$5,000–$20,000">$5,000–$20,000</option>
-                  <option value="$20,000–$50,000">$20,000–$50,000</option>
-                  <option value="$50,000+">$50,000+</option>
-                </select>
+                  Enquiry received
+                </p>
+                <h2
+                  className="font-serif"
+                  style={{
+                    fontSize: 'clamp(1.8rem, 3.5vw, 2.6rem)',
+                    lineHeight: 1.1,
+                    color: 'var(--color-ink)',
+                    fontWeight: 400,
+                    letterSpacing: '-0.01em',
+                  }}
+                >
+                  Thank you. <em style={{ fontStyle: 'italic' }}>We&apos;ll be in touch within 48 hours.</em>
+                </h2>
+                <p
+                  style={{
+                    marginTop: '1rem',
+                    fontSize: '0.94rem',
+                    color: 'var(--color-stone-dark)',
+                    fontWeight: 300,
+                    lineHeight: 1.65,
+                    maxWidth: '46ch',
+                    marginBottom: '2rem',
+                  }}
+                >
+                  A member of the trade desk is already reviewing your brief.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setFormState('idle');
+                    setForm({
+                      business_name: '',
+                      contact_name: '',
+                      email: '',
+                      phone: '',
+                      business_type: '',
+                      description: '',
+                      budget_range: '',
+                    });
+                  }}
+                  className="editorial-link"
+                  style={{ background: 'transparent', cursor: 'pointer' }}
+                >
+                  Submit another
+                </button>
               </div>
+            ) : (
+              <form onSubmit={handleSubmit}>
+                <div className="grid grid-cols-1 sm:grid-cols-2" style={{ gap: 'clamp(1.5rem, 3vw, 2.5rem)' }}>
+                  <div>
+                    <label htmlFor="business_name" className="commission-label">
+                      Business
+                    </label>
+                    <input
+                      type="text"
+                      id="business_name"
+                      name="business_name"
+                      required
+                      value={form.business_name}
+                      onChange={handleChange}
+                      className="commission-field"
+                      placeholder="Business name"
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="contact_name" className="commission-label">
+                      Contact
+                    </label>
+                    <input
+                      type="text"
+                      id="contact_name"
+                      name="contact_name"
+                      required
+                      value={form.contact_name}
+                      onChange={handleChange}
+                      className="commission-field"
+                      placeholder="Your name"
+                    />
+                  </div>
+                </div>
 
-              {formState === 'error' && errorMsg && (
-                <p className="text-error text-sm">{errorMsg}</p>
-              )}
+                <div
+                  className="grid grid-cols-1 sm:grid-cols-2"
+                  style={{ marginTop: 'clamp(1.5rem, 3vw, 2.5rem)', gap: 'clamp(1.5rem, 3vw, 2.5rem)' }}
+                >
+                  <div>
+                    <label htmlFor="email" className="commission-label">
+                      Email
+                    </label>
+                    <input
+                      type="email"
+                      id="email"
+                      name="email"
+                      required
+                      value={form.email}
+                      onChange={handleChange}
+                      className="commission-field"
+                      placeholder="you@business.com"
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="phone" className="commission-label">
+                      Phone <span style={{ textTransform: 'none', fontStyle: 'italic' }}>(optional)</span>
+                    </label>
+                    <input
+                      type="tel"
+                      id="phone"
+                      name="phone"
+                      value={form.phone}
+                      onChange={handleChange}
+                      className="commission-field"
+                      placeholder="+61 400 000 000"
+                    />
+                  </div>
+                </div>
 
-              <button
-                type="submit"
-                disabled={formState === 'submitting'}
-                className="group inline-flex items-center justify-center gap-3 px-7 py-3.5 bg-primary text-white font-semibold rounded-full hover:bg-primary/90 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {formState === 'submitting' ? 'Sending...' : 'Submit Enquiry'}
-                <Send className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
-              </button>
-            </form>
-          )}
+                <div style={{ marginTop: 'clamp(1.5rem, 3vw, 2.5rem)' }}>
+                  <label htmlFor="business_type" className="commission-label">
+                    Industry
+                  </label>
+                  <select
+                    id="business_type"
+                    name="business_type"
+                    required
+                    value={form.business_type}
+                    onChange={handleChange}
+                    className="commission-field"
+                  >
+                    <option value="" disabled>
+                      Select your industry
+                    </option>
+                    <option value="Hotel / Hospitality">Hotel / Hospitality</option>
+                    <option value="Restaurant / Café">Restaurant / Café</option>
+                    <option value="Office / Corporate">Office / Corporate</option>
+                    <option value="Architecture / Interior Design">Architecture / Interior Design</option>
+                    <option value="Healthcare">Healthcare</option>
+                    <option value="Education">Education</option>
+                    <option value="Retail">Retail</option>
+                    <option value="Other">Other</option>
+                  </select>
+                </div>
+
+                <div style={{ marginTop: 'clamp(1.5rem, 3vw, 2.5rem)' }}>
+                  <label htmlFor="description" className="commission-label">
+                    The brief
+                  </label>
+                  <textarea
+                    id="description"
+                    name="description"
+                    required
+                    rows={6}
+                    value={form.description}
+                    onChange={handleChange}
+                    className="commission-field"
+                    placeholder="Tell us about the space, the style, scale, quantity, timing…"
+                  />
+                </div>
+
+                <div style={{ marginTop: 'clamp(1.5rem, 3vw, 2.5rem)' }}>
+                  <label htmlFor="budget_range" className="commission-label">
+                    Budget
+                  </label>
+                  <select
+                    id="budget_range"
+                    name="budget_range"
+                    required
+                    value={form.budget_range}
+                    onChange={handleChange}
+                    className="commission-field"
+                  >
+                    <option value="" disabled>
+                      Select a range
+                    </option>
+                    <option value="Under $1,000">Under $1,000</option>
+                    <option value="$1,000–$5,000">$1,000 – $5,000</option>
+                    <option value="$5,000–$20,000">$5,000 – $20,000</option>
+                    <option value="$20,000–$50,000">$20,000 – $50,000</option>
+                    <option value="$50,000+">$50,000 +</option>
+                  </select>
+                </div>
+
+                {formState === 'error' && errorMsg && (
+                  <p
+                    style={{
+                      marginTop: '1.4rem',
+                      fontSize: '0.82rem',
+                      color: 'var(--color-error, #b4452b)',
+                      fontStyle: 'italic',
+                      fontWeight: 300,
+                    }}
+                  >
+                    {errorMsg}
+                  </p>
+                )}
+
+                <div style={{ marginTop: 'clamp(2rem, 4vw, 3rem)' }}>
+                  <button
+                    type="submit"
+                    disabled={formState === 'submitting'}
+                    className="artwork-primary-cta artwork-primary-cta--compact"
+                    style={{ minWidth: '14rem' }}
+                  >
+                    {formState === 'submitting' ? 'Sending…' : 'Submit Enquiry'}
+                  </button>
+                </div>
+              </form>
+            )}
+          </div>
         </div>
       </section>
     </div>

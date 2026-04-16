@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
-import { Heart, ArrowRight, Loader2, ChevronDown } from 'lucide-react';
 import ArtworkCard from '@/components/ui/ArtworkCard';
 import { useRequireAuth } from '@/lib/hooks/useRequireAuth';
 
@@ -23,9 +22,9 @@ interface FavouritedArtwork {
 
 const SORT_OPTIONS = [
   { label: 'Recently saved', value: 'recent' },
-  { label: 'Price: Low to High', value: 'price_asc' },
-  { label: 'Price: High to Low', value: 'price_desc' },
-  { label: 'Artist name A-Z', value: 'artist' },
+  { label: 'Price, low to high', value: 'price_asc' },
+  { label: 'Price, high to low', value: 'price_desc' },
+  { label: 'Artist, A–Z', value: 'artist' },
 ] as const;
 
 type SortValue = (typeof SORT_OPTIONS)[number]['value'];
@@ -41,45 +40,40 @@ export default function FavouritesPage() {
   const [sortOpen, setSortOpen] = useState(false);
   const [removing, setRemoving] = useState<Set<string>>(new Set());
 
-  const fetchFavourites = useCallback(
-    async (sortBy: SortValue) => {
-      try {
-        setError(null);
-        const controller = new AbortController();
-        const timeout = setTimeout(() => controller.abort(), 8000);
+  const fetchFavourites = useCallback(async (sortBy: SortValue) => {
+    try {
+      setError(null);
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 8000);
 
-        const res = await fetch(`/api/favourites/list?sort=${sortBy}`, {
-          signal: controller.signal,
-        });
-        clearTimeout(timeout);
+      const res = await fetch(`/api/favourites/list?sort=${sortBy}`, {
+        signal: controller.signal,
+      });
+      clearTimeout(timeout);
 
-        if (!res.ok) {
-          throw new Error('Failed to load favourites');
-        }
-
-        const data = await res.json();
-        setArtworks(data.artworks || []);
-      } catch (err) {
-        if ((err as Error).name !== 'AbortError') {
-          console.error('[Favourites]', err);
-          setError('Failed to load favourites. Please try again.');
-        }
-      } finally {
-        setLoading(false);
+      if (!res.ok) {
+        throw new Error('Failed to load favourites');
       }
-    },
-    []
-  );
+
+      const data = await res.json();
+      setArtworks(data.artworks || []);
+    } catch (err) {
+      if ((err as Error).name !== 'AbortError') {
+        console.error('[Favourites]', err);
+        setError('Failed to load favourites. Please try again.');
+      }
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
     if (authLoading) return;
     fetchFavourites(sort);
   }, [authLoading, sort, fetchFavourites]);
 
-  // Handle unfavourite — fade out then remove from list
   const handleUnfavourite = useCallback((artworkId: string) => {
     setRemoving((prev) => new Set(prev).add(artworkId));
-    // Remove from list after fade-out animation completes
     setTimeout(() => {
       setArtworks((prev) => prev.filter((a) => a.id !== artworkId));
       setRemoving((prev) => {
@@ -95,140 +89,351 @@ export default function FavouritesPage() {
 
   if (authLoading) {
     return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="w-8 h-8 border-3 border-border border-t-primary rounded-full animate-spin" />
-        <style>{'@keyframes spin { to { transform: rotate(360deg) } }'}</style>
+      <div
+        style={{
+          minHeight: '60vh',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          background: 'var(--color-warm-white)',
+        }}
+      >
+        <p
+          className="font-serif"
+          style={{ fontStyle: 'italic', fontSize: '0.95rem', color: 'var(--color-stone)' }}
+        >
+          Loading…
+        </p>
       </div>
     );
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mb-8">
-        <div>
-          <h1 className="font-editorial text-3xl md:text-4xl font-semibold">
-            Your Favourites
-          </h1>
-          <p className="text-muted mt-1.5">
-            {loading
-              ? 'Loading your saved artwork...'
-              : artworks.length > 0
-                ? `${artworks.length} saved artwork${artworks.length === 1 ? '' : 's'}`
-                : 'Artwork you\u2019ve saved'}
-          </p>
-        </div>
-
-        {/* Sort dropdown */}
-        {artworks.length > 0 && !loading && (
-          <div className="relative">
-            <button
-              onClick={() => setSortOpen(!sortOpen)}
-              className="inline-flex items-center gap-2 px-4 py-2 border border-border rounded-full text-sm font-medium hover:border-accent/40 transition-colors bg-white"
+    <div style={{ background: 'var(--color-warm-white)', minHeight: '100vh' }}>
+      <div
+        className="px-6 sm:px-10"
+        style={{
+          maxWidth: '78rem',
+          margin: '0 auto',
+          paddingTop: 'clamp(7.5rem, 10vw, 9.5rem)',
+          paddingBottom: 'clamp(4rem, 7vw, 6rem)',
+        }}
+      >
+        {/* ── Editorial header ── */}
+        <header
+          style={{
+            marginBottom: 'clamp(2.4rem, 4vw, 3.4rem)',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '1.6rem',
+          }}
+        >
+          <div>
+            <p
+              style={{
+                fontSize: '0.62rem',
+                letterSpacing: '0.22em',
+                textTransform: 'uppercase',
+                color: 'var(--color-stone)',
+                marginBottom: '1rem',
+              }}
             >
-              {sortLabel}
-              <ChevronDown
-                className={`h-4 w-4 text-muted transition-transform ${sortOpen ? 'rotate-180' : ''}`}
-              />
-            </button>
-            {sortOpen && (
-              <>
-                <div
-                  className="fixed inset-0 z-10"
-                  onClick={() => setSortOpen(false)}
-                />
-                <div className="absolute right-0 mt-2 w-52 bg-white border border-border rounded-xl shadow-lg z-20 py-1 animate-fade-in">
-                  {SORT_OPTIONS.map((option) => (
-                    <button
-                      key={option.value}
-                      onClick={() => {
-                        setSort(option.value);
-                        setSortOpen(false);
-                      }}
-                      className={`w-full text-left px-4 py-2.5 text-sm transition-colors ${
-                        sort === option.value
-                          ? 'text-accent-dark font-medium bg-cream'
-                          : 'text-foreground hover:bg-cream/50'
-                      }`}
-                    >
-                      {option.label}
-                    </button>
-                  ))}
+              The Studio · Saved works
+            </p>
+            <h1
+              className="font-serif"
+              style={{
+                fontSize: 'clamp(2rem, 4vw, 3rem)',
+                lineHeight: 1.05,
+                letterSpacing: '-0.015em',
+                color: 'var(--color-ink)',
+                fontWeight: 400,
+                marginBottom: '0.7rem',
+              }}
+            >
+              Works you&apos;re <em style={{ fontStyle: 'italic' }}>holding.</em>
+            </h1>
+            <p
+              style={{
+                fontSize: '0.92rem',
+                fontWeight: 300,
+                color: 'var(--color-stone-dark)',
+                lineHeight: 1.6,
+              }}
+            >
+              {loading
+                ? 'Gathering your list…'
+                : artworks.length > 0
+                  ? `${artworks.length} work${artworks.length === 1 ? '' : 's'} set aside for a second look.`
+                  : 'A quiet shelf for works you want to return to.'}
+            </p>
+          </div>
+
+          {/* Sort — hairline text control */}
+          {artworks.length > 0 && !loading && (
+            <div style={{ position: 'relative', alignSelf: 'flex-start' }}>
+              <button
+                onClick={() => setSortOpen(!sortOpen)}
+                className="font-serif"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'baseline',
+                  gap: '0.5rem',
+                  fontSize: '0.72rem',
+                  letterSpacing: '0.18em',
+                  textTransform: 'uppercase',
+                  fontStyle: 'italic',
+                  color: 'var(--color-ink)',
+                  background: 'none',
+                  border: 'none',
+                  cursor: 'pointer',
+                  padding: '0.3rem 0',
+                  borderBottom: '1px solid var(--color-border-strong)',
+                }}
+              >
+                <span
+                  style={{
+                    fontStyle: 'normal',
+                    fontFamily: 'inherit',
+                    color: 'var(--color-stone)',
+                    letterSpacing: '0.22em',
+                  }}
+                >
+                  Sort —
+                </span>
+                {sortLabel}
+                <span
+                  aria-hidden
+                  style={{
+                    fontStyle: 'normal',
+                    fontSize: '0.65rem',
+                    color: 'var(--color-stone)',
+                    transform: sortOpen ? 'rotate(180deg)' : 'none',
+                    transition: 'transform 200ms cubic-bezier(0.22, 1, 0.36, 1)',
+                    display: 'inline-block',
+                  }}
+                >
+                  ▾
+                </span>
+              </button>
+              {sortOpen && (
+                <>
+                  <div
+                    style={{ position: 'fixed', inset: 0, zIndex: 10 }}
+                    onClick={() => setSortOpen(false)}
+                  />
+                  <ul
+                    style={{
+                      position: 'absolute',
+                      left: 0,
+                      marginTop: '0.6rem',
+                      minWidth: '16rem',
+                      background: 'var(--color-warm-white)',
+                      border: '1px solid var(--color-border-strong)',
+                      zIndex: 20,
+                      listStyle: 'none',
+                      padding: 0,
+                    }}
+                  >
+                    {SORT_OPTIONS.map((option, i) => {
+                      const active = sort === option.value;
+                      return (
+                        <li
+                          key={option.value}
+                          style={{
+                            borderTop: i === 0 ? 'none' : '1px solid var(--color-border)',
+                          }}
+                        >
+                          <button
+                            onClick={() => {
+                              setSort(option.value);
+                              setSortOpen(false);
+                            }}
+                            className="font-serif"
+                            style={{
+                              display: 'block',
+                              width: '100%',
+                              textAlign: 'left',
+                              padding: '0.85rem 1.1rem',
+                              background: 'none',
+                              border: 'none',
+                              cursor: 'pointer',
+                              fontSize: '0.92rem',
+                              fontStyle: active ? 'italic' : 'normal',
+                              color: active
+                                ? 'var(--color-ink)'
+                                : 'var(--color-stone-dark)',
+                              fontWeight: 400,
+                            }}
+                          >
+                            {active && (
+                              <span
+                                aria-hidden
+                                style={{
+                                  display: 'inline-block',
+                                  width: 16,
+                                  height: 1,
+                                  background: 'var(--color-ink)',
+                                  verticalAlign: 'middle',
+                                  marginRight: 10,
+                                }}
+                              />
+                            )}
+                            {option.label}
+                          </button>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </>
+              )}
+            </div>
+          )}
+        </header>
+
+        {loading ? (
+          <div style={{ padding: '3rem 0' }}>
+            <p
+              className="font-serif"
+              style={{
+                fontStyle: 'italic',
+                fontSize: '0.95rem',
+                color: 'var(--color-stone)',
+                marginBottom: '2.4rem',
+              }}
+            >
+              Loading…
+            </p>
+            <div
+              className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4"
+              style={{ columnGap: '1.8rem', rowGap: '3rem' }}
+            >
+              {Array.from({ length: 8 }).map((_, i) => (
+                <div key={i}>
+                  <div
+                    className="aspect-[4/5]"
+                    style={{ background: 'var(--color-cream)' }}
+                  />
+                  <div
+                    style={{
+                      marginTop: '0.9rem',
+                      height: 1,
+                      background: 'var(--color-border)',
+                      width: '60%',
+                    }}
+                  />
                 </div>
-              </>
-            )}
+              ))}
+            </div>
+          </div>
+        ) : error ? (
+          <div
+            style={{
+              paddingTop: '2rem',
+              borderTop: '1px solid var(--color-border)',
+            }}
+          >
+            <p
+              className="font-serif"
+              style={{
+                fontSize: '0.92rem',
+                color: 'var(--color-terracotta, #c45d3e)',
+                fontStyle: 'italic',
+                marginBottom: '1.4rem',
+              }}
+            >
+              {error}
+            </p>
+            <button
+              onClick={() => {
+                setLoading(true);
+                fetchFavourites(sort);
+              }}
+              className="editorial-link"
+            >
+              Try again
+            </button>
+          </div>
+        ) : artworks.length === 0 ? (
+          <div
+            style={{
+              paddingTop: '2rem',
+              borderTop: '1px solid var(--color-border)',
+              maxWidth: '46ch',
+            }}
+          >
+            <p
+              className="font-serif"
+              style={{
+                fontSize: 'clamp(1.4rem, 2.6vw, 1.9rem)',
+                lineHeight: 1.2,
+                color: 'var(--color-ink)',
+                fontStyle: 'italic',
+                fontWeight: 400,
+                marginTop: '1.4rem',
+              }}
+            >
+              Nothing saved yet.
+            </p>
+            <p
+              style={{
+                marginTop: '1rem',
+                fontSize: '0.9rem',
+                color: 'var(--color-stone-dark)',
+                fontWeight: 300,
+                lineHeight: 1.6,
+              }}
+            >
+              When a work catches your eye, mark it <em style={{ fontStyle: 'italic' }}>Save</em>{' '}
+              from its card or page — it will live here until you&apos;re ready to return.
+            </p>
+            <Link
+              href="/browse"
+              className="editorial-link"
+              style={{ marginTop: '1.6rem', display: 'inline-block' }}
+            >
+              Browse the collection
+            </Link>
+          </div>
+        ) : (
+          <div
+            className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4"
+            style={{
+              columnGap: '1.8rem',
+              rowGap: '3.2rem',
+              borderTop: '1px solid var(--color-border-strong)',
+              paddingTop: '2.4rem',
+            }}
+          >
+            {artworks.map((artwork) => (
+              <div
+                key={artwork.id}
+                style={{
+                  opacity: removing.has(artwork.id) ? 0 : 1,
+                  transform: removing.has(artwork.id)
+                    ? 'translateY(-4px)'
+                    : 'translateY(0)',
+                  transition:
+                    'opacity 350ms cubic-bezier(0.22, 1, 0.36, 1), transform 350ms cubic-bezier(0.22, 1, 0.36, 1)',
+                }}
+              >
+                <ArtworkCard
+                  id={artwork.id}
+                  title={artwork.title}
+                  artistName={artwork.artistName}
+                  artistId={artwork.artistId}
+                  price={artwork.price_aud}
+                  imageUrl={artwork.images?.[0] || ''}
+                  medium={artwork.medium}
+                  category={artwork.category}
+                  initialFavourited
+                  onUnfavourite={handleUnfavourite}
+                />
+              </div>
+            ))}
           </div>
         )}
       </div>
-
-      {/* Content */}
-      {loading ? (
-        <div className="flex items-center justify-center py-24">
-          <Loader2 className="h-6 w-6 animate-spin text-muted" />
-        </div>
-      ) : error ? (
-        <div className="text-center py-24">
-          <p className="text-error mb-4">{error}</p>
-          <button
-            onClick={() => {
-              setLoading(true);
-              fetchFavourites(sort);
-            }}
-            className="px-6 py-2.5 bg-primary text-white text-sm font-semibold rounded-full hover:bg-accent transition-colors"
-          >
-            Try Again
-          </button>
-        </div>
-      ) : artworks.length === 0 ? (
-        /* Empty state */
-        <div className="text-center py-24">
-          <div className="w-20 h-20 bg-muted-bg rounded-full flex items-center justify-center mx-auto mb-5">
-            <Heart className="h-10 w-10 text-muted" />
-          </div>
-          <h2 className="font-editorial text-2xl font-semibold mb-2">
-            No saved artwork yet
-          </h2>
-          <p className="text-muted mb-8 max-w-md mx-auto">
-            Tap the heart on any artwork to save it here
-          </p>
-          <Link
-            href="/browse"
-            className="group inline-flex items-center gap-2 px-8 py-3 bg-primary text-white text-sm font-semibold rounded-full hover:bg-accent transition-colors duration-300"
-          >
-            Browse Artwork
-            <ArrowRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
-          </Link>
-        </div>
-      ) : (
-        /* Artwork grid */
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-x-5 gap-y-10">
-          {artworks.map((artwork) => (
-            <div
-              key={artwork.id}
-              style={{
-                opacity: removing.has(artwork.id) ? 0 : 1,
-                transform: removing.has(artwork.id)
-                  ? 'scale(0.95)'
-                  : 'scale(1)',
-                transition: 'opacity 400ms ease-out, transform 400ms ease-out',
-              }}
-            >
-              <ArtworkCard
-                id={artwork.id}
-                title={artwork.title}
-                artistName={artwork.artistName}
-                artistId={artwork.artistId}
-                price={artwork.price_aud}
-                imageUrl={artwork.images?.[0] || ''}
-                medium={artwork.medium}
-                category={artwork.category}
-                initialFavourited
-                onUnfavourite={handleUnfavourite}
-              />
-            </div>
-          ))}
-        </div>
-      )}
     </div>
   );
 }

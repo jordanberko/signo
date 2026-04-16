@@ -2,16 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import {
-  AlertCircle,
-  ArrowLeft,
-  CheckCircle2,
-  Loader2,
-  Camera,
-} from 'lucide-react';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { useRequireAuth } from '@/lib/hooks/useRequireAuth';
-// Data fetching uses server API routes to avoid SDK latency issues
 
 // ── Types ──
 
@@ -29,25 +21,52 @@ interface OrderBasic {
 const disputeTypes: { value: DisputeType; label: string; description: string }[] = [
   {
     value: 'damaged',
-    label: 'Artwork arrived damaged',
-    description: 'The artwork was damaged during shipping or handling',
+    label: 'Arrived damaged',
+    description: 'The work was damaged in shipping or handling.',
   },
   {
     value: 'not_as_described',
-    label: 'Artwork is not as described',
-    description: 'The artwork differs significantly from the listing',
+    label: 'Not as described',
+    description: 'The work differs significantly from the listing.',
   },
   {
     value: 'not_received',
-    label: "Artwork hasn't arrived",
-    description: 'The delivery was confirmed but you did not receive it',
+    label: 'Not received',
+    description: 'Delivery was confirmed but the work never arrived.',
   },
   {
     value: 'other',
-    label: 'Other issue',
-    description: 'Another problem with your order',
+    label: 'Another issue',
+    description: 'Something else is wrong with the order.',
   },
 ];
+
+// ── Spinner ──
+
+function Spinner({ label }: { label?: string }) {
+  return (
+    <div
+      style={{
+        minHeight: '60vh',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        background: 'var(--color-warm-white)',
+      }}
+    >
+      <p
+        className="font-serif"
+        style={{
+          fontStyle: 'italic',
+          fontSize: '0.95rem',
+          color: 'var(--color-stone)',
+        }}
+      >
+        {label || 'Loading…'}
+      </p>
+    </div>
+  );
+}
 
 // ── Content ──
 
@@ -93,24 +112,22 @@ function DisputeContent({ orderId }: { orderId: string }) {
         };
         setOrder(ord);
 
-      // Validate status
-      if (ord.status !== 'delivered') {
-        setBlockReason('Disputes can only be opened for delivered orders.');
-        setLoading(false);
-        return;
-      }
+        if (ord.status !== 'delivered') {
+          setBlockReason('Disputes can only be opened for delivered orders.');
+          setLoading(false);
+          return;
+        }
 
-      // Validate deadline
-      if (
-        ord.inspection_deadline &&
-        new Date(ord.inspection_deadline).getTime() < Date.now()
-      ) {
-        setBlockReason('The 48-hour inspection window has closed.');
-        setLoading(false);
-        return;
-      }
+        if (
+          ord.inspection_deadline &&
+          new Date(ord.inspection_deadline).getTime() < Date.now()
+        ) {
+          setBlockReason('The 48-hour inspection window has closed.');
+          setLoading(false);
+          return;
+        }
 
-      setLoading(false);
+        setLoading(false);
       } catch (err) {
         console.error('[Dispute] Fetch error:', err);
         setBlockReason('Failed to load order details.');
@@ -154,188 +171,384 @@ function DisputeContent({ orderId }: { orderId: string }) {
 
   // ── Loading ──
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <Loader2 className="h-6 w-6 animate-spin text-muted" />
+  if (loading) return <Spinner label="Loading order…" />;
+
+  const shellStyle = {
+    background: 'var(--color-warm-white)',
+    minHeight: '100vh',
+  } as const;
+
+  const pageShell = (children: React.ReactNode) => (
+    <div style={shellStyle}>
+      <div
+        className="px-6 sm:px-10"
+        style={{
+          maxWidth: '46rem',
+          margin: '0 auto',
+          paddingTop: 'clamp(7.5rem, 10vw, 9.5rem)',
+          paddingBottom: 'clamp(4rem, 7vw, 6rem)',
+        }}
+      >
+        {children}
       </div>
-    );
-  }
+    </div>
+  );
 
   // ── Blocked ──
 
   if (blockReason) {
-    return (
-      <div className="max-w-lg mx-auto px-4 py-16 text-center">
-        <AlertCircle className="h-12 w-12 text-muted mx-auto mb-4" />
-        <h1 className="font-editorial text-2xl font-semibold mb-2">
-          Cannot open dispute
+    return pageShell(
+      <>
+        <p
+          style={{
+            fontSize: '0.62rem',
+            letterSpacing: '0.22em',
+            textTransform: 'uppercase',
+            color: 'var(--color-stone)',
+            marginBottom: '1.2rem',
+          }}
+        >
+          — Not available —
+        </p>
+        <h1
+          className="font-serif"
+          style={{
+            fontSize: 'clamp(1.9rem, 3.6vw, 2.6rem)',
+            lineHeight: 1.1,
+            color: 'var(--color-ink)',
+            fontWeight: 400,
+            marginBottom: '1.2rem',
+          }}
+        >
+          We can&apos;t open a dispute for this order.
         </h1>
-        <p className="text-muted mb-6">{blockReason}</p>
+        <p
+          style={{
+            fontSize: '0.95rem',
+            color: 'var(--color-stone-dark)',
+            fontWeight: 300,
+            lineHeight: 1.6,
+            marginBottom: '2rem',
+            maxWidth: '52ch',
+          }}
+        >
+          {blockReason}
+        </p>
         <Link
           href={`/orders/${orderId}`}
-          className="inline-flex items-center gap-2 px-6 py-3 bg-primary text-white font-semibold rounded-full hover:bg-accent hover:text-primary transition-colors"
+          className="artwork-primary-cta artwork-primary-cta--compact"
+          style={{ minWidth: '14rem' }}
         >
-          <ArrowLeft className="h-4 w-4" />
-          Back to Order
+          ← Back to order
         </Link>
-      </div>
+      </>
     );
   }
 
   // ── Success ──
 
   if (submitted) {
-    return (
-      <div className="max-w-lg mx-auto px-4 py-16 text-center">
-        <CheckCircle2 className="h-16 w-16 text-green-500 mx-auto mb-4" />
-        <h1 className="font-editorial text-2xl font-semibold mb-2">
-          Dispute submitted
+    return pageShell(
+      <>
+        <p
+          style={{
+            fontSize: '0.62rem',
+            letterSpacing: '0.22em',
+            textTransform: 'uppercase',
+            color: 'var(--color-stone)',
+            marginBottom: '1.2rem',
+          }}
+        >
+          — Received —
+        </p>
+        <h1
+          className="font-serif"
+          style={{
+            fontSize: 'clamp(1.9rem, 3.6vw, 2.6rem)',
+            lineHeight: 1.1,
+            color: 'var(--color-ink)',
+            fontWeight: 400,
+            marginBottom: '1.2rem',
+          }}
+        >
+          Your dispute is <em style={{ fontStyle: 'italic' }}>submitted.</em>
         </h1>
-        <p className="text-muted mb-6">
-          Your dispute has been submitted. We&apos;ll review it within 48 hours.
+        <p
+          style={{
+            fontSize: '0.95rem',
+            color: 'var(--color-stone-dark)',
+            fontWeight: 300,
+            lineHeight: 1.6,
+            marginBottom: '2rem',
+            maxWidth: '52ch',
+          }}
+        >
+          Signo will review within 48 hours. You&apos;ll hear from us by email.
         </p>
         <Link
           href={`/orders/${orderId}`}
-          className="inline-flex items-center gap-2 px-6 py-3 bg-primary text-white font-semibold rounded-full hover:bg-accent hover:text-primary transition-colors"
+          className="artwork-primary-cta artwork-primary-cta--compact"
+          style={{ minWidth: '14rem' }}
         >
-          <ArrowLeft className="h-4 w-4" />
-          Back to Order
+          ← Back to order
         </Link>
-      </div>
+      </>
     );
   }
 
   // ── Form ──
 
-  return (
-    <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      {/* Back link */}
+  return pageShell(
+    <>
       <Link
         href={`/orders/${orderId}`}
-        className="inline-flex items-center gap-1.5 text-sm text-muted hover:text-foreground transition-colors mb-6"
+        className="font-serif"
+        style={{
+          display: 'inline-block',
+          marginBottom: '2rem',
+          fontSize: '0.68rem',
+          letterSpacing: '0.22em',
+          textTransform: 'uppercase',
+          fontStyle: 'italic',
+          color: 'var(--color-stone)',
+          textDecoration: 'none',
+        }}
       >
-        <ArrowLeft className="h-4 w-4" />
-        Back to order
+        ← Back to order
       </Link>
 
-      {/* Header */}
-      <div className="mb-8">
-        <h1 className="font-editorial text-2xl md:text-3xl font-semibold">
-          Report an Issue
-        </h1>
+      <p
+        style={{
+          fontSize: '0.62rem',
+          letterSpacing: '0.22em',
+          textTransform: 'uppercase',
+          color: 'var(--color-stone)',
+          marginBottom: '1rem',
+        }}
+      >
+        Report an issue
+      </p>
+      <h1
+        className="font-serif"
+        style={{
+          fontSize: 'clamp(2rem, 4vw, 2.8rem)',
+          lineHeight: 1.08,
+          letterSpacing: '-0.015em',
+          color: 'var(--color-ink)',
+          fontWeight: 400,
+          marginBottom: '0.8rem',
+        }}
+      >
+        Something isn&apos;t <em style={{ fontStyle: 'italic' }}>right.</em>
+      </h1>
+      <p
+        style={{
+          fontSize: '0.92rem',
+          fontWeight: 300,
+          color: 'var(--color-stone-dark)',
+          lineHeight: 1.6,
+          marginBottom: '2.4rem',
+          maxWidth: '52ch',
+        }}
+      >
+        Tell us what happened. A Signo team member will review your dispute within 48 hours.
         {order?.artwork && (
-          <p className="text-sm text-muted mt-1">
-            For: {order.artwork.title}
-          </p>
+          <>
+            {' '}For <em style={{ fontStyle: 'italic' }}>{order.artwork.title}</em>.
+          </>
         )}
-      </div>
+      </p>
 
-      <form onSubmit={handleSubmit} className="space-y-6">
+      <form onSubmit={handleSubmit}>
         {/* Dispute type */}
-        <div>
-          <label className="block text-sm font-medium mb-3">
-            What&apos;s the issue?
-          </label>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {disputeTypes.map((dt) => (
-              <button
-                key={dt.value}
-                type="button"
-                onClick={() => setDisputeType(dt.value)}
-                className={`text-left p-4 rounded-xl border-2 transition-colors ${
-                  disputeType === dt.value
-                    ? 'border-accent-dark bg-accent-subtle/30'
-                    : 'border-border hover:border-gray-300'
-                }`}
-              >
-                <p className="text-sm font-medium">{dt.label}</p>
-                <p className="text-xs text-muted mt-1">{dt.description}</p>
-              </button>
-            ))}
-          </div>
+        <div style={{ marginBottom: '2.2rem' }}>
+          <p className="commission-label">What&apos;s the issue?</p>
+          <ul
+            style={{
+              listStyle: 'none',
+              padding: 0,
+              margin: 0,
+              borderTop: '1px solid var(--color-border-strong)',
+            }}
+          >
+            {disputeTypes.map((dt) => {
+              const active = disputeType === dt.value;
+              return (
+                <li
+                  key={dt.value}
+                  style={{ borderBottom: '1px solid var(--color-border)' }}
+                >
+                  <button
+                    type="button"
+                    onClick={() => setDisputeType(dt.value)}
+                    style={{
+                      display: 'block',
+                      width: '100%',
+                      textAlign: 'left',
+                      padding: '1rem 0',
+                      background: 'none',
+                      border: 'none',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    <span
+                      style={{
+                        display: 'inline-block',
+                        width: active ? 22 : 0,
+                        height: 1,
+                        background: 'var(--color-ink)',
+                        verticalAlign: 'middle',
+                        marginRight: active ? 12 : 0,
+                        transition: 'width 200ms cubic-bezier(0.22, 1, 0.36, 1), margin 200ms cubic-bezier(0.22, 1, 0.36, 1)',
+                      }}
+                      aria-hidden
+                    />
+                    <span
+                      className="font-serif"
+                      style={{
+                        fontSize: '1.05rem',
+                        color: 'var(--color-ink)',
+                        fontWeight: 400,
+                        fontStyle: active ? 'italic' : 'normal',
+                      }}
+                    >
+                      {dt.label}
+                    </span>
+                    <p
+                      style={{
+                        marginTop: '0.3rem',
+                        marginLeft: active ? 34 : 0,
+                        fontSize: '0.82rem',
+                        color: 'var(--color-stone)',
+                        fontWeight: 300,
+                        lineHeight: 1.5,
+                        transition: 'margin 200ms cubic-bezier(0.22, 1, 0.36, 1)',
+                      }}
+                    >
+                      {dt.description}
+                    </p>
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
         </div>
 
         {/* Description */}
-        <div>
-          <label
-            htmlFor="description"
-            className="block text-sm font-medium mb-2"
-          >
+        <div style={{ marginBottom: '2.2rem' }}>
+          <label htmlFor="description" className="commission-label">
             Describe the issue
           </label>
           <textarea
             id="description"
             value={description}
             onChange={(e) => setDescription(e.target.value)}
-            placeholder="Describe the issue in detail..."
-            rows={5}
-            className="w-full px-4 py-3 border border-border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-accent/30 focus:border-accent resize-none"
+            placeholder="Tell us what happened in detail…"
+            rows={6}
+            className="commission-field"
             required
             minLength={20}
+            style={{ resize: 'vertical' }}
           />
           <p
-            className={`text-xs mt-1 ${
-              description.length > 0 && description.length < 20
-                ? 'text-red-500'
-                : 'text-muted'
-            }`}
+            style={{
+              marginTop: '0.5rem',
+              fontSize: '0.72rem',
+              fontWeight: 300,
+              fontStyle: description.length > 0 && description.length < 20 ? 'italic' : 'normal',
+              color:
+                description.length > 0 && description.length < 20
+                  ? 'var(--color-terracotta)'
+                  : 'var(--color-stone)',
+            }}
           >
-            {description.length}/20 characters minimum
+            {description.length} / 20 characters minimum
           </p>
         </div>
 
         {/* Photo evidence */}
-        <div>
-          <label className="block text-sm font-medium mb-2">
-            Photo evidence
-          </label>
-          <div className="border-2 border-dashed border-border rounded-xl p-6 text-center hover:border-gray-300 transition-colors">
-            <Camera className="h-8 w-8 text-muted mx-auto mb-2" />
+        <div style={{ marginBottom: '2.2rem' }}>
+          <label className="commission-label">Photo evidence</label>
+          <div
+            style={{
+              borderTop: '1px solid var(--color-border)',
+              borderBottom: '1px solid var(--color-border)',
+              padding: '1.4rem 0',
+            }}
+          >
             <input
               type="file"
               accept="image/*"
               multiple
               onChange={(e) => setFiles(e.target.files)}
-              className="block w-full text-sm text-muted file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-medium file:bg-accent-subtle file:text-accent-dark hover:file:bg-accent/20 cursor-pointer"
+              style={{
+                display: 'block',
+                width: '100%',
+                fontSize: '0.82rem',
+                color: 'var(--color-stone-dark)',
+                fontWeight: 300,
+              }}
             />
             {files && files.length > 0 && (
-              <p className="text-xs text-muted mt-2">
+              <p
+                className="font-serif"
+                style={{
+                  marginTop: '0.6rem',
+                  fontStyle: 'italic',
+                  fontSize: '0.78rem',
+                  color: 'var(--color-stone)',
+                }}
+              >
                 {files.length} file{files.length !== 1 ? 's' : ''} selected
               </p>
             )}
           </div>
-          <p className="text-xs text-muted mt-1.5">
+          <p
+            style={{
+              marginTop: '0.5rem',
+              fontSize: '0.72rem',
+              color: 'var(--color-stone)',
+              fontWeight: 300,
+              fontStyle: 'italic',
+            }}
+            className="font-serif"
+          >
             {disputeType === 'damaged'
-              ? 'Required for damage claims'
-              : 'Recommended to support your claim'}
+              ? 'Required for damage claims.'
+              : 'Recommended to support your claim.'}
           </p>
         </div>
 
-        {/* Error */}
         {error && (
-          <div className="p-3 bg-red-50 border border-red-200 rounded-xl flex items-start gap-2">
-            <AlertCircle className="h-4 w-4 text-red-600 flex-shrink-0 mt-0.5" />
-            <p className="text-sm text-red-800">{error}</p>
-          </div>
+          <p
+            className="font-serif"
+            style={{
+              marginBottom: '1.6rem',
+              fontSize: '0.92rem',
+              color: 'var(--color-terracotta, #c45d3e)',
+              fontStyle: 'italic',
+              fontWeight: 400,
+              lineHeight: 1.5,
+              maxWidth: '52ch',
+            }}
+          >
+            {error}
+          </p>
         )}
 
-        {/* Submit */}
         <button
           type="submit"
-          disabled={
-            !disputeType || description.length < 20 || submitting
-          }
-          className="w-full py-3 bg-red-600 text-white font-semibold rounded-full hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+          disabled={!disputeType || description.length < 20 || submitting}
+          className="artwork-primary-cta artwork-primary-cta--compact"
+          style={{
+            minWidth: '18rem',
+            opacity: !disputeType || description.length < 20 || submitting ? 0.5 : 1,
+          }}
         >
-          {submitting ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
-          ) : (
-            'Submit Dispute'
-          )}
+          {submitting ? 'Submitting…' : 'Submit dispute'}
         </button>
       </form>
-    </div>
+    </>
   );
 }
 
@@ -353,15 +566,8 @@ export default function DisputePage({
     params.then((p) => setOrderId(p.id));
   }, [params]);
 
-  if (authLoading) return <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '60vh' }}><div style={{ width: 32, height: 32, border: '3px solid #E5E2DB', borderTopColor: '#2C2C2A', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} /><style>{'@keyframes spin { to { transform: rotate(360deg) } }'}</style></div>;
-
-  if (!orderId) {
-    return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <Loader2 className="h-6 w-6 animate-spin text-muted" />
-      </div>
-    );
-  }
+  if (authLoading) return <Spinner />;
+  if (!orderId) return <Spinner />;
 
   return <DisputeContent orderId={orderId} />;
 }

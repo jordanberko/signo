@@ -4,22 +4,6 @@ import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useParams } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
-import {
-  ArrowRight,
-  ArrowLeft,
-  Check,
-  Loader2,
-  Camera,
-  FileText,
-  Ruler,
-  DollarSign,
-  Eye,
-  X,
-  Save,
-  Upload,
-  Lightbulb,
-  AlertCircle,
-} from 'lucide-react';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { useRequireAuth } from '@/lib/hooks/useRequireAuth';
 import { uploadArtworkImage } from '@/lib/supabase/storage';
@@ -65,25 +49,32 @@ const COLOUR_PALETTE = [
 const SURFACES = ['Canvas', 'Linen', 'Paper', 'Board', 'Wood', 'Metal', 'Glass', 'Fabric', 'Other'];
 
 const AVAILABILITY_OPTIONS = [
-  { value: 'available' as const, label: 'Available', desc: 'Can be purchased immediately' },
-  { value: 'coming_soon' as const, label: 'Coming soon', desc: 'Show on site with an available-from date' },
-  { value: 'enquire_only' as const, label: 'Enquire only', desc: 'Buyers can enquire but not purchase directly' },
+  { value: 'available' as const, label: 'Available', desc: 'Can be purchased immediately.' },
+  { value: 'coming_soon' as const, label: 'Coming soon', desc: 'Listed with an available-from date.' },
+  { value: 'enquire_only' as const, label: 'Enquire only', desc: 'Buyers may enquire but not purchase directly.' },
 ];
 
 const IMAGE_SLOT_LABELS = [
-  { label: 'Primary photo', helper: 'This is the main image buyers will see', required: true },
-  { label: 'Detail or texture', helper: 'Show a close-up of the surface', required: true },
-  { label: 'Side or back view', helper: 'Show the depth and hanging hardware', required: false },
-  { label: 'In context', helper: 'Show the artwork on a wall or in a room', required: false },
+  { label: 'Primary photo', helper: 'The main image buyers will see first.', required: true },
+  { label: 'Detail or texture', helper: 'A close reading of the surface.', required: true },
+  { label: 'Side or back view', helper: 'Depth, edges, hanging hardware.', required: false },
+  { label: 'In context', helper: 'The work on a wall, in a room.', required: false },
 ];
 
 const STEP_META = [
-  { label: 'Photos', icon: Camera },
-  { label: 'Details', icon: FileText },
-  { label: 'Specs', icon: Ruler },
-  { label: 'Price', icon: DollarSign },
-  { label: 'Review', icon: Eye },
+  { num: '01', label: 'Photos' },
+  { num: '02', label: 'Details' },
+  { num: '03', label: 'Specs' },
+  { num: '04', label: 'Price' },
+  { num: '05', label: 'Review' },
 ];
+
+const KICKER: React.CSSProperties = {
+  fontSize: '0.62rem',
+  letterSpacing: '0.22em',
+  textTransform: 'uppercase',
+  color: 'var(--color-stone)',
+};
 
 // ── Types ──
 
@@ -110,6 +101,80 @@ interface FormState {
   includeShipping: boolean;
   availability: 'available' | 'coming_soon' | 'enquire_only';
   available_from: string;
+}
+
+// ── Helpers ──
+
+function EditorialSpinner({ label = 'Loading…' }: { label?: string }) {
+  return (
+    <div
+      style={{
+        minHeight: '60vh',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        background: 'var(--color-warm-white)',
+      }}
+    >
+      <p
+        className="font-serif"
+        style={{ fontStyle: 'italic', fontSize: '0.95rem', color: 'var(--color-stone)' }}
+      >
+        {label}
+      </p>
+    </div>
+  );
+}
+
+function FieldLabel({
+  children,
+  required,
+  aside,
+}: {
+  children: React.ReactNode;
+  required?: boolean;
+  aside?: React.ReactNode;
+}) {
+  return (
+    <p
+      style={{
+        ...KICKER,
+        marginBottom: '0.7rem',
+        display: 'flex',
+        alignItems: 'baseline',
+        justifyContent: 'space-between',
+        gap: '1rem',
+      }}
+    >
+      <span>
+        {children}
+        {required && (
+          <span
+            style={{
+              marginLeft: '0.4rem',
+              color: 'var(--color-terracotta, #c45d3e)',
+            }}
+          >
+            *
+          </span>
+        )}
+      </span>
+      {aside && (
+        <span
+          className="font-serif"
+          style={{
+            fontStyle: 'italic',
+            fontSize: '0.78rem',
+            color: 'var(--color-stone)',
+            letterSpacing: 0,
+            textTransform: 'none',
+          }}
+        >
+          {aside}
+        </span>
+      )}
+    </p>
+  );
 }
 
 // ── Component ──
@@ -176,37 +241,37 @@ export default function EditArtworkPage() {
         }
 
         const a = data as Artwork;
-      setArtwork(a);
+        setArtwork(a);
 
-      // Determine if medium is a known option or custom
-      const isKnownMedium = MEDIUMS.includes(a.medium ?? '');
+        const isKnownMedium = MEDIUMS.includes(a.medium ?? '');
 
-      setForm({
-        images: (a.images as string[]) || [],
-        title: a.title,
-        description: a.description ?? '',
-        category: (a.category as 'original' | 'print' | 'digital') ?? 'original',
-        medium: isKnownMedium ? (a.medium ?? '') : (a.medium ? 'Other' : ''),
-        customMedium: isKnownMedium ? '' : (a.medium ?? ''),
-        style: a.style ?? '',
-        colors: (a.colors as string[]) || [],
-        tags: (a.tags as string[]) || [],
-        tagInput: '',
-        width_cm: a.width_cm?.toString() ?? '',
-        height_cm: a.height_cm?.toString() ?? '',
-        depth_cm: a.depth_cm?.toString() ?? '',
-        surface: a.surface ?? '',
-        is_framed: a.is_framed,
-        ready_to_hang: a.ready_to_hang ?? false,
-        shipping_weight_kg: a.shipping_weight_kg?.toString() ?? '',
-        price_aud: a.price_aud.toString(),
-        shipping_cost: '',
-        includeShipping: true,
-        availability: (a.availability as 'available' | 'coming_soon' | 'enquire_only') ?? 'available',
-        available_from: a.available_from ?? '',
-      });
+        setForm({
+          images: (a.images as string[]) || [],
+          title: a.title,
+          description: a.description ?? '',
+          category: (a.category as 'original' | 'print' | 'digital') ?? 'original',
+          medium: isKnownMedium ? (a.medium ?? '') : (a.medium ? 'Other' : ''),
+          customMedium: isKnownMedium ? '' : (a.medium ?? ''),
+          style: a.style ?? '',
+          colors: (a.colors as string[]) || [],
+          tags: (a.tags as string[]) || [],
+          tagInput: '',
+          width_cm: a.width_cm?.toString() ?? '',
+          height_cm: a.height_cm?.toString() ?? '',
+          depth_cm: a.depth_cm?.toString() ?? '',
+          surface: a.surface ?? '',
+          is_framed: a.is_framed,
+          ready_to_hang: a.ready_to_hang ?? false,
+          shipping_weight_kg: a.shipping_weight_kg?.toString() ?? '',
+          price_aud: a.price_aud.toString(),
+          shipping_cost: '',
+          includeShipping: true,
+          availability:
+            (a.availability as 'available' | 'coming_soon' | 'enquire_only') ?? 'available',
+          available_from: a.available_from ?? '',
+        });
 
-      setLoadingArtwork(false);
+        setLoadingArtwork(false);
       } catch (err) {
         if ((err as Error).name !== 'AbortError') {
           console.error('[EditArtwork] Fetch error:', err);
@@ -223,7 +288,7 @@ export default function EditArtworkPage() {
     setForm((prev) => ({ ...prev, [key]: value }));
   }
 
-  // Image upload handler
+  // Image upload
   const handleImageUpload = useCallback(
     async (file: File, onProgress: (p: number) => void) => {
       if (!user) throw new Error('Not authenticated');
@@ -269,10 +334,11 @@ export default function EditArtworkPage() {
   // Validation
   const canProceed: Record<number, boolean> = {
     1: form.images.length >= 2,
-    2: form.title.trim().length > 0 &&
-       form.description.trim().length > 0 &&
-       (form.medium !== '' || form.customMedium !== '') &&
-       form.style !== '',
+    2:
+      form.title.trim().length > 0 &&
+      form.description.trim().length > 0 &&
+      (form.medium !== '' || form.customMedium !== '') &&
+      form.style !== '',
     3: true,
     4: price >= 1,
     5: true,
@@ -305,8 +371,13 @@ export default function EditArtworkPage() {
           surface: form.surface || null,
           colors: form.colors,
           availability: form.availability,
-          available_from: form.availability === 'coming_soon' && form.available_from ? form.available_from : null,
-          shipping_weight_kg: form.shipping_weight_kg ? parseFloat(form.shipping_weight_kg) : null,
+          available_from:
+            form.availability === 'coming_soon' && form.available_from
+              ? form.available_from
+              : null,
+          shipping_weight_kg: form.shipping_weight_kg
+            ? parseFloat(form.shipping_weight_kg)
+            : null,
           images: form.images,
           tags: form.tags,
           status: status ?? undefined,
@@ -336,136 +407,337 @@ export default function EditArtworkPage() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
-  // ── Loading / not found states ──
+  // ── Loading / not-found states ──
 
-  if (authLoading) return <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '60vh' }}><div style={{ width: 32, height: 32, border: '3px solid #E5E2DB', borderTopColor: '#2C2C2A', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} /><style>{'@keyframes spin { to { transform: rotate(360deg) } }'}</style></div>;
-
-  if (loadingArtwork) {
-    return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="w-8 h-8 border-2 border-accent border-t-transparent rounded-full animate-spin" />
-      </div>
-    );
-  }
+  if (authLoading || loadingArtwork) return <EditorialSpinner />;
 
   if (notFound) {
     return (
-      <div className="max-w-lg mx-auto px-4 py-20 text-center">
-        <h1 className="font-editorial text-2xl font-semibold mb-2">Artwork not found</h1>
-        <p className="text-sm text-muted mb-6">This artwork doesn&apos;t exist or doesn&apos;t belong to you.</p>
-        <Link
-          href="/artist/artworks"
-          className="inline-flex items-center gap-2 text-accent-dark font-medium text-sm link-underline"
+      <div style={{ background: 'var(--color-warm-white)', minHeight: '100vh' }}>
+        <div
+          className="px-6 sm:px-10"
+          style={{
+            maxWidth: '46rem',
+            margin: '0 auto',
+            paddingTop: 'clamp(7.5rem, 10vw, 9.5rem)',
+            paddingBottom: 'clamp(4rem, 7vw, 6rem)',
+          }}
         >
-          <ArrowLeft className="h-4 w-4" /> Back to my artworks
-        </Link>
+          <p style={{ ...KICKER, marginBottom: '1rem' }}>— Not found —</p>
+          <h1
+            className="font-serif"
+            style={{
+              fontSize: 'clamp(2rem, 4vw, 3rem)',
+              lineHeight: 1.05,
+              color: 'var(--color-ink)',
+              fontWeight: 400,
+              marginBottom: '0.9rem',
+            }}
+          >
+            This work <em style={{ fontStyle: 'italic' }}>isn&apos;t here.</em>
+          </h1>
+          <p
+            style={{
+              fontSize: '0.92rem',
+              fontWeight: 300,
+              color: 'var(--color-stone-dark)',
+              lineHeight: 1.6,
+              maxWidth: '52ch',
+              marginBottom: '2rem',
+            }}
+          >
+            The artwork doesn&apos;t exist, or doesn&apos;t belong to you.
+          </p>
+          <Link href="/artist/artworks" className="editorial-link">
+            ← Back to all works
+          </Link>
+        </div>
       </div>
     );
   }
-
-  // ── Main render ──
 
   const isRejected = artwork?.status === 'rejected';
 
   return (
-    <div className="max-w-2xl mx-auto px-4 sm:px-6 py-8 pb-20">
-      {/* Header */}
-      <div className="mb-8">
-        <h1 className="font-editorial text-2xl md:text-3xl font-semibold">Edit Artwork</h1>
-        <p className="text-sm text-muted mt-1">
-          Update your listing details.
-          {isRejected && ' Saving changes will automatically resubmit for review.'}
-        </p>
-      </div>
+    <div style={{ background: 'var(--color-warm-white)', minHeight: '100vh' }}>
+      <div
+        className="px-6 sm:px-10"
+        style={{
+          maxWidth: '52rem',
+          margin: '0 auto',
+          paddingTop: 'clamp(7.5rem, 10vw, 9.5rem)',
+          paddingBottom: 'clamp(4rem, 7vw, 6rem)',
+        }}
+      >
+        <Link
+          href="/artist/artworks"
+          className="font-serif"
+          style={{
+            fontStyle: 'italic',
+            fontSize: '0.85rem',
+            color: 'var(--color-stone)',
+            textDecoration: 'none',
+            display: 'inline-block',
+            marginBottom: '2rem',
+          }}
+        >
+          ← All works
+        </Link>
 
-      {/* Rejection notice */}
-      {isRejected && artwork?.review_notes && (
-        <div className="mb-8 p-4 bg-error/5 border border-error/15 rounded-xl flex gap-3 animate-fade-in">
-          <AlertCircle className="h-5 w-5 text-error flex-shrink-0 mt-0.5" />
-          <div>
-            <p className="text-sm font-medium text-error">This artwork was rejected</p>
-            <p className="text-sm text-error/80 mt-1 leading-relaxed">{artwork.review_notes}</p>
-            <p className="text-xs text-muted mt-2">
-              Make the requested changes and save — it&apos;ll be automatically resubmitted for review.
+        {/* Header */}
+        <header
+          style={{
+            marginBottom: 'clamp(2.4rem, 4vw, 3.4rem)',
+            borderBottom: '1px solid var(--color-border-strong)',
+            paddingBottom: 'clamp(1.8rem, 3vw, 2.6rem)',
+          }}
+        >
+          <p style={{ ...KICKER, marginBottom: '1rem' }}>The Studio · Editing</p>
+          <h1
+            className="font-serif"
+            style={{
+              fontSize: 'clamp(2rem, 4vw, 3rem)',
+              lineHeight: 1.05,
+              letterSpacing: '-0.015em',
+              color: 'var(--color-ink)',
+              fontWeight: 400,
+              marginBottom: '0.7rem',
+            }}
+          >
+            Refine the <em style={{ fontStyle: 'italic' }}>listing.</em>
+          </h1>
+          <p
+            style={{
+              fontSize: '0.92rem',
+              fontWeight: 300,
+              color: 'var(--color-stone-dark)',
+              lineHeight: 1.6,
+              maxWidth: '52ch',
+            }}
+          >
+            {isRejected
+              ? 'Saving changes will automatically resubmit this work for review.'
+              : 'Update photographs, dimensions, price, or language. Save when ready.'}
+          </p>
+        </header>
+
+        {/* Rejection notice */}
+        {isRejected && artwork?.review_notes && (
+          <section
+            style={{
+              marginBottom: '2rem',
+              padding: '1.4rem 0',
+              borderTop: '1px solid var(--color-terracotta, #c45d3e)',
+              borderBottom: '1px solid var(--color-terracotta, #c45d3e)',
+            }}
+          >
+            <p
+              style={{
+                ...KICKER,
+                color: 'var(--color-terracotta, #c45d3e)',
+                marginBottom: '0.6rem',
+              }}
+            >
+              — Editor&apos;s note —
             </p>
-          </div>
-        </div>
-      )}
+            <p
+              className="font-serif"
+              style={{
+                fontSize: '0.95rem',
+                fontStyle: 'italic',
+                color: 'var(--color-ink)',
+                lineHeight: 1.6,
+                marginBottom: '0.4rem',
+              }}
+            >
+              {artwork.review_notes}
+            </p>
+            <p
+              style={{
+                fontSize: '0.82rem',
+                fontWeight: 300,
+                color: 'var(--color-stone-dark)',
+                lineHeight: 1.5,
+              }}
+            >
+              Make the requested changes and save — we&apos;ll resubmit for review automatically.
+            </p>
+          </section>
+        )}
 
-      {/* Progress bar */}
-      <div className="mb-10">
-        <div className="flex items-center justify-between mb-3">
-          {STEP_META.map((s, i) => {
-            const num = i + 1;
-            return (
-              <div key={num} className="flex items-center">
-                <button
-                  type="button"
-                  onClick={() => num < step && setStep(num)}
-                  disabled={num >= step}
-                  className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-medium transition-all duration-300 ${
-                    num < step
-                      ? 'bg-accent text-white cursor-pointer hover:bg-accent-light'
-                      : num === step
-                      ? 'bg-primary text-white'
-                      : 'bg-muted-bg text-muted cursor-default'
-                  }`}
+        {/* Step indicator */}
+        <nav
+          aria-label="Progress"
+          style={{
+            marginBottom: 'clamp(2.4rem, 4vw, 3.4rem)',
+            borderTop: '1px solid var(--color-border)',
+            borderBottom: '1px solid var(--color-border)',
+          }}
+        >
+          <ol
+            style={{
+              display: 'grid',
+              gridTemplateColumns: `repeat(${STEP_META.length}, 1fr)`,
+              margin: 0,
+              padding: 0,
+              listStyle: 'none',
+            }}
+          >
+            {STEP_META.map((s, i) => {
+              const num = i + 1;
+              const done = num < step;
+              const active = num === step;
+              return (
+                <li
+                  key={s.num}
+                  style={{
+                    borderLeft:
+                      i === 0 ? 'none' : '1px solid var(--color-border)',
+                  }}
                 >
-                  {num < step ? <Check className="h-4 w-4" /> : num}
-                </button>
-                {i < STEP_META.length - 1 && (
-                  <div
-                    className={`hidden sm:block w-10 md:w-16 lg:w-20 h-0.5 mx-1.5 transition-colors duration-300 ${
-                      num < step ? 'bg-accent' : 'bg-border'
-                    }`}
-                  />
-                )}
-              </div>
-            );
-          })}
-        </div>
-        <div className="flex justify-between text-[10px] text-muted tracking-wide uppercase">
-          {STEP_META.map((s) => (
-            <span key={s.label}>{s.label}</span>
-          ))}
-        </div>
-      </div>
+                  <button
+                    type="button"
+                    onClick={() => done && setStep(num)}
+                    disabled={!done}
+                    style={{
+                      width: '100%',
+                      background: 'none',
+                      border: 'none',
+                      padding: '1.1rem 0.8rem',
+                      textAlign: 'left',
+                      cursor: done ? 'pointer' : 'default',
+                      opacity: active || done ? 1 : 0.4,
+                    }}
+                  >
+                    <p
+                      className="font-serif"
+                      style={{
+                        fontStyle: 'italic',
+                        fontSize: '0.85rem',
+                        color: 'var(--color-stone)',
+                        margin: 0,
+                      }}
+                    >
+                      {done ? '✓' : s.num}
+                    </p>
+                    <p
+                      className="font-serif"
+                      style={{
+                        fontSize: '0.95rem',
+                        color: active ? 'var(--color-ink)' : 'var(--color-stone-dark)',
+                        fontStyle: active ? 'italic' : 'normal',
+                        margin: '0.2rem 0 0',
+                      }}
+                    >
+                      {s.label}
+                    </p>
+                  </button>
+                </li>
+              );
+            })}
+          </ol>
+        </nav>
 
-      {/* Step content */}
-      <div className="animate-fade-in">
-        {/* ═══════════ STEP 1: Photos ═══════════ */}
+        {/* STEP 1: Photos */}
         {step === 1 && (
-          <div className="space-y-6">
-            <div>
-              <h2 className="font-editorial text-xl font-medium">Update photos</h2>
-              <p className="text-sm text-muted mt-1">Add, remove, or reorder your images.</p>
-            </div>
+          <div>
+            <p style={{ ...KICKER, marginBottom: '1rem' }}>— Photographs —</p>
+            <h2
+              className="font-serif"
+              style={{
+                fontSize: 'clamp(1.5rem, 2.8vw, 2rem)',
+                lineHeight: 1.15,
+                color: 'var(--color-ink)',
+                fontWeight: 400,
+                marginBottom: '0.7rem',
+              }}
+            >
+              Update the <em style={{ fontStyle: 'italic' }}>photographs.</em>
+            </h2>
+            <p
+              style={{
+                fontSize: '0.9rem',
+                fontWeight: 300,
+                color: 'var(--color-stone-dark)',
+                lineHeight: 1.6,
+                marginBottom: '2rem',
+                maxWidth: '52ch',
+              }}
+            >
+              Add, remove, or reorder images. At least two are required.
+            </p>
 
-            {/* Image slot guidance */}
-            <div className="grid grid-cols-2 gap-3">
-              {IMAGE_SLOT_LABELS.map((slot, i) => (
-                <div key={i} className={`p-3 rounded-xl border text-left ${
-                  form.images[i]
-                    ? 'border-accent/30 bg-accent-subtle/30'
-                    : 'border-border bg-white'
-                }`}>
-                  <div className="flex items-center gap-1.5 mb-0.5">
-                    <span className="text-xs font-semibold text-foreground">{i + 1}. {slot.label}</span>
-                    {slot.required ? (
-                      <span className="text-[10px] text-error font-medium">Required</span>
-                    ) : (
-                      <span className="text-[10px] text-warm-gray font-medium">Optional</span>
-                    )}
-                  </div>
-                  <p className="text-[11px] text-muted leading-snug">{slot.helper}</p>
-                  {form.images[i] && (
-                    <div className="mt-1.5 flex items-center gap-1 text-[10px] text-accent-dark font-medium">
-                      <Check className="h-3 w-3" /> Uploaded
+            <ol
+              style={{
+                listStyle: 'none',
+                padding: 0,
+                margin: '0 0 2rem',
+                borderTop: '1px solid var(--color-border)',
+              }}
+            >
+              {IMAGE_SLOT_LABELS.map((slot, i) => {
+                const uploaded = !!form.images[i];
+                return (
+                  <li
+                    key={i}
+                    style={{
+                      display: 'grid',
+                      gridTemplateColumns: '3rem 1fr auto',
+                      gap: '1rem',
+                      alignItems: 'baseline',
+                      padding: '1.1rem 0',
+                      borderBottom: '1px solid var(--color-border)',
+                    }}
+                  >
+                    <span
+                      className="font-serif"
+                      style={{
+                        fontStyle: 'italic',
+                        fontSize: '0.9rem',
+                        color: 'var(--color-stone)',
+                      }}
+                    >
+                      {String(i + 1).padStart(2, '0')}
+                    </span>
+                    <div>
+                      <p
+                        className="font-serif"
+                        style={{
+                          fontSize: '1rem',
+                          color: 'var(--color-ink)',
+                          margin: 0,
+                        }}
+                      >
+                        {slot.label}
+                      </p>
+                      <p
+                        style={{
+                          marginTop: '0.25rem',
+                          fontSize: '0.84rem',
+                          fontWeight: 300,
+                          color: 'var(--color-stone-dark)',
+                          lineHeight: 1.5,
+                        }}
+                      >
+                        {slot.helper}
+                      </p>
                     </div>
-                  )}
-                </div>
-              ))}
-            </div>
+                    <span
+                      style={{
+                        ...KICKER,
+                        color: uploaded
+                          ? 'var(--color-ink)'
+                          : slot.required
+                          ? 'var(--color-terracotta, #c45d3e)'
+                          : 'var(--color-stone)',
+                      }}
+                    >
+                      {uploaded ? '✓ Uploaded' : slot.required ? 'Required' : 'Optional'}
+                    </span>
+                  </li>
+                );
+              })}
+            </ol>
 
             <ImageUpload
               maxFiles={6}
@@ -475,115 +747,165 @@ export default function EditArtworkPage() {
               uploadFile={handleImageUpload}
             />
 
-            {form.images.length < 3 && form.images.length >= 2 && (
-              <div className="flex gap-3 p-3 bg-amber-50/80 border border-amber-200/50 rounded-xl">
-                <Lightbulb className="h-4 w-4 text-amber-600 flex-shrink-0 mt-0.5" />
-                <p className="text-xs text-amber-700 font-medium">
-                  Listings with 3+ photos sell 40% faster
-                </p>
-              </div>
-            )}
-
-            <div className="flex gap-3 p-4 bg-accent-subtle/50 border border-accent/10 rounded-xl">
-              <Lightbulb className="h-5 w-5 text-accent-dark flex-shrink-0 mt-0.5" />
-              <div className="text-sm text-muted space-y-1">
-                <p className="font-medium text-foreground">Photo tips</p>
-                <p>Use natural lighting. Show the full piece, a detail shot, and a scale reference.</p>
-              </div>
-            </div>
-
             {form.images.length < 2 && (
-              <p className="text-xs text-warm-gray text-center">Upload at least 2 photos to continue</p>
+              <p
+                className="font-serif"
+                style={{
+                  marginTop: '1.4rem',
+                  fontSize: '0.9rem',
+                  fontStyle: 'italic',
+                  color: 'var(--color-stone)',
+                }}
+              >
+                — At least two photographs to continue.
+              </p>
             )}
           </div>
         )}
 
-        {/* ═══════════ STEP 2: Details ═══════════ */}
+        {/* STEP 2: Details */}
         {step === 2 && (
-          <div className="space-y-6">
-            <div>
-              <h2 className="font-editorial text-xl font-medium">Describe your work</h2>
-              <p className="text-sm text-muted mt-1">Help buyers connect with the story behind the piece.</p>
-            </div>
+          <div>
+            <p style={{ ...KICKER, marginBottom: '1rem' }}>— The work —</p>
+            <h2
+              className="font-serif"
+              style={{
+                fontSize: 'clamp(1.5rem, 2.8vw, 2rem)',
+                lineHeight: 1.15,
+                color: 'var(--color-ink)',
+                fontWeight: 400,
+                marginBottom: '0.7rem',
+              }}
+            >
+              Name it, <em style={{ fontStyle: 'italic' }}>describe it.</em>
+            </h2>
+            <p
+              style={{
+                fontSize: '0.9rem',
+                fontWeight: 300,
+                color: 'var(--color-stone-dark)',
+                lineHeight: 1.6,
+                marginBottom: '2.2rem',
+                maxWidth: '52ch',
+              }}
+            >
+              Refine the title, description, and classification.
+            </p>
 
-            {/* Title */}
-            <div>
-              <label htmlFor="title" className="block text-xs font-medium tracking-wide uppercase text-muted mb-2">
-                Title <span className="text-error">*</span>
-              </label>
+            <div style={{ marginBottom: '1.8rem' }}>
+              <FieldLabel required aside={`${form.title.length}/100`}>Title</FieldLabel>
               <input
                 id="title"
                 type="text"
                 value={form.title}
                 onChange={(e) => updateForm('title', e.target.value.slice(0, 100))}
-                className="w-full px-4 py-3 bg-white border border-border rounded-xl text-sm placeholder:text-warm-gray transition-colors"
+                className="commission-field"
                 placeholder="e.g. Golden Hour Over Sydney Harbour"
               />
-              <p className="text-xs text-warm-gray text-right mt-1">{form.title.length}/100</p>
             </div>
 
-            {/* Description */}
-            <div>
-              <label htmlFor="description" className="block text-xs font-medium tracking-wide uppercase text-muted mb-2">
-                Description <span className="text-error">*</span>
-              </label>
+            <div style={{ marginBottom: '1.8rem' }}>
+              <FieldLabel required aside={`${form.description.length}/2000`}>Description</FieldLabel>
               <textarea
                 id="description"
                 value={form.description}
                 onChange={(e) => updateForm('description', e.target.value.slice(0, 2000))}
-                rows={5}
-                className="w-full px-4 py-3 bg-white border border-border rounded-xl text-sm placeholder:text-warm-gray transition-colors resize-none"
-                placeholder="Tell the story behind this piece..."
+                rows={6}
+                className="commission-field"
+                style={{ resize: 'vertical', fontFamily: 'inherit' }}
+                placeholder="What inspired it, how you made it, what you want the viewer to feel…"
               />
-              <p className={`text-xs text-right mt-1 ${form.description.length >= 1900 ? 'text-error' : 'text-warm-gray'}`}>
-                {form.description.length}/2000
-              </p>
             </div>
 
-            {/* Category */}
-            <div>
-              <p className="text-xs font-medium tracking-wide uppercase text-muted mb-3">
-                Category <span className="text-error">*</span>
-              </p>
-              <div className="grid grid-cols-3 gap-3">
+            <div style={{ marginBottom: '1.8rem' }}>
+              <FieldLabel required>Category</FieldLabel>
+              <ul
+                style={{
+                  listStyle: 'none',
+                  padding: 0,
+                  margin: 0,
+                  borderTop: '1px solid var(--color-border)',
+                }}
+              >
                 {[
-                  { value: 'original' as const, label: 'Original', desc: 'One-of-a-kind piece' },
-                  { value: 'print' as const, label: 'Print', desc: 'Reproduction or limited ed.' },
-                  { value: 'digital' as const, label: 'Digital', desc: 'Digital download' },
-                ].map((cat) => (
-                  <button
-                    key={cat.value}
-                    type="button"
-                    onClick={() => updateForm('category', cat.value)}
-                    className={`relative p-4 border-2 rounded-xl text-left transition-all duration-200 ${
-                      form.category === cat.value
-                        ? 'border-accent bg-accent-subtle'
-                        : 'border-border hover:border-warm-gray bg-white'
-                    }`}
-                  >
-                    {form.category === cat.value && (
-                      <div className="absolute top-2 right-2 w-5 h-5 bg-accent rounded-full flex items-center justify-center">
-                        <Check className="h-3 w-3 text-white" />
-                      </div>
-                    )}
-                    <p className="font-medium text-sm">{cat.label}</p>
-                    <p className="text-xs text-muted mt-0.5">{cat.desc}</p>
-                  </button>
-                ))}
-              </div>
+                  { value: 'original' as const, label: 'Original', desc: 'A one-of-a-kind work.' },
+                  { value: 'print' as const, label: 'Print', desc: 'A reproduction or limited edition.' },
+                  { value: 'digital' as const, label: 'Digital', desc: 'A digital download.' },
+                ].map((cat) => {
+                  const selected = form.category === cat.value;
+                  return (
+                    <li key={cat.value} style={{ borderBottom: '1px solid var(--color-border)' }}>
+                      <button
+                        type="button"
+                        onClick={() => updateForm('category', cat.value)}
+                        style={{
+                          width: '100%',
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'baseline',
+                          padding: '1rem 0',
+                          background: 'none',
+                          border: 'none',
+                          cursor: 'pointer',
+                          textAlign: 'left',
+                          gap: '1rem',
+                        }}
+                      >
+                        <div>
+                          <p
+                            className="font-serif"
+                            style={{
+                              fontSize: '1rem',
+                              color: 'var(--color-ink)',
+                              fontStyle: selected ? 'italic' : 'normal',
+                              margin: 0,
+                            }}
+                          >
+                            {cat.label}
+                          </p>
+                          <p
+                            style={{
+                              fontSize: '0.85rem',
+                              fontWeight: 300,
+                              color: 'var(--color-stone-dark)',
+                              marginTop: '0.2rem',
+                            }}
+                          >
+                            {cat.desc}
+                          </p>
+                        </div>
+                        <span
+                          className="font-serif"
+                          style={{
+                            fontStyle: 'italic',
+                            fontSize: '0.88rem',
+                            color: selected ? 'var(--color-ink)' : 'var(--color-stone)',
+                          }}
+                        >
+                          {selected ? '✓ Selected' : 'Select'}
+                        </span>
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
             </div>
 
-            {/* Medium & Style */}
-            <div className="grid grid-cols-2 gap-4">
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(14rem, 1fr))',
+                gap: '1.4rem',
+                marginBottom: '1.8rem',
+              }}
+            >
               <div>
-                <label htmlFor="medium" className="block text-xs font-medium tracking-wide uppercase text-muted mb-2">
-                  Medium <span className="text-error">*</span>
-                </label>
+                <FieldLabel required>Medium</FieldLabel>
                 <select
                   id="medium"
                   value={form.medium}
                   onChange={(e) => updateForm('medium', e.target.value)}
-                  className="w-full px-4 py-3 bg-white border border-border rounded-xl text-sm transition-colors appearance-none"
+                  className="commission-field"
                 >
                   <option value="">Select medium</option>
                   {MEDIUMS.map((m) => (
@@ -595,20 +917,19 @@ export default function EditArtworkPage() {
                     type="text"
                     value={form.customMedium}
                     onChange={(e) => updateForm('customMedium', e.target.value)}
-                    className="w-full mt-2 px-4 py-3 bg-white border border-border rounded-xl text-sm placeholder:text-warm-gray transition-colors"
+                    className="commission-field"
+                    style={{ marginTop: '0.6rem' }}
                     placeholder="Describe your medium"
                   />
                 )}
               </div>
               <div>
-                <label htmlFor="style" className="block text-xs font-medium tracking-wide uppercase text-muted mb-2">
-                  Style <span className="text-error">*</span>
-                </label>
+                <FieldLabel required>Style</FieldLabel>
                 <select
                   id="style"
                   value={form.style}
                   onChange={(e) => updateForm('style', e.target.value)}
-                  className="w-full px-4 py-3 bg-white border border-border rounded-xl text-sm transition-colors appearance-none"
+                  className="commission-field"
                 >
                   <option value="">Select style</option>
                   {STYLES.map((s) => (
@@ -618,12 +939,9 @@ export default function EditArtworkPage() {
               </div>
             </div>
 
-            {/* Dominant Colours */}
-            <div>
-              <p className="text-xs font-medium tracking-wide uppercase text-muted mb-2">
-                Dominant colours <span className="text-warm-gray font-normal">Select up to 2 dominant colours</span>
-              </p>
-              <div className="flex flex-wrap gap-2.5">
+            <div style={{ marginBottom: '1.8rem' }}>
+              <FieldLabel aside={`${form.colors.length}/2`}>Dominant colours</FieldLabel>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.7rem' }}>
                 {COLOUR_PALETTE.map((c) => {
                   const selected = form.colors.includes(c.name);
                   return (
@@ -632,39 +950,84 @@ export default function EditArtworkPage() {
                       type="button"
                       title={c.label}
                       onClick={() => toggleColour(c.name)}
-                      className={`w-8 h-8 rounded-full border-2 transition-all duration-200 flex-shrink-0 ${
-                        selected
-                          ? 'ring-2 ring-accent ring-offset-2 border-accent scale-110'
-                          : 'border-border hover:border-warm-gray hover:scale-105'
-                      }`}
-                      style={{ backgroundColor: c.hex }}
+                      style={{
+                        width: 34,
+                        height: 34,
+                        borderRadius: '50%',
+                        border: selected
+                          ? '1px solid var(--color-ink)'
+                          : '1px solid var(--color-border-strong)',
+                        outline: selected ? '1px solid var(--color-ink)' : 'none',
+                        outlineOffset: 2,
+                        backgroundColor: c.hex,
+                        cursor: 'pointer',
+                        padding: 0,
+                      }}
                     />
                   );
                 })}
               </div>
               {form.colors.length > 0 && (
-                <p className="text-xs text-warm-gray mt-2">
-                  Selected: {form.colors.map((c) => COLOUR_PALETTE.find((p) => p.name === c)?.label).join(', ')}
-                  {' '}{form.colors.length}/2
+                <p
+                  className="font-serif"
+                  style={{
+                    marginTop: '0.8rem',
+                    fontSize: '0.85rem',
+                    fontStyle: 'italic',
+                    color: 'var(--color-stone)',
+                  }}
+                >
+                  {form.colors.map((c) => COLOUR_PALETTE.find((p) => p.name === c)?.label).join(', ')}
                 </p>
               )}
             </div>
 
-            {/* Tags */}
             <div>
-              <label htmlFor="tags" className="block text-xs font-medium tracking-wide uppercase text-muted mb-2">
-                Tags <span className="text-warm-gray font-normal">(up to 25 — {form.tags.length}/25)</span>
-              </label>
-              <div className="flex flex-wrap gap-2 mb-2">
-                {form.tags.map((tag) => (
-                  <span key={tag} className="inline-flex items-center gap-1 px-3 py-1 bg-muted-bg text-sm rounded-full">
-                    {tag}
-                    <button type="button" onClick={() => removeTag(tag)} className="text-muted hover:text-error transition-colors">
-                      <X className="h-3 w-3" />
-                    </button>
-                  </span>
-                ))}
-              </div>
+              <FieldLabel aside={`${form.tags.length}/25`}>Tags</FieldLabel>
+              {form.tags.length > 0 && (
+                <div
+                  style={{
+                    display: 'flex',
+                    flexWrap: 'wrap',
+                    gap: '0.5rem',
+                    marginBottom: '0.8rem',
+                  }}
+                >
+                  {form.tags.map((tag) => (
+                    <span
+                      key={tag}
+                      className="font-serif"
+                      style={{
+                        fontSize: '0.85rem',
+                        color: 'var(--color-ink)',
+                        padding: '0.25rem 0.7rem',
+                        border: '1px solid var(--color-border-strong)',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '0.5rem',
+                      }}
+                    >
+                      {tag}
+                      <button
+                        type="button"
+                        onClick={() => removeTag(tag)}
+                        aria-label={`Remove ${tag}`}
+                        style={{
+                          background: 'none',
+                          border: 'none',
+                          color: 'var(--color-stone)',
+                          cursor: 'pointer',
+                          padding: 0,
+                          fontSize: '1rem',
+                          lineHeight: 1,
+                        }}
+                      >
+                        ×
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              )}
               {form.tags.length < 25 && (
                 <input
                   id="tags"
@@ -673,7 +1036,7 @@ export default function EditArtworkPage() {
                   onChange={(e) => updateForm('tagInput', e.target.value)}
                   onKeyDown={handleTagKeyDown}
                   onBlur={() => { if (form.tagInput.trim()) addTag(form.tagInput); }}
-                  className="w-full px-4 py-3 bg-white border border-border rounded-xl text-sm placeholder:text-warm-gray transition-colors"
+                  className="commission-field"
                   placeholder="Type a tag and press Enter"
                 />
               )}
@@ -681,50 +1044,95 @@ export default function EditArtworkPage() {
           </div>
         )}
 
-        {/* ═══════════ STEP 3: Dimensions ═══════════ */}
+        {/* STEP 3: Dimensions */}
         {step === 3 && (
-          <div className="space-y-6">
-            <div>
-              <h2 className="font-editorial text-xl font-medium">
-                {form.category === 'digital' ? 'Digital file details' : 'Dimensions & details'}
-              </h2>
-              <p className="text-sm text-muted mt-1">
-                {form.category === 'digital'
-                  ? 'Tell buyers about the file they\'ll receive.'
-                  : 'Help buyers understand the size and shipping requirements.'}
-              </p>
-            </div>
+          <div>
+            <p style={{ ...KICKER, marginBottom: '1rem' }}>— Specifications —</p>
+            <h2
+              className="font-serif"
+              style={{
+                fontSize: 'clamp(1.5rem, 2.8vw, 2rem)',
+                lineHeight: 1.15,
+                color: 'var(--color-ink)',
+                fontWeight: 400,
+                marginBottom: '0.7rem',
+              }}
+            >
+              {form.category === 'digital' ? (
+                <>The <em style={{ fontStyle: 'italic' }}>file.</em></>
+              ) : (
+                <>Size and <em style={{ fontStyle: 'italic' }}>substance.</em></>
+              )}
+            </h2>
+            <p
+              style={{
+                fontSize: '0.9rem',
+                fontWeight: 300,
+                color: 'var(--color-stone-dark)',
+                lineHeight: 1.6,
+                marginBottom: '2.2rem',
+                maxWidth: '52ch',
+              }}
+            >
+              {form.category === 'digital'
+                ? 'Describe the file a buyer will receive once they purchase.'
+                : 'Physical dimensions and surface details help buyers understand scale and shipping.'}
+            </p>
 
             {form.category !== 'digital' ? (
               <>
-                <div className="grid grid-cols-3 gap-4">
+                <div
+                  style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(3, 1fr)',
+                    gap: '1rem',
+                    marginBottom: '1.8rem',
+                  }}
+                >
                   <div>
-                    <label htmlFor="width" className="block text-xs font-medium tracking-wide uppercase text-muted mb-2">Width (cm)</label>
-                    <input id="width" type="number" step="0.1" min="0" value={form.width_cm} onChange={(e) => updateForm('width_cm', e.target.value)}
-                      className="w-full px-4 py-3 bg-white border border-border rounded-xl text-sm placeholder:text-warm-gray transition-colors" placeholder="0" />
+                    <FieldLabel>Width (cm)</FieldLabel>
+                    <input
+                      type="number"
+                      step="0.1"
+                      min="0"
+                      value={form.width_cm}
+                      onChange={(e) => updateForm('width_cm', e.target.value)}
+                      className="commission-field"
+                      placeholder="0"
+                    />
                   </div>
                   <div>
-                    <label htmlFor="height" className="block text-xs font-medium tracking-wide uppercase text-muted mb-2">Height (cm)</label>
-                    <input id="height" type="number" step="0.1" min="0" value={form.height_cm} onChange={(e) => updateForm('height_cm', e.target.value)}
-                      className="w-full px-4 py-3 bg-white border border-border rounded-xl text-sm placeholder:text-warm-gray transition-colors" placeholder="0" />
+                    <FieldLabel>Height (cm)</FieldLabel>
+                    <input
+                      type="number"
+                      step="0.1"
+                      min="0"
+                      value={form.height_cm}
+                      onChange={(e) => updateForm('height_cm', e.target.value)}
+                      className="commission-field"
+                      placeholder="0"
+                    />
                   </div>
                   <div>
-                    <label htmlFor="depth" className="block text-xs font-medium tracking-wide uppercase text-muted mb-2">Depth (cm)</label>
-                    <input id="depth" type="number" step="0.1" min="0" value={form.depth_cm} onChange={(e) => updateForm('depth_cm', e.target.value)}
-                      className="w-full px-4 py-3 bg-white border border-border rounded-xl text-sm placeholder:text-warm-gray transition-colors" placeholder="Optional" />
+                    <FieldLabel>Depth (cm)</FieldLabel>
+                    <input
+                      type="number"
+                      step="0.1"
+                      min="0"
+                      value={form.depth_cm}
+                      onChange={(e) => updateForm('depth_cm', e.target.value)}
+                      className="commission-field"
+                      placeholder="Optional"
+                    />
                   </div>
                 </div>
 
-                {/* Surface / Material */}
-                <div>
-                  <label htmlFor="surface" className="block text-xs font-medium tracking-wide uppercase text-muted mb-2">
-                    Surface / Material
-                  </label>
+                <div style={{ marginBottom: '1.8rem' }}>
+                  <FieldLabel>Surface / Material</FieldLabel>
                   <select
-                    id="surface"
                     value={form.surface}
                     onChange={(e) => updateForm('surface', e.target.value)}
-                    className="w-full px-4 py-3 bg-white border border-border rounded-xl text-sm transition-colors appearance-none"
+                    className="commission-field"
                   >
                     <option value="">Select surface</option>
                     {SURFACES.map((s) => (
@@ -733,297 +1141,709 @@ export default function EditArtworkPage() {
                   </select>
                 </div>
 
-                <label className="flex items-center justify-between p-4 bg-white border border-border rounded-xl cursor-pointer group">
-                  <div>
-                    <p className="font-medium text-sm">Is this piece framed?</p>
-                    <p className="text-xs text-muted mt-0.5">Let buyers know if it&apos;s ready to hang</p>
-                  </div>
-                  <div className="relative">
-                    <input type="checkbox" checked={form.is_framed} onChange={(e) => updateForm('is_framed', e.target.checked)} className="sr-only peer" />
-                    <div className="w-11 h-6 bg-border rounded-full peer-checked:bg-accent transition-colors" />
-                    <div className="absolute left-0.5 top-0.5 w-5 h-5 bg-white rounded-full shadow-sm transition-transform peer-checked:translate-x-5" />
-                  </div>
-                </label>
-
-                {/* Ready to hang toggle */}
-                <label className="flex items-center justify-between p-4 bg-white border border-border rounded-xl cursor-pointer group">
-                  <div>
-                    <p className="font-medium text-sm">Ready to hang</p>
-                    <p className="text-xs text-muted mt-0.5">This artwork includes hanging hardware</p>
-                  </div>
-                  <div className="relative">
-                    <input type="checkbox" checked={form.ready_to_hang} onChange={(e) => updateForm('ready_to_hang', e.target.checked)} className="sr-only peer" />
-                    <div className="w-11 h-6 bg-border rounded-full peer-checked:bg-accent transition-colors" />
-                    <div className="absolute left-0.5 top-0.5 w-5 h-5 bg-white rounded-full shadow-sm transition-transform peer-checked:translate-x-5" />
-                  </div>
-                </label>
+                <ul
+                  style={{
+                    listStyle: 'none',
+                    padding: 0,
+                    margin: '0 0 1.8rem',
+                    borderTop: '1px solid var(--color-border)',
+                  }}
+                >
+                  {[
+                    {
+                      key: 'is_framed' as const,
+                      label: 'Framed',
+                      desc: 'This work is presented in a frame.',
+                      checked: form.is_framed,
+                    },
+                    {
+                      key: 'ready_to_hang' as const,
+                      label: 'Ready to hang',
+                      desc: 'Hanging hardware is included.',
+                      checked: form.ready_to_hang,
+                    },
+                  ].map((t) => (
+                    <li
+                      key={t.key}
+                      style={{
+                        borderBottom: '1px solid var(--color-border)',
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'baseline',
+                        padding: '1rem 0',
+                        gap: '1rem',
+                      }}
+                    >
+                      <div>
+                        <p
+                          className="font-serif"
+                          style={{ fontSize: '1rem', color: 'var(--color-ink)', margin: 0 }}
+                        >
+                          {t.label}
+                        </p>
+                        <p
+                          style={{
+                            fontSize: '0.85rem',
+                            fontWeight: 300,
+                            color: 'var(--color-stone-dark)',
+                            marginTop: '0.2rem',
+                          }}
+                        >
+                          {t.desc}
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => updateForm(t.key, !t.checked)}
+                        className="font-serif"
+                        style={{
+                          background: 'none',
+                          border: 'none',
+                          fontStyle: 'italic',
+                          fontSize: '0.92rem',
+                          color: t.checked ? 'var(--color-ink)' : 'var(--color-stone)',
+                          cursor: 'pointer',
+                          padding: 0,
+                          borderBottom: '1px solid',
+                          borderColor: t.checked ? 'var(--color-ink)' : 'transparent',
+                          paddingBottom: '0.1rem',
+                        }}
+                      >
+                        {t.checked ? '✓ Yes' : 'No'}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
 
                 <div>
-                  <label htmlFor="weight" className="block text-xs font-medium tracking-wide uppercase text-muted mb-2">Shipping weight (kg)</label>
-                  <input id="weight" type="number" step="0.1" min="0" value={form.shipping_weight_kg} onChange={(e) => updateForm('shipping_weight_kg', e.target.value)}
-                    className="w-full px-4 py-3 bg-white border border-border rounded-xl text-sm placeholder:text-warm-gray transition-colors" placeholder="Approximate packaged weight" />
+                  <FieldLabel>Shipping weight (kg)</FieldLabel>
+                  <input
+                    type="number"
+                    step="0.1"
+                    min="0"
+                    value={form.shipping_weight_kg}
+                    onChange={(e) => updateForm('shipping_weight_kg', e.target.value)}
+                    className="commission-field"
+                    placeholder="Approximate packaged weight"
+                  />
                 </div>
               </>
             ) : (
-              <div className="p-5 bg-cream border border-border rounded-xl">
-                <p className="text-sm text-muted leading-relaxed">
-                  After a buyer purchases your digital artwork, they&apos;ll receive the high-resolution
-                  files you uploaded as preview images.
+              <div
+                style={{
+                  padding: '1.6rem 0',
+                  borderTop: '1px solid var(--color-border-strong)',
+                  borderBottom: '1px solid var(--color-border-strong)',
+                }}
+              >
+                <p style={{ ...KICKER, marginBottom: '0.6rem' }}>— A note —</p>
+                <p
+                  className="font-serif"
+                  style={{
+                    fontSize: '0.95rem',
+                    fontStyle: 'italic',
+                    color: 'var(--color-ink)',
+                    lineHeight: 1.6,
+                  }}
+                >
+                  The preview images you upload are what the buyer receives.
                 </p>
               </div>
             )}
           </div>
         )}
 
-        {/* ═══════════ STEP 4: Price ═══════════ */}
+        {/* STEP 4: Price */}
         {step === 4 && (
-          <div className="space-y-6">
-            <div>
-              <h2 className="font-editorial text-xl font-medium">Set your price</h2>
-              <p className="text-sm text-muted mt-1">Price your work fairly — buyers appreciate transparency.</p>
-            </div>
+          <div>
+            <p style={{ ...KICKER, marginBottom: '1rem' }}>— The price —</p>
+            <h2
+              className="font-serif"
+              style={{
+                fontSize: 'clamp(1.5rem, 2.8vw, 2rem)',
+                lineHeight: 1.15,
+                color: 'var(--color-ink)',
+                fontWeight: 400,
+                marginBottom: '0.7rem',
+              }}
+            >
+              Set your <em style={{ fontStyle: 'italic' }}>number.</em>
+            </h2>
+            <p
+              style={{
+                fontSize: '0.9rem',
+                fontWeight: 300,
+                color: 'var(--color-stone-dark)',
+                lineHeight: 1.6,
+                marginBottom: '2.2rem',
+                maxWidth: '52ch',
+              }}
+            >
+              Signo takes zero commission. You keep every cent, less Stripe&apos;s small fee.
+            </p>
 
-            {/* Availability Status */}
-            <div>
-              <p className="text-xs font-medium tracking-wide uppercase text-muted mb-3">
-                Availability
-              </p>
-              <div className="space-y-2">
-                {AVAILABILITY_OPTIONS.map((opt) => (
-                  <button
-                    key={opt.value}
-                    type="button"
-                    onClick={() => updateForm('availability', opt.value)}
-                    className={`w-full relative p-4 border-2 rounded-xl text-left transition-all duration-200 ${
-                      form.availability === opt.value
-                        ? 'border-accent bg-accent-subtle'
-                        : 'border-border hover:border-warm-gray bg-white'
-                    }`}
-                  >
-                    {form.availability === opt.value && (
-                      <div className="absolute top-3 right-3 w-5 h-5 bg-accent rounded-full flex items-center justify-center">
-                        <Check className="h-3 w-3 text-white" />
-                      </div>
-                    )}
-                    <p className="font-medium text-sm">{opt.label}</p>
-                    <p className="text-xs text-muted mt-0.5">{opt.desc}</p>
-                  </button>
-                ))}
-              </div>
+            <div style={{ marginBottom: '2rem' }}>
+              <FieldLabel>Availability</FieldLabel>
+              <ul
+                style={{
+                  listStyle: 'none',
+                  padding: 0,
+                  margin: 0,
+                  borderTop: '1px solid var(--color-border)',
+                }}
+              >
+                {AVAILABILITY_OPTIONS.map((opt) => {
+                  const selected = form.availability === opt.value;
+                  return (
+                    <li key={opt.value} style={{ borderBottom: '1px solid var(--color-border)' }}>
+                      <button
+                        type="button"
+                        onClick={() => updateForm('availability', opt.value)}
+                        style={{
+                          width: '100%',
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'baseline',
+                          padding: '1rem 0',
+                          background: 'none',
+                          border: 'none',
+                          cursor: 'pointer',
+                          textAlign: 'left',
+                          gap: '1rem',
+                        }}
+                      >
+                        <div>
+                          <p
+                            className="font-serif"
+                            style={{
+                              fontSize: '1rem',
+                              color: 'var(--color-ink)',
+                              fontStyle: selected ? 'italic' : 'normal',
+                              margin: 0,
+                            }}
+                          >
+                            {opt.label}
+                          </p>
+                          <p
+                            style={{
+                              fontSize: '0.85rem',
+                              fontWeight: 300,
+                              color: 'var(--color-stone-dark)',
+                              marginTop: '0.2rem',
+                            }}
+                          >
+                            {opt.desc}
+                          </p>
+                        </div>
+                        <span
+                          className="font-serif"
+                          style={{
+                            fontStyle: 'italic',
+                            fontSize: '0.88rem',
+                            color: selected ? 'var(--color-ink)' : 'var(--color-stone)',
+                          }}
+                        >
+                          {selected ? '✓ Selected' : 'Select'}
+                        </span>
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
               {form.availability === 'coming_soon' && (
-                <div className="mt-3 animate-fade-in">
-                  <label htmlFor="available_from" className="block text-xs font-medium tracking-wide uppercase text-muted mb-2">
-                    Available from
-                  </label>
+                <div style={{ marginTop: '1rem' }}>
+                  <FieldLabel>Available from</FieldLabel>
                   <input
-                    id="available_from"
                     type="date"
                     value={form.available_from}
                     onChange={(e) => updateForm('available_from', e.target.value)}
-                    className="w-full px-4 py-3 bg-white border border-border rounded-xl text-sm transition-colors"
+                    className="commission-field"
                   />
                 </div>
               )}
             </div>
 
-            <div>
-              <label htmlFor="price" className="block text-xs font-medium tracking-wide uppercase text-muted mb-2">
-                Price (AUD) <span className="text-error">*</span>
-              </label>
-              <div className="relative">
-                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-lg font-medium text-muted">$</span>
-                <input id="price" type="number" step="0.01" min="1" value={form.price_aud} onChange={(e) => updateForm('price_aud', e.target.value)}
-                  className="w-full pl-10 pr-4 py-4 bg-white border border-border rounded-xl text-2xl font-medium placeholder:text-warm-gray transition-colors" placeholder="0.00" />
+            <div style={{ marginBottom: '2rem' }}>
+              <FieldLabel required>Price (AUD)</FieldLabel>
+              <div style={{ position: 'relative' }}>
+                <span
+                  className="font-serif"
+                  style={{
+                    position: 'absolute',
+                    left: '0.4rem',
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    fontSize: '1.4rem',
+                    color: 'var(--color-stone)',
+                  }}
+                >
+                  $
+                </span>
+                <input
+                  type="number"
+                  step="0.01"
+                  min="1"
+                  value={form.price_aud}
+                  onChange={(e) => updateForm('price_aud', e.target.value)}
+                  className="commission-field"
+                  style={{
+                    paddingLeft: '1.6rem',
+                    fontSize: '1.4rem',
+                    fontFamily: 'var(--font-serif, serif)',
+                  }}
+                  placeholder="0.00"
+                />
               </div>
             </div>
 
             {price >= 1 && (
-              <div className="bg-white border border-border rounded-2xl overflow-hidden animate-fade-in">
-                <div className="p-5 space-y-3">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-muted">Sale price</span>
-                    <span className="font-medium">{formatPrice(price)}</span>
+              <section
+                style={{
+                  marginBottom: '2rem',
+                  padding: '1.6rem 0',
+                  borderTop: '1px solid var(--color-border-strong)',
+                  borderBottom: '1px solid var(--color-border-strong)',
+                }}
+              >
+                <p style={{ ...KICKER, marginBottom: '1rem' }}>— The ledger —</p>
+                <dl style={{ margin: 0 }}>
+                  {[
+                    { term: 'Sale price', val: formatPrice(price) },
+                    { term: 'Stripe fee (~1.75% + 30¢)', val: `− ${formatPrice(commission.stripeFee)}` },
+                    { term: 'Signo commission', val: '$0.00' },
+                  ].map((row) => (
+                    <div
+                      key={row.term}
+                      style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'baseline',
+                        padding: '0.7rem 0',
+                        borderBottom: '1px solid var(--color-border)',
+                        gap: '1rem',
+                      }}
+                    >
+                      <dt style={KICKER}>{row.term}</dt>
+                      <dd
+                        className="font-serif"
+                        style={{ margin: 0, fontSize: '0.95rem', color: 'var(--color-ink)' }}
+                      >
+                        {row.val}
+                      </dd>
+                    </div>
+                  ))}
+                  <div
+                    style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'baseline',
+                      padding: '1rem 0 0',
+                      gap: '1rem',
+                    }}
+                  >
+                    <dt style={KICKER}>You receive</dt>
+                    <dd
+                      className="font-serif"
+                      style={{
+                        margin: 0,
+                        fontSize: 'clamp(1.5rem, 3vw, 1.9rem)',
+                        color: 'var(--color-ink)',
+                        letterSpacing: '-0.01em',
+                      }}
+                    >
+                      {formatPrice(commission.artistPayout)}
+                    </dd>
                   </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-muted">Stripe processing fee (~1.75% + 30c)</span>
-                    <span className="text-sm text-muted">−{formatPrice(commission.stripeFee)}</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-green-600 flex items-center gap-1.5">
-                      <Check className="h-3.5 w-3.5" />
-                      Signo commission
-                    </span>
-                    <span className="text-sm font-semibold text-green-600">$0.00</span>
-                  </div>
-                  <div className="h-px bg-border" />
-                  <div className="flex items-center justify-between">
-                    <span className="font-semibold">You&apos;ll receive</span>
-                    <span className="text-xl font-bold text-accent-dark">{formatPrice(commission.artistPayout)}</span>
-                  </div>
-                </div>
-                <div className="px-5 py-3 bg-green-50/80 border-t border-green-100">
-                  <p className="text-xs text-green-700 text-center font-medium">
-                    Zero commission — $30/mo subscription. You keep everything you earn.
-                  </p>
-                </div>
-              </div>
+                </dl>
+              </section>
             )}
 
             {form.category !== 'digital' && (
-              <label className="flex items-center justify-between p-4 bg-white border border-border rounded-xl cursor-pointer group">
-                <div>
-                  <p className="font-medium text-sm">Include shipping in the price</p>
-                  <p className="text-xs text-muted mt-0.5">Buyers love free shipping</p>
-                </div>
-                <div className="relative">
-                  <input type="checkbox" checked={form.includeShipping} onChange={(e) => updateForm('includeShipping', e.target.checked)} className="sr-only peer" />
-                  <div className="w-11 h-6 bg-border rounded-full peer-checked:bg-accent transition-colors" />
-                  <div className="absolute left-0.5 top-0.5 w-5 h-5 bg-white rounded-full shadow-sm transition-transform peer-checked:translate-x-5" />
-                </div>
-              </label>
+              <ul
+                style={{
+                  listStyle: 'none',
+                  padding: 0,
+                  margin: 0,
+                  borderTop: '1px solid var(--color-border)',
+                }}
+              >
+                <li
+                  style={{
+                    borderBottom: '1px solid var(--color-border)',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'baseline',
+                    padding: '1rem 0',
+                    gap: '1rem',
+                  }}
+                >
+                  <div>
+                    <p
+                      className="font-serif"
+                      style={{ fontSize: '1rem', color: 'var(--color-ink)', margin: 0 }}
+                    >
+                      Shipping included in price
+                    </p>
+                    <p
+                      style={{
+                        fontSize: '0.85rem',
+                        fontWeight: 300,
+                        color: 'var(--color-stone-dark)',
+                        marginTop: '0.2rem',
+                      }}
+                    >
+                      Free shipping reads as generous, and buyers love it.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => updateForm('includeShipping', !form.includeShipping)}
+                    className="font-serif"
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      fontStyle: 'italic',
+                      fontSize: '0.92rem',
+                      color: form.includeShipping ? 'var(--color-ink)' : 'var(--color-stone)',
+                      cursor: 'pointer',
+                      padding: 0,
+                      borderBottom: '1px solid',
+                      borderColor: form.includeShipping ? 'var(--color-ink)' : 'transparent',
+                      paddingBottom: '0.1rem',
+                    }}
+                  >
+                    {form.includeShipping ? '✓ Yes' : 'No'}
+                  </button>
+                </li>
+              </ul>
             )}
           </div>
         )}
 
-        {/* ═══════════ STEP 5: Review ═══════════ */}
+        {/* STEP 5: Review */}
         {step === 5 && (
-          <div className="space-y-6">
-            <div>
-              <h2 className="font-editorial text-xl font-medium">Review your changes</h2>
-              <p className="text-sm text-muted mt-1">
-                {isRejected
-                  ? 'Saving will resubmit this artwork for review.'
-                  : 'Confirm everything looks good before saving.'}
-              </p>
-            </div>
+          <div>
+            <p style={{ ...KICKER, marginBottom: '1rem' }}>— Before saving —</p>
+            <h2
+              className="font-serif"
+              style={{
+                fontSize: 'clamp(1.5rem, 2.8vw, 2rem)',
+                lineHeight: 1.15,
+                color: 'var(--color-ink)',
+                fontWeight: 400,
+                marginBottom: '0.7rem',
+              }}
+            >
+              Read it <em style={{ fontStyle: 'italic' }}>once more.</em>
+            </h2>
+            <p
+              style={{
+                fontSize: '0.9rem',
+                fontWeight: 300,
+                color: 'var(--color-stone-dark)',
+                lineHeight: 1.6,
+                marginBottom: '2.2rem',
+                maxWidth: '52ch',
+              }}
+            >
+              {isRejected
+                ? 'Saving will resubmit this artwork for review.'
+                : 'Confirm everything looks good before saving.'}
+            </p>
 
             {error && (
-              <div className="p-3.5 bg-error/5 border border-error/20 text-error text-sm rounded-xl animate-fade-in">
-                {error}
+              <div
+                style={{
+                  marginBottom: '2rem',
+                  padding: '1.2rem 0',
+                  borderTop: '1px solid var(--color-terracotta, #c45d3e)',
+                  borderBottom: '1px solid var(--color-terracotta, #c45d3e)',
+                }}
+              >
+                <p
+                  className="font-serif"
+                  style={{
+                    fontSize: '0.92rem',
+                    fontStyle: 'italic',
+                    color: 'var(--color-terracotta, #c45d3e)',
+                  }}
+                >
+                  — {error}
+                </p>
               </div>
             )}
 
             {/* Preview */}
-            <div className="bg-white border border-border rounded-2xl overflow-hidden">
+            <section
+              style={{
+                marginBottom: '2.4rem',
+                borderTop: '1px solid var(--color-border-strong)',
+                borderBottom: '1px solid var(--color-border-strong)',
+                paddingBottom: '1.8rem',
+              }}
+            >
               {form.images.length > 0 && (
-                <div className="relative aspect-[4/3] bg-muted-bg">
-                  <Image src={form.images[0]} alt={form.title || 'Artwork'} fill className="object-contain" sizes="640px" />
+                <div
+                  style={{
+                    position: 'relative',
+                    aspectRatio: '4 / 3',
+                    background: 'var(--color-cream)',
+                    marginBottom: '1.4rem',
+                  }}
+                >
+                  <Image
+                    src={form.images[0]}
+                    alt={form.title || 'Artwork'}
+                    fill
+                    style={{ objectFit: 'contain' }}
+                    sizes="640px"
+                  />
                 </div>
               )}
 
               {form.images.length > 1 && (
-                <div className="flex gap-2 p-3 overflow-x-auto border-b border-border">
+                <div
+                  style={{
+                    display: 'flex',
+                    gap: '0.5rem',
+                    overflowX: 'auto',
+                    marginBottom: '1.4rem',
+                  }}
+                >
                   {form.images.map((url, i) => (
-                    <div key={i} className="relative w-16 h-16 rounded-lg overflow-hidden flex-shrink-0 border border-border">
-                      <Image src={url} alt={`Photo ${i + 1}`} fill className="object-cover" sizes="64px" />
+                    <div
+                      key={i}
+                      style={{
+                        position: 'relative',
+                        width: 64,
+                        height: 64,
+                        flexShrink: 0,
+                        background: 'var(--color-cream)',
+                      }}
+                    >
+                      <Image src={url} alt={`Photo ${i + 1}`} fill style={{ objectFit: 'cover' }} sizes="64px" />
                     </div>
                   ))}
                 </div>
               )}
 
-              <div className="p-5 space-y-4">
-                <div>
-                  <h3 className="font-editorial text-xl font-medium">{form.title || 'Untitled'}</h3>
-                  {user?.full_name && <p className="text-sm text-muted mt-0.5">by {user.full_name}</p>}
-                </div>
-                <p className="text-2xl font-bold">{price >= 1 ? formatPrice(price) : '$—'}</p>
-                {form.description && <p className="text-sm text-muted leading-relaxed line-clamp-4">{form.description}</p>}
-                <div className="flex flex-wrap gap-2 text-xs text-muted">
-                  {form.category && <span className="px-2.5 py-1 bg-muted-bg rounded-full capitalize">{form.category}</span>}
-                  {(form.medium === 'Other' ? form.customMedium : form.medium) && (
-                    <span className="px-2.5 py-1 bg-muted-bg rounded-full">{form.medium === 'Other' ? form.customMedium : form.medium}</span>
-                  )}
-                  {form.style && <span className="px-2.5 py-1 bg-muted-bg rounded-full">{form.style}</span>}
-                  {form.is_framed && <span className="px-2.5 py-1 bg-muted-bg rounded-full">Framed</span>}
-                  {form.ready_to_hang && <span className="px-2.5 py-1 bg-muted-bg rounded-full">Ready to hang</span>}
-                  {form.surface && <span className="px-2.5 py-1 bg-muted-bg rounded-full">{form.surface}</span>}
-                  {form.availability !== 'available' && (
-                    <span className="px-2.5 py-1 bg-muted-bg rounded-full capitalize">{form.availability.replace('_', ' ')}</span>
-                  )}
-                </div>
-                {form.colors.length > 0 && (
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs text-muted">Colours:</span>
-                    {form.colors.map((c) => {
-                      const col = COLOUR_PALETTE.find((p) => p.name === c);
-                      return col ? (
-                        <div key={c} className="flex items-center gap-1">
-                          <div className="w-4 h-4 rounded-full border border-border" style={{ backgroundColor: col.hex }} />
-                          <span className="text-xs text-muted">{col.label}</span>
-                        </div>
-                      ) : null;
-                    })}
-                  </div>
-                )}
-                {form.tags.length > 0 && (
-                  <div className="flex flex-wrap gap-1.5">
-                    {form.tags.map((tag) => (
-                      <span key={tag} className="px-2 py-0.5 bg-cream border border-border text-xs rounded-full text-muted">#{tag}</span>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
+              <p style={{ ...KICKER, marginBottom: '0.7rem' }}>{form.category || 'Artwork'}</p>
+              <h3
+                className="font-serif"
+                style={{
+                  fontSize: 'clamp(1.4rem, 2.6vw, 1.9rem)',
+                  color: 'var(--color-ink)',
+                  fontWeight: 400,
+                  margin: '0 0 0.4rem',
+                }}
+              >
+                {form.title || 'Untitled'}
+              </h3>
+              {user?.full_name && (
+                <p
+                  className="font-serif"
+                  style={{
+                    fontStyle: 'italic',
+                    fontSize: '0.9rem',
+                    color: 'var(--color-stone)',
+                    marginBottom: '0.9rem',
+                  }}
+                >
+                  by {user.full_name}
+                </p>
+              )}
+
+              <p
+                className="font-serif"
+                style={{
+                  fontSize: '1.3rem',
+                  color: 'var(--color-ink)',
+                  marginBottom: '1.2rem',
+                }}
+              >
+                {price >= 1 ? formatPrice(price) : '$—'}
+              </p>
+
+              {form.description && (
+                <p
+                  style={{
+                    fontSize: '0.92rem',
+                    fontWeight: 300,
+                    color: 'var(--color-stone-dark)',
+                    lineHeight: 1.7,
+                    marginBottom: '1.4rem',
+                    maxWidth: '60ch',
+                  }}
+                >
+                  {form.description}
+                </p>
+              )}
+
+              <dl style={{ margin: 0, borderTop: '1px solid var(--color-border)' }}>
+                {[
+                  { term: 'Medium', val: form.medium === 'Other' ? form.customMedium : form.medium },
+                  { term: 'Style', val: form.style },
+                  { term: 'Surface', val: form.surface },
+                  {
+                    term: 'Dimensions',
+                    val:
+                      form.width_cm || form.height_cm
+                        ? `${form.width_cm || '—'} × ${form.height_cm || '—'}${
+                            form.depth_cm ? ` × ${form.depth_cm}` : ''
+                          } cm`
+                        : '',
+                  },
+                  { term: 'Framed', val: form.is_framed ? 'Yes' : '' },
+                  { term: 'Ready to hang', val: form.ready_to_hang ? 'Yes' : '' },
+                  {
+                    term: 'Availability',
+                    val:
+                      form.availability !== 'available'
+                        ? form.availability.replace('_', ' ')
+                        : '',
+                  },
+                ]
+                  .filter((r) => r.val)
+                  .map((row) => (
+                    <div
+                      key={row.term}
+                      style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'baseline',
+                        padding: '0.8rem 0',
+                        borderBottom: '1px solid var(--color-border)',
+                        gap: '1rem',
+                      }}
+                    >
+                      <dt style={KICKER}>{row.term}</dt>
+                      <dd
+                        className="font-serif"
+                        style={{
+                          margin: 0,
+                          fontSize: '0.92rem',
+                          color: 'var(--color-ink)',
+                          textAlign: 'right',
+                          textTransform: 'capitalize',
+                        }}
+                      >
+                        {row.val}
+                      </dd>
+                    </div>
+                  ))}
+              </dl>
+
+              {form.tags.length > 0 && (
+                <p
+                  className="font-serif"
+                  style={{
+                    marginTop: '1.2rem',
+                    fontSize: '0.85rem',
+                    fontStyle: 'italic',
+                    color: 'var(--color-stone)',
+                  }}
+                >
+                  {form.tags.map((t) => `#${t}`).join(' · ')}
+                </p>
+              )}
+            </section>
 
             {/* Save buttons */}
-            <div className="flex gap-3">
+            <div
+              style={{
+                display: 'flex',
+                gap: '1.2rem',
+                flexWrap: 'wrap',
+                alignItems: 'center',
+              }}
+            >
+              <button
+                type="button"
+                onClick={() => handleSave()}
+                disabled={saving}
+                className="artwork-primary-cta"
+              >
+                {saving
+                  ? 'Saving…'
+                  : isRejected
+                  ? 'Save & resubmit'
+                  : 'Save changes'}
+              </button>
               {artwork?.status === 'draft' && (
                 <button
                   type="button"
                   onClick={() => handleSave('draft')}
                   disabled={saving}
-                  className="flex-1 py-3.5 border-2 border-border rounded-full font-semibold text-sm hover:border-warm-gray transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+                  className="font-serif"
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    fontStyle: 'italic',
+                    fontSize: '0.95rem',
+                    color: 'var(--color-stone)',
+                    cursor: 'pointer',
+                    padding: 0,
+                  }}
                 >
-                  <Save className="h-4 w-4" />
-                  Save Draft
+                  — Save as draft
                 </button>
               )}
-              <button
-                type="button"
-                onClick={() => handleSave()}
-                disabled={saving}
-                className="flex-[2] py-3.5 bg-primary text-white font-semibold rounded-full hover:bg-accent transition-colors duration-300 flex items-center justify-center gap-2 disabled:opacity-50"
-              >
-                {saving ? (
-                  <>
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    Saving...
-                  </>
-                ) : isRejected ? (
-                  <>
-                    <Upload className="h-4 w-4" />
-                    Save & Resubmit
-                  </>
-                ) : (
-                  <>
-                    <Save className="h-4 w-4" />
-                    Save Changes
-                  </>
-                )}
-              </button>
             </div>
           </div>
         )}
 
         {/* Navigation */}
         {step < 5 && (
-          <div className="flex items-center justify-between mt-10 pt-6 border-t border-border">
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              marginTop: 'clamp(2.4rem, 4vw, 3.4rem)',
+              paddingTop: '1.6rem',
+              borderTop: '1px solid var(--color-border-strong)',
+              gap: '1rem',
+            }}
+          >
             {step > 1 ? (
-              <button type="button" onClick={prevStep} className="flex items-center gap-2 text-sm text-muted hover:text-foreground transition-colors">
-                <ArrowLeft className="h-4 w-4" /> Back
+              <button
+                type="button"
+                onClick={prevStep}
+                className="font-serif"
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  fontStyle: 'italic',
+                  fontSize: '0.9rem',
+                  color: 'var(--color-stone)',
+                  cursor: 'pointer',
+                  padding: 0,
+                }}
+              >
+                ← Back
               </button>
             ) : (
-              <Link href="/artist/artworks" className="flex items-center gap-2 text-sm text-muted hover:text-foreground transition-colors">
-                <ArrowLeft className="h-4 w-4" /> Cancel
+              <Link
+                href="/artist/artworks"
+                className="font-serif"
+                style={{
+                  fontStyle: 'italic',
+                  fontSize: '0.9rem',
+                  color: 'var(--color-stone)',
+                  textDecoration: 'none',
+                }}
+              >
+                ← Cancel
               </Link>
             )}
+
             <button
               type="button"
               onClick={nextStep}
               disabled={!canProceed[step]}
-              className="px-8 py-3 bg-primary text-white font-semibold rounded-full hover:bg-accent transition-colors duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+              className="artwork-primary-cta"
             >
-              Continue <ArrowRight className="h-4 w-4" />
+              Continue →
             </button>
           </div>
         )}

@@ -1,17 +1,15 @@
 'use client';
 
 import Link from 'next/link';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { Eye, EyeOff, Loader2 } from 'lucide-react';
 import { signIn, signInWithGoogle } from '@/lib/supabase/auth';
 import { createClient } from '@/lib/supabase/client';
 import { useAuth } from '@/components/providers/AuthProvider';
-import { Suspense } from 'react';
 
-function GoogleIcon() {
+function GoogleGlyph() {
   return (
-    <svg className="h-5 w-5" viewBox="0 0 24 24" aria-hidden="true">
+    <svg style={{ width: '1.1rem', height: '1.1rem' }} viewBox="0 0 24 24" aria-hidden="true">
       <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1Z" fill="#4285F4" />
       <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23Z" fill="#34A853" />
       <path d="M5.84 14.09a7.18 7.18 0 0 1 0-4.17V7.07H2.18A11.97 11.97 0 0 0 0 12c0 1.94.46 3.77 1.28 5.4l3.56-2.77v-.54Z" fill="#FBBC05" />
@@ -38,9 +36,6 @@ function LoginForm() {
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
 
-  // If user is already logged in, redirect away from login page.
-  // If error=no-profile, sign out first to break the redirect loop.
-  // Uses useAuth() context instead of getUser() to avoid lock contention.
   useEffect(() => {
     if (authLoading) return;
 
@@ -52,7 +47,12 @@ function LoginForm() {
 
     if (authUser) {
       const redirect = searchParams.get('redirect');
-      window.location.href = redirect ? decodeURIComponent(redirect) : '/';
+      if (redirect) {
+        window.location.href = decodeURIComponent(redirect);
+      } else {
+        const role = authUser.role;
+        window.location.href = role === 'artist' || role === 'admin' ? '/artist/dashboard' : '/browse';
+      }
     }
   }, [authUser, authLoading, searchParams, authError]);
 
@@ -61,13 +61,12 @@ function LoginForm() {
     setError('');
     setLoading(true);
 
-    // Safety net: force redirect after 8s no matter what
     const safetyTimeout = setTimeout(() => {
-      window.location.href = '/';
+      window.location.href = '/browse';
     }, 8000);
 
     try {
-      const { data, error } = await Promise.race([
+      const { error } = await Promise.race([
         signIn(email, password),
         new Promise<never>((_, reject) =>
           setTimeout(() => reject(new Error('Sign in timed out. Please try again.')), 10000)
@@ -87,18 +86,21 @@ function LoginForm() {
         return;
       }
 
-      // Sign-in succeeded — redirect immediately.
       clearTimeout(safetyTimeout);
-
       const rawRedirect = searchParams.get('redirect');
-      const redirectPath = rawRedirect ? decodeURIComponent(rawRedirect) : null;
-
-      let destination = redirectPath;
-      if (!destination) {
-        destination = '/';
+      if (rawRedirect) {
+        window.location.href = decodeURIComponent(rawRedirect);
+      } else {
+        // Fetch session to determine role for redirect
+        try {
+          const sessionRes = await fetch('/api/auth/session');
+          const sessionData = sessionRes.ok ? await sessionRes.json() : null;
+          const role = sessionData?.user?.role;
+          window.location.href = role === 'artist' || role === 'admin' ? '/artist/dashboard' : '/browse';
+        } catch {
+          window.location.href = '/browse';
+        }
       }
-
-      window.location.href = destination;
     } catch (err) {
       clearTimeout(safetyTimeout);
       setError(err instanceof Error ? err.message : 'Sign in failed. Please try again.');
@@ -117,112 +119,252 @@ function LoginForm() {
   }
 
   return (
-    <div className="min-h-[80vh] flex items-center justify-center px-4 py-12">
-      <div className="w-full max-w-md">
-        {/* Header */}
-        <div className="text-center mb-10">
-          <Link href="/" className="font-editorial text-3xl font-semibold text-primary hover:text-accent-dark transition-colors">
-            SIGNO
+    <div
+      style={{
+        background: 'var(--color-warm-white)',
+        minHeight: '100vh',
+      }}
+    >
+      <div
+        className="grid grid-cols-1 lg:grid-cols-12 px-6 sm:px-10"
+        style={{
+          gap: 'clamp(2.5rem, 5vw, 5rem)',
+          paddingTop: 'clamp(4rem, 9vw, 7rem)',
+          paddingBottom: 'clamp(4rem, 8vw, 7rem)',
+          minHeight: '100vh',
+          alignItems: 'start',
+        }}
+      >
+        {/* ── Editorial column (5/12) ── */}
+        <div className="lg:col-span-5" style={{ position: 'sticky', top: 'clamp(4rem, 9vw, 7rem)' }}>
+          <Link
+            href="/"
+            className="font-serif"
+            style={{
+              fontSize: '0.68rem',
+              letterSpacing: '0.22em',
+              textTransform: 'uppercase',
+              color: 'var(--color-stone)',
+              textDecoration: 'none',
+              fontStyle: 'normal',
+              fontFamily: 'inherit',
+            }}
+          >
+            ← Signo
           </Link>
-          <h1 className="font-editorial text-2xl font-semibold mt-6">Welcome back</h1>
-          <p className="mt-2 text-sm text-muted">Sign in to your account</p>
+          <p
+            style={{
+              fontSize: '0.62rem',
+              letterSpacing: '0.22em',
+              textTransform: 'uppercase',
+              color: 'var(--color-stone)',
+              marginTop: '2.2rem',
+              marginBottom: '1.2rem',
+            }}
+          >
+            Sign in
+          </p>
+          <h1
+            className="font-serif"
+            style={{
+              fontSize: 'clamp(2.6rem, 6vw, 4.8rem)',
+              lineHeight: 1.02,
+              letterSpacing: '-0.015em',
+              color: 'var(--color-ink)',
+              fontWeight: 400,
+              maxWidth: '12ch',
+            }}
+          >
+            Welcome <em style={{ fontStyle: 'italic' }}>back.</em>
+          </h1>
+          <p
+            style={{
+              marginTop: '1.8rem',
+              fontSize: '1rem',
+              fontWeight: 300,
+              lineHeight: 1.7,
+              color: 'var(--color-stone-dark)',
+              maxWidth: '38ch',
+            }}
+          >
+            Access the studio, the ledger, and the works you&apos;ve saved. New to Signo?{' '}
+            <Link
+              href="/register"
+              style={{
+                color: 'var(--color-ink)',
+                borderBottom: '1px solid var(--color-stone)',
+                textDecoration: 'none',
+              }}
+            >
+              Create an account
+            </Link>
+            .
+          </p>
         </div>
 
-        {/* Google Sign In */}
-        <button
-          type="button"
-          onClick={handleGoogleSignIn}
-          disabled={googleLoading || loading}
-          className="w-full flex items-center justify-center gap-3 py-3 bg-white border border-border rounded-full text-sm font-medium hover:bg-muted-bg transition-colors disabled:opacity-50"
-        >
-          {googleLoading ? (
-            <Loader2 className="h-5 w-5 animate-spin text-muted" />
-          ) : (
-            <GoogleIcon />
-          )}
-          {googleLoading ? 'Redirecting...' : 'Continue with Google'}
-        </button>
+        {/* ── Form column (7/12) ── */}
+        <div className="lg:col-span-7" style={{ maxWidth: '34rem' }}>
+          {/* Google */}
+          <button
+            type="button"
+            onClick={handleGoogleSignIn}
+            disabled={googleLoading || loading}
+            style={{
+              width: '100%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '0.8rem',
+              padding: '1rem 1.4rem',
+              background: 'transparent',
+              border: '1px solid var(--color-border-strong)',
+              fontSize: '0.78rem',
+              letterSpacing: '0.12em',
+              textTransform: 'uppercase',
+              color: 'var(--color-ink)',
+              fontWeight: 400,
+              cursor: googleLoading || loading ? 'not-allowed' : 'pointer',
+              opacity: googleLoading || loading ? 0.5 : 1,
+              transition: 'background 200ms',
+            }}
+          >
+            <GoogleGlyph />
+            {googleLoading ? 'Redirecting…' : 'Continue with Google'}
+          </button>
 
-        {/* Divider */}
-        <div className="flex items-center gap-4 my-6">
-          <div className="flex-1 h-px bg-border" />
-          <span className="text-xs text-warm-gray uppercase tracking-wider">or</span>
-          <div className="flex-1 h-px bg-border" />
-        </div>
-
-        {/* Email/Password Form */}
-        <form onSubmit={handleSubmit} className="space-y-5">
-          {error && (
-            <div className="p-3.5 bg-error/5 border border-error/20 text-error text-sm rounded-xl animate-fade-in">
-              {error}
-            </div>
-          )}
-
-          <div>
-            <label htmlFor="email" className="block text-xs font-medium tracking-wide uppercase text-muted mb-2">
-              Email
-            </label>
-            <input
-              id="email"
-              type="email"
-              required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="w-full px-4 py-3 bg-white border border-border rounded-xl text-sm placeholder:text-warm-gray transition-colors"
-              placeholder="you@example.com"
-              autoComplete="email"
-            />
+          {/* Hairline divider with italic "or" */}
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '1.4rem',
+              margin: 'clamp(2rem, 4vw, 2.8rem) 0',
+            }}
+          >
+            <div style={{ flex: 1, height: '1px', background: 'var(--color-border)' }} />
+            <span
+              className="font-serif"
+              style={{
+                fontSize: '0.85rem',
+                fontStyle: 'italic',
+                color: 'var(--color-stone)',
+              }}
+            >
+              or
+            </span>
+            <div style={{ flex: 1, height: '1px', background: 'var(--color-border)' }} />
           </div>
 
-          <div>
-            <label htmlFor="password" className="block text-xs font-medium tracking-wide uppercase text-muted mb-2">
-              Password
-            </label>
-            <div className="relative">
+          {/* Email / Password */}
+          <form onSubmit={handleSubmit}>
+            <div>
+              <label htmlFor="email" className="commission-label">
+                Email
+              </label>
               <input
-                id="password"
-                type={showPassword ? 'text' : 'password'}
+                id="email"
+                type="email"
                 required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full px-4 py-3 pr-12 bg-white border border-border rounded-xl text-sm placeholder:text-warm-gray transition-colors"
-                placeholder="Your password"
-                autoComplete="current-password"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="commission-field"
+                placeholder="you@example.com"
+                autoComplete="email"
               />
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-4 top-1/2 -translate-y-1/2 text-warm-gray hover:text-foreground transition-colors"
-                tabIndex={-1}
+            </div>
+
+            <div style={{ marginTop: 'clamp(1.5rem, 3vw, 2.2rem)' }}>
+              <label htmlFor="password" className="commission-label">
+                Password
+              </label>
+              <div style={{ position: 'relative' }}>
+                <input
+                  id="password"
+                  type={showPassword ? 'text' : 'password'}
+                  required
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="commission-field"
+                  style={{ paddingRight: '4.5rem' }}
+                  placeholder="Your password"
+                  autoComplete="current-password"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  tabIndex={-1}
+                  className="font-serif"
+                  style={{
+                    position: 'absolute',
+                    right: 0,
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    background: 'transparent',
+                    border: 'none',
+                    padding: '0.4rem 0',
+                    fontSize: '0.78rem',
+                    fontStyle: 'italic',
+                    color: 'var(--color-stone)',
+                    cursor: 'pointer',
+                  }}
+                >
+                  {showPassword ? 'hide' : 'show'}
+                </button>
+              </div>
+            </div>
+
+            {error && (
+              <p
+                className="font-serif error-animate"
+                style={{
+                  marginTop: '1.6rem',
+                  fontSize: '0.92rem',
+                  color: 'var(--color-terracotta, #c45d3e)',
+                  fontStyle: 'italic',
+                  fontWeight: 400,
+                  lineHeight: 1.5,
+                  maxWidth: '44ch',
+                }}
               >
-                {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                {error}
+              </p>
+            )}
+
+            <div style={{ marginTop: 'clamp(2rem, 4vw, 2.8rem)' }}>
+              <button
+                type="submit"
+                disabled={loading || googleLoading}
+                className="artwork-primary-cta artwork-primary-cta--compact"
+                style={{ minWidth: '14rem' }}
+              >
+                {loading ? 'Signing in…' : 'Sign In'}
               </button>
             </div>
-          </div>
 
-          <button
-            type="submit"
-            disabled={loading || googleLoading}
-            className="w-full py-3.5 bg-primary text-white font-semibold rounded-full hover:bg-accent-light transition-colors duration-300 disabled:opacity-50 flex items-center justify-center gap-2"
-          >
-            {loading ? (
-              <>
-                <Loader2 className="h-4 w-4 animate-spin" />
-                Signing in...
-              </>
-            ) : (
-              'Sign In'
-            )}
-          </button>
-        </form>
-
-        {/* Footer link */}
-        <p className="text-center text-sm text-muted mt-8">
-          Don&apos;t have an account?{' '}
-          <Link href="/register" className="text-accent-dark font-medium link-underline">
-            Create one
-          </Link>
-        </p>
+            <p
+              style={{
+                marginTop: 'clamp(2rem, 3vw, 2.4rem)',
+                fontSize: '0.85rem',
+                color: 'var(--color-stone)',
+                fontWeight: 300,
+              }}
+            >
+              Don&apos;t have an account?{' '}
+              <Link
+                href="/register"
+                className="font-serif"
+                style={{
+                  color: 'var(--color-ink)',
+                  fontStyle: 'italic',
+                  borderBottom: '1px solid var(--color-stone)',
+                  textDecoration: 'none',
+                }}
+              >
+                Create one
+              </Link>
+            </p>
+          </form>
+        </div>
       </div>
     </div>
   );
@@ -230,26 +372,34 @@ function LoginForm() {
 
 function LoginFallback() {
   return (
-    <div className="min-h-[80vh] flex items-center justify-center px-4 py-12">
-      <div className="w-full max-w-md">
-        <div className="text-center mb-10">
-          <span className="font-editorial text-3xl font-semibold text-primary">SIGNO</span>
-          <h1 className="font-editorial text-2xl font-semibold mt-6">Welcome back</h1>
-          <p className="mt-2 text-sm text-muted">Sign in to your account</p>
-        </div>
-        <div className="space-y-5">
-          <div className="w-full h-12 bg-muted-bg rounded-full animate-pulse" />
-          <div className="flex items-center gap-4 my-6">
-            <div className="flex-1 h-px bg-border" />
-            <span className="text-xs text-warm-gray uppercase tracking-wider">or</span>
-            <div className="flex-1 h-px bg-border" />
-          </div>
-          <div className="h-5 w-12 bg-muted-bg rounded animate-pulse" />
-          <div className="w-full h-12 bg-muted-bg rounded-xl animate-pulse" />
-          <div className="h-5 w-16 bg-muted-bg rounded animate-pulse" />
-          <div className="w-full h-12 bg-muted-bg rounded-xl animate-pulse" />
-          <div className="w-full h-12 bg-primary/30 rounded-full animate-pulse" />
-        </div>
+    <div style={{ background: 'var(--color-warm-white)', minHeight: '100vh' }}>
+      <div
+        className="px-6 sm:px-10"
+        style={{ paddingTop: 'clamp(4rem, 9vw, 7rem)' }}
+      >
+        <p
+          style={{
+            fontSize: '0.62rem',
+            letterSpacing: '0.22em',
+            textTransform: 'uppercase',
+            color: 'var(--color-stone)',
+            marginBottom: '1.2rem',
+          }}
+        >
+          Sign in
+        </p>
+        <h1
+          className="font-serif"
+          style={{
+            fontSize: 'clamp(2.6rem, 6vw, 4.8rem)',
+            lineHeight: 1.02,
+            letterSpacing: '-0.015em',
+            color: 'var(--color-ink)',
+            fontWeight: 400,
+          }}
+        >
+          Welcome <em style={{ fontStyle: 'italic' }}>back.</em>
+        </h1>
       </div>
     </div>
   );

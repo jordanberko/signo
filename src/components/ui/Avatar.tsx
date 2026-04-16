@@ -63,12 +63,19 @@ export default function Avatar({
         <div
           className="w-full h-full flex items-center justify-center"
           style={{
-            background: 'linear-gradient(135deg, #6b7c4e 0%, #8a9a6a 100%)',
+            background: 'var(--color-cream)',
+            border: '1px solid var(--color-border)',
           }}
         >
           <span
-            className="text-white font-semibold leading-none"
-            style={{ fontSize: fontSize(size) }}
+            className="leading-none"
+            style={{
+              fontFamily: 'var(--font-serif), Georgia, serif',
+              fontSize: fontSize(size),
+              fontWeight: 400,
+              color: 'var(--color-ink)',
+              letterSpacing: '-0.01em',
+            }}
           >
             {initials}
           </span>

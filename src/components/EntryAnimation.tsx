@@ -253,9 +253,9 @@ export default function EntryAnimation() {
           })(),
 
           transition: (() => {
-            if (isSettling) return 'opacity 200ms ease';
+            if (isSettling) return `opacity 200ms ${EASE_OUT}`;
             if (phase === 'journey')
-              return `transform ${dur}ms ${EASE_OUT}, color ${dur}ms ease, opacity 200ms ease`;
+              return `transform ${dur}ms ${EASE_OUT}, color ${dur}ms ${EASE_OUT}, opacity 200ms ${EASE_OUT}`;
             return undefined;
           })(),
 

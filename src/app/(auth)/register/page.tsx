@@ -1,15 +1,13 @@
 'use client';
 
 import Link from 'next/link';
-import { useState, useMemo } from 'react';
+import { useState, useMemo, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { Eye, EyeOff, Loader2, Check, ShoppingBag, Palette } from 'lucide-react';
 import { signUp, signInWithGoogle } from '@/lib/supabase/auth';
-import { Suspense } from 'react';
 
-function GoogleIcon() {
+function GoogleGlyph() {
   return (
-    <svg className="h-5 w-5" viewBox="0 0 24 24" aria-hidden="true">
+    <svg style={{ width: '1.1rem', height: '1.1rem' }} viewBox="0 0 24 24" aria-hidden="true">
       <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1Z" fill="#4285F4" />
       <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23Z" fill="#34A853" />
       <path d="M5.84 14.09a7.18 7.18 0 0 1 0-4.17V7.07H2.18A11.97 11.97 0 0 0 0 12c0 1.94.46 3.77 1.28 5.4l3.56-2.77v-.54Z" fill="#FBBC05" />
@@ -19,7 +17,7 @@ function GoogleIcon() {
 }
 
 /** Returns a 0–4 score for password strength. */
-function getPasswordStrength(pw: string): { score: number; label: string; color: string } {
+function getPasswordStrength(pw: string): { score: number; label: string } {
   let score = 0;
   if (pw.length >= 8) score++;
   if (pw.length >= 12) score++;
@@ -27,10 +25,10 @@ function getPasswordStrength(pw: string): { score: number; label: string; color:
   if (/\d/.test(pw)) score++;
   if (/[^A-Za-z0-9]/.test(pw)) score++;
 
-  if (score <= 1) return { score: 1, label: 'Weak', color: 'bg-error' };
-  if (score === 2) return { score: 2, label: 'Fair', color: 'bg-amber-500' };
-  if (score === 3) return { score: 3, label: 'Good', color: 'bg-accent' };
-  return { score: 4, label: 'Strong', color: 'bg-success' };
+  if (score <= 1) return { score: 1, label: 'Weak' };
+  if (score === 2) return { score: 2, label: 'Fair' };
+  if (score === 3) return { score: 3, label: 'Good' };
+  return { score: 4, label: 'Strong' };
 }
 
 function RegisterForm() {
@@ -60,17 +58,14 @@ function RegisterForm() {
     e.preventDefault();
     setError('');
 
-    // Validation
     if (password.length < 8) {
       setError('Password must be at least 8 characters long.');
       return;
     }
-
     if (password !== confirmPassword) {
       setError('Passwords do not match.');
       return;
     }
-
     if (!agreedToTerms) {
       setError('Please agree to the terms and conditions to continue.');
       return;
@@ -91,8 +86,6 @@ function RegisterForm() {
         return;
       }
 
-      // Supabase returns a user but no session when email confirmation is required.
-      // Also detect fake "success" for existing emails (empty identities array).
       const needsConfirmation = data?.user && !data.session;
       const isExistingEmail =
         data?.user?.identities && data.user.identities.length === 0;
@@ -104,8 +97,6 @@ function RegisterForm() {
       }
 
       if (needsConfirmation) {
-        // User created but they need to verify their email first
-        // Send welcome email in background (fire-and-forget)
         fetch('/api/email/welcome', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -116,24 +107,27 @@ function RegisterForm() {
         return;
       }
 
-      // Session exists — user is signed in immediately (email confirmation disabled)
-      // Send welcome email in background (fire-and-forget)
       fetch('/api/email/welcome', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, name: fullName, role }),
       }).catch(() => {});
-      // Small delay to let the profile trigger complete in the database
       await new Promise((resolve) => setTimeout(resolve, 500));
-      // Use window.location.href for full page reload — clears all cached state
-      window.location.href = role === 'artist' ? '/artist/onboarding' : '/';
+      const rawRedirect = searchParams.get('redirect');
+      if (rawRedirect) {
+        const decoded = decodeURIComponent(rawRedirect);
+        // Validate: must start with / but not // or protocol
+        const isSafe = decoded.startsWith('/') && !decoded.startsWith('//') && !decoded.startsWith('/http');
+        window.location.href = isSafe ? decoded : (role === 'artist' ? '/artist/onboarding' : '/browse?welcome=1');
+      } else {
+        window.location.href = role === 'artist' ? '/artist/onboarding' : '/browse?welcome=1';
+      }
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Something went wrong. Please try again.';
       setError(message);
       setLoading(false);
-      // Safety net: force redirect after 3 seconds
       setTimeout(() => {
-        window.location.href = '/';
+        window.location.href = '/browse';
       }, 3000);
     }
   }
@@ -148,46 +142,124 @@ function RegisterForm() {
     }
   }
 
-  // ── Email confirmation screen ──
+  // ── Confirmation screen ── 6/6 split
   if (confirmationSent) {
     return (
-      <div className="min-h-[80vh] flex items-center justify-center px-4 py-12">
-        <div className="w-full max-w-md text-center">
-          <Link href="/" className="font-editorial text-3xl font-semibold text-primary hover:text-accent-dark transition-colors">
-            SIGNO
-          </Link>
-
-          <div className="mt-10 mb-6">
-            <div className="w-16 h-16 bg-accent-subtle rounded-full flex items-center justify-center mx-auto mb-6">
-              <svg className="h-7 w-7 text-accent-dark" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 0 1-2.25 2.25h-15a2.25 2.25 0 0 1-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0 0 19.5 4.5h-15a2.25 2.25 0 0 0-2.25 2.25m19.5 0v.243a2.25 2.25 0 0 1-1.07 1.916l-7.5 4.615a2.25 2.25 0 0 1-2.36 0L3.32 8.91a2.25 2.25 0 0 1-1.07-1.916V6.75" />
-              </svg>
-            </div>
-            <h1 className="font-editorial text-2xl font-semibold">Check your email</h1>
-            <p className="mt-3 text-sm text-muted leading-relaxed max-w-sm mx-auto">
-              We&apos;ve sent a confirmation link to <span className="font-medium text-foreground">{email}</span>.
-              Click the link in the email to activate your account.
-            </p>
-          </div>
-
-          <div className="space-y-3 text-sm text-muted">
-            <p>Didn&apos;t receive the email? Check your spam folder.</p>
-            <button
-              type="button"
-              onClick={() => setConfirmationSent(false)}
-              className="text-accent-dark font-medium link-underline"
+      <div style={{ background: 'var(--color-warm-white)', minHeight: '100vh' }}>
+        <div
+          className="grid grid-cols-1 lg:grid-cols-12 px-6 sm:px-10"
+          style={{
+            gap: 'clamp(2.5rem, 5vw, 5rem)',
+            paddingTop: 'clamp(5rem, 10vw, 9rem)',
+            paddingBottom: 'clamp(4rem, 8vw, 7rem)',
+            minHeight: '100vh',
+            alignItems: 'start',
+          }}
+        >
+          <div className="lg:col-span-6">
+            <Link
+              href="/"
+              style={{
+                fontSize: '0.68rem',
+                letterSpacing: '0.22em',
+                textTransform: 'uppercase',
+                color: 'var(--color-stone)',
+                textDecoration: 'none',
+              }}
             >
-              Try a different email
-            </button>
-          </div>
-
-          <div className="mt-8 pt-6 border-t border-border">
-            <p className="text-sm text-muted">
-              Already confirmed?{' '}
-              <Link href="/login" className="text-accent-dark font-medium link-underline">
-                Sign in
-              </Link>
+              ← Signo
+            </Link>
+            <p
+              style={{
+                fontSize: '0.62rem',
+                letterSpacing: '0.22em',
+                textTransform: 'uppercase',
+                color: 'var(--color-stone)',
+                marginTop: '2.2rem',
+                marginBottom: '1.2rem',
+              }}
+            >
+              Almost in
             </p>
+            <h1
+              className="font-serif"
+              style={{
+                fontSize: 'clamp(2.6rem, 6vw, 4.8rem)',
+                lineHeight: 1.02,
+                letterSpacing: '-0.015em',
+                color: 'var(--color-ink)',
+                fontWeight: 400,
+                maxWidth: '12ch',
+              }}
+            >
+              Check your <em style={{ fontStyle: 'italic' }}>inbox.</em>
+            </h1>
+          </div>
+          <div className="lg:col-span-6" style={{ maxWidth: '34rem', paddingTop: '3.5rem' }}>
+            <p
+              style={{
+                fontSize: '1rem',
+                lineHeight: 1.7,
+                color: 'var(--color-stone-dark)',
+                fontWeight: 300,
+                maxWidth: '44ch',
+              }}
+            >
+              We&apos;ve sent a confirmation link to{' '}
+              <span
+                className="font-serif"
+                style={{ fontStyle: 'italic', color: 'var(--color-ink)' }}
+              >
+                {email}
+              </span>
+              . Click the link in the email to activate your account.
+            </p>
+            <p
+              style={{
+                marginTop: '1.6rem',
+                fontSize: '0.88rem',
+                color: 'var(--color-stone)',
+                fontWeight: 300,
+                lineHeight: 1.6,
+              }}
+            >
+              Didn&apos;t receive the email? Check your spam folder.
+            </p>
+
+            <div
+              style={{
+                marginTop: 'clamp(2.5rem, 5vw, 3.5rem)',
+                borderTop: '1px solid var(--color-border)',
+                paddingTop: '2rem',
+                display: 'flex',
+                gap: '2.2rem',
+                flexWrap: 'wrap',
+                alignItems: 'center',
+              }}
+            >
+              <button
+                type="button"
+                onClick={() => setConfirmationSent(false)}
+                className="editorial-link"
+                style={{ background: 'transparent', cursor: 'pointer' }}
+              >
+                ← Try a different email
+              </button>
+              <Link
+                href="/login"
+                className="font-serif"
+                style={{
+                  color: 'var(--color-ink)',
+                  fontStyle: 'italic',
+                  fontSize: '0.95rem',
+                  borderBottom: '1px solid var(--color-stone)',
+                  textDecoration: 'none',
+                  paddingBottom: '0.15rem',
+                }}
+              >
+                Already confirmed? Sign in
+              </Link>
+            </div>
           </div>
         </div>
       </div>
@@ -195,95 +267,220 @@ function RegisterForm() {
   }
 
   return (
-    <div className="min-h-[80vh] flex items-center justify-center px-4 py-12">
-      <div className="w-full max-w-md">
-        {/* Header */}
-        <div className="text-center mb-10">
-          <Link href="/" className="font-editorial text-3xl font-semibold text-primary hover:text-accent-dark transition-colors">
-            SIGNO
+    <div style={{ background: 'var(--color-warm-white)', minHeight: '100vh' }}>
+      {/* ── Full-width editorial header ── */}
+      <header
+        className="px-6 sm:px-10"
+        style={{
+          paddingTop: 'clamp(4rem, 9vw, 7rem)',
+          paddingBottom: 'clamp(2.5rem, 5vw, 4rem)',
+        }}
+      >
+        <Link
+          href="/"
+          style={{
+            fontSize: '0.68rem',
+            letterSpacing: '0.22em',
+            textTransform: 'uppercase',
+            color: 'var(--color-stone)',
+            textDecoration: 'none',
+          }}
+        >
+          ← Signo
+        </Link>
+        <p
+          style={{
+            fontSize: '0.62rem',
+            letterSpacing: '0.22em',
+            textTransform: 'uppercase',
+            color: 'var(--color-stone)',
+            marginTop: '2.2rem',
+            marginBottom: '1.2rem',
+          }}
+        >
+          Join
+        </p>
+        <h1
+          className="font-serif"
+          style={{
+            fontSize: 'clamp(2.6rem, 6vw, 4.8rem)',
+            lineHeight: 1.02,
+            letterSpacing: '-0.015em',
+            color: 'var(--color-ink)',
+            fontWeight: 400,
+            maxWidth: '16ch',
+          }}
+        >
+          Create your <em style={{ fontStyle: 'italic' }}>account.</em>
+        </h1>
+        <p
+          style={{
+            marginTop: '1.8rem',
+            fontSize: '1rem',
+            fontWeight: 300,
+            lineHeight: 1.7,
+            color: 'var(--color-stone-dark)',
+            maxWidth: '48ch',
+          }}
+        >
+          Everyone on Signo can both buy and sell. Pick the side you&apos;re most here for —
+          you can always do the other later. Already registered?{' '}
+          <Link
+            href="/login"
+            style={{
+              color: 'var(--color-ink)',
+              borderBottom: '1px solid var(--color-stone)',
+              textDecoration: 'none',
+            }}
+          >
+            Sign in
           </Link>
-          <h1 className="font-editorial text-2xl font-semibold mt-6">Join the community</h1>
-          <p className="mt-2 text-sm text-muted">Create your account to start buying and selling</p>
-        </div>
+          .
+        </p>
+      </header>
 
-        {/* Google Sign Up */}
+      <div style={{ borderTop: '1px solid var(--color-border)' }} />
+
+      {/* ── Form body ── */}
+      <section
+        className="px-6 sm:px-10"
+        style={{
+          paddingTop: 'clamp(3.5rem, 6vw, 5.5rem)',
+          paddingBottom: 'clamp(5rem, 9vw, 8rem)',
+          maxWidth: '46rem',
+        }}
+      >
+        {/* Google */}
         <button
           type="button"
           onClick={handleGoogleSignIn}
           disabled={googleLoading || loading}
-          className="w-full flex items-center justify-center gap-3 py-3 bg-white border border-border rounded-full text-sm font-medium hover:bg-muted-bg transition-colors disabled:opacity-50"
+          style={{
+            width: '100%',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '0.8rem',
+            padding: '1rem 1.4rem',
+            background: 'transparent',
+            border: '1px solid var(--color-border-strong)',
+            fontSize: '0.78rem',
+            letterSpacing: '0.12em',
+            textTransform: 'uppercase',
+            color: 'var(--color-ink)',
+            fontWeight: 400,
+            cursor: googleLoading || loading ? 'not-allowed' : 'pointer',
+            opacity: googleLoading || loading ? 0.5 : 1,
+          }}
         >
-          {googleLoading ? (
-            <Loader2 className="h-5 w-5 animate-spin text-muted" />
-          ) : (
-            <GoogleIcon />
-          )}
-          {googleLoading ? 'Redirecting...' : 'Sign up with Google'}
+          <GoogleGlyph />
+          {googleLoading ? 'Redirecting…' : 'Sign up with Google'}
         </button>
 
-        {/* Divider */}
-        <div className="flex items-center gap-4 my-6">
-          <div className="flex-1 h-px bg-border" />
-          <span className="text-xs text-warm-gray uppercase tracking-wider">or</span>
-          <div className="flex-1 h-px bg-border" />
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '1.4rem',
+            margin: 'clamp(2rem, 4vw, 2.8rem) 0',
+          }}
+        >
+          <div style={{ flex: 1, height: '1px', background: 'var(--color-border)' }} />
+          <span
+            className="font-serif"
+            style={{
+              fontSize: '0.85rem',
+              fontStyle: 'italic',
+              color: 'var(--color-stone)',
+            }}
+          >
+            or
+          </span>
+          <div style={{ flex: 1, height: '1px', background: 'var(--color-border)' }} />
         </div>
 
-        {/* Form */}
-        <form onSubmit={handleSubmit} className="space-y-5">
-          {error && (
-            <div className="p-3.5 bg-error/5 border border-error/20 text-error text-sm rounded-xl animate-fade-in">
-              {error}
-            </div>
-          )}
-
-          {/* Role Selection */}
-          <div>
-            <p className="text-xs font-medium tracking-wide uppercase text-muted mb-3">I&apos;m primarily here to</p>
-            <div className="grid grid-cols-2 gap-3">
-              <button
-                type="button"
-                onClick={() => setRole('buyer')}
-                className={`relative p-5 border-2 rounded-xl text-center transition-all duration-300 ${
-                  role === 'buyer'
-                    ? 'border-accent bg-accent-subtle'
-                    : 'border-border hover:border-warm-gray bg-white'
-                }`}
-              >
-                {role === 'buyer' && (
-                  <div className="absolute top-2.5 right-2.5 w-5 h-5 bg-accent rounded-full flex items-center justify-center">
-                    <Check className="h-3 w-3 text-white" />
-                  </div>
-                )}
-                <ShoppingBag className={`h-6 w-6 mx-auto mb-2 ${role === 'buyer' ? 'text-accent' : 'text-muted'}`} />
-                <p className="font-medium text-sm">Buy Art</p>
-                <p className="text-xs text-muted mt-1">Discover & collect</p>
-              </button>
-              <button
-                type="button"
-                onClick={() => setRole('artist')}
-                className={`relative p-5 border-2 rounded-xl text-center transition-all duration-300 ${
-                  role === 'artist'
-                    ? 'border-accent bg-accent-subtle'
-                    : 'border-border hover:border-warm-gray bg-white'
-                }`}
-              >
-                {role === 'artist' && (
-                  <div className="absolute top-2.5 right-2.5 w-5 h-5 bg-accent rounded-full flex items-center justify-center">
-                    <Check className="h-3 w-3 text-white" />
-                  </div>
-                )}
-                <Palette className={`h-6 w-6 mx-auto mb-2 ${role === 'artist' ? 'text-accent' : 'text-muted'}`} />
-                <p className="font-medium text-sm">Sell Art</p>
-                <p className="text-xs text-muted mt-1">Free until first sale</p>
-              </button>
-            </div>
-            <p className="text-xs text-warm-gray mt-2.5 text-center">Everyone on Signo can buy and sell</p>
+        <form onSubmit={handleSubmit}>
+          {/* ── Role selection: hairline split, typographic ── */}
+          <p className="commission-label" style={{ marginBottom: '1rem' }}>
+            I&apos;m primarily here to
+          </p>
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: '1fr 1fr',
+              borderTop: '1px solid var(--color-border)',
+              borderBottom: '1px solid var(--color-border)',
+            }}
+          >
+            {(
+              [
+                { value: 'buyer', label: 'Collect', note: 'Discover & acquire' },
+                { value: 'artist', label: 'Sell', note: 'Free until first sale' },
+              ] as const
+            ).map((opt, i) => {
+              const selected = role === opt.value;
+              return (
+                <button
+                  key={opt.value}
+                  type="button"
+                  onClick={() => setRole(opt.value)}
+                  style={{
+                    background: 'transparent',
+                    border: 'none',
+                    borderLeft: i === 1 ? '1px solid var(--color-border)' : 'none',
+                    padding: '1.6rem 1.2rem',
+                    textAlign: 'left',
+                    cursor: 'pointer',
+                  }}
+                >
+                  <span
+                    className="font-serif"
+                    style={{
+                      display: 'block',
+                      fontSize: 'clamp(1.3rem, 2.2vw, 1.8rem)',
+                      color: 'var(--color-ink)',
+                      fontStyle: selected ? 'italic' : 'normal',
+                      fontWeight: 400,
+                      letterSpacing: '-0.005em',
+                      marginBottom: '0.4rem',
+                    }}
+                  >
+                    {opt.label}
+                    {selected && (
+                      <span
+                        style={{
+                          display: 'inline-block',
+                          marginLeft: '0.6rem',
+                          fontSize: '0.62rem',
+                          letterSpacing: '0.22em',
+                          textTransform: 'uppercase',
+                          color: 'var(--color-stone)',
+                          verticalAlign: 'middle',
+                          fontStyle: 'normal',
+                        }}
+                      >
+                        Selected
+                      </span>
+                    )}
+                  </span>
+                  <span
+                    style={{
+                      fontSize: '0.78rem',
+                      color: 'var(--color-stone)',
+                      fontWeight: 300,
+                    }}
+                  >
+                    {opt.note}
+                  </span>
+                </button>
+              );
+            })}
           </div>
 
           {/* Full Name */}
-          <div>
-            <label htmlFor="fullName" className="block text-xs font-medium tracking-wide uppercase text-muted mb-2">
-              Full Name
+          <div style={{ marginTop: 'clamp(2rem, 4vw, 2.8rem)' }}>
+            <label htmlFor="fullName" className="commission-label">
+              Full name
             </label>
             <input
               id="fullName"
@@ -291,15 +488,15 @@ function RegisterForm() {
               required
               value={fullName}
               onChange={(e) => setFullName(e.target.value)}
-              className="w-full px-4 py-3 bg-white border border-border rounded-xl text-sm placeholder:text-warm-gray transition-colors"
+              className="commission-field"
               placeholder="Your name"
               autoComplete="name"
             />
           </div>
 
           {/* Email */}
-          <div>
-            <label htmlFor="email" className="block text-xs font-medium tracking-wide uppercase text-muted mb-2">
+          <div style={{ marginTop: 'clamp(1.5rem, 3vw, 2.2rem)' }}>
+            <label htmlFor="email" className="commission-label">
               Email
             </label>
             <input
@@ -308,18 +505,18 @@ function RegisterForm() {
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full px-4 py-3 bg-white border border-border rounded-xl text-sm placeholder:text-warm-gray transition-colors"
+              className="commission-field"
               placeholder="you@example.com"
               autoComplete="email"
             />
           </div>
 
           {/* Password */}
-          <div>
-            <label htmlFor="password" className="block text-xs font-medium tracking-wide uppercase text-muted mb-2">
+          <div style={{ marginTop: 'clamp(1.5rem, 3vw, 2.2rem)' }}>
+            <label htmlFor="password" className="commission-label">
               Password
             </label>
-            <div className="relative">
+            <div style={{ position: 'relative' }}>
               <input
                 id="password"
                 type={showPassword ? 'text' : 'password'}
@@ -327,43 +524,84 @@ function RegisterForm() {
                 minLength={8}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full px-4 py-3 pr-12 bg-white border border-border rounded-xl text-sm placeholder:text-warm-gray transition-colors"
+                className="commission-field"
+                style={{ paddingRight: '4.5rem' }}
                 placeholder="At least 8 characters"
                 autoComplete="new-password"
               />
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-4 top-1/2 -translate-y-1/2 text-warm-gray hover:text-foreground transition-colors"
                 tabIndex={-1}
+                className="font-serif"
+                style={{
+                  position: 'absolute',
+                  right: 0,
+                  top: '1.05rem',
+                  background: 'transparent',
+                  border: 'none',
+                  padding: '0.4rem 0',
+                  fontSize: '0.78rem',
+                  fontStyle: 'italic',
+                  color: 'var(--color-stone)',
+                  cursor: 'pointer',
+                }}
               >
-                {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                {showPassword ? 'hide' : 'show'}
               </button>
             </div>
-            {/* Password strength indicator */}
+
+            {/* Password strength: hairline bars */}
             {passwordStrength && (
-              <div className="mt-2.5 space-y-1.5">
-                <div className="flex gap-1">
+              <div style={{ marginTop: '0.9rem' }}>
+                <div style={{ display: 'flex', gap: '0.4rem' }}>
                   {[1, 2, 3, 4].map((level) => (
                     <div
                       key={level}
-                      className={`h-1 flex-1 rounded-full transition-colors duration-300 ${
-                        level <= passwordStrength.score ? passwordStrength.color : 'bg-border'
-                      }`}
+                      style={{
+                        height: '2px',
+                        flex: 1,
+                        background:
+                          level <= passwordStrength.score
+                            ? 'var(--color-ink)'
+                            : 'var(--color-border)',
+                        transition: 'background 200ms',
+                      }}
                     />
                   ))}
                 </div>
-                <p className="text-xs text-muted">
-                  Password strength: <span className="font-medium">{passwordStrength.label}</span>
+                <p
+                  style={{
+                    marginTop: '0.6rem',
+                    fontSize: '0.72rem',
+                    letterSpacing: '0.12em',
+                    textTransform: 'uppercase',
+                    color: 'var(--color-stone)',
+                    fontWeight: 300,
+                  }}
+                >
+                  Strength ·{' '}
+                  <span
+                    className="font-serif"
+                    style={{
+                      fontStyle: 'italic',
+                      color: 'var(--color-ink)',
+                      textTransform: 'none',
+                      letterSpacing: 0,
+                      fontSize: '0.85rem',
+                    }}
+                  >
+                    {passwordStrength.label}
+                  </span>
                 </p>
               </div>
             )}
           </div>
 
-          {/* Confirm Password */}
-          <div>
-            <label htmlFor="confirmPassword" className="block text-xs font-medium tracking-wide uppercase text-muted mb-2">
-              Confirm Password
+          {/* Confirm */}
+          <div style={{ marginTop: 'clamp(1.5rem, 3vw, 2.2rem)' }}>
+            <label htmlFor="confirmPassword" className="commission-label">
+              Confirm password
             </label>
             <input
               id="confirmPassword"
@@ -371,93 +609,197 @@ function RegisterForm() {
               required
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
-              className={`w-full px-4 py-3 bg-white border rounded-xl text-sm placeholder:text-warm-gray transition-colors ${
-                !passwordsMatch ? 'border-error' : 'border-border'
-              }`}
+              className="commission-field"
               placeholder="Re-enter your password"
               autoComplete="new-password"
+              style={!passwordsMatch ? { borderBottomColor: 'var(--color-terracotta, #c45d3e)' } : undefined}
             />
             {!passwordsMatch && (
-              <p className="text-xs text-error mt-1.5">Passwords do not match</p>
+              <p
+                className="font-serif error-animate"
+                style={{
+                  marginTop: '0.6rem',
+                  fontSize: '0.82rem',
+                  color: 'var(--color-terracotta, #c45d3e)',
+                  fontStyle: 'italic',
+                }}
+              >
+                Passwords do not match
+              </p>
             )}
           </div>
 
-          {/* Terms Checkbox */}
-          <label className="flex items-start gap-3 cursor-pointer group">
-            <div className="relative flex-shrink-0 mt-0.5">
-              <input
-                type="checkbox"
-                checked={agreedToTerms}
-                onChange={(e) => setAgreedToTerms(e.target.checked)}
-                className="sr-only peer"
-              />
-              <div className="w-5 h-5 border-2 border-border rounded transition-colors peer-checked:border-accent peer-checked:bg-accent group-hover:border-warm-gray flex items-center justify-center">
-                {agreedToTerms && <Check className="h-3 w-3 text-white" />}
-              </div>
-            </div>
-            <span className="text-sm text-muted leading-tight">
+          {/* Terms */}
+          <label
+            style={{
+              marginTop: 'clamp(2rem, 4vw, 2.8rem)',
+              display: 'flex',
+              alignItems: 'flex-start',
+              gap: '0.9rem',
+              cursor: 'pointer',
+            }}
+          >
+            <input
+              type="checkbox"
+              checked={agreedToTerms}
+              onChange={(e) => setAgreedToTerms(e.target.checked)}
+              style={{
+                position: 'absolute',
+                opacity: 0,
+                width: '1px',
+                height: '1px',
+                pointerEvents: 'none',
+              }}
+            />
+            <span
+              aria-hidden="true"
+              style={{
+                width: '1.05rem',
+                height: '1.05rem',
+                flexShrink: 0,
+                border: '1px solid var(--color-border-strong)',
+                background: agreedToTerms ? 'var(--color-ink)' : 'transparent',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                marginTop: '0.15rem',
+                transition: 'background 200ms',
+              }}
+            >
+              {agreedToTerms && (
+                <svg
+                  viewBox="0 0 10 8"
+                  style={{ width: '0.65rem', height: '0.5rem' }}
+                  fill="none"
+                  stroke="var(--color-warm-white)"
+                  strokeWidth="1.6"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M1 4 L4 7 L9 1" />
+                </svg>
+              )}
+            </span>
+            <span
+              style={{
+                fontSize: '0.88rem',
+                color: 'var(--color-stone-dark)',
+                fontWeight: 300,
+                lineHeight: 1.55,
+              }}
+            >
               I agree to the{' '}
-              <Link href="/terms" className="text-accent-dark link-underline">Terms of Service</Link>
-              {' '}and{' '}
-              <Link href="/privacy" className="text-accent-dark link-underline">Privacy Policy</Link>
+              <Link
+                href="/terms"
+                className="font-serif"
+                style={{
+                  color: 'var(--color-ink)',
+                  fontStyle: 'italic',
+                  borderBottom: '1px solid var(--color-stone)',
+                  textDecoration: 'none',
+                }}
+              >
+                Terms of Service
+              </Link>{' '}
+              and{' '}
+              <Link
+                href="/privacy"
+                className="font-serif"
+                style={{
+                  color: 'var(--color-ink)',
+                  fontStyle: 'italic',
+                  borderBottom: '1px solid var(--color-stone)',
+                  textDecoration: 'none',
+                }}
+              >
+                Privacy Policy
+              </Link>
             </span>
           </label>
 
-          {/* Submit */}
-          <button
-            type="submit"
-            disabled={loading || googleLoading || !agreedToTerms}
-            className="w-full py-3.5 bg-primary text-white font-semibold rounded-full hover:bg-accent-light transition-colors duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-          >
-            {loading ? (
-              <>
-                <Loader2 className="h-4 w-4 animate-spin" />
-                Creating account...
-              </>
-            ) : (
-              'Create Account'
-            )}
-          </button>
-        </form>
+          {error && (
+            <p
+              className="font-serif error-animate"
+              style={{
+                marginTop: '1.6rem',
+                fontSize: '0.92rem',
+                color: 'var(--color-terracotta, #c45d3e)',
+                fontStyle: 'italic',
+                fontWeight: 400,
+                lineHeight: 1.5,
+                maxWidth: '44ch',
+              }}
+            >
+              {error}
+            </p>
+          )}
 
-        {/* Footer link */}
-        <p className="text-center text-sm text-muted mt-8">
-          Already have an account?{' '}
-          <Link href="/login" className="text-accent-dark font-medium link-underline">
-            Sign in
-          </Link>
-        </p>
-      </div>
+          <div style={{ marginTop: 'clamp(2rem, 4vw, 2.8rem)' }}>
+            <button
+              type="submit"
+              disabled={loading || googleLoading || !agreedToTerms}
+              className="artwork-primary-cta artwork-primary-cta--compact"
+              style={{ minWidth: '14rem' }}
+            >
+              {loading ? 'Creating account…' : 'Create Account'}
+            </button>
+          </div>
+
+          <p
+            style={{
+              marginTop: 'clamp(2rem, 3vw, 2.4rem)',
+              fontSize: '0.85rem',
+              color: 'var(--color-stone)',
+              fontWeight: 300,
+            }}
+          >
+            Already have an account?{' '}
+            <Link
+              href="/login"
+              className="font-serif"
+              style={{
+                color: 'var(--color-ink)',
+                fontStyle: 'italic',
+                borderBottom: '1px solid var(--color-stone)',
+                textDecoration: 'none',
+              }}
+            >
+              Sign in
+            </Link>
+          </p>
+        </form>
+      </section>
     </div>
   );
 }
 
 function RegisterFallback() {
   return (
-    <div className="min-h-[80vh] flex items-center justify-center px-4 py-12">
-      <div className="w-full max-w-md">
-        <div className="text-center mb-10">
-          <span className="font-editorial text-3xl font-semibold text-primary">SIGNO</span>
-          <h1 className="font-editorial text-2xl font-semibold mt-6">Join the community</h1>
-          <p className="mt-2 text-sm text-muted">Create your account to start buying and selling</p>
-        </div>
-        <div className="space-y-5">
-          <div className="w-full h-12 bg-muted-bg rounded-full animate-pulse" />
-          <div className="flex items-center gap-4 my-6">
-            <div className="flex-1 h-px bg-border" />
-            <span className="text-xs text-warm-gray uppercase tracking-wider">or</span>
-            <div className="flex-1 h-px bg-border" />
-          </div>
-          <div className="h-5 w-32 bg-muted-bg rounded animate-pulse" />
-          <div className="grid grid-cols-2 gap-3">
-            <div className="h-24 bg-muted-bg rounded-xl animate-pulse" />
-            <div className="h-24 bg-muted-bg rounded-xl animate-pulse" />
-          </div>
-          <div className="w-full h-12 bg-muted-bg rounded-xl animate-pulse" />
-          <div className="w-full h-12 bg-muted-bg rounded-xl animate-pulse" />
-          <div className="w-full h-12 bg-muted-bg rounded-xl animate-pulse" />
-          <div className="w-full h-12 bg-primary/30 rounded-full animate-pulse" />
-        </div>
+    <div style={{ background: 'var(--color-warm-white)', minHeight: '100vh' }}>
+      <div className="px-6 sm:px-10" style={{ paddingTop: 'clamp(4rem, 9vw, 7rem)' }}>
+        <p
+          style={{
+            fontSize: '0.62rem',
+            letterSpacing: '0.22em',
+            textTransform: 'uppercase',
+            color: 'var(--color-stone)',
+            marginBottom: '1.2rem',
+          }}
+        >
+          Join
+        </p>
+        <h1
+          className="font-serif"
+          style={{
+            fontSize: 'clamp(2.6rem, 6vw, 4.8rem)',
+            lineHeight: 1.02,
+            letterSpacing: '-0.015em',
+            color: 'var(--color-ink)',
+            fontWeight: 400,
+          }}
+        >
+          Create your <em style={{ fontStyle: 'italic' }}>account.</em>
+        </h1>
       </div>
     </div>
   );

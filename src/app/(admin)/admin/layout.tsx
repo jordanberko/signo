@@ -53,7 +53,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                   className={`inline-flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 whitespace-nowrap transition-colors ${
                     isActive
                       ? 'border-accent text-foreground'
-                      : 'border-transparent text-muted hover:text-foreground hover:border-gray-300'
+                      : 'border-transparent text-muted hover:text-foreground hover:border-[color:var(--color-stone)]'
                   }`}
                 >
                   <item.icon className="h-4 w-4" />

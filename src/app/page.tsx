@@ -80,9 +80,7 @@ export default function HomePage() {
         <Proposition />
       </ScrollReveal>
       <RecentlyListed artworks={featuredList} />
-      <ScrollReveal>
-        <BrowseBreak />
-      </ScrollReveal>
+      <BrowseBreak />
       <SellCTA imageUrl={sellCtaImage} />
     </div>
   );
@@ -130,7 +128,7 @@ function Hero() {
           className="absolute inset-0"
           style={{
             opacity: i === index ? 1 : 0,
-            transition: 'opacity 1.5s cubic-bezier(0.22, 1, 0.36, 1)',
+            transition: 'opacity 1500ms cubic-bezier(0.22, 1, 0.36, 1)',
           }}
           aria-hidden={i !== index}
         >
@@ -141,6 +139,9 @@ function Hero() {
             priority={i === 0}
             sizes="100vw"
             className="object-cover"
+            style={{
+              animation: i === index ? 'ken-burns 20s cubic-bezier(0.22, 1, 0.36, 1) forwards' : undefined,
+            }}
           />
           <div
             className="absolute inset-0 pointer-events-none"
@@ -225,7 +226,7 @@ function Hero() {
                   borderBottom: active
                     ? '1px solid rgba(252, 251, 248, 0.95)'
                     : '1px solid transparent',
-                  transition: 'color 0.35s ease, border-color 0.35s ease',
+                  transition: 'color 350ms cubic-bezier(0.22, 1, 0.36, 1), border-color 350ms cubic-bezier(0.22, 1, 0.36, 1)',
                 }}
                 onMouseEnter={(e) => {
                   if (!active) {
@@ -358,8 +359,7 @@ function RecentlyListed({ artworks }: { artworks: FeaturedArtwork[] }) {
     >
       <div className="px-6 sm:px-10">
         {/* Header */}
-        <ScrollReveal>
-          <div
+        <div
             className="flex items-baseline justify-between mb-8 pb-3"
             style={{ borderBottom: '1px solid var(--color-border)' }}
           >
@@ -388,12 +388,17 @@ function RecentlyListed({ artworks }: { artworks: FeaturedArtwork[] }) {
               {artworks.length} works
             </span>
           </div>
-        </ScrollReveal>
 
         {/* List */}
         <ul className="list-none p-0 m-0" onMouseMove={handleMove}>
           {artworks.map((art, i) => (
-            <li key={art.id}>
+            <li
+              key={art.id}
+              style={{
+                opacity: 0,
+                animation: `fade-up 400ms cubic-bezier(0.22, 1, 0.36, 1) ${i * 40}ms forwards`,
+              }}
+            >
               <Link
                 href={`/artwork/${art.id}`}
                 className="no-underline block"
@@ -407,7 +412,7 @@ function RecentlyListed({ artworks }: { artworks: FeaturedArtwork[] }) {
                   padding: '1.15rem 0',
                   borderBottom: '1px solid var(--color-border)',
                   color: 'var(--color-ink)',
-                  transition: 'color 0.3s ease',
+                  transition: 'color 350ms cubic-bezier(0.22, 1, 0.36, 1)',
                 }}
                 onMouseOver={(e) => {
                   const el = e.currentTarget as HTMLAnchorElement;
@@ -426,8 +431,8 @@ function RecentlyListed({ artworks }: { artworks: FeaturedArtwork[] }) {
                     <div
                       className="block md:hidden shrink-0 overflow-hidden"
                       style={{
-                        width: 56,
-                        height: 70,
+                        width: 64,
+                        height: 80,
                         border: '1px solid var(--color-ink)',
                         background: 'var(--color-cream)',
                         position: 'relative',
@@ -437,7 +442,7 @@ function RecentlyListed({ artworks }: { artworks: FeaturedArtwork[] }) {
                         src={art.imageUrl}
                         alt=""
                         fill
-                        sizes="56px"
+                        sizes="64px"
                         className="object-cover"
                       />
                     </div>
@@ -448,7 +453,7 @@ function RecentlyListed({ artworks }: { artworks: FeaturedArtwork[] }) {
                       fontSize: 'clamp(1.2rem, 2.2vw, 1.5rem)',
                       letterSpacing: '-0.01em',
                       fontWeight: 400,
-                      transition: 'color 0.3s ease',
+                      transition: 'color 350ms cubic-bezier(0.22, 1, 0.36, 1)',
                       lineHeight: 1.2,
                       minWidth: 0,
                     }}
@@ -509,7 +514,7 @@ function RecentlyListed({ artworks }: { artworks: FeaturedArtwork[] }) {
           zIndex: 100,
           overflow: 'hidden',
           opacity: hoverIdx !== null ? 1 : 0,
-          transition: 'opacity 0.35s ease',
+          transition: 'opacity 350ms cubic-bezier(0.22, 1, 0.36, 1)',
           border: '1px solid var(--color-ink)',
           left: mouse.x + 24,
           top: mouse.y - 160,
@@ -651,7 +656,7 @@ function SellCTA({ imageUrl }: { imageUrl: string | null }) {
                 color: 'var(--color-warm-white)',
                 paddingBottom: '0.25rem',
                 borderBottom: '1px solid rgba(252, 251, 248, 0.45)',
-                transition: 'border-color 0.3s ease',
+                transition: 'border-color 350ms cubic-bezier(0.22, 1, 0.36, 1)',
               }}
               onMouseEnter={(e) =>
                 ((e.currentTarget as HTMLAnchorElement).style.borderBottomColor =

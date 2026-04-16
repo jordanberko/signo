@@ -2,10 +2,10 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
-import { MessageCircle, Loader2, RefreshCw } from 'lucide-react';
+import Image from 'next/image';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { useRequireAuth } from '@/lib/hooks/useRequireAuth';
-import { getInitials } from '@/lib/utils';
+import Avatar from '@/components/ui/Avatar';
 
 // ── Types ──
 
@@ -29,12 +29,53 @@ function timeAgo(dateStr: string): string {
   const diffDays = Math.floor(diffMs / 86400000);
 
   if (diffMins < 1) return 'Just now';
-  if (diffMins < 60) return `${diffMins}m ago`;
-  if (diffHours < 24) return `${diffHours}h ago`;
+  if (diffMins < 60) return `${diffMins}m`;
+  if (diffHours < 24) return `${diffHours}h`;
   if (diffDays === 1) return 'Yesterday';
-  if (diffDays < 7) return `${diffDays}d ago`;
+  if (diffDays < 7) return `${diffDays}d`;
 
   return date.toLocaleDateString('en-AU', { day: 'numeric', month: 'short' });
+}
+
+// ── Shell ──
+
+function PageShell({ children }: { children: React.ReactNode }) {
+  return (
+    <div style={{ background: 'var(--color-warm-white)', minHeight: '100vh' }}>
+      <div
+        className="px-6 sm:px-10"
+        style={{
+          maxWidth: '62rem',
+          margin: '0 auto',
+          paddingTop: 'clamp(7.5rem, 10vw, 9.5rem)',
+          paddingBottom: 'clamp(4rem, 7vw, 6rem)',
+        }}
+      >
+        {children}
+      </div>
+    </div>
+  );
+}
+
+function EditorialSpinner({ label = 'Loading…' }: { label?: string }) {
+  return (
+    <div
+      style={{
+        minHeight: '60vh',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        background: 'var(--color-warm-white)',
+      }}
+    >
+      <p
+        className="font-serif"
+        style={{ fontStyle: 'italic', fontSize: '0.95rem', color: 'var(--color-stone)' }}
+      >
+        {label}
+      </p>
+    </div>
+  );
 }
 
 // ── Component ──
@@ -82,7 +123,6 @@ export default function MessagesPage() {
     loadConversations();
   }, [user, loadConversations]);
 
-  // Safety timeout: if loading takes more than 10 seconds, stop
   useEffect(() => {
     if (!loading) return;
     const t = setTimeout(() => {
@@ -94,152 +134,287 @@ export default function MessagesPage() {
     return () => clearTimeout(t);
   }, [loading]);
 
-  // ── Auth loading ──
-  if (authLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="w-8 h-8 border-2 border-border border-t-primary rounded-full animate-spin" />
-      </div>
-    );
-  }
+  if (authLoading) return <EditorialSpinner />;
+  if (loading) return <EditorialSpinner label="Retrieving your correspondence…" />;
 
-  // ── Data loading ──
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <Loader2 className="h-6 w-6 animate-spin text-muted" />
-      </div>
-    );
-  }
+  // Editorial header fragment reused across states
+  const header = (
+    <header style={{ marginBottom: 'clamp(2.4rem, 4vw, 3.4rem)' }}>
+      <p
+        style={{
+          fontSize: '0.62rem',
+          letterSpacing: '0.22em',
+          textTransform: 'uppercase',
+          color: 'var(--color-stone)',
+          marginBottom: '1rem',
+        }}
+      >
+        The Studio · Messages
+      </p>
+      <h1
+        className="font-serif"
+        style={{
+          fontSize: 'clamp(2rem, 4vw, 3rem)',
+          lineHeight: 1.05,
+          letterSpacing: '-0.015em',
+          color: 'var(--color-ink)',
+          fontWeight: 400,
+          marginBottom: '0.7rem',
+        }}
+      >
+        Your <em style={{ fontStyle: 'italic' }}>correspondence.</em>
+      </h1>
+      <p
+        style={{
+          fontSize: '0.92rem',
+          fontWeight: 300,
+          color: 'var(--color-stone-dark)',
+          lineHeight: 1.6,
+        }}
+      >
+        {conversations.length > 0
+          ? `${conversations.length} thread${conversations.length === 1 ? '' : 's'} with artists and collectors.`
+          : 'A quiet ledger of direct exchanges between you and the artists you follow.'}
+      </p>
+    </header>
+  );
 
-  // ── Error state ──
   if (error) {
     return (
-      <div className="max-w-2xl mx-auto px-4 py-16 text-center">
-        <div className="w-16 h-16 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-5">
-          <MessageCircle className="h-8 w-8 text-red-400" />
-        </div>
-        <h1 className="font-editorial text-2xl font-semibold mb-2">
-          Something went wrong
-        </h1>
-        <p className="text-muted mb-6">{error}</p>
-        <button
-          onClick={() => {
-            setLoading(true);
-            setError(null);
-            loadConversations();
+      <PageShell>
+        {header}
+        <div
+          style={{
+            paddingTop: '2rem',
+            borderTop: '1px solid var(--color-border)',
           }}
-          className="inline-flex items-center gap-2 px-6 py-3 bg-primary text-white font-semibold rounded-full hover:bg-accent hover:text-primary transition-colors"
         >
-          <RefreshCw className="h-4 w-4" />
-          Try Again
-        </button>
-      </div>
+          <p
+            className="font-serif"
+            style={{
+              fontSize: '0.92rem',
+              color: 'var(--color-terracotta, #c45d3e)',
+              fontStyle: 'italic',
+              marginBottom: '1.4rem',
+            }}
+          >
+            {error}
+          </p>
+          <button
+            onClick={() => {
+              setLoading(true);
+              setError(null);
+              loadConversations();
+            }}
+            className="editorial-link"
+          >
+            Try again
+          </button>
+        </div>
+      </PageShell>
     );
   }
 
-  // ── Empty state ──
   if (conversations.length === 0) {
     return (
-      <div className="max-w-2xl mx-auto px-4 py-16 text-center">
-        <div className="w-16 h-16 bg-cream rounded-full flex items-center justify-center mx-auto mb-5">
-          <MessageCircle className="h-8 w-8 text-warm-gray" />
-        </div>
-        <h1 className="font-editorial text-2xl font-semibold mb-2">
-          No messages yet
-        </h1>
-        <p className="text-muted mb-6">
-          Browse artwork and message an artist to get started.
-        </p>
-        <Link
-          href="/browse"
-          className="inline-flex items-center gap-2 px-6 py-3 bg-primary text-white font-semibold rounded-full hover:bg-accent hover:text-primary transition-colors"
+      <PageShell>
+        {header}
+        <div
+          style={{
+            paddingTop: '2rem',
+            borderTop: '1px solid var(--color-border)',
+            maxWidth: '46ch',
+          }}
         >
-          Browse Artwork
-        </Link>
-      </div>
+          <p
+            className="font-serif"
+            style={{
+              fontSize: 'clamp(1.4rem, 2.6vw, 1.9rem)',
+              lineHeight: 1.2,
+              color: 'var(--color-ink)',
+              fontStyle: 'italic',
+              fontWeight: 400,
+              marginTop: '1.4rem',
+            }}
+          >
+            No messages yet.
+          </p>
+          <p
+            style={{
+              marginTop: '1rem',
+              fontSize: '0.9rem',
+              color: 'var(--color-stone-dark)',
+              fontWeight: 300,
+              lineHeight: 1.6,
+            }}
+          >
+            When you reach out to an artist about a work — for a commission, a
+            studio visit, or simply a question — the thread will settle here.
+          </p>
+          <Link
+            href="/artists"
+            className="editorial-link"
+            style={{ marginTop: '1.6rem', display: 'inline-block' }}
+          >
+            Visit the artist directory →
+          </Link>
+        </div>
+      </PageShell>
     );
   }
 
-  // ── Conversation list ──
   return (
-    <div className="max-w-2xl mx-auto px-4 sm:px-6 py-8">
-      <h1 className="font-editorial text-2xl md:text-3xl font-semibold mb-6">
-        Messages
-      </h1>
-
-      <div className="bg-white border border-border rounded-2xl overflow-hidden divide-y divide-border">
-        {conversations.map((convo) => (
-          <Link
-            key={convo.id}
-            href={`/messages/${convo.id}`}
-            className="flex items-center gap-4 p-4 hover:bg-cream/50 transition-colors"
-          >
-            {/* Avatar */}
-            <div className="relative flex-shrink-0">
-              <div className="w-12 h-12 rounded-full bg-muted-bg flex items-center justify-center overflow-hidden">
-                {convo.otherUser.avatar_url ? (
-                  <img
-                    src={convo.otherUser.avatar_url}
-                    alt={convo.otherUser.full_name ?? ''}
-                    className="w-full h-full object-cover"
-                  />
-                ) : (
-                  <span className="text-sm font-bold text-muted">
-                    {getInitials(convo.otherUser.full_name || '?')}
-                  </span>
-                )}
-              </div>
-              {convo.unreadCount > 0 && (
-                <div className="absolute -top-0.5 -right-0.5 w-5 h-5 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center">
-                  {convo.unreadCount > 9 ? '9+' : convo.unreadCount}
-                </div>
-              )}
-            </div>
-
-            {/* Content */}
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center justify-between gap-2">
-                <p
-                  className={`text-sm truncate ${
-                    convo.unreadCount > 0
-                      ? 'font-semibold text-foreground'
-                      : 'font-medium text-foreground'
-                  }`}
-                >
-                  {convo.otherUser.full_name || 'Unknown User'}
-                </p>
-                <span className="text-xs text-warm-gray flex-shrink-0">
-                  {timeAgo(convo.lastMessageAt)}
-                </span>
-              </div>
-              {convo.artwork && (
-                <p className="text-xs text-accent-dark truncate">
-                  Re: {convo.artwork.title}
-                </p>
-              )}
-              <p
-                className={`text-sm truncate mt-0.5 ${
-                  convo.unreadCount > 0 ? 'text-foreground' : 'text-muted'
-                }`}
+    <PageShell>
+      {header}
+      <ul
+        style={{
+          listStyle: 'none',
+          padding: 0,
+          margin: 0,
+          borderTop: '1px solid var(--color-border-strong)',
+        }}
+      >
+        {conversations.map((convo) => {
+          const unread = convo.unreadCount > 0;
+          return (
+            <li
+              key={convo.id}
+              style={{ borderBottom: '1px solid var(--color-border)' }}
+            >
+              <Link
+                href={`/messages/${convo.id}`}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '1.4rem',
+                  padding: '1.4rem 0',
+                  textDecoration: 'none',
+                }}
               >
-                {convo.lastMessage || 'No messages yet'}
-              </p>
-            </div>
+                <div style={{ position: 'relative', flexShrink: 0 }}>
+                  <Avatar
+                    avatarUrl={convo.otherUser.avatar_url}
+                    name={convo.otherUser.full_name || '?'}
+                    size={56}
+                  />
+                  {unread && (
+                    <span
+                      aria-label={`${convo.unreadCount} unread`}
+                      style={{
+                        position: 'absolute',
+                        top: -2,
+                        right: -2,
+                        width: 8,
+                        height: 8,
+                        borderRadius: '50%',
+                        background: 'var(--color-terracotta, #c45d3e)',
+                        border: '1.5px solid var(--color-warm-white)',
+                      }}
+                    />
+                  )}
+                </div>
 
-            {/* Artwork thumbnail */}
-            {convo.artwork && convo.artwork.images?.[0] && (
-              <div className="hidden sm:block w-10 h-10 rounded-lg bg-muted-bg flex-shrink-0 overflow-hidden">
-                <img
-                  src={convo.artwork.images[0]}
-                  alt={convo.artwork.title}
-                  className="w-full h-full object-cover"
-                />
-              </div>
-            )}
-          </Link>
-        ))}
-      </div>
-    </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'baseline',
+                      justifyContent: 'space-between',
+                      gap: '1rem',
+                    }}
+                  >
+                    <p
+                      className="font-serif"
+                      style={{
+                        fontSize: '1.1rem',
+                        color: 'var(--color-ink)',
+                        fontWeight: 400,
+                        fontStyle: unread ? 'italic' : 'normal',
+                        margin: 0,
+                        lineHeight: 1.3,
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
+                      {convo.otherUser.full_name || 'Unknown'}
+                    </p>
+                    <span
+                      className="font-serif"
+                      style={{
+                        fontSize: '0.7rem',
+                        fontStyle: 'italic',
+                        color: 'var(--color-stone)',
+                        letterSpacing: '0.08em',
+                        flexShrink: 0,
+                      }}
+                    >
+                      {timeAgo(convo.lastMessageAt)}
+                    </span>
+                  </div>
+                  {convo.artwork && (
+                    <p
+                      style={{
+                        marginTop: '0.25rem',
+                        fontSize: '0.7rem',
+                        letterSpacing: '0.16em',
+                        textTransform: 'uppercase',
+                        color: 'var(--color-stone)',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
+                      Re · {convo.artwork.title}
+                    </p>
+                  )}
+                  <p
+                    style={{
+                      marginTop: '0.35rem',
+                      fontSize: '0.88rem',
+                      color: unread
+                        ? 'var(--color-ink)'
+                        : 'var(--color-stone-dark)',
+                      fontWeight: 300,
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap',
+                      lineHeight: 1.4,
+                    }}
+                  >
+                    {convo.lastMessage || 'No messages yet'}
+                  </p>
+                </div>
+
+                {convo.artwork && convo.artwork.images?.[0] && (
+                  <div
+                    className="hidden sm:block"
+                    style={{
+                      width: 56,
+                      height: 56,
+                      background: 'var(--color-cream)',
+                      flexShrink: 0,
+                      overflow: 'hidden',
+                    }}
+                  >
+                    <Image
+                      src={convo.artwork.images[0]}
+                      alt={convo.artwork.title}
+                      width={56}
+                      height={56}
+                      style={{
+                        width: '100%',
+                        height: '100%',
+                        objectFit: 'cover',
+                      }}
+                    />
+                  </div>
+                )}
+              </Link>
+            </li>
+          );
+        })}
+      </ul>
+    </PageShell>
   );
 }

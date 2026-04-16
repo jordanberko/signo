@@ -2,250 +2,542 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 
 export const metadata: Metadata = {
-  title: 'Returns & Refunds',
+  title: 'Returns & Refunds — Signo',
   description:
-    "Signo's returns and refunds policy including escrow protection, inspection windows, and dispute resolution.",
+    'Signo returns and refunds policy — escrow protection, inspection windows, and how disputes are resolved.',
 };
 
 export default function ReturnsPage() {
   return (
-    <div>
-      {/* Hero */}
-      <section className="bg-cream border-b border-border">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-16 md:py-24 text-center">
-          <p className="text-accent-dark text-sm font-medium tracking-[0.2em] uppercase mb-4">Buyer Protection</p>
-          <h1 className="font-editorial text-4xl md:text-5xl lg:text-6xl font-medium leading-tight">
-            Returns Policy
-          </h1>
-          <p className="mt-6 text-lg text-muted max-w-2xl mx-auto leading-relaxed">
-            We want every purchase on Signo to be a great experience. If something goes wrong, here&apos;s exactly how we handle it.
-          </p>
-        </div>
-      </section>
+    <div style={{ background: 'var(--color-warm-white)' }}>
+      {/* ── Editorial header ── */}
+      <header
+        className="px-6 sm:px-10"
+        style={{
+          paddingTop: 'clamp(4rem, 9vw, 7rem)',
+          paddingBottom: 'clamp(3rem, 6vw, 5rem)',
+        }}
+      >
+        <p
+          style={{
+            fontSize: '0.68rem',
+            letterSpacing: '0.22em',
+            textTransform: 'uppercase',
+            color: 'var(--color-stone)',
+            marginBottom: '1.2rem',
+          }}
+        >
+          Buyer Protection
+        </p>
+        <h1
+          className="font-serif"
+          style={{
+            fontSize: 'clamp(2.6rem, 6vw, 4.8rem)',
+            lineHeight: 1.02,
+            letterSpacing: '-0.015em',
+            color: 'var(--color-ink)',
+            fontWeight: 400,
+            maxWidth: '20ch',
+          }}
+        >
+          Returns, <em style={{ fontStyle: 'italic' }}>refunds &amp; disputes.</em>
+        </h1>
+        <p
+          style={{
+            marginTop: '1.8rem',
+            fontSize: '1rem',
+            fontWeight: 300,
+            lineHeight: 1.7,
+            color: 'var(--color-stone-dark)',
+            maxWidth: '52ch',
+          }}
+        >
+          Every purchase on Signo is held in escrow until you confirm delivery. If anything goes wrong on
+          arrival, here is exactly what happens — in plain language.
+        </p>
+      </header>
 
-      {/* Escrow Explanation */}
-      <section className="py-16 md:py-20">
-        <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="p-8 bg-accent/5 rounded-2xl border border-accent/20">
-            <h2 className="font-editorial text-xl font-medium mb-4">How escrow protects you</h2>
-            <p className="text-sm text-muted leading-relaxed">
-              When you purchase artwork on Signo, your payment is held securely by Stripe — our payment processor.
-              The artist receives the funds when you confirm delivery, or automatically once the 48-hour inspection window closes without a dispute.
-              If anything goes wrong, your money is safe.
-            </p>
-          </div>
-        </div>
-      </section>
+      <div style={{ borderTop: '1px solid var(--color-border)' }} />
 
-      {/* Scenario 1: Damaged in Transit */}
-      <section className="py-16 md:py-20 bg-cream border-y border-border">
-        <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center gap-3 mb-6">
-            <div className="w-8 h-8 bg-accent/10 rounded-full flex items-center justify-center">
-              <span className="text-sm font-mono font-semibold text-accent-dark">1</span>
-            </div>
-            <h2 className="font-editorial text-2xl font-semibold">Damaged in Transit</h2>
-          </div>
-          <div className="space-y-4 text-sm text-muted leading-relaxed">
-            <p className="font-medium text-primary text-base">
-              Full refund. No return required.
-            </p>
-            <p>
-              If your artwork arrives damaged, we&apos;ll issue a full refund. You don&apos;t need to send it back — we know
-              that&apos;s impractical with a damaged piece.
-            </p>
-            <div className="p-5 bg-white rounded-xl border border-border">
-              <h3 className="font-medium text-primary mb-2">What to do:</h3>
-              <ol className="list-decimal list-inside space-y-2">
-                <li>Take clear photos of the damage (the artwork and the packaging)</li>
-                <li>Go to your order page and raise a dispute within 48 hours of delivery</li>
-                <li>Upload the photos as evidence</li>
-                <li>We&apos;ll review and process your refund within 1-2 business days</li>
-              </ol>
-            </div>
-            <p>
-              The artist can claim shipping insurance for damage in transit — this doesn&apos;t affect your refund.
+      {/* ── Escrow explainer — editorial pullquote ── */}
+      <section
+        className="px-6 sm:px-10"
+        style={{
+          paddingTop: 'clamp(3.5rem, 7vw, 6rem)',
+          paddingBottom: 'clamp(3.5rem, 7vw, 6rem)',
+        }}
+      >
+        <div className="grid grid-cols-1 lg:grid-cols-12" style={{ gap: 'clamp(1.6rem, 4vw, 4rem)' }}>
+          <div className="lg:col-span-3">
+            <p
+              style={{
+                fontSize: '0.62rem',
+                letterSpacing: '0.22em',
+                textTransform: 'uppercase',
+                color: 'var(--color-stone)',
+              }}
+            >
+              How escrow protects you
             </p>
           </div>
-        </div>
-      </section>
-
-      {/* Scenario 2: Not as Described */}
-      <section className="py-16 md:py-20">
-        <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center gap-3 mb-6">
-            <div className="w-8 h-8 bg-accent/10 rounded-full flex items-center justify-center">
-              <span className="text-sm font-mono font-semibold text-accent-dark">2</span>
-            </div>
-            <h2 className="font-editorial text-2xl font-semibold">Not as Described</h2>
-          </div>
-          <div className="space-y-4 text-sm text-muted leading-relaxed">
-            <p className="font-medium text-primary text-base">
-              Return required. Full refund on receipt.
-            </p>
-            <p>
-              If the artwork differs materially from the listing — wrong size, different colours, different medium,
-              or significantly different from the photos — you can return it for a full refund.
-            </p>
-            <div className="p-5 bg-muted-bg rounded-xl border border-border">
-              <h3 className="font-medium text-primary mb-2">What to do:</h3>
-              <ol className="list-decimal list-inside space-y-2">
-                <li>Raise a dispute through your order page within 48 hours of delivery</li>
-                <li>Describe the discrepancy and include photos comparing the listing vs. what you received</li>
-                <li>If we agree the item is not as described, we&apos;ll approve the return</li>
-                <li>Ship the artwork back to the artist at your cost (we&apos;ll provide the address)</li>
-                <li>Once the artist confirms receipt, your refund is processed within 1-2 business days</li>
-              </ol>
-            </div>
-            <p>
-              We review each case individually. Minor differences due to monitor calibration or the inherent nature
-              of handmade art (slight texture variations, etc.) are generally not grounds for a return.
-            </p>
-          </div>
-        </div>
-      </section>
-
-      {/* Scenario 3: Changed Mind */}
-      <section className="py-16 md:py-20 bg-cream border-y border-border">
-        <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center gap-3 mb-6">
-            <div className="w-8 h-8 bg-accent/10 rounded-full flex items-center justify-center">
-              <span className="text-sm font-mono font-semibold text-accent-dark">3</span>
-            </div>
-            <h2 className="font-editorial text-2xl font-semibold">Changed Your Mind</h2>
-          </div>
-          <div className="space-y-4 text-sm text-muted leading-relaxed">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="p-5 bg-white rounded-xl border border-border">
-                <h3 className="font-medium text-primary mb-2">Before shipping</h3>
-                <p>
-                  If the artist hasn&apos;t shipped yet, you can cancel within 24 hours of purchase for a full refund.
-                  Contact us or raise a cancellation through your order page.
-                </p>
-              </div>
-              <div className="p-5 bg-white rounded-xl border border-border">
-                <h3 className="font-medium text-primary mb-2">After shipping</h3>
-                <p>
-                  Once the artwork has been shipped, the sale is final. We can&apos;t offer refunds for change of mind
-                  on shipped items — the artist has already packed and posted the work.
-                </p>
-              </div>
-            </div>
-            <p>
-              We encourage you to carefully review the listing photos, dimensions, and description before purchasing.
-              If you have questions about a piece, message the artist directly before buying.
-            </p>
-          </div>
-        </div>
-      </section>
-
-      {/* Digital Downloads */}
-      <section className="py-16 md:py-20">
-        <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center gap-3 mb-6">
-            <div className="w-8 h-8 bg-muted-bg rounded-full flex items-center justify-center border border-border">
-              <span className="text-sm font-mono text-warm-gray">~</span>
-            </div>
-            <h2 className="font-editorial text-2xl font-semibold">Digital Downloads</h2>
-          </div>
-          <div className="space-y-4 text-sm text-muted leading-relaxed">
-            <p>
-              All sales of digital artworks are final. Due to the nature of digital files, we cannot offer refunds
-              once the download link has been accessed.
-            </p>
-            <p>
-              The exception is corrupted or inaccessible files — if you receive a file that won&apos;t open or is
-              incomplete, contact us and we&apos;ll either provide a working file or issue a refund.
-            </p>
-          </div>
-        </div>
-      </section>
-
-      {/* How to Raise a Dispute */}
-      <section className="py-16 md:py-20 bg-cream border-y border-border">
-        <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
-          <h2 className="font-editorial text-2xl font-semibold mb-6">How to Raise a Dispute</h2>
-          <div className="space-y-4">
-            <div className="flex gap-4 items-start">
-              <div className="w-8 h-8 bg-white rounded-full flex items-center justify-center shrink-0 border border-border">
-                <span className="text-xs font-mono text-accent-dark">1</span>
-              </div>
-              <p className="text-sm text-muted leading-relaxed pt-1.5">
-                Go to your <strong>order page</strong> (My Orders → select the order)
-              </p>
-            </div>
-            <div className="flex gap-4 items-start">
-              <div className="w-8 h-8 bg-white rounded-full flex items-center justify-center shrink-0 border border-border">
-                <span className="text-xs font-mono text-accent-dark">2</span>
-              </div>
-              <p className="text-sm text-muted leading-relaxed pt-1.5">
-                Click <strong>&quot;Raise a Dispute&quot;</strong> — this must be done within <strong>48 hours of delivery</strong>
-              </p>
-            </div>
-            <div className="flex gap-4 items-start">
-              <div className="w-8 h-8 bg-white rounded-full flex items-center justify-center shrink-0 border border-border">
-                <span className="text-xs font-mono text-accent-dark">3</span>
-              </div>
-              <p className="text-sm text-muted leading-relaxed pt-1.5">
-                Select the reason, describe the issue, and upload supporting photos
-              </p>
-            </div>
-            <div className="flex gap-4 items-start">
-              <div className="w-8 h-8 bg-white rounded-full flex items-center justify-center shrink-0 border border-border">
-                <span className="text-xs font-mono text-accent-dark">4</span>
-              </div>
-              <p className="text-sm text-muted leading-relaxed pt-1.5">
-                Our team reviews the dispute and responds within <strong>1-2 business days</strong>
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Refund Timeline */}
-      <section className="py-16 md:py-20">
-        <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
-          <h2 className="font-editorial text-2xl font-semibold mb-6">Refund Timeline</h2>
-          <div className="space-y-3 text-sm text-muted leading-relaxed">
-            <div className="flex justify-between items-center p-4 bg-muted-bg rounded-xl border border-border">
-              <span>Dispute review</span>
-              <span className="font-medium text-primary">1-2 business days</span>
-            </div>
-            <div className="flex justify-between items-center p-4 bg-muted-bg rounded-xl border border-border">
-              <span>Refund processing (after approval)</span>
-              <span className="font-medium text-primary">1-2 business days</span>
-            </div>
-            <div className="flex justify-between items-center p-4 bg-muted-bg rounded-xl border border-border">
-              <span>Funds back to your card/bank</span>
-              <span className="font-medium text-primary">3-5 business days</span>
-            </div>
-            <div className="flex justify-between items-center p-4 bg-accent/5 rounded-xl border border-accent/20">
-              <span className="font-medium text-primary">Total estimated time</span>
-              <span className="font-semibold text-accent-dark">5-9 business days</span>
-            </div>
-          </div>
-          <p className="text-xs text-warm-gray mt-4">
-            Refund timing depends on your bank or card issuer. Signo processes refunds promptly, but your financial
-            institution may take additional time to credit your account.
-          </p>
-        </div>
-      </section>
-
-      {/* Contact CTA */}
-      <section className="py-16 md:py-20 bg-cream border-t border-border">
-        <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h2 className="font-editorial text-2xl font-semibold mb-4">Still have questions?</h2>
-          <p className="text-muted mb-6">
-            Our support team is here to help with any order issues.
-          </p>
-          <Link
-            href="/contact"
-            className="inline-flex items-center justify-center gap-2 px-7 py-3.5 bg-primary text-white font-semibold rounded-full hover:bg-primary/90 transition-all duration-300"
+          <p
+            className="font-serif lg:col-span-8"
+            style={{
+              fontSize: 'clamp(1.4rem, 2.4vw, 2rem)',
+              lineHeight: 1.35,
+              color: 'var(--color-ink)',
+              fontWeight: 400,
+              fontStyle: 'italic',
+              letterSpacing: '-0.005em',
+              maxWidth: '42ch',
+            }}
           >
-            Contact Support
-          </Link>
+            &ldquo;Your payment is held securely by Stripe. The artist only receives the funds when you
+            confirm delivery — or after the 48-hour inspection window passes without a dispute.&rdquo;
+          </p>
         </div>
       </section>
+
+      <div style={{ borderTop: '1px solid var(--color-border)' }} />
+
+      {/* ── Scenarios ── */}
+      <PolicySection number="01" kicker="Scenario" title="Damaged in transit" headline="A full refund, no return required.">
+        <p>
+          If your artwork arrives damaged, we issue a full refund. You do not need to post anything back — we know
+          that&apos;s impractical with a damaged piece.
+        </p>
+        <SubList
+          title="What to do"
+          items={[
+            'Photograph the damage — the artwork and the packaging.',
+            'Open a dispute on your order page within 48 hours of delivery.',
+            'Upload the photographs as evidence.',
+            'We review and process your refund within 1–2 business days.',
+          ]}
+        />
+        <p style={{ marginTop: '1.4rem' }}>
+          The artist may claim shipping insurance separately — this does not affect your refund.
+        </p>
+      </PolicySection>
+
+      <PolicySection number="02" kicker="Scenario" title="Not as described" headline="A full refund on return.">
+        <p>
+          If the artwork differs materially from the listing — wrong size, different colours, different medium, or
+          significantly different from the photos — you can return it for a full refund.
+        </p>
+        <SubList
+          title="What to do"
+          items={[
+            'Open a dispute through your order page within 48 hours of delivery.',
+            'Describe the discrepancy and upload comparison photos.',
+            'If we agree the work is not as described, we approve the return.',
+            'Ship the work back to the artist at your cost (we provide the address).',
+            'Once the artist confirms receipt, your refund is processed within 1–2 business days.',
+          ]}
+        />
+        <p style={{ marginTop: '1.4rem', fontStyle: 'italic' }}>
+          We review every case individually. Minor differences arising from monitor calibration or the inherent
+          qualities of handmade work are not grounds for return.
+        </p>
+      </PolicySection>
+
+      <PolicySection number="03" kicker="Scenario" title="Changed your mind" headline="Before shipping, yes. After, the sale is final.">
+        <div className="grid grid-cols-1 md:grid-cols-2" style={{ gap: 'clamp(1.5rem, 4vw, 3.5rem)', marginTop: '1.2rem' }}>
+          <div style={{ borderTop: '1px solid var(--color-border)', paddingTop: '1.2rem' }}>
+            <p
+              style={{
+                fontSize: '0.62rem',
+                letterSpacing: '0.2em',
+                textTransform: 'uppercase',
+                color: 'var(--color-stone)',
+                marginBottom: '0.6rem',
+              }}
+            >
+              Before shipping
+            </p>
+            <p style={{ fontSize: '0.94rem', lineHeight: 1.65, color: 'var(--color-stone-dark)', fontWeight: 300 }}>
+              Cancel within 24 hours of purchase for a full refund, provided the artist has not yet shipped.
+            </p>
+          </div>
+          <div style={{ borderTop: '1px solid var(--color-border)', paddingTop: '1.2rem' }}>
+            <p
+              style={{
+                fontSize: '0.62rem',
+                letterSpacing: '0.2em',
+                textTransform: 'uppercase',
+                color: 'var(--color-stone)',
+                marginBottom: '0.6rem',
+              }}
+            >
+              After shipping
+            </p>
+            <p style={{ fontSize: '0.94rem', lineHeight: 1.65, color: 'var(--color-stone-dark)', fontWeight: 300 }}>
+              Once the work has been shipped, the sale is final. The artist has already packed and posted the piece.
+            </p>
+          </div>
+        </div>
+        <p style={{ marginTop: '1.6rem' }}>
+          Please review the listing photos, dimensions and description carefully before purchasing. If you have
+          questions about a piece, message the artist directly first.
+        </p>
+      </PolicySection>
+
+      <PolicySection number="04" kicker="Scenario" title="Digital downloads" headline="All digital sales are final.">
+        <p>
+          Due to the nature of digital files, we cannot offer refunds once the download link has been accessed.
+        </p>
+        <p style={{ marginTop: '1rem' }}>
+          The exception is corrupted or inaccessible files — if you receive a file that will not open, contact
+          us and we will either provide a working file or issue a refund.
+        </p>
+      </PolicySection>
+
+      <div style={{ borderTop: '1px solid var(--color-border)' }} />
+
+      {/* ── How to raise a dispute ── */}
+      <section
+        className="px-6 sm:px-10"
+        style={{
+          paddingTop: 'clamp(4rem, 7vw, 6rem)',
+          paddingBottom: 'clamp(4rem, 7vw, 6rem)',
+        }}
+      >
+        <div className="grid grid-cols-1 lg:grid-cols-12" style={{ gap: 'clamp(1.5rem, 4vw, 4rem)' }}>
+          <div className="lg:col-span-4">
+            <p
+              style={{
+                fontSize: '0.68rem',
+                letterSpacing: '0.22em',
+                textTransform: 'uppercase',
+                color: 'var(--color-stone)',
+                marginBottom: '1.2rem',
+              }}
+            >
+              Raising a dispute
+            </p>
+            <h2
+              className="font-serif"
+              style={{
+                fontSize: 'clamp(1.8rem, 3.5vw, 2.6rem)',
+                lineHeight: 1.1,
+                color: 'var(--color-ink)',
+                fontWeight: 400,
+                letterSpacing: '-0.01em',
+                maxWidth: '16ch',
+              }}
+            >
+              Four steps, <em style={{ fontStyle: 'italic' }}>within 48 hours.</em>
+            </h2>
+          </div>
+          <ol className="list-none p-0 m-0 lg:col-span-8">
+            {[
+              'Go to your order page (My Orders → select the order).',
+              'Click "Raise a Dispute" — this must happen within 48 hours of delivery.',
+              'Select the reason, describe the issue, upload supporting photographs.',
+              'Our team reviews the dispute and responds within 1–2 business days.',
+            ].map((step, i) => (
+              <li
+                key={i}
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: '2.4rem 1fr',
+                  gap: '1rem',
+                  padding: '1.3rem 0',
+                  borderTop: '1px solid var(--color-border)',
+                  borderBottom: i === 3 ? '1px solid var(--color-border)' : 'none',
+                  alignItems: 'baseline',
+                }}
+              >
+                <span
+                  className="font-serif"
+                  style={{
+                    fontSize: '0.9rem',
+                    color: 'var(--color-stone)',
+                    fontStyle: 'italic',
+                  }}
+                >
+                  {String(i + 1).padStart(2, '0')}
+                </span>
+                <span
+                  style={{
+                    fontSize: '0.96rem',
+                    color: 'var(--color-ink)',
+                    fontWeight: 300,
+                    lineHeight: 1.6,
+                  }}
+                >
+                  {step}
+                </span>
+              </li>
+            ))}
+          </ol>
+        </div>
+      </section>
+
+      <div style={{ borderTop: '1px solid var(--color-border)' }} />
+
+      {/* ── Timeline ── */}
+      <section
+        className="px-6 sm:px-10"
+        style={{
+          paddingTop: 'clamp(4rem, 7vw, 6rem)',
+          paddingBottom: 'clamp(4rem, 7vw, 6rem)',
+          background: 'var(--color-cream)',
+        }}
+      >
+        <div className="grid grid-cols-1 lg:grid-cols-12" style={{ gap: 'clamp(1.5rem, 4vw, 4rem)' }}>
+          <div className="lg:col-span-4">
+            <p
+              style={{
+                fontSize: '0.68rem',
+                letterSpacing: '0.22em',
+                textTransform: 'uppercase',
+                color: 'var(--color-stone)',
+                marginBottom: '1.2rem',
+              }}
+            >
+              Refund timeline
+            </p>
+            <h2
+              className="font-serif"
+              style={{
+                fontSize: 'clamp(1.8rem, 3.5vw, 2.6rem)',
+                lineHeight: 1.1,
+                color: 'var(--color-ink)',
+                fontWeight: 400,
+                letterSpacing: '-0.01em',
+                maxWidth: '14ch',
+              }}
+            >
+              Start to <em style={{ fontStyle: 'italic' }}>settlement.</em>
+            </h2>
+          </div>
+          <dl className="lg:col-span-8 m-0">
+            {[
+              { label: 'Dispute review', value: '1–2 business days' },
+              { label: 'Refund processing (after approval)', value: '1–2 business days' },
+              { label: 'Funds back to card / bank', value: '3–5 business days' },
+              { label: 'Total estimated time', value: '5–9 business days', highlight: true },
+            ].map((row) => (
+              <div
+                key={row.label}
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'baseline',
+                  padding: '1.1rem 0',
+                  borderBottom: '1px solid var(--color-border)',
+                  gap: '1rem',
+                }}
+              >
+                <dt
+                  style={{
+                    fontSize: '0.94rem',
+                    color: 'var(--color-ink)',
+                    fontWeight: row.highlight ? 400 : 300,
+                    fontStyle: row.highlight ? 'normal' : 'italic',
+                  }}
+                >
+                  {row.label}
+                </dt>
+                <dd
+                  className="font-serif"
+                  style={{
+                    fontSize: row.highlight ? 'clamp(1.3rem, 2vw, 1.6rem)' : '1.05rem',
+                    color: 'var(--color-ink)',
+                    fontWeight: 400,
+                    margin: 0,
+                  }}
+                >
+                  {row.value}
+                </dd>
+              </div>
+            ))}
+          </dl>
+        </div>
+        <p
+          style={{
+            marginTop: '1.8rem',
+            fontSize: '0.72rem',
+            color: 'var(--color-stone)',
+            fontStyle: 'italic',
+            fontWeight: 300,
+            maxWidth: '64ch',
+          }}
+        >
+          Refund timing ultimately depends on your bank or card issuer. Signo processes refunds promptly, but
+          your financial institution may take additional time to credit your account.
+        </p>
+      </section>
+
+      {/* ── Contact CTA ── */}
+      <section
+        className="px-6 sm:px-10"
+        style={{
+          paddingTop: 'clamp(4rem, 7vw, 6rem)',
+          paddingBottom: 'clamp(5rem, 9vw, 8rem)',
+          borderTop: '1px solid var(--color-border)',
+        }}
+      >
+        <p
+          style={{
+            fontSize: '0.68rem',
+            letterSpacing: '0.22em',
+            textTransform: 'uppercase',
+            color: 'var(--color-stone)',
+            marginBottom: '1.2rem',
+          }}
+        >
+          Still unsure?
+        </p>
+        <h2
+          className="font-serif"
+          style={{
+            fontSize: 'clamp(2rem, 4vw, 3rem)',
+            lineHeight: 1.1,
+            color: 'var(--color-ink)',
+            fontWeight: 400,
+            letterSpacing: '-0.01em',
+            maxWidth: '18ch',
+            marginBottom: '2rem',
+          }}
+        >
+          Our support team will walk you <em style={{ fontStyle: 'italic' }}>through it.</em>
+        </h2>
+        <Link href="/contact" className="editorial-link">
+          Contact support
+        </Link>
+      </section>
+    </div>
+  );
+}
+
+// ── Shared editorial building blocks ──
+
+function PolicySection({
+  number,
+  kicker,
+  title,
+  headline,
+  children,
+}: {
+  number: string;
+  kicker: string;
+  title: string;
+  headline: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <section
+      className="px-6 sm:px-10"
+      style={{
+        paddingTop: 'clamp(3.5rem, 6vw, 5rem)',
+        paddingBottom: 'clamp(3.5rem, 6vw, 5rem)',
+        borderTop: '1px solid var(--color-border)',
+      }}
+    >
+      <div className="grid grid-cols-1 lg:grid-cols-12" style={{ gap: 'clamp(1.5rem, 4vw, 4rem)' }}>
+        <div className="lg:col-span-4">
+          <p
+            style={{
+              fontSize: '0.62rem',
+              letterSpacing: '0.22em',
+              textTransform: 'uppercase',
+              color: 'var(--color-stone)',
+              marginBottom: '0.8rem',
+            }}
+          >
+            {kicker} · {number}
+          </p>
+          <h2
+            className="font-serif"
+            style={{
+              fontSize: 'clamp(1.6rem, 3vw, 2.3rem)',
+              lineHeight: 1.1,
+              color: 'var(--color-ink)',
+              fontWeight: 400,
+              letterSpacing: '-0.01em',
+              maxWidth: '14ch',
+            }}
+          >
+            {title}
+          </h2>
+        </div>
+        <div className="lg:col-span-8">
+          <p
+            className="font-serif"
+            style={{
+              fontSize: 'clamp(1.2rem, 1.8vw, 1.5rem)',
+              lineHeight: 1.3,
+              color: 'var(--color-ink)',
+              fontWeight: 400,
+              fontStyle: 'italic',
+              letterSpacing: '-0.005em',
+              marginBottom: '1.6rem',
+              maxWidth: '36ch',
+            }}
+          >
+            {headline}
+          </p>
+          <div
+            style={{
+              fontSize: '0.96rem',
+              lineHeight: 1.7,
+              color: 'var(--color-stone-dark)',
+              fontWeight: 300,
+              maxWidth: '58ch',
+            }}
+          >
+            {children}
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function SubList({ title, items }: { title: string; items: string[] }) {
+  return (
+    <div style={{ marginTop: '1.6rem' }}>
+      <p
+        style={{
+          fontSize: '0.62rem',
+          letterSpacing: '0.2em',
+          textTransform: 'uppercase',
+          color: 'var(--color-stone)',
+          marginBottom: '0.8rem',
+        }}
+      >
+        {title}
+      </p>
+      <ol className="list-none p-0 m-0">
+        {items.map((item, i) => (
+          <li
+            key={i}
+            style={{
+              display: 'grid',
+              gridTemplateColumns: '2rem 1fr',
+              gap: '0.8rem',
+              padding: '0.8rem 0',
+              borderTop: '1px solid var(--color-border)',
+              borderBottom: i === items.length - 1 ? '1px solid var(--color-border)' : 'none',
+              alignItems: 'baseline',
+              fontSize: '0.92rem',
+              lineHeight: 1.55,
+              color: 'var(--color-stone-dark)',
+              fontWeight: 300,
+            }}
+          >
+            <span
+              className="font-serif"
+              style={{ fontSize: '0.78rem', color: 'var(--color-stone)', fontStyle: 'italic' }}
+            >
+              {String(i + 1).padStart(2, '0')}
+            </span>
+            <span>{item}</span>
+          </li>
+        ))}
+      </ol>
     </div>
   );
 }

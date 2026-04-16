@@ -3,18 +3,6 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import {
-  DollarSign,
-  Clock,
-  CreditCard,
-  TrendingUp,
-  ArrowRight,
-  Plus,
-  Share2,
-  Info,
-  ImageIcon,
-  Sparkles,
-} from 'lucide-react';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { useRequireAuth } from '@/lib/hooks/useRequireAuth';
 import { formatPrice } from '@/lib/utils';
@@ -32,27 +20,48 @@ interface OrderRow {
   artworks: { title: string; images: string[] } | null;
 }
 
-function getPaymentStatus(order: OrderRow): { label: string; color: string } {
-  if (order.status === 'completed' && order.payout_released_at) {
-    return { label: 'Paid', color: 'bg-green-50 text-green-700' };
-  }
+function getPaymentLabel(order: OrderRow): string {
+  if (order.status === 'completed' && order.payout_released_at) return 'Paid';
   if (order.status === 'delivered') {
-    // Check if still within inspection window
     if (order.inspection_deadline) {
       const deadline = new Date(order.inspection_deadline);
-      if (deadline > new Date()) {
-        return { label: 'In Escrow', color: 'bg-amber-50 text-amber-700' };
-      }
+      if (deadline > new Date()) return 'In escrow';
     }
-    return { label: 'Pending', color: 'bg-blue-50 text-blue-700' };
+    return 'Pending';
   }
-  if (['shipped', 'paid'].includes(order.status)) {
-    return { label: 'In Escrow', color: 'bg-amber-50 text-amber-700' };
-  }
+  if (['shipped', 'paid'].includes(order.status)) return 'In escrow';
   if (['disputed', 'refunded', 'cancelled'].includes(order.status)) {
-    return { label: order.status.charAt(0).toUpperCase() + order.status.slice(1), color: 'bg-red-50 text-red-600' };
+    return order.status.charAt(0).toUpperCase() + order.status.slice(1);
   }
-  return { label: 'Pending', color: 'bg-gray-100 text-gray-600' };
+  return 'Pending';
+}
+
+const KICKER: React.CSSProperties = {
+  fontSize: '0.62rem',
+  letterSpacing: '0.22em',
+  textTransform: 'uppercase',
+  color: 'var(--color-stone)',
+};
+
+function EditorialSpinner({ label = 'Loading…' }: { label?: string }) {
+  return (
+    <div
+      style={{
+        minHeight: '60vh',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        background: 'var(--color-warm-white)',
+      }}
+    >
+      <p
+        className="font-serif"
+        style={{ fontStyle: 'italic', fontSize: '0.95rem', color: 'var(--color-stone)' }}
+      >
+        {label}
+      </p>
+    </div>
+  );
 }
 
 // ── Component ──
@@ -80,8 +89,6 @@ export default function EarningsPage() {
     fetchOrders();
   }, [user]);
 
-  // ── Calculate summary stats ──
-
   const totalEarnings = orders
     .filter((o) => o.status === 'completed' && o.payout_released_at)
     .reduce((sum, o) => sum + (o.artist_payout_aud ?? 0), 0);
@@ -90,7 +97,6 @@ export default function EarningsPage() {
     .filter((o) => ['delivered'].includes(o.status) && !o.payout_released_at)
     .reduce((sum, o) => sum + (o.artist_payout_aud ?? 0), 0);
 
-  // This month
   const now = new Date();
   const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
   const thisMonth = orders
@@ -102,280 +108,509 @@ export default function EarningsPage() {
     )
     .reduce((sum, o) => sum + (o.artist_payout_aud ?? 0), 0);
 
-  // ── Render ──
-
-  if (authLoading) return <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '60vh' }}><div style={{ width: 32, height: 32, border: '3px solid #E5E2DB', borderTopColor: '#2C2C2A', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} /><style>{'@keyframes spin { to { transform: rotate(360deg) } }'}</style></div>;
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="w-8 h-8 border-2 border-accent border-t-transparent rounded-full animate-spin" />
-      </div>
-    );
-  }
+  if (authLoading) return <EditorialSpinner />;
+  if (loading) return <EditorialSpinner label="Gathering the ledger…" />;
 
   const hasOrders = orders.length > 0;
 
+  const STATS = [
+    { label: 'Total earnings', value: formatPrice(totalEarnings), detail: 'All time' },
+    { label: 'In escrow', value: formatPrice(pendingPayout), detail: 'Awaiting release' },
+    {
+      label: 'This month',
+      value: formatPrice(thisMonth),
+      detail: now.toLocaleDateString('en-AU', { month: 'long', year: 'numeric' }),
+    },
+    { label: 'Subscription', value: 'Free', detail: 'Until your first sale' },
+  ];
+
   return (
-    <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      {/* Header */}
-      <div className="mb-8">
-        <h1 className="font-editorial text-2xl md:text-3xl font-semibold">Earnings</h1>
-        <p className="text-sm text-muted mt-1">Track your sales and payouts</p>
-      </div>
-
-      {/* Summary cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-10">
-        <div className="bg-white border border-border rounded-2xl p-5">
-          <div className="flex items-center justify-between mb-3">
-            <span className="text-xs font-medium tracking-wide uppercase text-muted">Total Earnings</span>
-            <div className="w-9 h-9 bg-green-50 rounded-full flex items-center justify-center">
-              <DollarSign className="h-4 w-4 text-green-600" />
-            </div>
-          </div>
-          <p className="text-2xl font-bold">{formatPrice(totalEarnings)}</p>
-          <p className="text-xs text-muted mt-1">All time</p>
-        </div>
-
-        <div className="bg-white border border-border rounded-2xl p-5">
-          <div className="flex items-center justify-between mb-3">
-            <span className="text-xs font-medium tracking-wide uppercase text-muted">Pending Payout</span>
-            <div className="w-9 h-9 bg-blue-50 rounded-full flex items-center justify-center">
-              <Clock className="h-4 w-4 text-blue-600" />
-            </div>
-          </div>
-          <p className="text-2xl font-bold">{formatPrice(pendingPayout)}</p>
-          <p className="text-xs text-muted mt-1">Awaiting release</p>
-        </div>
-
-        <div className="bg-white border border-border rounded-2xl p-5">
-          <div className="flex items-center justify-between mb-3">
-            <span className="text-xs font-medium tracking-wide uppercase text-muted">This Month</span>
-            <div className="w-9 h-9 bg-accent-subtle rounded-full flex items-center justify-center">
-              <TrendingUp className="h-4 w-4 text-accent-dark" />
-            </div>
-          </div>
-          <p className="text-2xl font-bold">{formatPrice(thisMonth)}</p>
-          <p className="text-xs text-muted mt-1">
-            {now.toLocaleDateString('en-AU', { month: 'long', year: 'numeric' })}
+    <div style={{ background: 'var(--color-warm-white)', minHeight: '100vh' }}>
+      <div
+        className="px-6 sm:px-10"
+        style={{
+          maxWidth: '72rem',
+          margin: '0 auto',
+          paddingTop: 'clamp(7.5rem, 10vw, 9.5rem)',
+          paddingBottom: 'clamp(4rem, 7vw, 6rem)',
+        }}
+      >
+        {/* Header */}
+        <header style={{ marginBottom: 'clamp(2.4rem, 4vw, 3.4rem)' }}>
+          <p style={{ ...KICKER, marginBottom: '1rem' }}>
+            The Studio · Earnings
           </p>
-        </div>
+          <h1
+            className="font-serif"
+            style={{
+              fontSize: 'clamp(2rem, 4vw, 3rem)',
+              lineHeight: 1.05,
+              letterSpacing: '-0.015em',
+              color: 'var(--color-ink)',
+              fontWeight: 400,
+              marginBottom: '0.7rem',
+            }}
+          >
+            Your <em style={{ fontStyle: 'italic' }}>ledger.</em>
+          </h1>
+          <p
+            style={{
+              fontSize: '0.92rem',
+              fontWeight: 300,
+              color: 'var(--color-stone-dark)',
+              lineHeight: 1.6,
+              maxWidth: '48ch',
+            }}
+          >
+            Every sale, every payout, every cent — plainly listed.
+          </p>
+        </header>
 
-        <div className="bg-white border border-border rounded-2xl p-5">
-          <div className="flex items-center justify-between mb-3">
-            <span className="text-xs font-medium tracking-wide uppercase text-muted">Subscription</span>
-            <div className="w-9 h-9 bg-green-50 rounded-full flex items-center justify-center">
-              <CreditCard className="h-4 w-4 text-green-600" />
-            </div>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <Sparkles className="h-4 w-4 text-green-600" />
-            <p className="text-sm font-semibold text-green-700">Free until first sale</p>
-          </div>
-          <p className="text-xs text-muted mt-1">Then $30/mo — zero commission</p>
-        </div>
-      </div>
-
-      {/* Payout setup CTA */}
-      <div className="flex flex-col sm:flex-row gap-4 sm:items-center justify-between p-5 bg-white border border-border rounded-2xl mb-6">
-        <div className="flex items-center gap-4">
-          <div className="w-10 h-10 bg-accent-subtle rounded-full flex items-center justify-center flex-shrink-0">
-            <CreditCard className="h-5 w-5 text-accent-dark" />
-          </div>
-          <div>
-            <p className="font-medium text-sm">Payout settings</p>
-            <p className="text-xs text-muted">Connect or manage your bank account for receiving payouts.</p>
-          </div>
-        </div>
-        <Link
-          href="/artist/settings/payouts"
-          className="inline-flex items-center gap-2 px-5 py-2.5 border border-border text-sm font-medium rounded-full hover:bg-cream transition-colors whitespace-nowrap"
+        {/* Stats dl */}
+        <section
+          style={{
+            borderTop: '1px solid var(--color-border-strong)',
+            borderBottom: '1px solid var(--color-border-strong)',
+            marginBottom: 'clamp(2.4rem, 4vw, 3.4rem)',
+          }}
         >
-          Manage Payouts
-          <ArrowRight className="h-3.5 w-3.5" />
-        </Link>
-      </div>
+          <dl
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(14rem, 1fr))',
+              margin: 0,
+            }}
+          >
+            {STATS.map((stat, i) => (
+              <div
+                key={stat.label}
+                style={{
+                  padding: '1.8rem 1.6rem',
+                  borderLeft: i === 0 ? 'none' : '1px solid var(--color-border)',
+                }}
+              >
+                <dt style={{ ...KICKER, marginBottom: '0.9rem' }}>
+                  {stat.label}
+                </dt>
+                <dd
+                  className="font-serif"
+                  style={{
+                    margin: 0,
+                    fontSize: 'clamp(1.6rem, 2.8vw, 2.2rem)',
+                    fontWeight: 400,
+                    color: 'var(--color-ink)',
+                    lineHeight: 1,
+                    letterSpacing: '-0.01em',
+                    marginBottom: '0.5rem',
+                  }}
+                >
+                  {stat.value}
+                </dd>
+                <p
+                  className="font-serif"
+                  style={{
+                    fontSize: '0.78rem',
+                    fontStyle: 'italic',
+                    color: 'var(--color-stone)',
+                  }}
+                >
+                  {stat.detail}
+                </p>
+              </div>
+            ))}
+          </dl>
+        </section>
 
-      {/* Payout explainer */}
-      <div className="flex gap-3 p-4 bg-accent-subtle/50 border border-accent/10 rounded-xl mb-10">
-        <Info className="h-5 w-5 text-accent-dark flex-shrink-0 mt-0.5" />
-        <div className="text-sm text-muted space-y-1.5">
-          <p>
-            <span className="font-medium text-foreground">Signo charges $0 commission.</span>{' '}
-            The only deduction from your sales is Stripe&apos;s payment processing fee (~1.75% + 30c per transaction).
-            Your $30/month subscription covers unlimited listings and all platform features.
+        {/* Payout explainer */}
+        <section style={{ marginBottom: 'clamp(2.4rem, 4vw, 3.4rem)' }}>
+          <p style={{ ...KICKER, marginBottom: '1rem' }}>— How payouts flow —</p>
+          <p
+            className="font-serif"
+            style={{
+              fontSize: 'clamp(1.1rem, 2vw, 1.4rem)',
+              lineHeight: 1.45,
+              color: 'var(--color-ink)',
+              fontWeight: 400,
+              fontStyle: 'italic',
+              marginBottom: '1rem',
+              maxWidth: '58ch',
+            }}
+          >
+            Signo takes zero commission.
           </p>
-          <p>
-            Payouts are released automatically after the buyer&apos;s 48-hour inspection window closes and transferred to your connected bank account via Stripe.
+          <p
+            style={{
+              fontSize: '0.92rem',
+              fontWeight: 300,
+              color: 'var(--color-stone-dark)',
+              lineHeight: 1.7,
+              maxWidth: '58ch',
+              marginBottom: '0.8rem',
+            }}
+          >
+            The only deduction from your sale is Stripe&apos;s payment
+            processing fee (approximately 1.75% + 30¢). Your $30 monthly
+            subscription covers unlimited listings and every platform feature.
           </p>
-        </div>
-      </div>
+          <p
+            style={{
+              fontSize: '0.92rem',
+              fontWeight: 300,
+              color: 'var(--color-stone-dark)',
+              lineHeight: 1.7,
+              maxWidth: '58ch',
+            }}
+          >
+            Payouts release automatically after the buyer&apos;s 48-hour
+            inspection window closes, and travel to your connected bank via
+            Stripe.
+          </p>
+          <Link
+            href="/artist/settings/payouts"
+            className="editorial-link"
+            style={{ marginTop: '1.4rem', display: 'inline-block' }}
+          >
+            Manage payout settings →
+          </Link>
+        </section>
 
-      {/* Orders list */}
-      {!hasOrders ? (
-        /* Empty state */
-        <div className="text-center py-20 border-2 border-dashed border-border rounded-2xl">
-          <div className="w-16 h-16 bg-muted-bg rounded-full flex items-center justify-center mx-auto mb-4">
-            <DollarSign className="h-7 w-7 text-muted" />
-          </div>
-          <h3 className="font-editorial text-lg font-medium mb-2">No sales yet</h3>
-          <p className="text-sm text-muted mb-6 max-w-sm mx-auto">
-            Your first sale is coming! Make sure your artworks are listed and looking their best.
-          </p>
-          <div className="flex items-center justify-center gap-3">
-            <Link
-              href="/artist/artworks/new"
-              className="inline-flex items-center gap-2 px-5 py-2.5 bg-primary text-white text-sm font-semibold rounded-full hover:bg-accent transition-colors duration-300"
+        {/* Orders list */}
+        {!hasOrders ? (
+          <div
+            style={{
+              paddingTop: '2rem',
+              borderTop: '1px solid var(--color-border)',
+              maxWidth: '46ch',
+            }}
+          >
+            <p
+              className="font-serif"
+              style={{
+                fontSize: 'clamp(1.4rem, 2.6vw, 1.9rem)',
+                lineHeight: 1.2,
+                color: 'var(--color-ink)',
+                fontStyle: 'italic',
+                fontWeight: 400,
+                marginTop: '1.4rem',
+              }}
             >
-              <Plus className="h-4 w-4" />
-              Upload Artwork
-            </Link>
-            <Link
-              href={user ? `/artists/${user.id}` : '#'}
-              className="inline-flex items-center gap-2 px-5 py-2.5 border-2 border-border text-sm font-semibold rounded-full hover:border-warm-gray transition-colors"
+              No sales yet.
+            </p>
+            <p
+              style={{
+                marginTop: '1rem',
+                fontSize: '0.9rem',
+                color: 'var(--color-stone-dark)',
+                fontWeight: 300,
+                lineHeight: 1.6,
+              }}
             >
-              <Share2 className="h-4 w-4" />
-              View Storefront
-            </Link>
+              The first sale tends to come once the catalogue is settled. Make
+              sure the works are listed at their best.
+            </p>
+            <div
+              style={{
+                marginTop: '1.6rem',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '0.8rem',
+              }}
+            >
+              <Link
+                href="/artist/artworks/new"
+                className="editorial-link"
+                style={{ display: 'inline-block' }}
+              >
+                Upload a new work →
+              </Link>
+              <Link
+                href={user ? `/artists/${user.id}` : '#'}
+                className="editorial-link"
+                style={{ display: 'inline-block' }}
+              >
+                View your storefront →
+              </Link>
+            </div>
           </div>
-        </div>
-      ) : (
-        <div>
-          <h2 className="font-editorial text-lg font-medium mb-4">Sales History</h2>
+        ) : (
+          <section>
+            <p style={{ ...KICKER, marginBottom: '1.2rem' }}>— Sales history —</p>
 
-          {/* Desktop table */}
-          <div className="hidden md:block bg-white border border-border rounded-2xl overflow-hidden">
-            <table className="w-full">
+            {/* Desktop */}
+            <table
+              className="hidden md:table"
+              style={{
+                width: '100%',
+                borderCollapse: 'collapse',
+                borderTop: '1px solid var(--color-border-strong)',
+              }}
+            >
               <thead>
-                <tr className="text-left text-xs font-medium tracking-wide uppercase text-muted border-b border-border bg-cream">
-                  <th className="px-5 py-3.5">Artwork</th>
-                  <th className="px-5 py-3.5">Sale Price</th>
-                  <th className="px-5 py-3.5">Stripe Fee</th>
-                  <th className="px-5 py-3.5">You Receive</th>
-                  <th className="px-5 py-3.5">Date</th>
-                  <th className="px-5 py-3.5">Status</th>
+                <tr>
+                  {['Work', 'Sale', 'Fee', 'Your share', 'Date', 'Status'].map(
+                    (h, i) => (
+                      <th
+                        key={h}
+                        style={{
+                          ...KICKER,
+                          padding: '1rem 0.8rem',
+                          textAlign: i >= 1 && i <= 3 ? 'right' : 'left',
+                          borderBottom: '1px solid var(--color-border)',
+                          fontWeight: 400,
+                        }}
+                      >
+                        {h}
+                      </th>
+                    )
+                  )}
                 </tr>
               </thead>
               <tbody>
                 {orders.map((order) => {
-                  const payStatus = getPaymentStatus(order);
+                  const label = getPaymentLabel(order);
                   const artwork = order.artworks;
                   const thumbnail = artwork?.images?.[0];
-
+                  const sale = order.total_amount_aud ?? 0;
+                  const payout = order.artist_payout_aud ?? 0;
                   return (
-                    <tr key={order.id} className="border-b border-border last:border-0 hover:bg-cream/50 transition-colors">
-                      <td className="px-5 py-4">
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-lg bg-muted-bg flex-shrink-0 overflow-hidden">
-                            {thumbnail ? (
+                    <tr
+                      key={order.id}
+                      style={{ borderBottom: '1px solid var(--color-border)' }}
+                    >
+                      <td style={{ padding: '1.2rem 0.8rem' }}>
+                        <div
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '1rem',
+                          }}
+                        >
+                          <div
+                            style={{
+                              width: 44,
+                              height: 44,
+                              background: 'var(--color-cream)',
+                              overflow: 'hidden',
+                              flexShrink: 0,
+                            }}
+                          >
+                            {thumbnail && (
                               <Image
                                 src={thumbnail}
                                 alt={artwork?.title ?? ''}
-                                width={40}
-                                height={40}
-                                className="w-full h-full object-cover"
+                                width={44}
+                                height={44}
+                                style={{
+                                  width: '100%',
+                                  height: '100%',
+                                  objectFit: 'cover',
+                                }}
                               />
-                            ) : (
-                              <div className="w-full h-full flex items-center justify-center">
-                                <ImageIcon className="h-4 w-4 text-border" />
-                              </div>
                             )}
                           </div>
-                          <span className="font-medium text-sm truncate max-w-[180px]">
+                          <span
+                            className="font-serif"
+                            style={{
+                              fontSize: '0.95rem',
+                              color: 'var(--color-ink)',
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                              whiteSpace: 'nowrap',
+                              maxWidth: 180,
+                            }}
+                          >
                             {artwork?.title ?? 'Unknown'}
                           </span>
                         </div>
                       </td>
-                      <td className="px-5 py-4 text-sm">
-                        {formatPrice(order.total_amount_aud ?? 0)}
+                      <td
+                        className="font-serif"
+                        style={{
+                          padding: '1.2rem 0.8rem',
+                          fontSize: '0.9rem',
+                          textAlign: 'right',
+                          color: 'var(--color-ink)',
+                        }}
+                      >
+                        {formatPrice(sale)}
                       </td>
-                      <td className="px-5 py-4 text-sm text-muted">
-                        −{formatPrice((order.total_amount_aud ?? 0) - (order.artist_payout_aud ?? 0))}
+                      <td
+                        style={{
+                          padding: '1.2rem 0.8rem',
+                          fontSize: '0.82rem',
+                          fontStyle: 'italic',
+                          color: 'var(--color-stone)',
+                          textAlign: 'right',
+                          fontWeight: 300,
+                        }}
+                      >
+                        −{formatPrice(sale - payout)}
                       </td>
-                      <td className="px-5 py-4 text-sm font-semibold text-green-700">
-                        {formatPrice(order.artist_payout_aud ?? 0)}
+                      <td
+                        className="font-serif"
+                        style={{
+                          padding: '1.2rem 0.8rem',
+                          fontSize: '1rem',
+                          textAlign: 'right',
+                          color: 'var(--color-ink)',
+                        }}
+                      >
+                        {formatPrice(payout)}
                       </td>
-                      <td className="px-5 py-4 text-sm text-muted">
-                        {new Date(order.created_at).toLocaleDateString('en-AU', {
-                          day: 'numeric',
-                          month: 'short',
-                          year: 'numeric',
-                        })}
+                      <td
+                        className="font-serif"
+                        style={{
+                          padding: '1.2rem 0.8rem',
+                          fontSize: '0.8rem',
+                          fontStyle: 'italic',
+                          color: 'var(--color-stone)',
+                        }}
+                      >
+                        {new Date(order.created_at).toLocaleDateString(
+                          'en-AU',
+                          { day: 'numeric', month: 'short', year: 'numeric' }
+                        )}
                       </td>
-                      <td className="px-5 py-4">
-                        <span className={`text-xs font-medium px-2.5 py-1 rounded-full ${payStatus.color}`}>
-                          {payStatus.label}
-                        </span>
+                      <td
+                        style={{
+                          ...KICKER,
+                          padding: '1.2rem 0.8rem',
+                          fontSize: '0.58rem',
+                        }}
+                      >
+                        {label}
                       </td>
                     </tr>
                   );
                 })}
               </tbody>
             </table>
-          </div>
 
-          {/* Mobile cards */}
-          <div className="md:hidden space-y-3">
-            {orders.map((order) => {
-              const payStatus = getPaymentStatus(order);
-              const artwork = order.artworks;
-              const thumbnail = artwork?.images?.[0];
-
-              return (
-                <div key={order.id} className="bg-white border border-border rounded-2xl p-4">
-                  <div className="flex items-start gap-3">
-                    <div className="w-14 h-14 rounded-xl bg-muted-bg flex-shrink-0 overflow-hidden">
-                      {thumbnail ? (
+            {/* Mobile */}
+            <ul
+              className="md:hidden"
+              style={{
+                listStyle: 'none',
+                padding: 0,
+                margin: 0,
+                borderTop: '1px solid var(--color-border-strong)',
+              }}
+            >
+              {orders.map((order) => {
+                const label = getPaymentLabel(order);
+                const artwork = order.artworks;
+                const thumbnail = artwork?.images?.[0];
+                const sale = order.total_amount_aud ?? 0;
+                const payout = order.artist_payout_aud ?? 0;
+                return (
+                  <li
+                    key={order.id}
+                    style={{
+                      borderBottom: '1px solid var(--color-border)',
+                      padding: '1.4rem 0',
+                      display: 'flex',
+                      gap: '1rem',
+                    }}
+                  >
+                    <div
+                      style={{
+                        width: 56,
+                        height: 56,
+                        background: 'var(--color-cream)',
+                        flexShrink: 0,
+                        overflow: 'hidden',
+                      }}
+                    >
+                      {thumbnail && (
                         <Image
                           src={thumbnail}
                           alt={artwork?.title ?? ''}
                           width={56}
                           height={56}
-                          className="w-full h-full object-cover"
+                          style={{
+                            width: '100%',
+                            height: '100%',
+                            objectFit: 'cover',
+                          }}
                         />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center">
-                          <ImageIcon className="h-5 w-5 text-border" />
-                        </div>
                       )}
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-start justify-between gap-2">
-                        <p className="font-medium text-sm truncate">{artwork?.title ?? 'Unknown'}</p>
-                        <span className={`text-xs font-medium px-2 py-0.5 rounded-full flex-shrink-0 ${payStatus.color}`}>
-                          {payStatus.label}
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div
+                        style={{
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'baseline',
+                          gap: '0.8rem',
+                        }}
+                      >
+                        <p
+                          className="font-serif"
+                          style={{
+                            fontSize: '1rem',
+                            margin: 0,
+                            color: 'var(--color-ink)',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap',
+                          }}
+                        >
+                          {artwork?.title ?? 'Unknown'}
+                        </p>
+                        <span style={{ ...KICKER, fontSize: '0.58rem', flexShrink: 0 }}>
+                          {label}
                         </span>
                       </div>
-                      <p className="text-xs text-muted mt-0.5">
-                        {new Date(order.created_at).toLocaleDateString('en-AU', {
-                          day: 'numeric',
-                          month: 'short',
-                          year: 'numeric',
-                        })}
+                      <p
+                        className="font-serif"
+                        style={{
+                          fontSize: '0.78rem',
+                          fontStyle: 'italic',
+                          color: 'var(--color-stone)',
+                          marginTop: '0.3rem',
+                        }}
+                      >
+                        {new Date(order.created_at).toLocaleDateString(
+                          'en-AU',
+                          { day: 'numeric', month: 'short', year: 'numeric' }
+                        )}
                       </p>
+                      <div
+                        style={{
+                          marginTop: '0.5rem',
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'baseline',
+                        }}
+                      >
+                        <span
+                          style={{
+                            fontSize: '0.78rem',
+                            fontStyle: 'italic',
+                            color: 'var(--color-stone)',
+                            fontWeight: 300,
+                          }}
+                        >
+                          {formatPrice(sale)} − {formatPrice(sale - payout)} fee
+                        </span>
+                        <span
+                          className="font-serif"
+                          style={{
+                            fontSize: '1rem',
+                            color: 'var(--color-ink)',
+                          }}
+                        >
+                          {formatPrice(payout)}
+                        </span>
+                      </div>
                     </div>
-                  </div>
-
-                  <div className="grid grid-cols-3 gap-3 mt-3 pt-3 border-t border-border">
-                    <div>
-                      <p className="text-[10px] text-muted uppercase tracking-wide">Sale</p>
-                      <p className="text-sm font-medium">{formatPrice(order.total_amount_aud ?? 0)}</p>
-                    </div>
-                    <div>
-                      <p className="text-[10px] text-muted uppercase tracking-wide">Stripe Fee</p>
-                      <p className="text-sm text-muted">−{formatPrice((order.total_amount_aud ?? 0) - (order.artist_payout_aud ?? 0))}</p>
-                    </div>
-                    <div>
-                      <p className="text-[10px] text-muted uppercase tracking-wide">Yours</p>
-                      <p className="text-sm font-bold text-accent-dark">{formatPrice(order.artist_payout_aud ?? 0)}</p>
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
+                  </li>
+                );
+              })}
+            </ul>
+          </section>
+        )}
+      </div>
     </div>
   );
 }

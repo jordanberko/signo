@@ -2,15 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import {
-  Search,
-  X,
-  SlidersHorizontal,
-  ChevronDown,
-  Loader2,
-  Clock,
-  TrendingUp,
-} from 'lucide-react';
+import Link from 'next/link';
 import ArtworkCard from '@/components/ui/ArtworkCard';
 import type { ArtworkCategory } from '@/lib/types/database';
 
@@ -79,17 +71,16 @@ const COLOUR_PALETTE = [
 
 const SORT_OPTIONS = [
   { value: 'newest', label: 'Newest' },
-  { value: 'price-low', label: 'Price: Low to High' },
-  { value: 'price-high', label: 'Price: High to Low' },
+  { value: 'price-low', label: 'Price ↑' },
+  { value: 'price-high', label: 'Price ↓' },
 ];
 
 const SIZE_PRESETS = [
-  { label: 'Small', desc: 'Under 40cm', maxCm: 40 },
-  { label: 'Medium', desc: '40–100cm', minCm: 40, maxCm: 100 },
-  { label: 'Large', desc: 'Over 100cm', minCm: 100 },
+  { label: 'Small', desc: 'under 40cm' },
+  { label: 'Medium', desc: '40–100cm' },
+  { label: 'Large', desc: 'over 100cm' },
 ];
 
-// TODO: Make popular searches dynamic based on actual search frequency once traffic grows
 const POPULAR_SEARCHES = [
   'Abstract',
   'Landscape',
@@ -118,7 +109,7 @@ function saveRecentSearch(term: string) {
     const updated = [term, ...filtered].slice(0, MAX_RECENT_SEARCHES);
     localStorage.setItem(RECENT_SEARCHES_KEY, JSON.stringify(updated));
   } catch {
-    // localStorage unavailable
+    // noop
   }
 }
 
@@ -137,7 +128,7 @@ function clearRecentSearches() {
   try {
     localStorage.removeItem(RECENT_SEARCHES_KEY);
   } catch {
-    // localStorage unavailable
+    // noop
   }
 }
 
@@ -158,20 +149,20 @@ interface ArtworkRow {
 }
 
 const ORIENTATIONS = [
-  { value: 'landscape', label: 'Landscape', w: 36, h: 24 },
-  { value: 'portrait', label: 'Portrait', w: 24, h: 36 },
-  { value: 'square', label: 'Square', w: 28, h: 28 },
+  { value: 'landscape', label: 'Landscape' },
+  { value: 'portrait', label: 'Portrait' },
+  { value: 'square', label: 'Square' },
 ] as const;
 
 const AU_STATES = [
-  { value: 'VIC', label: 'VIC — Victoria' },
-  { value: 'NSW', label: 'NSW — New South Wales' },
-  { value: 'QLD', label: 'QLD — Queensland' },
-  { value: 'SA', label: 'SA — South Australia' },
-  { value: 'WA', label: 'WA — Western Australia' },
-  { value: 'TAS', label: 'TAS — Tasmania' },
-  { value: 'NT', label: 'NT — Northern Territory' },
-  { value: 'ACT', label: 'ACT — Australian Capital Territory' },
+  { value: 'VIC', label: 'Victoria' },
+  { value: 'NSW', label: 'New South Wales' },
+  { value: 'QLD', label: 'Queensland' },
+  { value: 'SA', label: 'South Australia' },
+  { value: 'WA', label: 'Western Australia' },
+  { value: 'TAS', label: 'Tasmania' },
+  { value: 'NT', label: 'Northern Territory' },
+  { value: 'ACT', label: 'ACT' },
 ];
 
 interface Filters {
@@ -181,9 +172,9 @@ interface Filters {
   colors: string[];
   priceMin: string;
   priceMax: string;
-  size: string; // '' | 'small' | 'medium' | 'large'
-  orientation: string; // '' | 'landscape' | 'portrait' | 'square'
-  state: string; // '' | 'VIC' | 'NSW' | etc.
+  size: string;
+  orientation: string;
+  state: string;
   sort: string;
 }
 
@@ -198,81 +189,123 @@ function useDebounce<T>(value: T, delay: number): T {
   return debounced;
 }
 
-// ── Filter Sidebar Section ──
+// ── Editorial filter primitives ──
 
-function FilterSection({
+/**
+ * Typographic filter group. No box, no border, no collapse chevron —
+ * just an uppercase hairline-tracked heading above a stack of text rows.
+ */
+function FilterGroup({
   title,
-  defaultOpen = false,
   children,
 }: {
   title: string;
-  defaultOpen?: boolean;
   children: React.ReactNode;
 }) {
-  const [open, setOpen] = useState(defaultOpen);
   return (
-    <div className="border-b border-border pb-4">
-      <button
-        type="button"
-        onClick={() => setOpen(!open)}
-        className="flex items-center justify-between w-full py-2 text-sm font-medium text-foreground"
+    <div style={{ marginBottom: '2.2rem' }}>
+      <h3
+        style={{
+          fontSize: '0.66rem',
+          fontWeight: 500,
+          letterSpacing: '0.18em',
+          textTransform: 'uppercase',
+          color: 'var(--color-stone)',
+          marginBottom: '0.9rem',
+        }}
       >
         {title}
-        <ChevronDown
-          className={`h-4 w-4 text-muted transition-transform duration-200 ${open ? 'rotate-180' : ''}`}
-        />
-      </button>
-      {open && <div className="mt-2 space-y-1.5">{children}</div>}
+      </h3>
+      {children}
     </div>
   );
 }
 
-function CheckboxItem({
+/**
+ * Typographic toggle row — the label itself is the control.
+ * Active state is conveyed by ink colour + a thin leading rule.
+ */
+function FilterRow({
   label,
-  checked,
-  onChange,
+  active,
+  onClick,
 }: {
   label: string;
-  checked: boolean;
-  onChange: () => void;
+  active: boolean;
+  onClick: () => void;
 }) {
   return (
     <button
       type="button"
-      onClick={onChange}
-      className="flex items-center gap-2.5 py-1 cursor-pointer group w-full text-left"
+      onClick={onClick}
+      className="filter-row"
+      style={{
+        display: 'block',
+        width: '100%',
+        textAlign: 'left',
+        padding: '0.28rem 0',
+        fontSize: '0.82rem',
+        fontWeight: active ? 400 : 300,
+        color: active ? 'var(--color-ink)' : 'var(--color-stone-dark)',
+        background: 'none',
+        border: 'none',
+        cursor: 'pointer',
+        letterSpacing: active ? '0.01em' : 0,
+      }}
     >
-      <div
-        className={`w-4 h-4 rounded border-2 flex items-center justify-center transition-colors ${
-          checked
-            ? 'bg-accent border-accent'
-            : 'border-border group-hover:border-warm-gray'
-        }`}
-      >
-        {checked && (
-          <svg className="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-          </svg>
-        )}
-      </div>
-      <span className="text-sm text-muted group-hover:text-foreground transition-colors">
-        {label}
-      </span>
+      <span
+        aria-hidden
+        style={{
+          display: 'inline-block',
+          width: active ? 18 : 0,
+          height: 1,
+          background: 'var(--color-ink)',
+          verticalAlign: 'middle',
+          marginRight: active ? 10 : 0,
+          transition: 'width 200ms cubic-bezier(0.22, 1, 0.36, 1), margin 200ms cubic-bezier(0.22, 1, 0.36, 1)',
+        }}
+      />
+      {label}
     </button>
   );
 }
 
-// ── Main Component ──
+// ── Scroll-restoration helpers ──
+
+function buildScrollKey(params: URLSearchParams): string {
+  const copy = new URLSearchParams(params);
+  copy.delete('page');
+  copy.delete('welcome');
+  return 'browse-scroll-' + copy.toString();
+}
+
+// ── Main component ──
 
 function BrowseContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const initialQuery = searchParams.get('q') || '';
+  const showWelcome = searchParams.get('welcome') === '1';
+  const [welcomeVisible, setWelcomeVisible] = useState(showWelcome);
+
+  useEffect(() => {
+    if (!showWelcome) return;
+    function handleScroll() {
+      if (window.scrollY > 200) {
+        setWelcomeVisible(false);
+        // Remove the param from URL without reloading
+        const url = new URL(window.location.href);
+        url.searchParams.delete('welcome');
+        router.replace(url.pathname + (url.search || ''));
+      }
+    }
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [showWelcome, router]);
 
   const [searchInput, setSearchInput] = useState(initialQuery);
   const debouncedSearch = useDebounce(searchInput, 400);
 
-  // Read URL params from guided search and pre-apply as initial filters
   const initialStyle = searchParams.get('style') || '';
   const initialMedium = searchParams.get('medium') || '';
   const initialSize = searchParams.get('size') || '';
@@ -280,10 +313,11 @@ function BrowseContent() {
   const initialSort = searchParams.get('sort') || 'newest';
   const initialOrientation = searchParams.get('orientation') || '';
   const initialState = searchParams.get('state') || '';
-  const initialColors = searchParams.get('colors');
-  const initColors = initialColors ? initialColors.split(',').filter(Boolean) : [];
+  const initialColorsParam = searchParams.get('colors');
+  const initColors = initialColorsParam ? initialColorsParam.split(',').filter(Boolean) : [];
+  // How many pages are currently loaded (persisted in URL for Back nav restoration)
+  const initialPage = Math.max(1, parseInt(searchParams.get('page') || '1', 10));
 
-  // Parse budget param (e.g. "200-500") into priceMin/priceMax
   let initPriceMin = '';
   let initPriceMax = '';
   if (initialBudget) {
@@ -307,6 +341,8 @@ function BrowseContent() {
 
   const [artworks, setArtworks] = useState<ArtworkRow[]>([]);
   const [totalCount, setTotalCount] = useState(0);
+  // Track how many pages are currently loaded (1 = first page)
+  const [loadedPages, setLoadedPages] = useState(initialPage);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
@@ -316,13 +352,13 @@ function BrowseContent() {
   const [recentSearches, setRecentSearches] = useState<string[]>([]);
   const searchWrapperRef = useRef<HTMLDivElement>(null);
   const fetchIdRef = useRef(0);
+  // Scroll restoration — only run once after the hydration fetch completes
+  const hasRestoredScroll = useRef(false);
 
-  // Load recent searches on mount
   useEffect(() => {
     setRecentSearches(getRecentSearches());
   }, []);
 
-  // Close suggestions on click outside
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
       if (searchWrapperRef.current && !searchWrapperRef.current.contains(e.target as Node)) {
@@ -349,7 +385,6 @@ function BrowseContent() {
     setRecentSearches([]);
   }
 
-  // Fetch user's favourited artwork IDs once on mount
   useEffect(() => {
     async function fetchFavs() {
       try {
@@ -359,7 +394,7 @@ function BrowseContent() {
           setFavouriteIds(new Set(json.ids || []));
         }
       } catch {
-        // Silently ignore — hearts will just show as unfavourited
+        // noop
       }
     }
     fetchFavs();
@@ -416,9 +451,8 @@ function BrowseContent() {
     (filters.orientation ? 1 : 0) +
     (filters.state ? 1 : 0);
 
-  // Build and execute query via server API route
   const fetchArtworks = useCallback(
-    async (append = false) => {
+    async (append = false, pages = 1) => {
       const id = ++fetchIdRef.current;
 
       if (append) {
@@ -430,7 +464,6 @@ function BrowseContent() {
       setFetchError(null);
 
       try {
-        // Build query params for the server API
         const params = new URLSearchParams();
         if (filters.category !== 'all') params.set('category', filters.category);
         if (debouncedSearch.trim()) params.set('q', debouncedSearch.trim());
@@ -444,11 +477,11 @@ function BrowseContent() {
         if (filters.state) params.set('state', filters.state);
         if (filters.sort !== 'newest') params.set('sort', filters.sort);
 
+        // On first load after back-navigation, fetch all previously loaded pages at once
         const offset = append ? artworks.length : 0;
         if (offset > 0) params.set('offset', String(offset));
-        params.set('limit', String(PAGE_SIZE));
+        params.set('limit', String(PAGE_SIZE * pages));
 
-        // 15-second timeout (allows for Vercel cold starts)
         const controller = new AbortController();
         const timeout = setTimeout(() => controller.abort(), 10000);
 
@@ -457,7 +490,6 @@ function BrowseContent() {
         });
         clearTimeout(timeout);
 
-        // Guard against stale responses
         if (id !== fetchIdRef.current) return;
 
         if (res.ok) {
@@ -470,7 +502,6 @@ function BrowseContent() {
           }
           if (json.count != null) setTotalCount(json.count);
 
-          // Save successful search to recent searches (only if results found)
           if (!append && debouncedSearch.trim() && rows.length > 0) {
             saveRecentSearch(debouncedSearch.trim());
             setRecentSearches(getRecentSearches());
@@ -497,24 +528,70 @@ function BrowseContent() {
     [filters, debouncedSearch, artworks.length]
   );
 
-  // Re-fetch when filters or search change (reset to page 1)
   useEffect(() => {
-    fetchArtworks(false);
+    // On first render, fetch enough artworks to cover all previously loaded pages
+    fetchArtworks(false, initialPage);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filters, debouncedSearch]);
 
   function loadMore() {
+    const nextPage = loadedPages + 1;
+    setLoadedPages(nextPage);
+    // Persist page count in URL for Back nav
+    if (typeof window !== 'undefined') {
+      const url = new URL(window.location.href);
+      url.searchParams.set('page', String(nextPage));
+      router.replace(url.pathname + url.search, { scroll: false });
+    }
     fetchArtworks(true);
   }
 
+  // Save scroll position on scroll (throttled) and on unmount
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    let ticking = false;
+    const key = buildScrollKey(searchParams);
+    function onScroll() {
+      if (!ticking) {
+        window.requestAnimationFrame(() => {
+          sessionStorage.setItem(key, String(window.scrollY));
+          ticking = false;
+        });
+        ticking = true;
+      }
+    }
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => {
+      window.removeEventListener('scroll', onScroll);
+      sessionStorage.setItem(key, String(window.scrollY));
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams.toString()]);
+
+  // Restore scroll after artworks have rendered
+  useEffect(() => {
+    if (loading) return;
+    if (hasRestoredScroll.current) return;
+    if (initialPage <= 1) return;
+    if (typeof window === 'undefined') return;
+    const key = buildScrollKey(searchParams);
+    const saved = sessionStorage.getItem(key);
+    if (saved) {
+      const y = parseInt(saved, 10);
+      if (!isNaN(y) && y > 0) {
+        window.scrollTo({ top: y, behavior: 'instant' });
+      }
+    }
+    hasRestoredScroll.current = true;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [artworks, loading]);
+
   const hasMore = artworks.length < totalCount;
 
-  // Handle search submit on Enter
   function handleSearchKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
     if (e.key === 'Enter') {
       e.preventDefault();
       setShowSuggestions(false);
-      // Immediate search — bypass debounce
       fetchArtworks(false);
     }
     if (e.key === 'Escape') {
@@ -523,216 +600,261 @@ function BrowseContent() {
     }
   }
 
-  // ── Filter sidebar content (shared between desktop & mobile) ──
-  const filterContent = (
-    <div className="space-y-4">
-      {/* Category */}
-      <FilterSection title="Category" defaultOpen>
+  // ── Filter panel content (shared desktop + mobile) ──
+  const filterPanel = (
+    <div>
+      <FilterGroup title="Category">
         {CATEGORIES.map((cat) => (
-          <CheckboxItem
+          <FilterRow
             key={cat.value}
             label={cat.label}
-            checked={
-              cat.value === 'all'
-                ? filters.category === 'all'
-                : filters.category === cat.value
-            }
-            onChange={() =>
-              updateFilter('category', cat.value)
-            }
+            active={filters.category === cat.value}
+            onClick={() => updateFilter('category', cat.value)}
           />
         ))}
-      </FilterSection>
+      </FilterGroup>
 
-      {/* Medium */}
-      <FilterSection title="Medium" defaultOpen>
+      <FilterGroup title="Medium">
         {MEDIUMS.map((m) => (
-          <CheckboxItem
+          <FilterRow
             key={m}
             label={m}
-            checked={filters.mediums.includes(m)}
-            onChange={() => toggleArrayFilter('mediums', m)}
+            active={filters.mediums.includes(m)}
+            onClick={() => toggleArrayFilter('mediums', m)}
           />
         ))}
-      </FilterSection>
+      </FilterGroup>
 
-      {/* Style */}
-      <FilterSection title="Style">
+      <FilterGroup title="Style">
         {STYLES.map((s) => (
-          <CheckboxItem
+          <FilterRow
             key={s}
             label={s}
-            checked={filters.styles.includes(s)}
-            onChange={() => toggleArrayFilter('styles', s)}
+            active={filters.styles.includes(s)}
+            onClick={() => toggleArrayFilter('styles', s)}
           />
         ))}
-      </FilterSection>
+      </FilterGroup>
 
-      {/* Colour */}
-      <FilterSection title="Colour">
-        <div className="flex flex-wrap gap-2">
-          {COLOUR_PALETTE.map((colour) => (
-            <button
-              key={colour.value}
-              type="button"
-              title={colour.name}
-              onClick={() => toggleArrayFilter('colors', colour.value)}
-              className={`w-7 h-7 rounded-full border transition-all ${
-                filters.colors.includes(colour.value)
-                  ? 'ring-2 ring-accent-dark ring-offset-1'
-                  : ''
-              } ${colour.value === 'white' ? 'border-gray-300' : 'border-transparent'}`}
-              style={{ backgroundColor: colour.hex }}
-            />
-          ))}
-        </div>
-      </FilterSection>
-
-      {/* Price Range */}
-      <FilterSection title="Price Range" defaultOpen>
-        <div className="flex items-center gap-2">
-          <div className="relative flex-1">
-            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-muted">
-              $
-            </span>
-            <input
-              type="number"
-              min="0"
-              placeholder="Min"
-              value={filters.priceMin}
-              onChange={(e) => updateFilter('priceMin', e.target.value)}
-              className="w-full pl-7 pr-2 py-2 bg-white border border-border rounded-lg text-sm placeholder:text-warm-gray"
-            />
-          </div>
-          <span className="text-muted text-xs">–</span>
-          <div className="relative flex-1">
-            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-muted">
-              $
-            </span>
-            <input
-              type="number"
-              min="0"
-              placeholder="Max"
-              value={filters.priceMax}
-              onChange={(e) => updateFilter('priceMax', e.target.value)}
-              className="w-full pl-7 pr-2 py-2 bg-white border border-border rounded-lg text-sm placeholder:text-warm-gray"
-            />
-          </div>
-        </div>
-      </FilterSection>
-
-      {/* Size */}
-      <FilterSection title="Size">
-        <div className="space-y-1.5">
-          {SIZE_PRESETS.map((preset) => (
-            <CheckboxItem
-              key={preset.label}
-              label={`${preset.label} (${preset.desc})`}
-              checked={filters.size === preset.label.toLowerCase()}
-              onChange={() =>
-                updateFilter(
-                  'size',
-                  filters.size === preset.label.toLowerCase()
-                    ? ''
-                    : preset.label.toLowerCase()
-                )
-              }
-            />
-          ))}
-        </div>
-      </FilterSection>
-
-      {/* Orientation */}
-      <FilterSection title="Orientation">
-        <div className="flex gap-3">
-          {ORIENTATIONS.map((o) => (
-            <button
-              key={o.value}
-              type="button"
-              onClick={() =>
-                updateFilter(
-                  'orientation',
-                  filters.orientation === o.value ? '' : o.value
-                )
-              }
-              className="flex flex-col items-center gap-1.5 group"
-            >
-              <div
-                className={`rounded-md border-2 transition-colors ${
-                  filters.orientation === o.value
-                    ? 'border-accent bg-accent/10'
-                    : 'border-border group-hover:border-warm-gray'
-                }`}
-                style={{ width: o.w, height: o.h }}
+      <FilterGroup title="Colour">
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, marginTop: 4 }}>
+          {COLOUR_PALETTE.map((colour) => {
+            const selected = filters.colors.includes(colour.value);
+            return (
+              <button
+                key={colour.value}
+                type="button"
+                title={colour.name}
+                onClick={() => toggleArrayFilter('colors', colour.value)}
+                style={{
+                  width: 18,
+                  height: 18,
+                  borderRadius: '50%',
+                  background: colour.hex,
+                  border: colour.value === 'white'
+                    ? '1px solid var(--color-border-strong)'
+                    : '1px solid transparent',
+                  boxShadow: selected
+                    ? '0 0 0 1px var(--color-warm-white), 0 0 0 2px var(--color-ink)'
+                    : 'none',
+                  cursor: 'pointer',
+                  padding: 0,
+                }}
               />
-              <span
-                className={`text-[11px] transition-colors ${
-                  filters.orientation === o.value
-                    ? 'text-accent-dark font-medium'
-                    : 'text-muted group-hover:text-foreground'
-                }`}
-              >
-                {o.label}
-              </span>
-            </button>
-          ))}
+            );
+          })}
         </div>
-      </FilterSection>
+      </FilterGroup>
 
-      {/* Location */}
-      <FilterSection title="Location">
-        <select
-          value={filters.state}
-          onChange={(e) => updateFilter('state', e.target.value)}
-          className="w-full px-3 py-2 bg-white border border-border rounded-lg text-sm appearance-none cursor-pointer hover:border-accent transition-colors focus:border-accent focus:ring-1 focus:ring-accent/20"
-        >
-          <option value="">All locations</option>
-          {AU_STATES.map((s) => (
-            <option key={s.value} value={s.value}>
-              {s.label}
-            </option>
-          ))}
-        </select>
-      </FilterSection>
+      <FilterGroup title="Price">
+        <div style={{ display: 'flex', alignItems: 'baseline', gap: 10 }}>
+          <input
+            type="number"
+            min="0"
+            placeholder="min"
+            value={filters.priceMin}
+            onChange={(e) => updateFilter('priceMin', e.target.value)}
+            className="browse-price-input"
+          />
+          <span style={{ color: 'var(--color-stone)', fontSize: '0.82rem' }}>—</span>
+          <input
+            type="number"
+            min="0"
+            placeholder="max"
+            value={filters.priceMax}
+            onChange={(e) => updateFilter('priceMax', e.target.value)}
+            className="browse-price-input"
+          />
+        </div>
+      </FilterGroup>
 
-      {/* Clear all */}
+      <FilterGroup title="Size">
+        {SIZE_PRESETS.map((preset) => {
+          const key = preset.label.toLowerCase();
+          return (
+            <FilterRow
+              key={preset.label}
+              label={`${preset.label} — ${preset.desc}`}
+              active={filters.size === key}
+              onClick={() =>
+                updateFilter('size', filters.size === key ? '' : key)
+              }
+            />
+          );
+        })}
+      </FilterGroup>
+
+      <FilterGroup title="Orientation">
+        {ORIENTATIONS.map((o) => (
+          <FilterRow
+            key={o.value}
+            label={o.label}
+            active={filters.orientation === o.value}
+            onClick={() =>
+              updateFilter('orientation', filters.orientation === o.value ? '' : o.value)
+            }
+          />
+        ))}
+      </FilterGroup>
+
+      <FilterGroup title="Location">
+        <FilterRow
+          label="All Australia"
+          active={filters.state === ''}
+          onClick={() => updateFilter('state', '')}
+        />
+        {AU_STATES.map((s) => (
+          <FilterRow
+            key={s.value}
+            label={s.label}
+            active={filters.state === s.value}
+            onClick={() => updateFilter('state', filters.state === s.value ? '' : s.value)}
+          />
+        ))}
+      </FilterGroup>
+
       {hasActiveFilters && (
         <button
           onClick={clearAllFilters}
-          className="w-full py-2.5 text-sm font-medium text-accent-dark hover:underline"
+          className="editorial-link"
+          style={{ marginTop: 8 }}
         >
-          Clear all filters
+          Clear all
         </button>
       )}
     </div>
   );
 
   return (
-    <div>
-      {/* Page Header */}
-      <div className="bg-cream border-b border-border">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 md:py-16">
-          <p className="text-accent-dark text-sm font-medium tracking-[0.15em] uppercase mb-3">
-            Collection
+    <div style={{ background: 'var(--color-warm-white)' }}>
+      {/* ── Welcome banner ── */}
+      {welcomeVisible && (
+        <div
+          className="px-6 sm:px-10"
+          style={{
+            paddingTop: 'clamp(4rem, 9vw, 7rem)',
+            paddingBottom: 'clamp(2rem, 4vw, 3rem)',
+            marginBottom: 'clamp(2rem, 4vw, 3rem)',
+            borderBottom: '1px solid var(--color-border)',
+          }}
+        >
+          <p
+            style={{
+              fontSize: '0.62rem',
+              letterSpacing: '0.22em',
+              textTransform: 'uppercase',
+              color: 'var(--color-stone)',
+              marginBottom: '0.8rem',
+            }}
+          >
+            Welcome
           </p>
-          <h1 className="font-editorial text-4xl md:text-5xl font-bold">
-            Browse Artwork
-          </h1>
-          <p className="mt-3 text-muted max-w-lg">
-            Discover original art, prints, and digital works from Australian
-            artists.
+          <p
+            className="font-serif"
+            style={{
+              fontSize: 'clamp(1rem, 2vw, 1.25rem)',
+              fontStyle: 'italic',
+              color: 'var(--color-stone-dark)',
+              fontWeight: 400,
+              lineHeight: 1.55,
+              maxWidth: '52ch',
+            }}
+          >
+            <em>A curated room for Australian artists. Begin with the collection.</em>
           </p>
         </div>
-      </div>
+      )}
+      {/* ── Editorial page header ── */}
+      <header
+        className="px-6 sm:px-10"
+        style={{ paddingTop: 'clamp(4rem, 9vw, 7rem)', paddingBottom: 'clamp(2rem, 5vw, 3.5rem)' }}
+      >
+        <p
+          style={{
+            fontSize: '0.68rem',
+            letterSpacing: '0.22em',
+            textTransform: 'uppercase',
+            color: 'var(--color-stone)',
+            marginBottom: '1.2rem',
+            fontWeight: 400,
+          }}
+        >
+          The Collection
+        </p>
+        <h1
+          className="font-serif"
+          style={{
+            fontSize: 'clamp(2.6rem, 6vw, 4.8rem)',
+            lineHeight: 1.02,
+            letterSpacing: '-0.015em',
+            color: 'var(--color-ink)',
+            fontWeight: 400,
+            maxWidth: '18ch',
+            opacity: 0,
+            animation: 'fade-up 700ms cubic-bezier(0.22, 1, 0.36, 1) forwards',
+          }}
+        >
+          Original work from Australian artists.
+        </h1>
+        <p
+          style={{
+            marginTop: '1.6rem',
+            fontSize: '0.92rem',
+            fontWeight: 300,
+            lineHeight: 1.6,
+            color: 'var(--color-stone-dark)',
+            maxWidth: '42ch',
+          }}
+        >
+          {totalCount > 0
+            ? `${totalCount.toLocaleString('en-AU')} works currently listed — paintings, prints and sculpture direct from the studio.`
+            : 'Paintings, prints and sculpture direct from the studio.'}
+        </p>
+      </header>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Search & Sort Bar */}
-        <div className="flex flex-col sm:flex-row gap-3 mb-6">
+      {/* ── Hairline divider ── */}
+      <div style={{ borderTop: '1px solid var(--color-border)' }} />
+
+      {/* ── Search + sort row ── */}
+      <div className="px-6 sm:px-10" style={{ paddingTop: '1.6rem', paddingBottom: '1.6rem' }}>
+        <div className="flex flex-col sm:flex-row sm:items-end gap-5 sm:gap-10">
+          {/* Editorial underlined search */}
           <div ref={searchWrapperRef} className="relative flex-1">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-warm-gray z-[1]" />
+            <label
+              style={{
+                display: 'block',
+                fontSize: '0.62rem',
+                letterSpacing: '0.2em',
+                textTransform: 'uppercase',
+                color: 'var(--color-stone)',
+                marginBottom: '0.45rem',
+              }}
+            >
+              Search
+            </label>
             <input
               type="text"
-              placeholder="Search by title, artist, medium, or style..."
+              placeholder="Title, artist, medium, style"
               value={searchInput}
               onChange={(e) => {
                 setSearchInput(e.target.value);
@@ -740,7 +862,7 @@ function BrowseContent() {
               }}
               onFocus={() => setShowSuggestions(true)}
               onKeyDown={handleSearchKeyDown}
-              className="w-full pl-11 pr-10 py-2.5 bg-white border border-border rounded-full text-sm placeholder:text-warm-gray focus:border-accent focus:ring-1 focus:ring-accent/20 transition-colors"
+              className="browse-search-input"
             />
             {searchInput && (
               <button
@@ -748,232 +870,539 @@ function BrowseContent() {
                   setSearchInput('');
                   setShowSuggestions(true);
                 }}
-                className="absolute right-4 top-1/2 -translate-y-1/2 text-warm-gray hover:text-foreground transition-colors z-[1]"
+                aria-label="Clear search"
+                style={{
+                  position: 'absolute',
+                  right: 0,
+                  bottom: 10,
+                  color: 'var(--color-stone)',
+                  fontSize: '0.7rem',
+                  letterSpacing: '0.1em',
+                  textTransform: 'uppercase',
+                  background: 'none',
+                  border: 'none',
+                  cursor: 'pointer',
+                }}
               >
-                <X className="h-4 w-4" />
+                Clear
               </button>
             )}
 
-            {/* Search suggestions dropdown */}
+            {/* Suggestions dropdown — minimal editorial */}
             {showSuggestions && !searchInput.trim() && (
-              <div className="absolute top-full left-0 right-0 mt-1.5 bg-white border border-border rounded-xl shadow-lg z-30 overflow-hidden">
-                {/* Recent searches */}
+              <div
+                className="absolute left-0 right-0 z-30"
+                style={{
+                  top: '100%',
+                  marginTop: 6,
+                  background: 'var(--color-warm-white)',
+                  borderTop: '1px solid var(--color-border)',
+                  borderBottom: '1px solid var(--color-border)',
+                  padding: '1.2rem 0',
+                }}
+              >
                 {recentSearches.length > 0 && (
-                  <div className="px-4 pt-3 pb-2">
-                    <div className="flex items-center justify-between mb-2">
-                      <p className="text-[11px] font-semibold tracking-wide uppercase text-muted flex items-center gap-1.5">
-                        <Clock className="h-3 w-3" />
+                  <div style={{ marginBottom: '1.2rem' }}>
+                    <div
+                      className="flex items-center justify-between"
+                      style={{ marginBottom: '0.5rem' }}
+                    >
+                      <p
+                        style={{
+                          fontSize: '0.62rem',
+                          letterSpacing: '0.2em',
+                          textTransform: 'uppercase',
+                          color: 'var(--color-stone)',
+                        }}
+                      >
                         Recent
                       </p>
                       <button
                         onClick={handleClearAllRecent}
-                        className="text-[11px] text-accent-dark hover:underline"
+                        style={{
+                          fontSize: '0.62rem',
+                          letterSpacing: '0.1em',
+                          textTransform: 'uppercase',
+                          color: 'var(--color-stone-dark)',
+                          background: 'none',
+                          border: 'none',
+                          cursor: 'pointer',
+                        }}
                       >
                         Clear all
                       </button>
                     </div>
-                    {recentSearches.map((term) => (
-                      <button
-                        key={term}
-                        onClick={() => handleSuggestionClick(term)}
-                        className="flex items-center justify-between w-full px-2 py-1.5 rounded-lg text-sm text-foreground hover:bg-cream transition-colors group"
-                      >
-                        <span className="truncate">{term}</span>
-                        <span
-                          role="button"
-                          onClick={(e) => handleRemoveRecent(term, e)}
-                          className="text-warm-gray hover:text-foreground opacity-0 group-hover:opacity-100 transition-opacity p-0.5"
+                    <ul className="list-none p-0 m-0">
+                      {recentSearches.map((term) => (
+                        <li
+                          key={term}
+                          className="group flex items-center justify-between"
+                          style={{ padding: '0.2rem 0' }}
                         >
-                          <X className="h-3 w-3" />
-                        </span>
-                      </button>
-                    ))}
+                          <button
+                            onClick={() => handleSuggestionClick(term)}
+                            style={{
+                              fontSize: '0.88rem',
+                              color: 'var(--color-ink)',
+                              fontWeight: 300,
+                              background: 'none',
+                              border: 'none',
+                              cursor: 'pointer',
+                              padding: 0,
+                            }}
+                          >
+                            {term}
+                          </button>
+                          <button
+                            onClick={(e) => handleRemoveRecent(term, e)}
+                            aria-label={`Remove ${term}`}
+                            className="opacity-0 group-hover:opacity-100"
+                            style={{
+                              fontSize: '0.7rem',
+                              color: 'var(--color-stone)',
+                              background: 'none',
+                              border: 'none',
+                              cursor: 'pointer',
+                              transition: 'opacity 200ms cubic-bezier(0.22, 1, 0.36, 1)',
+                            }}
+                          >
+                            ×
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
                   </div>
                 )}
-
-                {/* Divider between sections */}
-                {recentSearches.length > 0 && (
-                  <div className="border-t border-border" />
-                )}
-
-                {/* Popular searches */}
-                <div className="px-4 pt-3 pb-3">
-                  <p className="text-[11px] font-semibold tracking-wide uppercase text-muted flex items-center gap-1.5 mb-2">
-                    <TrendingUp className="h-3 w-3" />
+                <div>
+                  <p
+                    style={{
+                      fontSize: '0.62rem',
+                      letterSpacing: '0.2em',
+                      textTransform: 'uppercase',
+                      color: 'var(--color-stone)',
+                      marginBottom: '0.5rem',
+                    }}
+                  >
                     Popular
                   </p>
-                  <div className="flex flex-wrap gap-1.5">
+                  <ul className="list-none p-0 m-0">
                     {POPULAR_SEARCHES.map((term) => (
-                      <button
-                        key={term}
-                        onClick={() => handleSuggestionClick(term)}
-                        className="px-3 py-1.5 bg-cream border border-border rounded-full text-xs text-muted hover:border-accent hover:text-accent-dark transition-colors"
-                      >
-                        {term}
-                      </button>
+                      <li key={term} style={{ padding: '0.2rem 0' }}>
+                        <button
+                          onClick={() => handleSuggestionClick(term)}
+                          style={{
+                            fontSize: '0.88rem',
+                            fontWeight: 300,
+                            color: 'var(--color-stone-dark)',
+                            background: 'none',
+                            border: 'none',
+                            cursor: 'pointer',
+                            padding: 0,
+                          }}
+                        >
+                          {term}
+                        </button>
+                      </li>
                     ))}
-                  </div>
+                  </ul>
                 </div>
               </div>
             )}
           </div>
-          <div className="flex gap-2">
+
+          {/* Sort — typographic inline */}
+          <div className="flex items-end gap-6">
+            <div>
+              <label
+                style={{
+                  display: 'block',
+                  fontSize: '0.62rem',
+                  letterSpacing: '0.2em',
+                  textTransform: 'uppercase',
+                  color: 'var(--color-stone)',
+                  marginBottom: '0.45rem',
+                }}
+              >
+                Sort
+              </label>
+              <div className="flex gap-4">
+                {SORT_OPTIONS.map((opt) => {
+                  const active = filters.sort === opt.value;
+                  return (
+                    <button
+                      key={opt.value}
+                      onClick={() => updateFilter('sort', opt.value)}
+                      style={{
+                        fontSize: '0.82rem',
+                        fontWeight: active ? 400 : 300,
+                        color: active ? 'var(--color-ink)' : 'var(--color-stone-dark)',
+                        background: 'none',
+                        border: 'none',
+                        borderBottom: active
+                          ? '1px solid var(--color-ink)'
+                          : '1px solid transparent',
+                        paddingBottom: 2,
+                        cursor: 'pointer',
+                      }}
+                    >
+                      {opt.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
             {/* Mobile filter toggle */}
             <button
-              onClick={() => setMobileFiltersOpen(!mobileFiltersOpen)}
-              className="lg:hidden flex items-center gap-2 px-4 py-2.5 bg-white border border-border rounded-full text-sm font-medium hover:border-accent transition-colors"
+              onClick={() => setMobileFiltersOpen(true)}
+              className="lg:hidden editorial-link"
+              style={{ paddingBottom: 2 }}
             >
-              <SlidersHorizontal className="h-4 w-4" />
-              Filters
-              {activeFilterCount > 0 && (
-                <span className="w-5 h-5 bg-accent text-white text-[10px] font-bold rounded-full flex items-center justify-center">
-                  {activeFilterCount}
-                </span>
-              )}
+              Filter{activeFilterCount > 0 ? ` (${activeFilterCount})` : ''}
             </button>
-            <select
-              value={filters.sort}
-              onChange={(e) => updateFilter('sort', e.target.value)}
-              className="px-4 py-2.5 bg-white border border-border rounded-full text-sm appearance-none cursor-pointer hover:border-accent transition-colors min-w-[180px]"
-            >
-              {SORT_OPTIONS.map((opt) => (
-                <option key={opt.value} value={opt.value}>
-                  {opt.label}
-                </option>
-              ))}
-            </select>
           </div>
         </div>
+      </div>
 
-        {/* Main layout: sidebar + grid */}
-        <div className="flex gap-8">
-          {/* Desktop Sidebar */}
-          <aside className="hidden lg:block w-56 flex-shrink-0">
-            <div className="sticky top-24">{filterContent}</div>
+      <div style={{ borderTop: '1px solid var(--color-border)' }} />
+
+      {/* ── Cross-discovery nudge ── */}
+      <div
+        className="px-6 sm:px-10"
+        style={{
+          paddingTop: '0.9rem',
+          paddingBottom: '0.9rem',
+          borderBottom: '1px solid var(--color-border)',
+        }}
+      >
+        <p
+          style={{
+            fontSize: '0.78rem',
+            color: 'var(--color-stone-dark)',
+            fontWeight: 300,
+          }}
+        >
+          <Link href="/collections" className="editorial-link" style={{ fontSize: '0.78rem' }}>
+            Discover by collection
+          </Link>
+          <em
+            className="font-serif"
+            style={{
+              fontStyle: 'italic',
+              color: 'var(--color-stone)',
+              margin: '0 0.5em',
+            }}
+          >
+            ·
+          </em>
+          <Link href="/artists" className="editorial-link" style={{ fontSize: '0.78rem' }}>
+            Discover by artist
+          </Link>
+        </p>
+      </div>
+
+      {/* ── Main layout ── */}
+      <div className="px-6 sm:px-10" style={{ paddingTop: 'clamp(3rem, 5vw, 4.5rem)', paddingBottom: 'clamp(4rem, 7vw, 6rem)' }}>
+        <div className="flex gap-10 lg:gap-16">
+          {/* Desktop sidebar */}
+          <aside
+            className="hidden lg:block flex-shrink-0"
+            style={{ width: 200 }}
+          >
+            <div className="sticky" style={{ top: '6rem' }}>
+              {filterPanel}
+            </div>
           </aside>
 
-          {/* Mobile slide-out filters */}
+          {/* Mobile slide-out */}
           {mobileFiltersOpen && (
             <div className="fixed inset-0 z-50 lg:hidden">
               <div
-                className="absolute inset-0 bg-black/30"
+                className="absolute inset-0"
+                style={{ background: 'rgba(26,26,24,0.35)' }}
                 onClick={() => setMobileFiltersOpen(false)}
               />
-              <div className="absolute right-0 top-0 bottom-0 w-80 max-w-[85vw] bg-white shadow-xl overflow-y-auto">
-                <div className="flex items-center justify-between p-4 border-b border-border">
-                  <h2 className="font-semibold">Filters</h2>
+              <div
+                className="absolute right-0 top-0 bottom-0 overflow-y-auto"
+                style={{
+                  width: 320,
+                  maxWidth: '86vw',
+                  background: 'var(--color-warm-white)',
+                  borderLeft: '1px solid var(--color-border)',
+                }}
+              >
+                <div
+                  className="flex items-center justify-between px-6"
+                  style={{
+                    paddingTop: '1.4rem',
+                    paddingBottom: '1.4rem',
+                    borderBottom: '1px solid var(--color-border)',
+                  }}
+                >
+                  <span
+                    style={{
+                      fontSize: '0.66rem',
+                      letterSpacing: '0.2em',
+                      textTransform: 'uppercase',
+                      color: 'var(--color-stone)',
+                    }}
+                  >
+                    Filter
+                  </span>
                   <button
                     onClick={() => setMobileFiltersOpen(false)}
-                    className="p-1.5 hover:bg-muted-bg rounded-full transition-colors"
+                    aria-label="Close filters"
+                    style={{
+                      fontSize: '0.7rem',
+                      letterSpacing: '0.1em',
+                      textTransform: 'uppercase',
+                      color: 'var(--color-stone-dark)',
+                      background: 'none',
+                      border: 'none',
+                      cursor: 'pointer',
+                    }}
                   >
-                    <X className="h-5 w-5" />
+                    Close
                   </button>
                 </div>
-                <div className="p-4">{filterContent}</div>
-                <div className="sticky bottom-0 p-4 bg-white border-t border-border">
+                <div className="px-6" style={{ padding: '1.6rem' }}>
+                  {filterPanel}
+                </div>
+                <div
+                  className="sticky bottom-0 px-6"
+                  style={{
+                    background: 'var(--color-warm-white)',
+                    borderTop: '1px solid var(--color-border)',
+                    padding: '1.1rem 1.5rem',
+                  }}
+                >
                   <button
                     onClick={() => setMobileFiltersOpen(false)}
-                    className="w-full py-3 bg-primary text-white font-semibold rounded-full text-sm hover:bg-accent transition-colors"
+                    className="editorial-link"
                   >
-                    Show results
+                    Show {totalCount} {totalCount === 1 ? 'work' : 'works'}
                   </button>
                 </div>
               </div>
             </div>
           )}
 
-          {/* Results area */}
+          {/* Results */}
           <div className="flex-1 min-w-0">
             {fetchError && (
-              <div className="mb-4 p-3.5 bg-red-50 border border-red-200 rounded-xl flex items-center gap-2 text-sm text-red-800">
+              <div
+                style={{
+                  marginBottom: '1.4rem',
+                  padding: '0.9rem 1rem',
+                  borderTop: '1px solid var(--color-error)',
+                  borderBottom: '1px solid var(--color-error)',
+                  fontSize: '0.82rem',
+                  color: 'var(--color-error)',
+                  fontWeight: 300,
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                }}
+              >
                 <span>{fetchError}</span>
                 <button
                   onClick={() => { setFetchError(null); fetchArtworks(false); }}
-                  className="ml-auto text-red-600 font-medium hover:underline"
+                  className="editorial-link"
+                  style={{ color: 'var(--color-error)', borderColor: 'var(--color-error)' }}
                 >
                   Retry
                 </button>
               </div>
             )}
+
             {loading ? (
-              <div className="text-center py-24">
-                <div className="inline-block w-8 h-8 border-2 border-accent border-t-transparent rounded-full animate-spin" />
-                <p className="text-muted mt-4 text-sm">Loading artwork...</p>
+              <div style={{ padding: '6rem 0' }}>
+                <p
+                  style={{
+                    fontSize: '0.62rem',
+                    letterSpacing: '0.22em',
+                    textTransform: 'uppercase',
+                    color: 'var(--color-stone)',
+                    marginBottom: '1rem',
+                  }}
+                >
+                  — One moment —
+                </p>
+                <p
+                  className="font-serif"
+                  style={{
+                    fontSize: 'clamp(1.4rem, 2.6vw, 1.9rem)',
+                    lineHeight: 1.2,
+                    letterSpacing: '-0.01em',
+                    color: 'var(--color-ink)',
+                    fontStyle: 'italic',
+                    fontWeight: 400,
+                    maxWidth: '24ch',
+                  }}
+                >
+                  Curating the collection…
+                </p>
+                <div
+                  className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3"
+                  style={{ columnGap: '2.2rem', rowGap: '4rem', marginTop: '3rem' }}
+                  aria-hidden
+                >
+                  {Array.from({ length: 6 }).map((_, i) => (
+                    <div key={i}>
+                      <div
+                        className="aspect-[4/5]"
+                        style={{ background: 'var(--color-cream)' }}
+                      />
+                      <div
+                        style={{
+                          marginTop: '1rem',
+                          height: 1,
+                          background: 'var(--color-border)',
+                          width: '60%',
+                        }}
+                      />
+                    </div>
+                  ))}
+                </div>
               </div>
             ) : artworks.length === 0 ? (
-              <div className="text-center py-24">
+              <div style={{ padding: '5rem 0', maxWidth: '46ch' }}>
                 {debouncedSearch.trim() ? (
                   <>
-                    <p className="font-editorial text-2xl text-foreground mb-2">
-                      No results for &ldquo;{debouncedSearch.trim()}&rdquo;
+                    <p
+                      className="font-serif"
+                      style={{
+                        fontSize: 'clamp(1.6rem, 3vw, 2.2rem)',
+                        lineHeight: 1.15,
+                        letterSpacing: '-0.01em',
+                        color: 'var(--color-ink)',
+                      }}
+                    >
+                      Nothing found for &ldquo;{debouncedSearch.trim()}&rdquo;.
                     </p>
-                    <p className="text-muted mb-6 text-sm max-w-md mx-auto">
-                      We couldn&apos;t find any artworks matching that search. Try one of these instead:
+                    <p
+                      style={{
+                        marginTop: '1.1rem',
+                        fontSize: '0.88rem',
+                        color: 'var(--color-stone-dark)',
+                        fontWeight: 300,
+                        lineHeight: 1.6,
+                      }}
+                    >
+                      Try a different term, or browse one of these instead.
                     </p>
-                    <div className="flex flex-wrap justify-center gap-2 mb-8">
+                    <ul className="list-none p-0 m-0" style={{ marginTop: '1.2rem' }}>
                       {['Abstract', 'Oil', 'Landscape', 'Contemporary'].map((term) => (
-                        <button
-                          key={term}
-                          onClick={() => {
-                            setSearchInput(term);
-                          }}
-                          className="px-4 py-2 bg-cream border border-border rounded-full text-sm text-muted hover:border-accent hover:text-accent-dark transition-colors"
-                        >
-                          {term}
-                        </button>
+                        <li key={term} style={{ padding: '0.25rem 0' }}>
+                          <button
+                            onClick={() => setSearchInput(term)}
+                            style={{
+                              fontSize: '0.92rem',
+                              color: 'var(--color-ink)',
+                              background: 'none',
+                              border: 'none',
+                              cursor: 'pointer',
+                              fontWeight: 300,
+                              padding: 0,
+                            }}
+                          >
+                            → {term}
+                          </button>
+                        </li>
                       ))}
-                    </div>
+                    </ul>
                     <button
                       onClick={clearAllFilters}
-                      className="text-sm text-accent-dark font-medium hover:underline"
+                      className="editorial-link"
+                      style={{ marginTop: '1.8rem' }}
                     >
-                      Or browse all artwork &rarr;
+                      Browse everything
                     </button>
                   </>
                 ) : hasActiveFilters ? (
                   <>
-                    <p className="font-editorial text-2xl text-foreground mb-2">
-                      No artworks match your filters
-                    </p>
-                    <p className="text-muted mb-6 text-sm">
-                      Try adjusting your filters or removing some to see more results.
+                    <p
+                      className="font-serif"
+                      style={{
+                        fontSize: 'clamp(1.6rem, 3vw, 2.2rem)',
+                        lineHeight: 1.15,
+                        color: 'var(--color-ink)',
+                      }}
+                    >
+                      No works match those filters.
                     </p>
                     <button
                       onClick={clearAllFilters}
-                      className="px-6 py-2.5 bg-primary text-white text-sm font-semibold rounded-full hover:bg-accent transition-colors"
+                      className="editorial-link"
+                      style={{ marginTop: '1.6rem' }}
                     >
                       Clear all filters
                     </button>
                   </>
                 ) : (
                   <>
-                    <p className="font-editorial text-2xl text-foreground mb-2">
-                      Our collection is being curated
+                    <p
+                      className="font-serif"
+                      style={{
+                        fontSize: 'clamp(1.6rem, 3vw, 2.2rem)',
+                        lineHeight: 1.15,
+                        color: 'var(--color-ink)',
+                      }}
+                    >
+                      The collection is being curated.
                     </p>
-                    <p className="text-muted text-sm">
-                      Check back soon! Artists are uploading new works every day.
+                    <p
+                      style={{
+                        marginTop: '1.1rem',
+                        fontSize: '0.88rem',
+                        color: 'var(--color-stone-dark)',
+                        fontWeight: 300,
+                        lineHeight: 1.6,
+                      }}
+                    >
+                      New works are catalogued weekly. Please check back soon.
                     </p>
+                    <Link
+                      href="/artists"
+                      className="editorial-link"
+                      style={{ marginTop: '1.6rem', display: 'inline-block' }}
+                    >
+                      Browse the artist directory →
+                    </Link>
                   </>
                 )}
               </div>
             ) : (
               <>
-                {/* Results count */}
-                <p className="text-xs text-warm-gray mb-6 tracking-wide">
-                  Showing {artworks.length} of {totalCount}{' '}
-                  {totalCount === 1 ? 'artwork' : 'artworks'}
+                <p
+                  style={{
+                    fontSize: '0.68rem',
+                    letterSpacing: '0.18em',
+                    textTransform: 'uppercase',
+                    color: 'var(--color-stone)',
+                    marginBottom: '2rem',
+                    fontWeight: 400,
+                  }}
+                >
+                  {artworks.length} of {totalCount} shown
                 </p>
 
-                {/* Artwork Grid */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-5 gap-y-10">
-                  {artworks.map((artwork) => (
-                    <ArtworkCard
+                <div
+                  className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3"
+                  style={{ columnGap: '2.2rem', rowGap: '4rem' }}
+                >
+                  {artworks.map((artwork, i) => (
+                    <div
                       key={artwork.id}
+                      style={{
+                        opacity: 0,
+                        animation: `fade-up 700ms cubic-bezier(0.22, 1, 0.36, 1) ${Math.min(i * 60, 320)}ms forwards`,
+                      }}
+                    >
+                    <ArtworkCard
                       id={artwork.id}
                       title={artwork.title}
-                      artistName={
-                        artwork.profiles?.full_name || 'Unknown Artist'
-                      }
+                      artistName={artwork.profiles?.full_name || 'Unknown Artist'}
                       artistId={artwork.artist_id}
                       price={artwork.price_aud}
                       imageUrl={artwork.images?.[0] || ''}
@@ -983,25 +1412,19 @@ function BrowseContent() {
                       heightCm={artwork.height_cm}
                       initialFavourited={favouriteIds.has(artwork.id)}
                     />
+                    </div>
                   ))}
                 </div>
 
-                {/* Load More */}
                 {hasMore && (
-                  <div className="text-center mt-12">
+                  <div className="text-center" style={{ marginTop: '4.5rem' }}>
                     <button
                       onClick={loadMore}
                       disabled={loadingMore}
-                      className="px-8 py-3 border-2 border-border text-sm font-semibold rounded-full hover:border-accent hover:text-accent-dark transition-colors disabled:opacity-50 inline-flex items-center gap-2"
+                      className="editorial-link"
+                      style={{ opacity: loadingMore ? 0.5 : 1 }}
                     >
-                      {loadingMore ? (
-                        <>
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                          Loading...
-                        </>
-                      ) : (
-                        <>Load more</>
-                      )}
+                      {loadingMore ? 'Loading…' : 'Load more'}
                     </button>
                   </div>
                 )}

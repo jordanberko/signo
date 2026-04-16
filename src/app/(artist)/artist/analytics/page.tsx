@@ -3,15 +3,6 @@
 import { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import {
-  Eye,
-  Heart,
-  Users,
-  DollarSign,
-  ArrowLeft,
-  Loader2,
-  TrendingUp,
-} from 'lucide-react';
 import { useRequireAuth } from '@/lib/hooks/useRequireAuth';
 import { formatPrice } from '@/lib/utils';
 import AnalyticsChart from '@/components/ui/AnalyticsChart';
@@ -40,10 +31,40 @@ interface AnalyticsData {
 }
 
 const PERIOD_OPTIONS: { value: Period; label: string }[] = [
-  { value: 7, label: '7 days' },
-  { value: 30, label: '30 days' },
-  { value: 90, label: '90 days' },
+  { value: 7, label: 'Seven days' },
+  { value: 30, label: 'Thirty days' },
+  { value: 90, label: 'Ninety days' },
 ];
+
+const KICKER: React.CSSProperties = {
+  fontSize: '0.62rem',
+  letterSpacing: '0.22em',
+  textTransform: 'uppercase',
+  color: 'var(--color-stone)',
+};
+
+const CHART_INK = '#1a1a18';
+
+function EditorialSpinner({ label = 'Loading…' }: { label?: string }) {
+  return (
+    <div
+      style={{
+        minHeight: '60vh',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        background: 'var(--color-warm-white)',
+      }}
+    >
+      <p
+        className="font-serif"
+        style={{ fontStyle: 'italic', fontSize: '0.95rem', color: 'var(--color-stone)' }}
+      >
+        {label}
+      </p>
+    </div>
+  );
+}
 
 export default function AnalyticsPage() {
   const { loading: authLoading } = useRequireAuth('artist');
@@ -60,267 +81,416 @@ export default function AnalyticsPage() {
         setData(json);
       }
     } catch {
-      // silently fail
+      /* silently fail */
     } finally {
       setLoading(false);
     }
   }, []);
 
   useEffect(() => {
-    if (!authLoading) {
-      fetchAnalytics(period);
-    }
+    if (!authLoading) fetchAnalytics(period);
   }, [period, authLoading, fetchAnalytics]);
 
-  if (authLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="h-6 w-6 animate-spin text-muted" />
-      </div>
-    );
-  }
+  if (authLoading) return <EditorialSpinner />;
 
   const metrics = data
     ? [
+        { label: 'Profile views', value: data.totalProfileViews.toLocaleString() },
+        { label: 'Favourites', value: data.totalFavourites.toLocaleString() },
+        { label: 'New followers', value: data.totalFollowers.toLocaleString() },
+        { label: 'Revenue', value: formatPrice(data.totalRevenue) },
+      ]
+    : [];
+
+  const charts = data
+    ? [
         {
-          label: 'Profile Views',
-          value: data.totalProfileViews.toLocaleString(),
-          icon: Eye,
-          color: '#7C8C5B',
+          title: 'Profile views',
+          data: data.profileViews.map((d) => ({ date: d.date, value: d.count })),
         },
         {
-          label: 'Favourites',
-          value: data.totalFavourites.toLocaleString(),
-          icon: Heart,
-          color: '#C4727F',
+          title: 'Favourites',
+          data: data.favourites.map((d) => ({ date: d.date, value: d.count })),
         },
         {
-          label: 'New Followers',
-          value: data.totalFollowers.toLocaleString(),
-          icon: Users,
-          color: '#5B7C8C',
+          title: 'New followers',
+          data: data.followers.map((d) => ({ date: d.date, value: d.count })),
         },
         {
-          label: 'Revenue',
-          value: formatPrice(data.totalRevenue),
-          icon: DollarSign,
-          color: '#6B8C5B',
+          title: 'Revenue',
+          data: data.sales.map((d) => ({ date: d.date, value: d.revenue })),
+          formatter: (v: number) => formatPrice(v),
         },
       ]
     : [];
 
   return (
-    <div className="max-w-6xl mx-auto px-4 py-8">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-8">
-        <div className="flex items-center gap-3">
-          <Link
-            href="/artist/dashboard"
-            className="p-2 rounded-lg hover:bg-accent/5 transition-colors"
-          >
-            <ArrowLeft className="h-5 w-5" />
-          </Link>
+    <div style={{ background: 'var(--color-warm-white)', minHeight: '100vh' }}>
+      <div
+        className="px-6 sm:px-10"
+        style={{
+          maxWidth: '78rem',
+          margin: '0 auto',
+          paddingTop: 'clamp(7.5rem, 10vw, 9.5rem)',
+          paddingBottom: 'clamp(4rem, 7vw, 6rem)',
+        }}
+      >
+        <Link
+          href="/artist/dashboard"
+          className="font-serif"
+          style={{
+            fontStyle: 'italic',
+            fontSize: '0.85rem',
+            color: 'var(--color-stone)',
+            textDecoration: 'none',
+            display: 'inline-block',
+            marginBottom: '2rem',
+          }}
+        >
+          ← The studio
+        </Link>
+
+        <header
+          style={{
+            marginBottom: 'clamp(2.4rem, 4vw, 3.4rem)',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '1.4rem',
+          }}
+        >
           <div>
-            <h1 className="text-2xl font-bold">Analytics</h1>
-            <p className="text-sm text-muted mt-0.5">
-              Track your performance and engagement
+            <p style={{ ...KICKER, marginBottom: '1rem' }}>
+              The Studio · Analytics
+            </p>
+            <h1
+              className="font-serif"
+              style={{
+                fontSize: 'clamp(2rem, 4vw, 3rem)',
+                lineHeight: 1.05,
+                letterSpacing: '-0.015em',
+                color: 'var(--color-ink)',
+                fontWeight: 400,
+                marginBottom: '0.7rem',
+              }}
+            >
+              The <em style={{ fontStyle: 'italic' }}>pulse</em> of your practice.
+            </h1>
+            <p
+              style={{
+                fontSize: '0.92rem',
+                fontWeight: 300,
+                color: 'var(--color-stone-dark)',
+                lineHeight: 1.6,
+                maxWidth: '48ch',
+              }}
+            >
+              Profile views, favourites, followers, revenue — charted over
+              the window of your choosing.
             </p>
           </div>
-        </div>
 
-        {/* Period Selector */}
-        <div className="flex gap-1 bg-white border border-border rounded-lg p-1">
-          {PERIOD_OPTIONS.map((opt) => (
-            <button
-              key={opt.value}
-              onClick={() => setPeriod(opt.value)}
-              className={`px-3 py-1.5 text-sm rounded-md transition-colors ${
-                period === opt.value
-                  ? 'bg-accent text-white font-medium'
-                  : 'text-muted hover:text-foreground'
-              }`}
+          {/* Period selector — typographic */}
+          <div
+            style={{
+              display: 'inline-flex',
+              alignItems: 'baseline',
+              gap: '1.4rem',
+              alignSelf: 'flex-start',
+            }}
+          >
+            <span style={KICKER}>Over the last</span>
+            {PERIOD_OPTIONS.map((opt) => {
+              const active = period === opt.value;
+              return (
+                <button
+                  key={opt.value}
+                  onClick={() => setPeriod(opt.value)}
+                  className="font-serif"
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    cursor: 'pointer',
+                    padding: 0,
+                    fontSize: '0.92rem',
+                    fontStyle: active ? 'italic' : 'normal',
+                    color: active ? 'var(--color-ink)' : 'var(--color-stone)',
+                    borderBottom: active
+                      ? '1px solid var(--color-ink)'
+                      : '1px solid transparent',
+                    paddingBottom: '0.15rem',
+                  }}
+                >
+                  {opt.label}
+                </button>
+              );
+            })}
+          </div>
+        </header>
+
+        {loading && !data ? (
+          <p
+            className="font-serif"
+            style={{
+              fontStyle: 'italic',
+              fontSize: '0.95rem',
+              color: 'var(--color-stone)',
+              padding: '3rem 0',
+            }}
+          >
+            Counting the numbers…
+          </p>
+        ) : data ? (
+          <>
+            {/* Metrics dl */}
+            <section
+              style={{
+                borderTop: '1px solid var(--color-border-strong)',
+                borderBottom: '1px solid var(--color-border-strong)',
+                marginBottom: 'clamp(2.4rem, 4vw, 3.4rem)',
+              }}
             >
-              {opt.label}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {loading && !data ? (
-        <div className="flex items-center justify-center py-20">
-          <Loader2 className="h-6 w-6 animate-spin text-muted" />
-        </div>
-      ) : data ? (
-        <>
-          {/* Metric Cards */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-            {metrics.map((m) => (
-              <div
-                key={m.label}
-                className="bg-white border border-border rounded-lg p-5"
+              <dl
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(auto-fit, minmax(12rem, 1fr))',
+                  margin: 0,
+                }}
               >
-                <div className="flex items-center gap-2 mb-2">
-                  <m.icon
-                    className="h-4 w-4"
-                    style={{ color: m.color }}
+                {metrics.map((m, i) => (
+                  <div
+                    key={m.label}
+                    style={{
+                      padding: '1.8rem 1.6rem',
+                      borderLeft:
+                        i === 0 ? 'none' : '1px solid var(--color-border)',
+                    }}
+                  >
+                    <dt style={{ ...KICKER, marginBottom: '0.9rem' }}>
+                      {m.label}
+                    </dt>
+                    <dd
+                      className="font-serif"
+                      style={{
+                        margin: 0,
+                        fontSize: 'clamp(1.6rem, 2.8vw, 2.2rem)',
+                        fontWeight: 400,
+                        color: 'var(--color-ink)',
+                        lineHeight: 1,
+                        letterSpacing: '-0.01em',
+                      }}
+                    >
+                      {m.value}
+                    </dd>
+                  </div>
+                ))}
+              </dl>
+            </section>
+
+            {/* Charts */}
+            <section
+              className="grid grid-cols-1 md:grid-cols-2"
+              style={{
+                columnGap: '2.4rem',
+                rowGap: '3rem',
+                marginBottom: 'clamp(3rem, 5vw, 4.5rem)',
+              }}
+            >
+              {charts.map((c) => (
+                <figure
+                  key={c.title}
+                  style={{
+                    margin: 0,
+                    borderTop: '1px solid var(--color-border)',
+                    paddingTop: '1.2rem',
+                  }}
+                >
+                  <figcaption
+                    style={{ ...KICKER, marginBottom: '1rem' }}
+                  >
+                    {c.title}
+                  </figcaption>
+                  <AnalyticsChart
+                    data={c.data}
+                    color={CHART_INK}
+                    valueFormatter={c.formatter}
                   />
-                  <span className="text-sm text-muted">{m.label}</span>
-                </div>
-                <p className="text-2xl font-bold">{m.value}</p>
-              </div>
-            ))}
-          </div>
+                </figure>
+              ))}
+            </section>
 
-          {/* Charts */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-10">
-            <div className="bg-white border border-border rounded-lg p-5">
-              <h3 className="font-semibold text-sm mb-4 flex items-center gap-2">
-                <Eye className="h-4 w-4" style={{ color: '#7C8C5B' }} />
-                Profile Views
-              </h3>
-              <AnalyticsChart
-                data={data.profileViews.map((d) => ({
-                  date: d.date,
-                  value: d.count,
-                }))}
-                color="#7C8C5B"
-              />
-            </div>
-
-            <div className="bg-white border border-border rounded-lg p-5">
-              <h3 className="font-semibold text-sm mb-4 flex items-center gap-2">
-                <Heart className="h-4 w-4" style={{ color: '#C4727F' }} />
-                Favourites
-              </h3>
-              <AnalyticsChart
-                data={data.favourites.map((d) => ({
-                  date: d.date,
-                  value: d.count,
-                }))}
-                color="#C4727F"
-              />
-            </div>
-
-            <div className="bg-white border border-border rounded-lg p-5">
-              <h3 className="font-semibold text-sm mb-4 flex items-center gap-2">
-                <Users className="h-4 w-4" style={{ color: '#5B7C8C' }} />
-                New Followers
-              </h3>
-              <AnalyticsChart
-                data={data.followers.map((d) => ({
-                  date: d.date,
-                  value: d.count,
-                }))}
-                color="#5B7C8C"
-              />
-            </div>
-
-            <div className="bg-white border border-border rounded-lg p-5">
-              <h3 className="font-semibold text-sm mb-4 flex items-center gap-2">
-                <DollarSign className="h-4 w-4" style={{ color: '#6B8C5B' }} />
-                Revenue
-              </h3>
-              <AnalyticsChart
-                data={data.sales.map((d) => ({
-                  date: d.date,
-                  value: d.revenue,
-                }))}
-                color="#6B8C5B"
-                valueFormatter={(v) => formatPrice(v)}
-              />
-            </div>
-          </div>
-
-          {/* Artwork Breakdown Table */}
-          {data.artworks.length > 0 && (
-            <div className="border border-border rounded-lg overflow-hidden">
-              <div className="p-5 border-b border-border">
-                <h2 className="font-semibold text-lg">Artwork Performance</h2>
-                <p className="text-sm text-muted mt-0.5">
-                  Sorted by favourites — all time
+            {/* Artwork performance */}
+            {data.artworks.length > 0 && (
+              <section>
+                <p style={{ ...KICKER, marginBottom: '1rem' }}>
+                  — Artwork performance —
                 </p>
-              </div>
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
+                <p
+                  className="font-serif"
+                  style={{
+                    fontSize: '0.88rem',
+                    fontStyle: 'italic',
+                    color: 'var(--color-stone)',
+                    marginBottom: '1.4rem',
+                  }}
+                >
+                  Sorted by favourites · all time.
+                </p>
+                <table
+                  style={{
+                    width: '100%',
+                    borderCollapse: 'collapse',
+                    borderTop: '1px solid var(--color-border-strong)',
+                  }}
+                >
                   <thead>
-                    <tr className="border-b border-border bg-cream/50">
-                      <th className="text-left py-3 px-5 font-medium text-muted">
-                        Artwork
-                      </th>
-                      <th className="text-left py-3 px-4 font-medium text-muted">
-                        Status
-                      </th>
-                      <th className="text-right py-3 px-4 font-medium text-muted">
-                        Price
-                      </th>
-                      <th className="text-right py-3 px-5 font-medium text-muted">
-                        Favourites
-                      </th>
+                    <tr>
+                      {['Work', 'Status', 'Price', 'Favourites'].map(
+                        (h, i) => (
+                          <th
+                            key={h}
+                            style={{
+                              ...KICKER,
+                              padding: '1rem 0.8rem',
+                              textAlign: i >= 2 ? 'right' : 'left',
+                              borderBottom:
+                                '1px solid var(--color-border)',
+                              fontWeight: 400,
+                            }}
+                          >
+                            {h}
+                          </th>
+                        )
+                      )}
                     </tr>
                   </thead>
                   <tbody>
                     {data.artworks.map((artwork) => (
                       <tr
                         key={artwork.id}
-                        className="border-b border-border last:border-b-0 hover:bg-accent/5 transition-colors"
+                        style={{
+                          borderBottom: '1px solid var(--color-border)',
+                        }}
                       >
-                        <td className="py-3 px-5">
+                        <td style={{ padding: '1.2rem 0.8rem' }}>
                           <Link
                             href={`/artwork/${artwork.id}`}
-                            className="flex items-center gap-3 hover:opacity-80 transition-opacity"
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '1rem',
+                              textDecoration: 'none',
+                              color: 'inherit',
+                            }}
                           >
-                            {artwork.imageUrl ? (
-                              <Image
-                                src={artwork.imageUrl}
-                                alt={artwork.title}
-                                width={40}
-                                height={40}
-                                className="rounded object-cover w-10 h-10"
-                              />
-                            ) : (
-                              <div className="w-10 h-10 bg-border/30 rounded flex items-center justify-center">
-                                <TrendingUp className="h-4 w-4 text-muted" />
-                              </div>
-                            )}
-                            <span className="font-medium truncate max-w-[200px]">
+                            <div
+                              style={{
+                                width: 44,
+                                height: 44,
+                                background: 'var(--color-cream)',
+                                overflow: 'hidden',
+                                flexShrink: 0,
+                              }}
+                            >
+                              {artwork.imageUrl && (
+                                <Image
+                                  src={artwork.imageUrl}
+                                  alt={artwork.title}
+                                  width={44}
+                                  height={44}
+                                  style={{
+                                    width: '100%',
+                                    height: '100%',
+                                    objectFit: 'cover',
+                                  }}
+                                />
+                              )}
+                            </div>
+                            <span
+                              className="font-serif"
+                              style={{
+                                fontSize: '0.95rem',
+                                color: 'var(--color-ink)',
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis',
+                                whiteSpace: 'nowrap',
+                                maxWidth: 220,
+                              }}
+                            >
                               {artwork.title}
                             </span>
                           </Link>
                         </td>
-                        <td className="py-3 px-4">
-                          <span className="capitalize text-muted">
-                            {artwork.status.replace('_', ' ')}
-                          </span>
+                        <td
+                          style={{
+                            ...KICKER,
+                            padding: '1.2rem 0.8rem',
+                            fontSize: '0.58rem',
+                          }}
+                        >
+                          {artwork.status.replace('_', ' ')}
                         </td>
-                        <td className="py-3 px-4 text-right">
+                        <td
+                          className="font-serif"
+                          style={{
+                            padding: '1.2rem 0.8rem',
+                            fontSize: '0.95rem',
+                            textAlign: 'right',
+                            color: 'var(--color-ink)',
+                          }}
+                        >
                           {formatPrice(artwork.price)}
                         </td>
-                        <td className="py-3 px-5 text-right">
-                          <span className="inline-flex items-center gap-1">
-                            <Heart className="h-3.5 w-3.5 text-rose-400" />
-                            {artwork.favouriteCount}
-                          </span>
+                        <td
+                          className="font-serif"
+                          style={{
+                            padding: '1.2rem 0.8rem',
+                            fontSize: '1rem',
+                            textAlign: 'right',
+                            color: 'var(--color-ink)',
+                          }}
+                        >
+                          {artwork.favouriteCount}
                         </td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
-              </div>
-            </div>
-          )}
-        </>
-      ) : (
-        <div className="text-center py-20 text-muted">
-          <TrendingUp className="h-10 w-10 mx-auto mb-3 opacity-30" />
-          <p>Unable to load analytics data.</p>
-          <button
-            onClick={() => fetchAnalytics(period)}
-            className="mt-3 text-sm text-accent hover:underline"
+              </section>
+            )}
+          </>
+        ) : (
+          <div
+            style={{
+              paddingTop: '2rem',
+              borderTop: '1px solid var(--color-border)',
+            }}
           >
-            Try again
-          </button>
-        </div>
-      )}
+            <p
+              className="font-serif"
+              style={{
+                fontSize: '1.1rem',
+                fontStyle: 'italic',
+                color: 'var(--color-ink)',
+              }}
+            >
+              Unable to load the data.
+            </p>
+            <button
+              onClick={() => fetchAnalytics(period)}
+              className="editorial-link"
+              style={{
+                marginTop: '1rem',
+                background: 'none',
+                border: 'none',
+                padding: 0,
+                cursor: 'pointer',
+              }}
+            >
+              Try again
+            </button>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

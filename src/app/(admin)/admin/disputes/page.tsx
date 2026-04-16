@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { AlertTriangle, CheckCircle, Clock, MessageSquare } from 'lucide-react';
 import { formatPrice } from '@/lib/utils';
 import { useRequireAuth } from '@/lib/hooks/useRequireAuth';
+import EditorialSpinner from '@/components/ui/EditorialSpinner';
 
 interface DisputeRow {
   id: string;
@@ -90,7 +91,7 @@ export default function AdminDisputesPage() {
     resolved_return: { color: 'bg-blue-50 text-blue-700', icon: CheckCircle },
   };
 
-  if (authLoading) return <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '60vh' }}><div style={{ width: 32, height: 32, border: '3px solid #E5E2DB', borderTopColor: '#2C2C2A', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} /><style>{'@keyframes spin { to { transform: rotate(360deg) } }'}</style></div>;
+  if (authLoading) return <EditorialSpinner label="Loading the disputes" headline="Loading\u2026" />;
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -122,7 +123,7 @@ export default function AdminDisputesPage() {
 
       {loading ? (
         <div className="text-center py-16">
-          <div className="inline-block w-8 h-8 border-2 border-accent border-t-transparent rounded-full animate-spin" />
+          <EditorialSpinner label="Loading the disputes" headline="One moment\u2026" />
         </div>
       ) : disputes.length === 0 ? (
         <div className="text-center py-16 border border-border rounded-lg">

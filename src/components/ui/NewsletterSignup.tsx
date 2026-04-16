@@ -1,10 +1,25 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
+/**
+ * NewsletterSignup — editorial, minimal, Huxley-aligned.
+ *
+ * A single hairline-underlined email field and a small uppercase submit link.
+ * No cards, no gradients, no rounded buttons.
+ */
 export default function NewsletterSignup() {
   const [email, setEmail] = useState('');
   const [state, setState] = useState<'idle' | 'submitting' | 'success' | 'error'>('idle');
+  const [visualState, setVisualState] = useState<'form' | 'fading' | 'success'>('form');
+
+  useEffect(() => {
+    if (state === 'success') {
+      setVisualState('fading');
+      const t = setTimeout(() => setVisualState('success'), 200);
+      return () => clearTimeout(t);
+    }
+  }, [state]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -33,31 +48,92 @@ export default function NewsletterSignup() {
     }
   }
 
-  if (state === 'success') {
+  if (visualState === 'success') {
     return (
-      <p className="text-sm text-accent-dark font-medium">
-        You&apos;re subscribed!
+      <p
+        className="animate-fade-in"
+        style={{
+          fontSize: '0.78rem',
+          letterSpacing: '0.08em',
+          color: 'var(--color-ink)',
+          margin: 0,
+          fontWeight: 400,
+        }}
+      >
+        Thank you — you&apos;re on the list.
       </p>
     );
   }
 
   return (
-    <form onSubmit={handleSubmit} className="flex gap-2">
-      <input
-        type="email"
-        required
-        placeholder="Your email"
-        value={email}
-        onChange={(e) => setEmail(e.target.value)}
-        className="flex-1 min-w-0 px-3 py-2 bg-white border border-border rounded-lg text-sm placeholder:text-warm-gray focus:border-accent focus:ring-1 focus:ring-accent/20 transition-colors"
-      />
+    <div style={{
+      opacity: visualState === 'fading' ? 0 : 1,
+      transition: 'opacity 200ms cubic-bezier(0.64, 0, 0.78, 0)',
+    }}>
+    <form onSubmit={handleSubmit} className="flex items-end gap-4">
+      <label className="flex-1 min-w-0 block">
+        <span
+          style={{
+            display: 'block',
+            fontSize: '0.62rem',
+            fontWeight: 400,
+            letterSpacing: '0.18em',
+            textTransform: 'uppercase',
+            color: 'var(--color-stone)',
+            marginBottom: '0.4rem',
+          }}
+        >
+          Stay in touch
+        </span>
+        <input
+          type="email"
+          required
+          placeholder="your@email.com"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          style={{
+            width: '100%',
+            background: 'transparent',
+            border: 'none',
+            borderBottom: '1px solid var(--color-border-strong)',
+            padding: '0.4rem 0',
+            fontFamily: 'var(--font-sans), system-ui, sans-serif',
+            fontSize: '0.82rem',
+            color: 'var(--color-ink)',
+            outline: 'none',
+          }}
+        />
+      </label>
       <button
         type="submit"
         disabled={state === 'submitting'}
-        className="px-4 py-2 bg-primary text-white text-sm font-medium rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50 flex-shrink-0"
+        className="bg-transparent border-0 cursor-pointer p-0 pb-1"
+        style={{
+          fontSize: '0.68rem',
+          fontWeight: 400,
+          letterSpacing: '0.14em',
+          textTransform: 'uppercase',
+          color: 'var(--color-ink)',
+          borderBottom: '1px solid var(--color-ink)',
+          transition: 'opacity 350ms cubic-bezier(0.22, 1, 0.36, 1)',
+          opacity: state === 'submitting' ? 0.5 : 1,
+        }}
       >
-        {state === 'submitting' ? '...' : 'Join'}
+        {state === 'submitting' ? 'Sending' : 'Subscribe'}
       </button>
+      {state === 'error' && (
+        <span
+          className="error-animate"
+          style={{
+            fontSize: '0.7rem',
+            color: 'var(--color-terracotta)',
+            fontWeight: 400,
+          }}
+        >
+          Try again
+        </span>
+      )}
     </form>
+    </div>
   );
 }

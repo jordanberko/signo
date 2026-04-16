@@ -3,9 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft } from 'lucide-react';
 import ArtworkCard from '@/components/ui/ArtworkCard';
-import ScrollReveal from '@/components/ui/ScrollReveal';
 
 interface CollectionDetail {
   id: string;
@@ -53,7 +51,6 @@ export default function CollectionDetailPage() {
         if (collectionRes.ok) {
           const json = await collectionRes.json();
           setCollection(json.data);
-          // Set document title
           if (json.data?.title) {
             document.title = `${json.data.title} | Signo`;
           }
@@ -77,102 +74,260 @@ export default function CollectionDetailPage() {
 
   if (!loaded) {
     return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="inline-block w-8 h-8 border-2 border-accent border-t-transparent rounded-full animate-spin" />
+      <div
+        className="px-6 sm:px-10"
+        style={{ background: 'var(--color-warm-white)', minHeight: '60vh', paddingTop: '6rem' }}
+      >
+        <p
+          className="font-serif"
+          style={{
+            fontSize: '1.1rem',
+            fontStyle: 'italic',
+            color: 'var(--color-stone)',
+            fontWeight: 300,
+          }}
+        >
+          Loading the edit…
+        </p>
       </div>
     );
   }
 
   if (notFound || !collection) {
     return (
-      <div className="max-w-md mx-auto px-4 py-20 text-center">
-        <h1 className="text-2xl font-bold mb-2">Collection not found</h1>
-        <p className="text-muted mb-4">This collection doesn&apos;t exist or isn&apos;t published yet.</p>
-        <Link href="/collections" className="text-accent-dark font-medium hover:underline">
-          Back to Collections
+      <div
+        className="px-6 sm:px-10"
+        style={{
+          background: 'var(--color-warm-white)',
+          paddingTop: 'clamp(5rem, 10vw, 8rem)',
+          paddingBottom: '6rem',
+          maxWidth: '46ch',
+        }}
+      >
+        <p
+          style={{
+            fontSize: '0.68rem',
+            letterSpacing: '0.22em',
+            textTransform: 'uppercase',
+            color: 'var(--color-stone)',
+            marginBottom: '1.2rem',
+          }}
+        >
+          Not found
+        </p>
+        <h1
+          className="font-serif"
+          style={{
+            fontSize: 'clamp(2rem, 4vw, 3rem)',
+            lineHeight: 1.1,
+            color: 'var(--color-ink)',
+            fontWeight: 400,
+          }}
+        >
+          This collection isn&apos;t currently published.
+        </h1>
+        <p
+          style={{
+            marginTop: '1rem',
+            fontSize: '0.88rem',
+            color: 'var(--color-stone-dark)',
+            fontWeight: 300,
+            lineHeight: 1.6,
+            marginBottom: '2rem',
+          }}
+        >
+          The edit may have been retired, or the address may be mistyped.
+        </p>
+        <Link href="/collections" className="editorial-link">
+          All Collections
         </Link>
       </div>
     );
   }
 
   return (
-    <div className="min-h-[60vh]">
-      {/* Back link */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6">
+    <div style={{ background: 'var(--color-warm-white)' }}>
+      {/* ── Back breadcrumb ── */}
+      <div
+        className="px-6 sm:px-10"
+        style={{ paddingTop: '2.2rem' }}
+      >
         <Link
           href="/collections"
-          className="inline-flex items-center gap-1.5 text-sm text-muted hover:text-foreground transition-colors"
+          style={{
+            fontSize: '0.64rem',
+            letterSpacing: '0.2em',
+            textTransform: 'uppercase',
+            color: 'var(--color-stone)',
+            textDecoration: 'none',
+            transition: 'color 200ms cubic-bezier(0.22, 1, 0.36, 1)',
+          }}
+          onMouseOver={(e) => ((e.currentTarget as HTMLAnchorElement).style.color = 'var(--color-ink)')}
+          onMouseOut={(e) => ((e.currentTarget as HTMLAnchorElement).style.color = 'var(--color-stone)')}
         >
-          <ArrowLeft className="h-4 w-4" />
-          All Collections
+          ← All Collections
         </Link>
       </div>
 
-      {/* Header */}
-      <section className="py-12 md:py-20">
-        <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <ScrollReveal>
-            <p className="text-accent-dark text-xs font-semibold tracking-[0.2em] uppercase mb-3">
-              CURATED COLLECTION
+      {/* ── Editorial header ── */}
+      <header
+        className="px-6 sm:px-10"
+        style={{
+          paddingTop: 'clamp(2.5rem, 5vw, 4rem)',
+          paddingBottom: 'clamp(2.5rem, 5vw, 4rem)',
+        }}
+      >
+        <div className="grid grid-cols-1 lg:grid-cols-12" style={{ gap: 'clamp(2rem, 5vw, 5rem)' }}>
+          <div className="lg:col-span-7">
+            <p
+              style={{
+                fontSize: '0.68rem',
+                letterSpacing: '0.22em',
+                textTransform: 'uppercase',
+                color: 'var(--color-stone)',
+                marginBottom: '1.2rem',
+              }}
+            >
+              Curated Collection
             </p>
-            <h1 className="font-editorial text-4xl md:text-6xl font-bold text-primary">
+            <h1
+              className="font-serif"
+              style={{
+                fontSize: 'clamp(2.6rem, 6vw, 4.8rem)',
+                lineHeight: 1.02,
+                letterSpacing: '-0.015em',
+                color: 'var(--color-ink)',
+                fontWeight: 400,
+                maxWidth: '18ch',
+              }}
+            >
               {collection.title}
             </h1>
-            {collection.description && (
-              <p className="mt-4 text-muted text-lg max-w-xl mx-auto leading-relaxed">
+          </div>
+          {collection.description && (
+            <div className="lg:col-span-5" style={{ alignSelf: 'end' }}>
+              <p
+                style={{
+                  fontSize: '1rem',
+                  fontWeight: 300,
+                  lineHeight: 1.65,
+                  color: 'var(--color-stone-dark)',
+                  maxWidth: '42ch',
+                }}
+              >
                 {collection.description}
               </p>
-            )}
-          </ScrollReveal>
+              <p
+                style={{
+                  marginTop: '1.4rem',
+                  fontSize: '0.62rem',
+                  letterSpacing: '0.2em',
+                  textTransform: 'uppercase',
+                  color: 'var(--color-stone)',
+                }}
+              >
+                {collection.artworks.length} {collection.artworks.length === 1 ? 'work' : 'works'}
+              </p>
+            </div>
+          )}
         </div>
-      </section>
+      </header>
 
-      {/* Curator Note */}
+      <div style={{ borderTop: '1px solid var(--color-border)' }} />
+
+      {/* ── Curator's note — editorial pullquote ── */}
       {collection.curator_note && (
-        <section className="pb-12 md:pb-16">
-          <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8">
-            <ScrollReveal>
-              <div className="bg-cream border border-border rounded-2xl p-6 md:p-8">
-                <p className="text-xs font-semibold tracking-[0.15em] uppercase text-accent-dark mb-3">
-                  Curator&apos;s Note
-                </p>
-                <p className="text-foreground text-sm md:text-base leading-relaxed italic">
-                  &ldquo;{collection.curator_note}&rdquo;
-                </p>
-              </div>
-            </ScrollReveal>
+        <section
+          className="px-6 sm:px-10"
+          style={{ paddingTop: 'clamp(3.5rem, 7vw, 6rem)', paddingBottom: 'clamp(3.5rem, 7vw, 6rem)' }}
+        >
+          <div
+            className="grid grid-cols-1 lg:grid-cols-12"
+            style={{ gap: 'clamp(1.6rem, 4vw, 4rem)' }}
+          >
+            <div className="lg:col-span-3">
+              <p
+                style={{
+                  fontSize: '0.62rem',
+                  letterSpacing: '0.22em',
+                  textTransform: 'uppercase',
+                  color: 'var(--color-stone)',
+                }}
+              >
+                Curator&apos;s Note
+              </p>
+            </div>
+            <div className="lg:col-span-8">
+              <p
+                className="font-serif"
+                style={{
+                  fontSize: 'clamp(1.4rem, 2.4vw, 2.1rem)',
+                  lineHeight: 1.35,
+                  color: 'var(--color-ink)',
+                  fontWeight: 400,
+                  fontStyle: 'italic',
+                  letterSpacing: '-0.005em',
+                  maxWidth: '42ch',
+                }}
+              >
+                &ldquo;{collection.curator_note}&rdquo;
+              </p>
+            </div>
           </div>
         </section>
       )}
 
-      {/* Artwork Grid */}
-      <section className="pb-20 md:pb-28">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          {collection.artworks.length === 0 ? (
-            <div className="text-center py-16">
-              <p className="text-muted">No artworks in this collection yet.</p>
-            </div>
-          ) : (
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-x-5 gap-y-10">
-              {collection.artworks.map((artwork) => (
-                <ArtworkCard
-                  key={artwork.id}
-                  id={artwork.id}
-                  title={artwork.title}
-                  artistName={artwork.artist?.full_name || 'Unknown'}
-                  artistId={artwork.artist_id}
-                  price={artwork.price_aud}
-                  imageUrl={(artwork.images || [])[0] || ''}
-                  medium={artwork.medium}
-                  category={artwork.category || undefined}
-                  widthCm={artwork.width_cm}
-                  heightCm={artwork.height_cm}
-                  initialFavourited={favouriteIds.has(artwork.id)}
-                />
-              ))}
-            </div>
-          )}
-        </div>
+      {collection.curator_note && <div style={{ borderTop: '1px solid var(--color-border)' }} />}
+
+      {/* ── Artwork Grid ── */}
+      <section
+        className="px-6 sm:px-10"
+        style={{ paddingTop: 'clamp(3rem, 5vw, 4rem)', paddingBottom: '6rem' }}
+      >
+        {collection.artworks.length === 0 ? (
+          <div style={{ maxWidth: '46ch' }}>
+            <p
+              className="font-serif"
+              style={{
+                fontSize: 'clamp(1.4rem, 2.6vw, 1.9rem)',
+                lineHeight: 1.2,
+                color: 'var(--color-ink)',
+              }}
+            >
+              This edit is being assembled.
+            </p>
+            <p
+              style={{
+                marginTop: '0.8rem',
+                fontSize: '0.88rem',
+                color: 'var(--color-stone-dark)',
+                fontWeight: 300,
+                lineHeight: 1.6,
+              }}
+            >
+              Works will appear here as they are approved.
+            </p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-x-5 gap-y-12">
+            {collection.artworks.map((artwork) => (
+              <ArtworkCard
+                key={artwork.id}
+                id={artwork.id}
+                title={artwork.title}
+                artistName={artwork.artist?.full_name || 'Unknown'}
+                artistId={artwork.artist_id}
+                price={artwork.price_aud}
+                imageUrl={(artwork.images || [])[0] || ''}
+                medium={artwork.medium}
+                category={artwork.category || undefined}
+                widthCm={artwork.width_cm}
+                heightCm={artwork.height_cm}
+                initialFavourited={favouriteIds.has(artwork.id)}
+              />
+            ))}
+          </div>
+        )}
       </section>
     </div>
   );

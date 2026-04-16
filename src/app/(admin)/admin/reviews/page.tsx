@@ -6,6 +6,7 @@ import Image from 'next/image';
 import { Check, X, Eye, ChevronLeft, ChevronRight, Clock, MessageSquare, Star } from 'lucide-react';
 import { formatPrice } from '@/lib/utils';
 import { useRequireAuth } from '@/lib/hooks/useRequireAuth';
+import EditorialSpinner from '@/components/ui/EditorialSpinner';
 import type { Artwork, User } from '@/types/database';
 
 type ReviewArtwork = Artwork & { artist: User };
@@ -103,7 +104,7 @@ export default function AdminReviewsPage() {
 
   const images = selectedArtwork ? (selectedArtwork.images as string[]) || [] : [];
 
-  if (authLoading) return <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '60vh' }}><div style={{ width: 32, height: 32, border: '3px solid #E5E2DB', borderTopColor: '#2C2C2A', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} /><style>{'@keyframes spin { to { transform: rotate(360deg) } }'}</style></div>;
+  if (authLoading) return <EditorialSpinner label="Loading the queue" headline="Loading\u2026" />;
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -139,7 +140,7 @@ export default function AdminReviewsPage() {
         <div className="space-y-3">
           {loading ? (
             <div className="text-center py-16">
-              <div className="inline-block w-8 h-8 border-2 border-accent border-t-transparent rounded-full animate-spin" />
+              <EditorialSpinner label="Loading the queue" headline="One moment\u2026" />
             </div>
           ) : artworks.length === 0 ? (
             <div className="text-center py-16 border border-border rounded-lg">
@@ -155,7 +156,7 @@ export default function AdminReviewsPage() {
                 className={`w-full flex items-center gap-4 p-4 border rounded-lg text-left transition-colors ${
                   selectedArtwork?.id === artwork.id
                     ? 'border-accent bg-accent/5'
-                    : 'border-border hover:border-gray-300'
+                    : 'border-border hover:border-[color:var(--color-stone)]'
                 }`}
               >
                 <div className="w-16 h-16 rounded-lg bg-muted-bg flex-shrink-0 overflow-hidden relative">
@@ -189,9 +190,15 @@ export default function AdminReviewsPage() {
           <div className="border border-border rounded-lg p-6 space-y-6 sticky top-24">
             {/* Images */}
             <div className="space-y-3">
-              <div className="relative aspect-[4/3] bg-muted-bg rounded-lg overflow-hidden">
+              <div className="relative bg-muted-bg rounded-lg overflow-hidden" style={{ aspectRatio: '4/3' }}>
                 {images[selectedImage] ? (
-                  <img src={images[selectedImage]} alt={selectedArtwork.title} className="w-full h-full object-contain" loading="lazy" />
+                  <Image
+                    src={images[selectedImage]}
+                    alt={selectedArtwork.title}
+                    fill
+                    className="object-contain"
+                    sizes="(max-width: 768px) 100vw, 80vw"
+                  />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center text-muted">No image</div>
                 )}
@@ -245,7 +252,7 @@ export default function AdminReviewsPage() {
                     className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
                       (selectedArtwork as Record<string, unknown>).is_featured
                         ? 'bg-amber-100 text-amber-800 border border-amber-300'
-                        : 'bg-muted-bg text-muted border border-border hover:border-amber-300 hover:text-amber-700'
+                        : 'bg-muted-bg text-muted border border-border hover:border-[color:var(--color-terracotta)] hover:text-[color:var(--color-terracotta)]'
                     }`}
                     title={(selectedArtwork as Record<string, unknown>).is_featured ? 'Remove from Featured' : 'Add to Featured'}
                   >

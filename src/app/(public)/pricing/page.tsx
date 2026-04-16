@@ -1,12 +1,11 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { ArrowRight, Check, X } from 'lucide-react';
 import { calculateStripeFee } from '@/lib/utils';
 
 export const metadata: Metadata = {
-  title: 'Pricing',
+  title: 'Pricing — Signo',
   description:
-    'Signo pricing for artists: free until your first sale, then $30/month. Zero commission. See how much more you keep compared to galleries and other platforms.',
+    'Signo pricing for artists: free until your first sale, then $30/month. Zero commission. Keep what the work earns.',
 };
 
 function calculatePayout(price: number) {
@@ -23,247 +22,560 @@ export default function PricingPage() {
   });
 
   return (
-    <div>
-      {/* Hero */}
-      <section className="bg-cream border-b border-border">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-16 md:py-24 text-center">
-          <div className="inline-block px-4 py-1.5 bg-accent/10 text-accent-dark text-xs font-semibold tracking-wider uppercase rounded-full mb-6">
-            Free until your first sale
-          </div>
-          <h1 className="font-editorial text-4xl md:text-5xl lg:text-6xl font-medium leading-tight">
-            Simple, honest{' '}
-            <span className="italic text-accent-dark">pricing</span>
-          </h1>
-          <p className="mt-6 text-lg text-muted max-w-2xl mx-auto leading-relaxed">
-            One flat subscription. Zero commission. You keep everything you earn.
-          </p>
-        </div>
-      </section>
+    <div style={{ background: 'var(--color-warm-white)' }}>
+      {/* ── Editorial header ── */}
+      <header
+        className="px-6 sm:px-10"
+        style={{
+          paddingTop: 'clamp(4rem, 9vw, 7rem)',
+          paddingBottom: 'clamp(3rem, 6vw, 5rem)',
+        }}
+      >
+        <p
+          style={{
+            fontSize: '0.68rem',
+            letterSpacing: '0.22em',
+            textTransform: 'uppercase',
+            color: 'var(--color-stone)',
+            marginBottom: '1.2rem',
+          }}
+        >
+          Free until your first sale
+        </p>
+        <h1
+          className="font-serif"
+          style={{
+            fontSize: 'clamp(2.6rem, 6vw, 4.8rem)',
+            lineHeight: 1.02,
+            letterSpacing: '-0.015em',
+            color: 'var(--color-ink)',
+            fontWeight: 400,
+            maxWidth: '18ch',
+            opacity: 0,
+            animation: 'fade-up 700ms cubic-bezier(0.22, 1, 0.36, 1) forwards',
+          }}
+        >
+          Simple, honest <em style={{ fontStyle: 'italic' }}>pricing.</em>
+        </h1>
+        <p
+          style={{
+            marginTop: '1.8rem',
+            fontSize: '1rem',
+            fontWeight: 300,
+            lineHeight: 1.7,
+            color: 'var(--color-stone-dark)',
+            maxWidth: '52ch',
+          }}
+        >
+          One flat subscription. Zero commission. You keep what the work earns.
+        </p>
+      </header>
 
-      {/* Pricing Card */}
-      <section className="py-20 md:py-28">
-        <div className="max-w-lg mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="bg-white rounded-2xl border-2 border-accent p-8 md:p-10 relative">
-            <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-4 py-1 bg-accent text-white text-xs font-semibold tracking-wider uppercase rounded-full">
-              Artist Plan
-            </div>
-            <div className="text-center mb-8">
-              <div className="flex items-baseline justify-center gap-1 mt-4">
-                <span className="font-editorial text-5xl font-semibold">$30</span>
-                <span className="text-muted text-lg">/month</span>
-              </div>
-              <p className="text-sm font-medium text-accent-dark mt-2">Starts after your first sale</p>
-              <p className="text-sm text-muted mt-1">Cancel anytime. No lock-in contracts.</p>
-            </div>
+      <div style={{ borderTop: '1px solid var(--color-border)' }} />
 
-            <div className="space-y-3 mb-8">
-              {[
-                'Unlimited artwork listings',
-                'Zero commission on sales',
-                'Personal artist storefront',
-                'Direct messaging with buyers',
-                'Sales analytics dashboard',
-                'Stripe Connect payouts to your bank',
-                'AI-assisted quality review',
-                'Buyer protection & escrow',
-                'Tracked shipping integration',
-              ].map((feature) => (
-                <div key={feature} className="flex items-start gap-3">
-                  <Check className="w-4 h-4 text-accent-dark mt-0.5 shrink-0" />
-                  <span className="text-sm">{feature}</span>
-                </div>
-              ))}
-            </div>
-
-            <Link
-              href="/register"
-              className="group w-full inline-flex items-center justify-center gap-3 px-7 py-3.5 bg-accent text-primary font-semibold rounded-full hover:bg-accent-light transition-all duration-300"
+      {/* ── The Plan — typographic ── */}
+      <section
+        className="px-6 sm:px-10"
+        style={{
+          paddingTop: 'clamp(4rem, 7vw, 6rem)',
+          paddingBottom: 'clamp(4rem, 7vw, 6rem)',
+        }}
+      >
+        <div className="grid grid-cols-1 lg:grid-cols-12" style={{ gap: 'clamp(1.5rem, 4vw, 4rem)' }}>
+          <div className="lg:col-span-4">
+            <p
+              style={{
+                fontSize: '0.68rem',
+                letterSpacing: '0.22em',
+                textTransform: 'uppercase',
+                color: 'var(--color-stone)',
+                marginBottom: '1.2rem',
+              }}
             >
-              Start Selling Free
-              <ArrowRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
-            </Link>
+              The Artist Plan
+            </p>
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.4rem', marginBottom: '0.8rem' }}>
+              <span
+                className="font-serif"
+                style={{
+                  fontSize: 'clamp(3.5rem, 7vw, 5.5rem)',
+                  lineHeight: 1,
+                  color: 'var(--color-ink)',
+                  fontWeight: 400,
+                  letterSpacing: '-0.02em',
+                }}
+              >
+                $30
+              </span>
+              <span
+                style={{
+                  fontSize: '0.92rem',
+                  color: 'var(--color-stone-dark)',
+                  fontStyle: 'italic',
+                  fontWeight: 300,
+                }}
+              >
+                / month
+              </span>
+            </div>
+            <p
+              style={{
+                fontSize: '0.82rem',
+                color: 'var(--color-stone-dark)',
+                fontStyle: 'italic',
+                fontWeight: 300,
+                maxWidth: '28ch',
+              }}
+            >
+              Starts only after your first sale. Cancel anytime, no lock-in.
+            </p>
 
-            <p className="text-xs text-center text-warm-gray mt-4">
-              No payment method needed to sign up. Your subscription begins only after you complete your first sale.
+            <div style={{ marginTop: '2.4rem' }}>
+              <Link href="/register" className="artwork-primary-cta artwork-primary-cta--compact">
+                Start Selling Free
+              </Link>
+            </div>
+            <p
+              style={{
+                marginTop: '1.2rem',
+                fontSize: '0.72rem',
+                color: 'var(--color-stone)',
+                fontStyle: 'italic',
+                fontWeight: 300,
+                maxWidth: '32ch',
+                lineHeight: 1.5,
+              }}
+            >
+              No payment method needed to sign up. Browsing &amp; buying is always free.
             </p>
           </div>
 
-          <p className="text-center text-sm text-muted mt-8">
-            Browsing and buying art on Signo is always free. No account needed to browse.
-          </p>
+          <ul className="list-none p-0 m-0 lg:col-span-8">
+            {[
+              'Unlimited artwork listings',
+              'Zero commission on every sale',
+              'A personal artist storefront',
+              'Direct messaging with collectors',
+              'Sales analytics & insights',
+              'Stripe Connect payouts to your bank',
+              'AI-assisted quality review',
+              'Buyer protection &amp; escrow',
+              'Tracked shipping integration',
+            ].map((feature, i) => (
+              <li
+                key={i}
+                style={{
+                  padding: '1.1rem 0',
+                  borderTop: '1px solid var(--color-border)',
+                  borderBottom: i === 8 ? '1px solid var(--color-border)' : 'none',
+                  fontSize: '1rem',
+                  color: 'var(--color-ink)',
+                  fontWeight: 300,
+                  display: 'flex',
+                  alignItems: 'baseline',
+                  gap: '1.4rem',
+                }}
+              >
+                <span
+                  className="font-serif"
+                  style={{
+                    fontSize: '0.72rem',
+                    color: 'var(--color-stone)',
+                    fontStyle: 'italic',
+                    width: '1.4rem',
+                    flexShrink: 0,
+                  }}
+                >
+                  {String(i + 1).padStart(2, '0')}
+                </span>
+                <span dangerouslySetInnerHTML={{ __html: feature }} />
+              </li>
+            ))}
+          </ul>
         </div>
       </section>
 
-      {/* Stripe Fee Explanation */}
-      <section className="py-20 md:py-28 bg-cream border-y border-border">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
-            <p className="text-accent-dark text-sm font-medium tracking-[0.15em] uppercase mb-3">Transparency</p>
-            <h2 className="font-editorial text-3xl md:text-4xl font-semibold">The only fee: payment processing</h2>
-            <p className="mt-4 text-muted max-w-2xl mx-auto leading-relaxed">
-              Stripe charges ~1.75% + 30c per transaction for Australian domestic cards.
-              This is Stripe&apos;s fee, not ours — it&apos;s the cost of securely processing credit card payments.
-              We pass it through at cost with zero markup.
+      <div style={{ borderTop: '1px solid var(--color-border)' }} />
+
+      {/* ── Stripe Ledger ── */}
+      <section
+        className="px-6 sm:px-10"
+        style={{
+          paddingTop: 'clamp(4rem, 7vw, 6rem)',
+          paddingBottom: 'clamp(4rem, 7vw, 6rem)',
+          background: 'var(--color-cream)',
+        }}
+      >
+        <div className="grid grid-cols-1 lg:grid-cols-12" style={{ gap: 'clamp(1.5rem, 4vw, 4rem)' }}>
+          <div className="lg:col-span-4">
+            <p
+              style={{
+                fontSize: '0.68rem',
+                letterSpacing: '0.22em',
+                textTransform: 'uppercase',
+                color: 'var(--color-stone)',
+                marginBottom: '1.2rem',
+              }}
+            >
+              Transparency
+            </p>
+            <h2
+              className="font-serif"
+              style={{
+                fontSize: 'clamp(1.8rem, 3.5vw, 2.8rem)',
+                lineHeight: 1.1,
+                color: 'var(--color-ink)',
+                fontWeight: 400,
+                letterSpacing: '-0.01em',
+                maxWidth: '14ch',
+              }}
+            >
+              The only fee: <em style={{ fontStyle: 'italic' }}>payment processing.</em>
+            </h2>
+            <p
+              style={{
+                marginTop: '1.4rem',
+                fontSize: '0.92rem',
+                lineHeight: 1.65,
+                color: 'var(--color-stone-dark)',
+                fontWeight: 300,
+                maxWidth: '38ch',
+              }}
+            >
+              Stripe charges ~1.75% + 30¢ on Australian domestic cards. It&apos;s their fee, not ours — passed
+              through at cost, with zero markup.
             </p>
           </div>
 
-          {/* Example Calculations */}
-          <div className="bg-white rounded-2xl border border-border overflow-hidden">
-            <div className="grid grid-cols-4 gap-4 p-4 md:p-6 bg-muted-bg border-b border-border text-xs font-semibold tracking-wider uppercase text-warm-gray">
-              <div>Sale Price</div>
-              <div>Stripe Fee</div>
-              <div>You Receive</div>
-              <div>You Keep</div>
+          <div className="lg:col-span-8">
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: '1fr 1fr 1fr 1fr',
+                gap: '1rem',
+                padding: '0.9rem 0',
+                borderBottom: '1px solid var(--color-border-strong)',
+                fontSize: '0.62rem',
+                letterSpacing: '0.18em',
+                textTransform: 'uppercase',
+                color: 'var(--color-stone)',
+              }}
+            >
+              <div>Sale price</div>
+              <div>Stripe fee</div>
+              <div>Artist gets</div>
+              <div>% kept</div>
             </div>
             {priceExamples.map((ex) => (
-              <div key={ex.price} className="grid grid-cols-4 gap-4 p-4 md:p-6 border-b border-border last:border-0 items-center">
-                <div className="font-editorial text-lg font-medium">${ex.price.toLocaleString()}</div>
-                <div className="text-sm text-muted">-${ex.fee.toFixed(2)}</div>
-                <div className="font-medium text-accent-dark">${ex.payout.toFixed(2)}</div>
-                <div className="text-sm text-muted">{ex.percent}%</div>
+              <div
+                key={ex.price}
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: '1fr 1fr 1fr 1fr',
+                  gap: '1rem',
+                  padding: '1.1rem 0',
+                  borderBottom: '1px solid var(--color-border)',
+                  alignItems: 'baseline',
+                }}
+              >
+                <div
+                  className="font-serif"
+                  style={{
+                    fontSize: 'clamp(1.05rem, 1.6vw, 1.3rem)',
+                    color: 'var(--color-ink)',
+                    fontWeight: 400,
+                  }}
+                >
+                  ${ex.price.toLocaleString()}
+                </div>
+                <div
+                  style={{
+                    fontSize: '0.88rem',
+                    color: 'var(--color-stone)',
+                    fontStyle: 'italic',
+                    fontWeight: 300,
+                  }}
+                >
+                  −${ex.fee.toFixed(2)}
+                </div>
+                <div
+                  className="font-serif"
+                  style={{
+                    fontSize: 'clamp(1.05rem, 1.6vw, 1.3rem)',
+                    color: 'var(--color-ink)',
+                    fontWeight: 400,
+                  }}
+                >
+                  ${ex.payout.toFixed(2)}
+                </div>
+                <div
+                  style={{
+                    fontSize: '0.82rem',
+                    color: 'var(--color-stone-dark)',
+                    fontWeight: 300,
+                  }}
+                >
+                  {ex.percent}%
+                </div>
               </div>
             ))}
+            <p
+              style={{
+                marginTop: '1.4rem',
+                fontSize: '0.72rem',
+                color: 'var(--color-stone)',
+                fontStyle: 'italic',
+                fontWeight: 300,
+              }}
+            >
+              Rates shown for standard Australian domestic cards. International cards may incur a slightly
+              higher Stripe fee.
+            </p>
           </div>
-          <p className="text-xs text-warm-gray text-center mt-4">
-            Fees shown are for standard Australian domestic card transactions. International cards may incur a slightly higher Stripe fee.
-          </p>
         </div>
       </section>
 
-      {/* Comparison Table */}
-      <section className="py-20 md:py-28">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
-            <p className="text-accent-dark text-sm font-medium tracking-[0.15em] uppercase mb-3">Compare</p>
-            <h2 className="font-editorial text-3xl md:text-4xl font-semibold">How Signo stacks up</h2>
-          </div>
+      <div style={{ borderTop: '1px solid var(--color-border)' }} />
 
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b-2 border-border">
-                  <th className="text-left py-4 pr-4 font-medium text-warm-gray"></th>
-                  <th className="py-4 px-4 font-semibold text-accent-dark bg-accent/5 rounded-t-xl">Signo</th>
-                  <th className="py-4 px-4 font-medium text-warm-gray">Blue Thumb</th>
-                  <th className="py-4 px-4 font-medium text-warm-gray">Traditional Gallery</th>
-                  <th className="py-4 px-4 font-medium text-warm-gray">Etsy</th>
-                </tr>
-              </thead>
-              <tbody>
-                {[
-                  {
-                    feature: 'Commission',
-                    signo: '0%',
-                    bluethumb: '35%',
-                    gallery: '40-60%',
-                    etsy: '6.5% + fees',
-                    signoHighlight: true,
-                  },
-                  {
-                    feature: 'Monthly Fee',
-                    signo: 'Free → $30/mo after first sale',
-                    bluethumb: 'Free',
-                    gallery: 'Varies',
-                    etsy: 'Free + $0.20/listing',
-                    signoHighlight: true,
-                  },
-                  {
-                    feature: 'Artist keeps (on $500 sale)',
-                    signo: '~$491',
-                    bluethumb: '~$325',
-                    gallery: '~$200-300',
-                    etsy: '~$450',
-                    signoHighlight: true,
-                  },
-                  {
-                    feature: 'Curated marketplace',
-                    signo: true,
-                    bluethumb: true,
-                    gallery: true,
-                    etsy: false,
-                  },
-                  {
-                    feature: 'Buyer protection',
-                    signo: true,
-                    bluethumb: true,
-                    gallery: 'Varies',
-                    etsy: true,
-                  },
-                  {
-                    feature: 'Artist storefront',
-                    signo: true,
-                    bluethumb: true,
-                    gallery: false,
-                    etsy: true,
-                  },
-                  {
-                    feature: 'Direct payouts to bank',
-                    signo: true,
-                    bluethumb: true,
-                    gallery: 'Varies',
-                    etsy: true,
-                  },
-                  {
-                    feature: 'Australian-focused',
-                    signo: true,
-                    bluethumb: true,
-                    gallery: true,
-                    etsy: false,
-                  },
-                ].map((row) => (
-                  <tr key={row.feature} className="border-b border-border">
-                    <td className="py-4 pr-4 font-medium">{row.feature}</td>
-                    <td className={`py-4 px-4 text-center ${row.signoHighlight ? 'bg-accent/5 font-semibold text-accent-dark' : 'bg-accent/5'}`}>
-                      {typeof row.signo === 'boolean' ? (
-                        row.signo ? <Check className="w-4 h-4 text-accent-dark mx-auto" /> : <X className="w-4 h-4 text-warm-gray mx-auto" />
-                      ) : row.signo}
-                    </td>
-                    <td className="py-4 px-4 text-center text-muted">
-                      {typeof row.bluethumb === 'boolean' ? (
-                        row.bluethumb ? <Check className="w-4 h-4 text-muted mx-auto" /> : <X className="w-4 h-4 text-warm-gray mx-auto" />
-                      ) : row.bluethumb}
-                    </td>
-                    <td className="py-4 px-4 text-center text-muted">
-                      {typeof row.gallery === 'boolean' ? (
-                        row.gallery ? <Check className="w-4 h-4 text-muted mx-auto" /> : <X className="w-4 h-4 text-warm-gray mx-auto" />
-                      ) : row.gallery}
-                    </td>
-                    <td className="py-4 px-4 text-center text-muted">
-                      {typeof row.etsy === 'boolean' ? (
-                        row.etsy ? <Check className="w-4 h-4 text-muted mx-auto" /> : <X className="w-4 h-4 text-warm-gray mx-auto" />
-                      ) : row.etsy}
-                    </td>
-                  </tr>
+      {/* ── Comparison — editorial table ── */}
+      <section
+        className="px-6 sm:px-10"
+        style={{
+          paddingTop: 'clamp(4rem, 7vw, 6rem)',
+          paddingBottom: 'clamp(4rem, 7vw, 6rem)',
+        }}
+      >
+        <p
+          style={{
+            fontSize: '0.68rem',
+            letterSpacing: '0.22em',
+            textTransform: 'uppercase',
+            color: 'var(--color-stone)',
+            marginBottom: '1.2rem',
+          }}
+        >
+          In context
+        </p>
+        <h2
+          className="font-serif"
+          style={{
+            fontSize: 'clamp(2rem, 4vw, 3.2rem)',
+            lineHeight: 1.05,
+            color: 'var(--color-ink)',
+            fontWeight: 400,
+            letterSpacing: '-0.015em',
+            marginBottom: 'clamp(2.5rem, 5vw, 4rem)',
+            maxWidth: '18ch',
+          }}
+        >
+          How Signo sits next to the <em style={{ fontStyle: 'italic' }}>alternatives.</em>
+        </h2>
+
+        <div style={{ overflowX: 'auto' }}>
+          <table
+            style={{
+              width: '100%',
+              borderCollapse: 'collapse',
+              fontSize: '0.88rem',
+              minWidth: '640px',
+            }}
+          >
+            <thead>
+              <tr>
+                <th
+                  style={{
+                    textAlign: 'left',
+                    padding: '1.2rem 1rem 1.2rem 0',
+                    borderBottom: '1px solid var(--color-border-strong)',
+                    fontSize: '0.62rem',
+                    letterSpacing: '0.18em',
+                    textTransform: 'uppercase',
+                    color: 'var(--color-stone)',
+                    fontWeight: 400,
+                  }}
+                />
+                {['Signo', 'Blue Thumb', 'Gallery', 'Etsy'].map((h, i) => (
+                  <th
+                    key={h}
+                    className="font-serif"
+                    style={{
+                      textAlign: 'left',
+                      padding: '1.2rem 1rem',
+                      borderBottom: '1px solid var(--color-border-strong)',
+                      fontSize: '1rem',
+                      color: 'var(--color-ink)',
+                      fontWeight: 400,
+                      fontStyle: i === 0 ? 'italic' : 'normal',
+                    }}
+                  >
+                    {h}
+                  </th>
                 ))}
-              </tbody>
-            </table>
-          </div>
+              </tr>
+            </thead>
+            <tbody>
+              {[
+                { feature: 'Commission', signo: '0%', bluethumb: '35%', gallery: '40–60%', etsy: '6.5% + fees' },
+                {
+                  feature: 'Monthly fee',
+                  signo: 'Free → $30 / mo',
+                  bluethumb: 'Free',
+                  gallery: 'Varies',
+                  etsy: 'Free + $0.20 / listing',
+                },
+                { feature: 'Artist keeps (on $500)', signo: '~$491', bluethumb: '~$325', gallery: '~$200–300', etsy: '~$450' },
+                { feature: 'Curated', signo: 'Yes', bluethumb: 'Yes', gallery: 'Yes', etsy: 'No' },
+                { feature: 'Buyer protection', signo: 'Yes', bluethumb: 'Yes', gallery: 'Varies', etsy: 'Yes' },
+                { feature: 'Artist storefront', signo: 'Yes', bluethumb: 'Yes', gallery: 'No', etsy: 'Yes' },
+                { feature: 'Direct payout to bank', signo: 'Yes', bluethumb: 'Yes', gallery: 'Varies', etsy: 'Yes' },
+                { feature: 'Australian-focused', signo: 'Yes', bluethumb: 'Yes', gallery: 'Yes', etsy: 'No' },
+              ].map((row) => (
+                <tr key={row.feature}>
+                  <td
+                    style={{
+                      padding: '1.1rem 1rem 1.1rem 0',
+                      borderBottom: '1px solid var(--color-border)',
+                      color: 'var(--color-ink)',
+                      fontWeight: 300,
+                      fontStyle: 'italic',
+                    }}
+                  >
+                    {row.feature}
+                  </td>
+                  <td
+                    style={{
+                      padding: '1.1rem 1rem',
+                      borderBottom: '1px solid var(--color-border)',
+                      color: 'var(--color-ink)',
+                      fontWeight: 400,
+                    }}
+                  >
+                    {row.signo}
+                  </td>
+                  <td
+                    style={{
+                      padding: '1.1rem 1rem',
+                      borderBottom: '1px solid var(--color-border)',
+                      color: 'var(--color-stone-dark)',
+                      fontWeight: 300,
+                    }}
+                  >
+                    {row.bluethumb}
+                  </td>
+                  <td
+                    style={{
+                      padding: '1.1rem 1rem',
+                      borderBottom: '1px solid var(--color-border)',
+                      color: 'var(--color-stone-dark)',
+                      fontWeight: 300,
+                    }}
+                  >
+                    {row.gallery}
+                  </td>
+                  <td
+                    style={{
+                      padding: '1.1rem 1rem',
+                      borderBottom: '1px solid var(--color-border)',
+                      color: 'var(--color-stone-dark)',
+                      fontWeight: 300,
+                    }}
+                  >
+                    {row.etsy}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       </section>
 
-      {/* CTA */}
-      <section className="py-20 md:py-28 bg-primary text-white relative texture-grain overflow-hidden">
-        <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 text-center relative z-10">
-          <h2 className="font-editorial text-3xl md:text-4xl font-semibold leading-snug">
-            Keep what you{' '}
-            <span className="italic text-accent-dark">earn</span>
-          </h2>
-          <p className="text-gray-400 mt-6 max-w-md mx-auto">
-            List for free. $30/month only after your first sale. Zero commission.
+      {/* ── CTA ── */}
+      <section
+        className="px-6 sm:px-10"
+        style={{
+          background: 'var(--color-ink)',
+          color: 'var(--color-warm-white)',
+          paddingTop: 'clamp(5rem, 9vw, 8rem)',
+          paddingBottom: 'clamp(5rem, 9vw, 8rem)',
+        }}
+      >
+        <div style={{ maxWidth: '58ch' }}>
+          <p
+            style={{
+              fontSize: '0.68rem',
+              letterSpacing: '0.22em',
+              textTransform: 'uppercase',
+              color: 'var(--color-stone)',
+              marginBottom: '1.4rem',
+            }}
+          >
+            The arithmetic
           </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center mt-10">
+          <h2
+            className="font-serif"
+            style={{
+              fontSize: 'clamp(2.4rem, 5vw, 4rem)',
+              lineHeight: 1.05,
+              letterSpacing: '-0.015em',
+              color: 'var(--color-warm-white)',
+              fontWeight: 400,
+            }}
+          >
+            Keep what you <em style={{ fontStyle: 'italic' }}>earn.</em>
+          </h2>
+          <p
+            style={{
+              marginTop: '1.4rem',
+              fontSize: '0.96rem',
+              color: 'var(--color-stone)',
+              fontWeight: 300,
+              maxWidth: '46ch',
+              lineHeight: 1.65,
+            }}
+          >
+            List for free. Thirty dollars a month after the first sale. Zero commission, ever.
+          </p>
+          <div
+            style={{
+              marginTop: '2.4rem',
+              display: 'flex',
+              gap: '2.2rem',
+              flexWrap: 'wrap',
+              alignItems: 'center',
+            }}
+          >
             <Link
               href="/register"
-              className="group inline-flex items-center justify-center gap-3 px-7 py-3.5 bg-accent text-primary font-semibold rounded-full hover:bg-accent-light transition-all duration-300"
+              style={{
+                display: 'inline-block',
+                padding: '1.05rem 1.8rem',
+                background: 'var(--color-warm-white)',
+                color: 'var(--color-ink)',
+                fontSize: '0.76rem',
+                letterSpacing: '0.18em',
+                textTransform: 'uppercase',
+                fontWeight: 400,
+                textDecoration: 'none',
+                border: '1px solid var(--color-warm-white)',
+              }}
             >
               Start Selling Free
-              <ArrowRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
             </Link>
             <Link
               href="/how-it-works"
-              className="inline-flex items-center justify-center gap-2 px-7 py-3.5 border border-white/30 text-white font-medium rounded-full hover:bg-white hover:text-primary transition-all duration-300"
+              style={{
+                display: 'inline-block',
+                paddingBottom: '0.2rem',
+                borderBottom: '1px solid var(--color-stone-dark)',
+                fontSize: '0.78rem',
+                letterSpacing: '0.12em',
+                textTransform: 'uppercase',
+                fontWeight: 300,
+                color: 'var(--color-warm-white)',
+                textDecoration: 'none',
+              }}
             >
-              How It Works
+              How it works
             </Link>
           </div>
         </div>

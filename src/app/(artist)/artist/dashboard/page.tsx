@@ -3,32 +3,13 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { useEffect, useState, useCallback, useRef } from 'react';
-import {
-  DollarSign,
-  Package,
-  Eye,
-  TrendingUp,
-  Plus,
-  ArrowRight,
-  CreditCard,
-  Sparkles,
-  Loader2,
-  Banknote,
-  Palette,
-  AlertTriangle,
-  Clock,
-  CheckCircle2,
-  PauseCircle,
-  XCircle,
-  Camera,
-  Trash2,
-  ImageIcon,
-} from 'lucide-react';
 import { formatPrice, getStatusStyle, formatStatus } from '@/lib/utils';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { useRequireAuth } from '@/lib/hooks/useRequireAuth';
 import { uploadStudioImage } from '@/lib/supabase/storage';
 import type { StudioPost } from '@/lib/types/database';
+
+// ── Types ──
 
 interface RecentOrder {
   id: string;
@@ -41,27 +22,59 @@ interface RecentOrder {
   date: string;
 }
 
+// ── Shell ──
+
+function EditorialSpinner({ label = 'Loading…' }: { label?: string }) {
+  return (
+    <div
+      style={{
+        minHeight: '60vh',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        background: 'var(--color-warm-white)',
+      }}
+    >
+      <p
+        className="font-serif"
+        style={{ fontStyle: 'italic', fontSize: '0.95rem', color: 'var(--color-stone)' }}
+      >
+        {label}
+      </p>
+    </div>
+  );
+}
+
+const KICKER: React.CSSProperties = {
+  fontSize: '0.62rem',
+  letterSpacing: '0.22em',
+  textTransform: 'uppercase',
+  color: 'var(--color-stone)',
+};
+
+// ── Component ──
+
 export default function ArtistDashboardPage() {
   const { loading: authLoading } = useRequireAuth('artist');
   const { user } = useAuth();
 
   const showOnboardingBanner = user && !user.onboarding_completed;
 
-  // Stats default to 0 — never show loading placeholders
   const [totalSales, setTotalSales] = useState(0);
   const [totalEarnings, setTotalEarnings] = useState(0);
   const [activeListings, setActiveListings] = useState(0);
   const [pendingReview, setPendingReview] = useState(0);
 
-  // Subscription
-  const [subscriptionStatus, setSubscriptionStatus] = useState<string>(user?.subscription_status || 'trial');
-  const [gracePeriodDeadline, setGracePeriodDeadline] = useState<string | null>(user?.grace_period_deadline || null);
+  const [subscriptionStatus, setSubscriptionStatus] = useState<string>(
+    user?.subscription_status || 'trial'
+  );
+  const [gracePeriodDeadline, setGracePeriodDeadline] = useState<string | null>(
+    user?.grace_period_deadline || null
+  );
 
-  // Orders: separate loaded flag with 5s safety timeout
   const [recentOrders, setRecentOrders] = useState<RecentOrder[]>([]);
   const [ordersLoaded, setOrdersLoaded] = useState(false);
 
-  // Studio posts
   const [studioPosts, setStudioPosts] = useState<StudioPost[]>([]);
   const [studioLoaded, setStudioLoaded] = useState(false);
   const [showStudioForm, setShowStudioForm] = useState(false);
@@ -79,9 +92,7 @@ export default function ArtistDashboardPage() {
       return;
     }
 
-    // Safety timeout: show empty state after 5s no matter what
     const timer = setTimeout(() => setOrdersLoaded(true), 5000);
-
     const controller = new AbortController();
 
     async function fetchDashboard() {
@@ -97,7 +108,6 @@ export default function ArtistDashboardPage() {
 
         const data = await res.json();
 
-        // Update stats (they default to 0, so partial failure is fine)
         if (data.stats) {
           setTotalSales(data.stats.totalSales ?? 0);
           setTotalEarnings(data.stats.totalEarnings ?? 0);
@@ -105,15 +115,10 @@ export default function ArtistDashboardPage() {
           setPendingReview(data.stats.pendingReview ?? 0);
         }
 
-        // Update subscription status
-        if (data.subscription_status) {
-          setSubscriptionStatus(data.subscription_status);
-        }
-        if (data.grace_period_deadline !== undefined) {
+        if (data.subscription_status) setSubscriptionStatus(data.subscription_status);
+        if (data.grace_period_deadline !== undefined)
           setGracePeriodDeadline(data.grace_period_deadline);
-        }
 
-        // Update orders
         if (data.recentOrders) {
           setRecentOrders(
             data.recentOrders.map((o: Record<string, unknown>) => ({
@@ -124,7 +129,10 @@ export default function ArtistDashboardPage() {
               stripeFee: o.stripeFee as number,
               youReceive: o.youReceive as number,
               status: o.status as string,
-              date: new Date(o.date as string).toLocaleDateString('en-AU'),
+              date: new Date(o.date as string).toLocaleDateString('en-AU', {
+                day: 'numeric',
+                month: 'short',
+              }),
             }))
           );
         }
@@ -146,7 +154,6 @@ export default function ArtistDashboardPage() {
     };
   }, [user]);
 
-  // Fetch studio posts
   const fetchStudioPosts = useCallback(async () => {
     if (!user) return;
     try {
@@ -166,16 +173,17 @@ export default function ArtistDashboardPage() {
     fetchStudioPosts();
   }, [fetchStudioPosts]);
 
-  // Handle studio image selection
-  const handleStudioImageSelect = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setStudioImageFile(file);
-    setStudioImagePreview(URL.createObjectURL(file));
-    setStudioError(null);
-  }, []);
+  const handleStudioImageSelect = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+      setStudioImageFile(file);
+      setStudioImagePreview(URL.createObjectURL(file));
+      setStudioError(null);
+    },
+    []
+  );
 
-  // Handle studio post submission
   const handleStudioSubmit = useCallback(async () => {
     if (!user || !studioImageFile) return;
     setStudioUploading(true);
@@ -198,7 +206,6 @@ export default function ArtistDashboardPage() {
         throw new Error(data.error || 'Failed to create post');
       }
 
-      // Reset form and refresh
       setStudioCaption('');
       setStudioImageFile(null);
       setStudioImagePreview(null);
@@ -212,12 +219,13 @@ export default function ArtistDashboardPage() {
     }
   }, [user, studioImageFile, studioCaption, fetchStudioPosts]);
 
-  // Handle studio post deletion
   const handleStudioDelete = useCallback(async (postId: string) => {
-    if (!confirm('Delete this studio post?')) return;
+    if (!confirm('Remove this studio post?')) return;
     setDeletingPostId(postId);
     try {
-      const res = await fetch(`/api/studio-posts?postId=${postId}`, { method: 'DELETE' });
+      const res = await fetch(`/api/studio-posts?postId=${postId}`, {
+        method: 'DELETE',
+      });
       if (res.ok) {
         setStudioPosts((prev) => prev.filter((p) => p.id !== postId));
       }
@@ -228,561 +236,997 @@ export default function ArtistDashboardPage() {
     }
   }, []);
 
-  // Relative time helper
   const timeAgo = useCallback((dateStr: string) => {
     const seconds = Math.floor((Date.now() - new Date(dateStr).getTime()) / 1000);
     if (seconds < 60) return 'Just now';
     const minutes = Math.floor(seconds / 60);
-    if (minutes < 60) return `${minutes}m ago`;
+    if (minutes < 60) return `${minutes}m`;
     const hours = Math.floor(minutes / 60);
-    if (hours < 24) return `${hours}h ago`;
+    if (hours < 24) return `${hours}h`;
     const days = Math.floor(hours / 24);
-    if (days < 30) return `${days}d ago`;
+    if (days < 30) return `${days}d`;
     const months = Math.floor(days / 30);
-    return `${months}mo ago`;
+    return `${months}mo`;
   }, []);
 
-  if (authLoading) return <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '60vh' }}><div style={{ width: 32, height: 32, border: '3px solid #E5E2DB', borderTopColor: '#2C2C2A', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} /><style>{'@keyframes spin { to { transform: rotate(360deg) } }'}</style></div>;
+  if (authLoading) return <EditorialSpinner />;
 
   const STATS = [
+    { label: 'Total sales', value: String(totalSales) },
+    { label: 'Total earnings', value: formatPrice(totalEarnings) },
+    { label: 'Active listings', value: String(activeListings) },
+    { label: 'Pending review', value: String(pendingReview) },
+  ];
+
+  // ── Subscription banner copy ──
+  const daysRemaining = gracePeriodDeadline
+    ? Math.max(
+        0,
+        Math.ceil(
+          (new Date(gracePeriodDeadline).getTime() - Date.now()) /
+            (1000 * 60 * 60 * 24)
+        )
+      )
+    : 0;
+
+  type SubBanner = {
+    kicker: string;
+    headline: string;
+    body: string;
+    cta?: { href: string; label: string };
+    tone: 'ink' | 'amber' | 'terracotta' | 'stone';
+  };
+
+  let subBanner: SubBanner | null = null;
+  if (subscriptionStatus === 'trial') {
+    subBanner = {
+      kicker: '— Status —',
+      headline: 'On the house, until your first sale.',
+      body: 'Your $30 monthly subscription only begins after a work changes hands. Until then, list freely.',
+      tone: 'ink',
+    };
+  } else if (subscriptionStatus === 'pending_activation') {
+    subBanner = {
+      kicker: '— Action required —',
+      headline: 'A payment method keeps the lights on.',
+      body: `Congratulations on your first sale. Add a card within ${daysRemaining} day${daysRemaining !== 1 ? 's' : ''} to keep your listings live.`,
+      cta: { href: '/artist/subscribe', label: 'Add payment method' },
+      tone: 'amber',
+    };
+  } else if (subscriptionStatus === 'active') {
+    subBanner = {
+      kicker: '— Status —',
+      headline: 'Subscription active.',
+      body: '$30 per month · your listings are live across the collection.',
+      cta: { href: '/artist/subscribe', label: 'Manage subscription' },
+      tone: 'ink',
+    };
+  } else if (subscriptionStatus === 'past_due') {
+    subBanner = {
+      kicker: '— Payment failed —',
+      headline: 'Your last payment did not go through.',
+      body: 'Update your payment method to keep your listings visible to collectors.',
+      cta: { href: '/artist/subscribe', label: 'Update payment' },
+      tone: 'terracotta',
+    };
+  } else {
+    subBanner = {
+      kicker: '— Status —',
+      headline:
+        subscriptionStatus === 'paused'
+          ? 'Your subscription is paused.'
+          : 'Your subscription was cancelled.',
+      body:
+        subscriptionStatus === 'paused'
+          ? 'Listings are paused. Add a payment method to bring them back.'
+          : 'Resubscribe whenever you are ready to put works back on the wall.',
+      cta: { href: '/artist/subscribe', label: 'Reactivate' },
+      tone: 'stone',
+    };
+  }
+
+  const subToneBg: Record<SubBanner['tone'], string> = {
+    ink: 'var(--color-ink)',
+    amber: 'var(--color-ink)',
+    terracotta: 'var(--color-ink)',
+    stone: 'var(--color-ink)',
+  };
+  const subToneAccent: Record<SubBanner['tone'], string> = {
+    ink: 'var(--color-warm-white)',
+    amber: 'var(--color-terracotta, #c45d3e)',
+    terracotta: 'var(--color-terracotta, #c45d3e)',
+    stone: 'var(--color-stone)',
+  };
+
+  // ── Quick actions ──
+  const QUICK_ACTIONS = [
     {
-      label: 'Total Sales',
-      value: String(totalSales),
-      icon: TrendingUp,
-      color: 'text-blue-600 bg-blue-50',
+      num: '01',
+      label: 'Upload a work',
+      detail: 'Add a new listing to the collection.',
+      href: '/artist/artworks/new',
     },
     {
-      label: 'Total Earnings',
-      value: formatPrice(totalEarnings),
-      icon: DollarSign,
-      color: 'text-green-600 bg-green-50',
+      num: '02',
+      label: 'Manage listings',
+      detail: 'Edit, archive, or update existing works.',
+      href: '/artist/artworks',
     },
     {
-      label: 'Active Listings',
-      value: String(activeListings),
-      icon: Package,
-      color: 'text-purple-600 bg-purple-50',
+      num: '03',
+      label: 'Earnings',
+      detail: 'Sales history and payout ledger.',
+      href: '/artist/earnings',
     },
     {
-      label: 'Pending Review',
-      value: String(pendingReview),
-      icon: Eye,
-      color: 'text-amber-600 bg-amber-50',
+      num: '04',
+      label: 'Analytics',
+      detail: 'Performance, views, and collector insight.',
+      href: '/artist/analytics',
+    },
+    {
+      num: '05',
+      label: 'Payout settings',
+      detail: 'Bank details and Stripe Connect.',
+      href: '/artist/settings/payouts',
     },
   ];
 
+  const showStripeConnectBanner = user && !user.stripe_account_id;
+
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      {/* Onboarding banner */}
-      {showOnboardingBanner && (
-        <Link
-          href="/artist/onboarding"
-          className="flex items-center gap-4 p-4 mb-6 bg-accent-subtle border border-accent/20 rounded-2xl hover:border-accent/40 transition-colors group"
+    <div style={{ background: 'var(--color-warm-white)', minHeight: '100vh' }}>
+      {/* ── Stripe Connect enforcement banner ── */}
+      {showStripeConnectBanner && (
+        <div
+          className="px-6 sm:px-10"
+          style={{
+            borderTop: '1px solid var(--color-terracotta)',
+            borderBottom: '1px solid var(--color-terracotta)',
+            paddingTop: '1rem',
+            paddingBottom: '1rem',
+            display: 'flex',
+            flexWrap: 'wrap',
+            alignItems: 'center',
+            gap: '1rem',
+          }}
         >
-          <div className="w-10 h-10 bg-accent/10 rounded-full flex items-center justify-center flex-shrink-0 group-hover:bg-accent/20 transition-colors">
-            <Palette className="h-5 w-5 text-accent-dark" />
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="font-medium text-sm text-foreground">Complete your artist setup</p>
-            <p className="text-xs text-muted mt-0.5">Finish setting up your profile and list your first artwork to start selling.</p>
-          </div>
-          <ArrowRight className="h-4 w-4 text-accent-dark flex-shrink-0 group-hover:translate-x-1 transition-transform" />
-        </Link>
-      )}
-
-      <div className="flex items-center justify-between mb-8">
-        <div>
-          <h1 className="font-editorial text-3xl md:text-4xl font-semibold">Seller Dashboard</h1>
-          <p className="text-muted mt-1">
-            Manage your listings and sales
-            {user ? `, ${user.full_name}` : ''}
-          </p>
-        </div>
-        <Link
-          href="/artist/artworks/new"
-          className="inline-flex items-center gap-2 px-4 py-2.5 bg-primary text-white text-sm font-medium rounded-lg hover:bg-primary-light transition-colors"
-        >
-          <Plus className="h-4 w-4" />
-          Upload Artwork
-        </Link>
-      </div>
-
-      {/* Stats Grid — always shows numbers, defaults to 0 */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        {STATS.map((stat) => (
-          <div
-            key={stat.label}
-            className="bg-white border border-border rounded-lg p-5"
-          >
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-sm text-muted">{stat.label}</span>
-              <div
-                className={`w-8 h-8 rounded-full flex items-center justify-center ${stat.color}`}
-              >
-                <stat.icon className="h-4 w-4" />
-              </div>
-            </div>
-            <p className="text-2xl font-bold">{stat.value}</p>
-          </div>
-        ))}
-      </div>
-
-      {/* Subscription Status Card */}
-      {(() => {
-        const daysRemaining = gracePeriodDeadline
-          ? Math.max(0, Math.ceil((new Date(gracePeriodDeadline).getTime() - Date.now()) / (1000 * 60 * 60 * 24)))
-          : 0;
-
-        if (subscriptionStatus === 'trial') {
-          return (
-            <div className="bg-gradient-to-r from-accent/5 to-accent/10 border border-accent/20 rounded-lg p-5 mb-10 flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <div className="w-10 h-10 bg-accent/15 rounded-full flex items-center justify-center">
-                  <Sparkles className="h-5 w-5 text-accent-dark" />
-                </div>
-                <div>
-                  <div className="flex items-center gap-2">
-                    <p className="font-semibold">Free Plan</p>
-                    <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-accent-subtle text-accent-dark">
-                      Active
-                    </span>
-                  </div>
-                  <p className="text-sm text-muted mt-0.5">
-                    Your $30/month subscription starts after your first sale. No payment needed right now.
-                  </p>
-                </div>
-              </div>
-              <div className="hidden sm:block text-right">
-                <p className="text-xs text-muted">Your plan</p>
-                <p className="text-sm font-semibold text-accent-dark">Free</p>
-                <p className="text-xs text-muted">Until first sale</p>
-              </div>
-            </div>
-          );
-        }
-
-        if (subscriptionStatus === 'pending_activation') {
-          return (
-            <div className="bg-gradient-to-r from-amber-50 to-amber-100/50 border border-amber-300 rounded-lg p-5 mb-10 flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <div className="w-10 h-10 bg-amber-100 rounded-full flex items-center justify-center">
-                  <Clock className="h-5 w-5 text-amber-700" />
-                </div>
-                <div>
-                  <div className="flex items-center gap-2">
-                    <p className="font-semibold">Subscription Required</p>
-                    <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-amber-100 text-amber-800">
-                      {daysRemaining} day{daysRemaining !== 1 ? 's' : ''} remaining
-                    </span>
-                  </div>
-                  <p className="text-sm text-muted mt-0.5">
-                    Congratulations on your first sale! Add a payment method within {daysRemaining} day{daysRemaining !== 1 ? 's' : ''} to keep your listings live.
-                  </p>
-                </div>
-              </div>
-              <Link
-                href="/artist/subscribe"
-                className="hidden sm:inline-flex items-center gap-2 px-4 py-2 bg-amber-600 text-white text-sm font-medium rounded-lg hover:bg-amber-700 transition-colors flex-shrink-0"
-              >
-                <CreditCard className="h-4 w-4" />
-                Add Payment
-              </Link>
-            </div>
-          );
-        }
-
-        if (subscriptionStatus === 'active') {
-          return (
-            <div className="bg-gradient-to-r from-green-50 to-green-100/30 border border-green-200 rounded-lg p-5 mb-10 flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
-                  <CheckCircle2 className="h-5 w-5 text-green-700" />
-                </div>
-                <div>
-                  <div className="flex items-center gap-2">
-                    <p className="font-semibold">Subscription</p>
-                    <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-green-100 text-green-700">
-                      Active
-                    </span>
-                  </div>
-                  <p className="text-sm text-muted mt-0.5">
-                    Active &mdash; $30/month. Your listings are live.
-                  </p>
-                </div>
-              </div>
-              <Link
-                href="/artist/subscribe"
-                className="hidden sm:inline-flex items-center gap-1.5 text-sm text-accent-dark hover:underline flex-shrink-0"
-              >
-                Manage Subscription <ArrowRight className="h-3.5 w-3.5" />
-              </Link>
-            </div>
-          );
-        }
-
-        if (subscriptionStatus === 'past_due') {
-          return (
-            <div className="bg-gradient-to-r from-red-50 to-red-100/30 border border-red-300 rounded-lg p-5 mb-10 flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center">
-                  <AlertTriangle className="h-5 w-5 text-red-600" />
-                </div>
-                <div>
-                  <div className="flex items-center gap-2">
-                    <p className="font-semibold">Payment Failed</p>
-                    <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-red-100 text-red-700">
-                      Past Due
-                    </span>
-                  </div>
-                  <p className="text-sm text-muted mt-0.5">
-                    Your payment failed. Please update your payment method to keep your listings visible.
-                  </p>
-                </div>
-              </div>
-              <Link
-                href="/artist/subscribe"
-                className="hidden sm:inline-flex items-center gap-2 px-4 py-2 bg-red-600 text-white text-sm font-medium rounded-lg hover:bg-red-700 transition-colors flex-shrink-0"
-              >
-                <CreditCard className="h-4 w-4" />
-                Update Payment
-              </Link>
-            </div>
-          );
-        }
-
-        // paused or cancelled
-        return (
-          <div className="bg-gradient-to-r from-gray-50 to-gray-100/30 border border-gray-300 rounded-lg p-5 mb-10 flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <div className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center">
-                {subscriptionStatus === 'paused' ? (
-                  <PauseCircle className="h-5 w-5 text-gray-600" />
-                ) : (
-                  <XCircle className="h-5 w-5 text-gray-600" />
-                )}
-              </div>
-              <div>
-                <div className="flex items-center gap-2">
-                  <p className="font-semibold">Subscription {subscriptionStatus === 'paused' ? 'Paused' : 'Cancelled'}</p>
-                  <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-gray-100 text-gray-600">
-                    {subscriptionStatus === 'paused' ? 'Paused' : 'Cancelled'}
-                  </span>
-                </div>
-                <p className="text-sm text-muted mt-0.5">
-                  {subscriptionStatus === 'paused'
-                    ? 'Your listings are paused. Add a payment method to reactivate.'
-                    : 'Your subscription was cancelled. Resubscribe to get your listings back.'}
-                </p>
-              </div>
-            </div>
-            <Link
-              href="/artist/subscribe"
-              className="hidden sm:inline-flex items-center gap-2 px-4 py-2 bg-primary text-white text-sm font-medium rounded-lg hover:bg-primary-light transition-colors flex-shrink-0"
+          <div style={{ flex: 1, minWidth: '16rem' }}>
+            <p
+              style={{
+                fontSize: '0.62rem',
+                letterSpacing: '0.22em',
+                textTransform: 'uppercase',
+                color: 'var(--color-terracotta)',
+                marginBottom: '0.3rem',
+              }}
             >
-              <CreditCard className="h-4 w-4" />
-              Reactivate
-            </Link>
-          </div>
-        );
-      })()}
-
-      {/* Quick Actions */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 mb-10">
-        <Link
-          href="/artist/artworks/new"
-          className="flex items-center gap-4 p-5 border border-border rounded-lg hover:border-accent hover:bg-accent/5 transition-colors"
-        >
-          <div className="w-10 h-10 bg-accent/10 rounded-full flex items-center justify-center">
-            <Plus className="h-5 w-5 text-accent-dark" />
-          </div>
-          <div>
-            <p className="font-semibold text-sm">Upload Artwork</p>
-            <p className="text-xs text-muted">
-              Add a new listing
+              Action required
+            </p>
+            <p
+              className="font-serif"
+              style={{
+                fontStyle: 'italic',
+                fontSize: '0.92rem',
+                color: 'var(--color-ink)',
+                fontWeight: 400,
+              }}
+            >
+              <em>Connect Stripe to receive payouts.</em>
             </p>
           </div>
-        </Link>
-        <Link
-          href="/artist/artworks"
-          className="flex items-center gap-4 p-5 border border-border rounded-lg hover:border-accent hover:bg-accent/5 transition-colors"
-        >
-          <div className="w-10 h-10 bg-accent/10 rounded-full flex items-center justify-center">
-            <Package className="h-5 w-5 text-accent-dark" />
-          </div>
-          <div>
-            <p className="font-semibold text-sm">Manage Listings</p>
-            <p className="text-xs text-muted">
-              Edit or update artwork
-            </p>
-          </div>
-        </Link>
-        <Link
-          href="/artist/earnings"
-          className="flex items-center gap-4 p-5 border border-border rounded-lg hover:border-accent hover:bg-accent/5 transition-colors"
-        >
-          <div className="w-10 h-10 bg-accent/10 rounded-full flex items-center justify-center">
-            <DollarSign className="h-5 w-5 text-accent-dark" />
-          </div>
-          <div>
-            <p className="font-semibold text-sm">View Earnings</p>
-            <p className="text-xs text-muted">
-              Sales &amp; payout history
-            </p>
-          </div>
-        </Link>
-        <Link
-          href="/artist/analytics"
-          className="flex items-center gap-4 p-5 border border-border rounded-lg hover:border-accent hover:bg-accent/5 transition-colors"
-        >
-          <div className="w-10 h-10 bg-accent/10 rounded-full flex items-center justify-center">
-            <TrendingUp className="h-5 w-5 text-accent-dark" />
-          </div>
-          <div>
-            <p className="font-semibold text-sm">Analytics</p>
-            <p className="text-xs text-muted">
-              Performance &amp; insights
-            </p>
-          </div>
-        </Link>
-        <Link
-          href="/artist/settings/payouts"
-          className="flex items-center gap-4 p-5 border border-border rounded-lg hover:border-accent hover:bg-accent/5 transition-colors"
-        >
-          <div className="w-10 h-10 bg-accent/10 rounded-full flex items-center justify-center">
-            <Banknote className="h-5 w-5 text-accent-dark" />
-          </div>
-          <div>
-            <p className="font-semibold text-sm">Payout Settings</p>
-            <p className="text-xs text-muted">
-              Bank &amp; Stripe Connect
-            </p>
-          </div>
-        </Link>
-      </div>
-
-      {/* Recent Orders */}
-      <div className="border border-border rounded-lg">
-        <div className="flex items-center justify-between p-5 border-b border-border">
-          <h2 className="font-semibold text-lg">Recent Orders</h2>
-          <Link
-            href="/artist/orders"
-            className="text-sm text-accent-dark hover:underline flex items-center gap-1"
-          >
-            View All <ArrowRight className="h-3 w-3" />
+          <Link href="/artist/onboarding?step=4" className="editorial-link">
+            Connect now &rarr;
           </Link>
         </div>
-        {!ordersLoaded ? (
-          <div className="p-10 flex items-center justify-center">
-            <Loader2 className="h-5 w-5 animate-spin text-muted" />
-          </div>
-        ) : recentOrders.length === 0 ? (
-          <div className="p-10 text-center">
-            <Package className="h-10 w-10 text-muted mx-auto mb-3" />
-            <p className="font-medium mb-1">No orders yet</p>
-            <p className="text-sm text-muted mb-4">
-              Once your artwork is listed and approved, orders will appear
-              here.
+      )}
+      <div
+        className="px-6 sm:px-10"
+        style={{
+          maxWidth: '78rem',
+          margin: '0 auto',
+          paddingTop: 'clamp(7.5rem, 10vw, 9.5rem)',
+          paddingBottom: 'clamp(4rem, 7vw, 6rem)',
+        }}
+      >
+        {/* ── Editorial header ── */}
+        <header
+          style={{
+            marginBottom: 'clamp(2.4rem, 4vw, 3.4rem)',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '1.4rem',
+          }}
+        >
+          <div>
+            <p style={{ ...KICKER, marginBottom: '1rem' }}>
+              The Studio · Artist panel
             </p>
-            <Link
-              href="/artist/artworks/new"
-              className="inline-flex items-center gap-2 text-accent-dark font-medium hover:underline"
+            <h1
+              className="font-serif"
+              style={{
+                fontSize: 'clamp(2rem, 4vw, 3rem)',
+                lineHeight: 1.05,
+                letterSpacing: '-0.015em',
+                color: 'var(--color-ink)',
+                fontWeight: 400,
+                marginBottom: '0.7rem',
+              }}
             >
-              Upload your first artwork <ArrowRight className="h-4 w-4" />
-            </Link>
+              {user?.full_name ? `${user.full_name.split(' ')[0]}'s ` : 'Your '}
+              <em style={{ fontStyle: 'italic' }}>studio.</em>
+            </h1>
+            <p
+              style={{
+                fontSize: '0.92rem',
+                fontWeight: 300,
+                color: 'var(--color-stone-dark)',
+                lineHeight: 1.6,
+                maxWidth: '48ch',
+              }}
+            >
+              Listings, orders, and the quiet ledger of your practice — all in
+              one place.
+            </p>
           </div>
-        ) : (
-          <>
-            {/* Desktop table */}
-            <div className="hidden md:block">
-              <table className="w-full">
+
+          <Link
+            href="/artist/artworks/new"
+            className="artwork-primary-cta--compact"
+            style={{ alignSelf: 'flex-start' }}
+          >
+            Upload a new work
+          </Link>
+        </header>
+
+        {/* ── Onboarding banner ── */}
+        {showOnboardingBanner && (
+          <Link
+            href="/artist/onboarding"
+            style={{
+              display: 'block',
+              background: 'var(--color-ink)',
+              color: 'var(--color-warm-white)',
+              padding: 'clamp(1.8rem, 3vw, 2.6rem)',
+              marginBottom: 'clamp(2.4rem, 4vw, 3.4rem)',
+              textDecoration: 'none',
+            }}
+          >
+            <p
+              style={{
+                ...KICKER,
+                color: 'var(--color-stone)',
+                marginBottom: '0.9rem',
+              }}
+            >
+              — First steps —
+            </p>
+            <p
+              className="font-serif"
+              style={{
+                fontSize: 'clamp(1.4rem, 2.4vw, 1.85rem)',
+                lineHeight: 1.2,
+                fontWeight: 400,
+                marginBottom: '0.7rem',
+              }}
+            >
+              Finish setting up your <em style={{ fontStyle: 'italic' }}>studio.</em>
+            </p>
+            <p
+              style={{
+                fontSize: '0.9rem',
+                fontWeight: 300,
+                lineHeight: 1.6,
+                opacity: 0.82,
+                maxWidth: '52ch',
+              }}
+            >
+              Complete your artist profile and list your first work to open
+              the door to collectors. →
+            </p>
+          </Link>
+        )}
+
+        {/* ── Stats as typographic dl ── */}
+        <section
+          style={{
+            borderTop: '1px solid var(--color-border-strong)',
+            borderBottom: '1px solid var(--color-border-strong)',
+            marginBottom: 'clamp(2.4rem, 4vw, 3.4rem)',
+          }}
+        >
+          <dl
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(14rem, 1fr))',
+              margin: 0,
+              padding: 0,
+            }}
+          >
+            {STATS.map((stat, i) => (
+              <div
+                key={stat.label}
+                style={{
+                  padding: '1.8rem 1.6rem',
+                  borderLeft: i === 0 ? 'none' : '1px solid var(--color-border)',
+                }}
+              >
+                <dt
+                  style={{
+                    ...KICKER,
+                    marginBottom: '0.9rem',
+                  }}
+                >
+                  {stat.label}
+                </dt>
+                <dd
+                  className="font-serif"
+                  style={{
+                    margin: 0,
+                    fontSize: 'clamp(1.8rem, 3vw, 2.4rem)',
+                    fontWeight: 400,
+                    color: 'var(--color-ink)',
+                    lineHeight: 1,
+                    letterSpacing: '-0.01em',
+                  }}
+                >
+                  {stat.value}
+                </dd>
+              </div>
+            ))}
+          </dl>
+        </section>
+
+        {/* ── Subscription banner ── */}
+        {subBanner && (
+          <section
+            style={{
+              background: subToneBg[subBanner.tone],
+              color: 'var(--color-warm-white)',
+              padding: 'clamp(1.8rem, 3vw, 2.6rem)',
+              marginBottom: 'clamp(2.4rem, 4vw, 3.4rem)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '1.2rem',
+            }}
+          >
+            <p
+              style={{
+                ...KICKER,
+                color: subToneAccent[subBanner.tone],
+              }}
+            >
+              {subBanner.kicker}
+            </p>
+            <p
+              className="font-serif"
+              style={{
+                fontSize: 'clamp(1.3rem, 2.2vw, 1.65rem)',
+                lineHeight: 1.25,
+                fontWeight: 400,
+                margin: 0,
+              }}
+            >
+              {subBanner.headline}
+            </p>
+            <p
+              style={{
+                fontSize: '0.92rem',
+                fontWeight: 300,
+                lineHeight: 1.6,
+                opacity: 0.84,
+                margin: 0,
+                maxWidth: '58ch',
+              }}
+            >
+              {subBanner.body}
+            </p>
+            {subBanner.cta && (
+              <Link
+                href={subBanner.cta.href}
+                className="font-serif"
+                style={{
+                  alignSelf: 'flex-start',
+                  fontStyle: 'italic',
+                  fontSize: '0.95rem',
+                  color: 'var(--color-warm-white)',
+                  textDecoration: 'none',
+                  borderBottom: '1px solid var(--color-warm-white)',
+                  paddingBottom: '0.2rem',
+                }}
+              >
+                {subBanner.cta.label} →
+              </Link>
+            )}
+          </section>
+        )}
+
+        {/* ── Quick actions as numbered typographic index ── */}
+        <section style={{ marginBottom: 'clamp(3rem, 5vw, 4.5rem)' }}>
+          <p style={{ ...KICKER, marginBottom: '1.2rem' }}>
+            — The desk —
+          </p>
+          <ol
+            style={{
+              listStyle: 'none',
+              padding: 0,
+              margin: 0,
+              borderTop: '1px solid var(--color-border-strong)',
+            }}
+          >
+            {QUICK_ACTIONS.map((action) => (
+              <li
+                key={action.num}
+                style={{ borderBottom: '1px solid var(--color-border)' }}
+              >
+                <Link
+                  href={action.href}
+                  style={{
+                    display: 'grid',
+                    gridTemplateColumns: '3.2rem 1fr auto',
+                    alignItems: 'baseline',
+                    gap: '1.4rem',
+                    padding: '1.4rem 0',
+                    textDecoration: 'none',
+                    color: 'var(--color-ink)',
+                  }}
+                >
+                  <span
+                    className="font-serif"
+                    style={{
+                      fontStyle: 'italic',
+                      fontSize: '0.9rem',
+                      color: 'var(--color-stone)',
+                    }}
+                  >
+                    {action.num}
+                  </span>
+                  <div>
+                    <p
+                      className="font-serif"
+                      style={{
+                        fontSize: '1.15rem',
+                        fontWeight: 400,
+                        margin: 0,
+                        lineHeight: 1.3,
+                      }}
+                    >
+                      {action.label}
+                    </p>
+                    <p
+                      style={{
+                        marginTop: '0.3rem',
+                        fontSize: '0.85rem',
+                        fontWeight: 300,
+                        color: 'var(--color-stone-dark)',
+                        lineHeight: 1.5,
+                      }}
+                    >
+                      {action.detail}
+                    </p>
+                  </div>
+                  <span
+                    aria-hidden
+                    className="font-serif"
+                    style={{
+                      fontStyle: 'italic',
+                      fontSize: '0.9rem',
+                      color: 'var(--color-stone)',
+                    }}
+                  >
+                    →
+                  </span>
+                </Link>
+              </li>
+            ))}
+          </ol>
+        </section>
+
+        {/* ── Recent orders ── */}
+        <section style={{ marginBottom: 'clamp(3rem, 5vw, 4.5rem)' }}>
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'baseline',
+              justifyContent: 'space-between',
+              marginBottom: '1.2rem',
+              gap: '1rem',
+            }}
+          >
+            <p style={KICKER}>— Recent orders —</p>
+            {recentOrders.length > 0 && (
+              <Link href="/artist/orders" className="editorial-link">
+                All orders →
+              </Link>
+            )}
+          </div>
+
+          {!ordersLoaded ? (
+            <div
+              style={{
+                padding: '3rem 0',
+                borderTop: '1px solid var(--color-border-strong)',
+              }}
+            >
+              <p
+                className="font-serif"
+                style={{
+                  fontStyle: 'italic',
+                  fontSize: '0.95rem',
+                  color: 'var(--color-stone)',
+                }}
+              >
+                Gathering the ledger…
+              </p>
+            </div>
+          ) : recentOrders.length === 0 ? (
+            <div
+              style={{
+                borderTop: '1px solid var(--color-border-strong)',
+                paddingTop: '2rem',
+                maxWidth: '46ch',
+              }}
+            >
+              <p
+                className="font-serif"
+                style={{
+                  fontSize: 'clamp(1.3rem, 2.4vw, 1.7rem)',
+                  lineHeight: 1.25,
+                  color: 'var(--color-ink)',
+                  fontStyle: 'italic',
+                  fontWeight: 400,
+                }}
+              >
+                Nothing sold yet.
+              </p>
+              <p
+                style={{
+                  marginTop: '0.9rem',
+                  fontSize: '0.9rem',
+                  color: 'var(--color-stone-dark)',
+                  fontWeight: 300,
+                  lineHeight: 1.6,
+                }}
+              >
+                Once a work is listed and approved, orders will settle here —
+                with sale price, Stripe fee, and your share laid plain.
+              </p>
+              <Link
+                href="/artist/artworks/new"
+                className="editorial-link"
+                style={{ marginTop: '1.4rem', display: 'inline-block' }}
+              >
+                Upload your first work
+              </Link>
+            </div>
+          ) : (
+            <>
+              {/* Desktop table */}
+              <table
+                className="hidden md:table"
+                style={{
+                  width: '100%',
+                  borderCollapse: 'collapse',
+                  borderTop: '1px solid var(--color-border-strong)',
+                }}
+              >
                 <thead>
-                  <tr className="text-left text-xs text-muted border-b border-border">
-                    <th className="p-4">Artwork</th>
-                    <th className="p-4">Buyer</th>
-                    <th className="p-4">Sale Price</th>
-                    <th className="p-4">Stripe Fee</th>
-                    <th className="p-4">You Receive</th>
-                    <th className="p-4">Status</th>
-                    <th className="p-4">Date</th>
+                  <tr>
+                    {['Work', 'Buyer', 'Sale', 'Fee', 'Your share', 'Status', 'Date'].map(
+                      (h, i) => (
+                        <th
+                          key={h}
+                          style={{
+                            ...KICKER,
+                            padding: '1rem 0.8rem',
+                            textAlign: i >= 2 && i <= 4 ? 'right' : 'left',
+                            borderBottom: '1px solid var(--color-border)',
+                            fontWeight: 400,
+                          }}
+                        >
+                          {h}
+                        </th>
+                      )
+                    )}
                   </tr>
                 </thead>
                 <tbody>
                   {recentOrders.map((order) => (
                     <tr
                       key={order.id}
-                      className="border-b border-border last:border-0"
+                      style={{ borderBottom: '1px solid var(--color-border)' }}
                     >
-                      <td className="p-4 font-medium text-sm">
+                      <td
+                        className="font-serif"
+                        style={{
+                          padding: '1.2rem 0.8rem',
+                          fontSize: '1rem',
+                          color: 'var(--color-ink)',
+                        }}
+                      >
                         {order.title}
                       </td>
-                      <td className="p-4 text-sm text-muted">
+                      <td
+                        style={{
+                          padding: '1.2rem 0.8rem',
+                          fontSize: '0.88rem',
+                          color: 'var(--color-stone-dark)',
+                          fontWeight: 300,
+                        }}
+                      >
                         {order.buyer}
                       </td>
-                      <td className="p-4 text-sm">
+                      <td
+                        className="font-serif"
+                        style={{
+                          padding: '1.2rem 0.8rem',
+                          fontSize: '0.95rem',
+                          color: 'var(--color-ink)',
+                          textAlign: 'right',
+                        }}
+                      >
                         {formatPrice(order.salePrice)}
                       </td>
-                      <td className="p-4 text-sm text-muted">
+                      <td
+                        style={{
+                          padding: '1.2rem 0.8rem',
+                          fontSize: '0.85rem',
+                          color: 'var(--color-stone)',
+                          fontStyle: 'italic',
+                          textAlign: 'right',
+                          fontWeight: 300,
+                        }}
+                      >
                         −{formatPrice(order.stripeFee)}
                       </td>
-                      <td className="p-4 text-sm font-semibold text-green-700">
+                      <td
+                        className="font-serif"
+                        style={{
+                          padding: '1.2rem 0.8rem',
+                          fontSize: '1rem',
+                          color: 'var(--color-ink)',
+                          textAlign: 'right',
+                        }}
+                      >
                         {formatPrice(order.youReceive)}
                       </td>
-                      <td className="p-4">
-                        <span
-                          className={`text-xs px-2 py-1 rounded-full font-medium ${getStatusStyle(order.status)}`}
-                        >
+                      <td
+                        style={{
+                          padding: '1.2rem 0.8rem',
+                          fontSize: '0.72rem',
+                          letterSpacing: '0.14em',
+                          textTransform: 'uppercase',
+                          color: 'var(--color-stone-dark)',
+                        }}
+                      >
+                        <span className={getStatusStyle(order.status)}>
                           {formatStatus(order.status)}
                         </span>
                       </td>
-                      <td className="p-4 text-sm text-muted">{order.date}</td>
+                      <td
+                        className="font-serif"
+                        style={{
+                          padding: '1.2rem 0.8rem',
+                          fontSize: '0.8rem',
+                          fontStyle: 'italic',
+                          color: 'var(--color-stone)',
+                        }}
+                      >
+                        {order.date}
+                      </td>
                     </tr>
                   ))}
                 </tbody>
               </table>
-            </div>
 
-            {/* Mobile cards */}
-            <div className="md:hidden divide-y divide-border">
-              {recentOrders.map((order) => (
-                <div key={order.id} className="p-4 space-y-2">
-                  <div className="flex items-center justify-between">
-                    <p className="font-medium text-sm">{order.title}</p>
-                    <span
-                      className={`text-xs px-2 py-0.5 rounded-full font-medium ${getStatusStyle(order.status)}`}
-                    >
-                      {formatStatus(order.status)}
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-muted">{order.buyer}</span>
-                    <span className="text-muted">{order.date}</span>
-                  </div>
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-muted">
-                      {formatPrice(order.salePrice)} − {formatPrice(order.stripeFee)} fee
-                    </span>
-                    <span className="font-semibold text-green-700">
-                      {formatPrice(order.youReceive)}
-                    </span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </>
-        )}
-      </div>
-
-      {/* Earnings note */}
-      <p className="text-xs text-muted text-center mt-4">
-        Earnings reflect 100% of sale price minus Stripe processing fees (~1.75% + 30c). Zero commission.
-      </p>
-
-      {/* ═══════════════════════════════════════════
-          IN THE STUDIO
-      ═══════════════════════════════════════════ */}
-      <div className="border border-border rounded-lg mt-10">
-        <div className="flex items-center justify-between p-5 border-b border-border">
-          <div className="flex items-center gap-3">
-            <h2 className="font-semibold text-lg">In The Studio</h2>
-            <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-accent-subtle text-accent-dark">
-              {studioPosts.length}/20
-            </span>
-          </div>
-          {studioPosts.length < 20 && (
-            <button
-              onClick={() => {
-                setShowStudioForm(!showStudioForm);
-                setStudioError(null);
-              }}
-              className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-accent-dark hover:bg-accent/5 rounded-lg transition-colors"
-            >
-              <Camera className="h-4 w-4" />
-              {showStudioForm ? 'Cancel' : 'Add Post'}
-            </button>
-          )}
-        </div>
-
-        {/* Add Post Form */}
-        {showStudioForm && (
-          <div className="p-5 border-b border-border bg-cream/50">
-            <div className="max-w-lg space-y-4">
-              {/* Image upload */}
-              <div>
-                <input
-                  ref={studioFileRef}
-                  type="file"
-                  accept="image/jpeg,image/png,image/webp,image/heic,image/heif"
-                  onChange={handleStudioImageSelect}
-                  className="hidden"
-                  id="studio-image-upload"
-                />
-                {studioImagePreview ? (
-                  <div className="relative inline-block">
-                    <Image
-                      src={studioImagePreview}
-                      alt="Preview"
-                      width={280}
-                      height={280}
-                      className="rounded-xl object-cover w-52 h-52 border border-border"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setStudioImageFile(null);
-                        setStudioImagePreview(null);
-                        if (studioFileRef.current) studioFileRef.current.value = '';
-                      }}
-                      className="absolute top-2 right-2 w-6 h-6 bg-white/90 rounded-full flex items-center justify-center shadow hover:bg-white transition-colors"
-                    >
-                      <Trash2 className="h-3 w-3 text-red-500" />
-                    </button>
-                  </div>
-                ) : (
-                  <label
-                    htmlFor="studio-image-upload"
-                    className="flex flex-col items-center justify-center w-52 h-52 border-2 border-dashed border-border rounded-xl cursor-pointer hover:border-accent hover:bg-accent/5 transition-colors"
+              {/* Mobile stacked list */}
+              <ul
+                className="md:hidden"
+                style={{
+                  listStyle: 'none',
+                  padding: 0,
+                  margin: 0,
+                  borderTop: '1px solid var(--color-border-strong)',
+                }}
+              >
+                {recentOrders.map((order) => (
+                  <li
+                    key={order.id}
+                    style={{
+                      borderBottom: '1px solid var(--color-border)',
+                      padding: '1.2rem 0',
+                    }}
                   >
-                    <ImageIcon className="h-8 w-8 text-muted mb-2" />
-                    <span className="text-sm text-muted">Choose photo</span>
-                    <span className="text-xs text-warm-gray mt-1">JPG, PNG, WebP</span>
-                  </label>
-                )}
-              </div>
+                    <div
+                      style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'baseline',
+                        gap: '1rem',
+                        marginBottom: '0.4rem',
+                      }}
+                    >
+                      <p
+                        className="font-serif"
+                        style={{
+                          fontSize: '1rem',
+                          margin: 0,
+                          color: 'var(--color-ink)',
+                        }}
+                      >
+                        {order.title}
+                      </p>
+                      <span
+                        className="font-serif"
+                        style={{
+                          fontSize: '0.78rem',
+                          fontStyle: 'italic',
+                          color: 'var(--color-stone)',
+                          flexShrink: 0,
+                        }}
+                      >
+                        {order.date}
+                      </span>
+                    </div>
+                    <p
+                      style={{
+                        fontSize: '0.82rem',
+                        color: 'var(--color-stone-dark)',
+                        fontWeight: 300,
+                        margin: 0,
+                        marginBottom: '0.5rem',
+                      }}
+                    >
+                      {order.buyer}
+                    </p>
+                    <div
+                      style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'baseline',
+                      }}
+                    >
+                      <span
+                        style={{
+                          fontSize: '0.78rem',
+                          fontStyle: 'italic',
+                          color: 'var(--color-stone)',
+                          fontWeight: 300,
+                        }}
+                      >
+                        {formatPrice(order.salePrice)} − {formatPrice(order.stripeFee)} fee
+                      </span>
+                      <span
+                        className="font-serif"
+                        style={{
+                          fontSize: '1rem',
+                          color: 'var(--color-ink)',
+                        }}
+                      >
+                        {formatPrice(order.youReceive)}
+                      </span>
+                    </div>
+                    <p
+                      style={{
+                        marginTop: '0.4rem',
+                        fontSize: '0.68rem',
+                        letterSpacing: '0.14em',
+                        textTransform: 'uppercase',
+                        color: 'var(--color-stone-dark)',
+                      }}
+                    >
+                      <span className={getStatusStyle(order.status)}>
+                        {formatStatus(order.status)}
+                      </span>
+                    </p>
+                  </li>
+                ))}
+              </ul>
 
-              {/* Caption */}
+              <p
+                className="font-serif"
+                style={{
+                  marginTop: '1.4rem',
+                  fontSize: '0.78rem',
+                  fontStyle: 'italic',
+                  color: 'var(--color-stone)',
+                  lineHeight: 1.6,
+                }}
+              >
+                You receive the full sale price minus Stripe processing
+                (~1.75% + 30¢). Zero commission.
+              </p>
+            </>
+          )}
+        </section>
+
+        {/* ── In the studio ── */}
+        <section>
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'baseline',
+              justifyContent: 'space-between',
+              marginBottom: '1.2rem',
+              gap: '1rem',
+            }}
+          >
+            <p style={KICKER}>— In the studio · {studioPosts.length}/20 —</p>
+            {studioPosts.length < 20 && (
+              <button
+                onClick={() => {
+                  setShowStudioForm(!showStudioForm);
+                  setStudioError(null);
+                }}
+                className="editorial-link"
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  cursor: 'pointer',
+                  padding: 0,
+                }}
+              >
+                {showStudioForm ? 'Close' : 'Add a photo →'}
+              </button>
+            )}
+          </div>
+
+          <p
+            style={{
+              fontSize: '0.9rem',
+              fontWeight: 300,
+              color: 'var(--color-stone-dark)',
+              lineHeight: 1.6,
+              marginBottom: '1.8rem',
+              maxWidth: '52ch',
+            }}
+          >
+            A living scrapbook of the work in progress. Followers see each
+            post in their feed — show the dust, the drafts, the hands.
+          </p>
+
+          {/* Add post form */}
+          {showStudioForm && (
+            <div
+              style={{
+                borderTop: '1px solid var(--color-border-strong)',
+                borderBottom: '1px solid var(--color-border-strong)',
+                padding: '1.8rem 0',
+                marginBottom: '2rem',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '1.4rem',
+                maxWidth: '36rem',
+              }}
+            >
+              <input
+                ref={studioFileRef}
+                type="file"
+                accept="image/jpeg,image/png,image/webp,image/heic,image/heif"
+                onChange={handleStudioImageSelect}
+                className="hidden"
+                id="studio-image-upload"
+              />
+              {studioImagePreview ? (
+                <div style={{ position: 'relative', width: 220 }}>
+                  <Image
+                    src={studioImagePreview}
+                    alt="Preview"
+                    width={220}
+                    height={220}
+                    style={{
+                      width: 220,
+                      height: 220,
+                      objectFit: 'cover',
+                      border: '1px solid var(--color-border)',
+                    }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setStudioImageFile(null);
+                      setStudioImagePreview(null);
+                      if (studioFileRef.current) studioFileRef.current.value = '';
+                    }}
+                    className="font-serif"
+                    style={{
+                      position: 'absolute',
+                      top: '0.6rem',
+                      right: '0.6rem',
+                      background: 'var(--color-warm-white)',
+                      border: '1px solid var(--color-border)',
+                      fontSize: '0.72rem',
+                      letterSpacing: '0.12em',
+                      textTransform: 'uppercase',
+                      padding: '0.35rem 0.7rem',
+                      cursor: 'pointer',
+                      color: 'var(--color-ink)',
+                    }}
+                  >
+                    Remove
+                  </button>
+                </div>
+              ) : (
+                <label
+                  htmlFor="studio-image-upload"
+                  style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    width: 220,
+                    height: 220,
+                    border: '1px dashed var(--color-border-strong)',
+                    cursor: 'pointer',
+                    background: 'var(--color-cream)',
+                  }}
+                >
+                  <span
+                    className="font-serif"
+                    style={{
+                      fontStyle: 'italic',
+                      fontSize: '0.95rem',
+                      color: 'var(--color-ink)',
+                      marginBottom: '0.5rem',
+                    }}
+                  >
+                    Choose a photo
+                  </span>
+                  <span
+                    style={{
+                      ...KICKER,
+                      fontSize: '0.6rem',
+                    }}
+                  >
+                    JPG · PNG · WebP
+                  </span>
+                </label>
+              )}
+
               <div>
                 <textarea
                   value={studioCaption}
                   onChange={(e) => setStudioCaption(e.target.value.slice(0, 500))}
                   rows={2}
-                  placeholder="Add a caption (optional)"
-                  className="w-full px-4 py-3 bg-white border border-border rounded-xl text-sm placeholder:text-warm-gray transition-colors focus:border-accent focus:ring-1 focus:ring-accent/20 resize-none"
+                  placeholder="A line about the work — optional."
+                  className="commission-field"
+                  style={{ resize: 'none' }}
                 />
-                <p className="text-xs text-warm-gray text-right mt-1">
+                <p
+                  className="font-serif"
+                  style={{
+                    textAlign: 'right',
+                    fontSize: '0.72rem',
+                    fontStyle: 'italic',
+                    color: 'var(--color-stone)',
+                    marginTop: '0.4rem',
+                  }}
+                >
                   {studioCaption.length}/500
                 </p>
               </div>
 
               {studioError && (
-                <p className="text-sm text-red-600">{studioError}</p>
+                <p
+                  className="font-serif"
+                  style={{
+                    fontSize: '0.88rem',
+                    fontStyle: 'italic',
+                    color: 'var(--color-terracotta, #c45d3e)',
+                  }}
+                >
+                  — {studioError}
+                </p>
               )}
 
-              {/* Actions */}
-              <div className="flex items-center gap-3">
+              <div style={{ display: 'flex', alignItems: 'center', gap: '1.4rem' }}>
                 <button
                   type="button"
                   onClick={handleStudioSubmit}
                   disabled={!studioImageFile || studioUploading}
-                  className="inline-flex items-center gap-2 px-5 py-2.5 bg-primary text-white text-sm font-medium rounded-lg hover:bg-primary-light transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="artwork-primary-cta--compact"
                 >
-                  {studioUploading ? (
-                    <>
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                      Posting...
-                    </>
-                  ) : (
-                    'Post'
-                  )}
+                  {studioUploading ? 'Posting…' : 'Post to studio'}
                 </button>
                 <button
                   type="button"
@@ -795,65 +1239,171 @@ export default function ArtistDashboardPage() {
                     if (studioFileRef.current) studioFileRef.current.value = '';
                   }}
                   disabled={studioUploading}
-                  className="px-4 py-2.5 text-sm text-muted hover:text-foreground transition-colors"
+                  className="font-serif"
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    fontStyle: 'italic',
+                    fontSize: '0.9rem',
+                    color: 'var(--color-stone)',
+                    cursor: 'pointer',
+                  }}
                 >
                   Cancel
                 </button>
               </div>
             </div>
-          </div>
-        )}
+          )}
 
-        {/* Posts grid or empty state */}
-        {!studioLoaded ? (
-          <div className="p-10 flex items-center justify-center">
-            <Loader2 className="h-5 w-5 animate-spin text-muted" />
-          </div>
-        ) : studioPosts.length === 0 ? (
-          <div className="p-10 text-center">
-            <Camera className="h-10 w-10 text-muted mx-auto mb-3" />
-            <p className="font-medium mb-1">No studio posts yet</p>
-            <p className="text-sm text-muted max-w-md mx-auto">
-              Share behind-the-scenes photos from your studio. Followers love seeing your creative process.
-            </p>
-          </div>
-        ) : (
-          <div className="p-5 grid grid-cols-2 md:grid-cols-3 gap-4">
-            {studioPosts.map((post) => (
-              <div
-                key={post.id}
-                className="group relative bg-white border border-border rounded-xl overflow-hidden hover:shadow-md transition-shadow"
+          {/* Posts grid */}
+          {!studioLoaded ? (
+            <div
+              style={{
+                borderTop: '1px solid var(--color-border-strong)',
+                padding: '3rem 0',
+              }}
+            >
+              <p
+                className="font-serif"
+                style={{
+                  fontStyle: 'italic',
+                  fontSize: '0.95rem',
+                  color: 'var(--color-stone)',
+                }}
               >
-                <div className="relative aspect-square">
-                  <Image
-                    src={post.image_url}
-                    alt={post.caption || 'Studio post'}
-                    fill
-                    className="object-cover"
-                    sizes="(max-width: 768px) 50vw, 33vw"
-                  />
-                  <button
-                    onClick={() => handleStudioDelete(post.id)}
-                    disabled={deletingPostId === post.id}
-                    className="absolute top-2 right-2 w-7 h-7 bg-white/90 rounded-full flex items-center justify-center shadow opacity-0 group-hover:opacity-100 transition-opacity hover:bg-white"
+                Loading the studio…
+              </p>
+            </div>
+          ) : studioPosts.length === 0 ? (
+            <div
+              style={{
+                borderTop: '1px solid var(--color-border-strong)',
+                paddingTop: '2rem',
+                maxWidth: '46ch',
+              }}
+            >
+              <p
+                className="font-serif"
+                style={{
+                  fontSize: 'clamp(1.2rem, 2.2vw, 1.55rem)',
+                  lineHeight: 1.3,
+                  color: 'var(--color-ink)',
+                  fontStyle: 'italic',
+                  fontWeight: 400,
+                }}
+              >
+                A blank wall, for now.
+              </p>
+              <p
+                style={{
+                  marginTop: '0.9rem',
+                  fontSize: '0.9rem',
+                  color: 'var(--color-stone-dark)',
+                  fontWeight: 300,
+                  lineHeight: 1.6,
+                }}
+              >
+                Share a photo from the studio — a brush, a half-finished
+                canvas, the light through your window. Collectors notice the
+                quiet parts.
+              </p>
+            </div>
+          ) : (
+            <div
+              className="grid grid-cols-2 md:grid-cols-3"
+              style={{
+                columnGap: '1.6rem',
+                rowGap: '2.6rem',
+                borderTop: '1px solid var(--color-border-strong)',
+                paddingTop: '2rem',
+              }}
+            >
+              {studioPosts.map((post) => (
+                <figure
+                  key={post.id}
+                  style={{ margin: 0, position: 'relative' }}
+                >
+                  <div
+                    style={{
+                      position: 'relative',
+                      aspectRatio: '1 / 1',
+                      background: 'var(--color-cream)',
+                      overflow: 'hidden',
+                    }}
                   >
-                    {deletingPostId === post.id ? (
-                      <Loader2 className="h-3.5 w-3.5 animate-spin text-muted" />
-                    ) : (
-                      <Trash2 className="h-3.5 w-3.5 text-red-500" />
-                    )}
-                  </button>
-                </div>
-                <div className="p-3">
-                  {post.caption && (
-                    <p className="text-sm text-muted line-clamp-2 mb-1">{post.caption}</p>
-                  )}
-                  <p className="text-xs text-warm-gray">{timeAgo(post.created_at)}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
+                    <Image
+                      src={post.image_url}
+                      alt={post.caption || 'Studio post'}
+                      fill
+                      style={{ objectFit: 'cover' }}
+                      sizes="(max-width: 768px) 50vw, 33vw"
+                    />
+                  </div>
+                  <figcaption
+                    style={{
+                      marginTop: '0.8rem',
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'baseline',
+                      gap: '0.8rem',
+                    }}
+                  >
+                    <div style={{ minWidth: 0, flex: 1 }}>
+                      {post.caption && (
+                        <p
+                          className="font-serif"
+                          style={{
+                            fontSize: '0.88rem',
+                            color: 'var(--color-ink)',
+                            fontWeight: 300,
+                            lineHeight: 1.5,
+                            margin: 0,
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            display: '-webkit-box',
+                            WebkitLineClamp: 2,
+                            WebkitBoxOrient: 'vertical',
+                          }}
+                        >
+                          {post.caption}
+                        </p>
+                      )}
+                      <p
+                        className="font-serif"
+                        style={{
+                          marginTop: '0.3rem',
+                          fontSize: '0.72rem',
+                          fontStyle: 'italic',
+                          color: 'var(--color-stone)',
+                        }}
+                      >
+                        {timeAgo(post.created_at)}
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => handleStudioDelete(post.id)}
+                      disabled={deletingPostId === post.id}
+                      className="font-serif"
+                      style={{
+                        background: 'none',
+                        border: 'none',
+                        fontStyle: 'italic',
+                        fontSize: '0.78rem',
+                        color: 'var(--color-stone)',
+                        cursor:
+                          deletingPostId === post.id ? 'wait' : 'pointer',
+                        padding: 0,
+                        flexShrink: 0,
+                      }}
+                    >
+                      {deletingPostId === post.id ? 'Removing…' : 'Remove'}
+                    </button>
+                  </figcaption>
+                </figure>
+              ))}
+            </div>
+          )}
+        </section>
       </div>
     </div>
   );

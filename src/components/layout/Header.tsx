@@ -184,7 +184,7 @@ export default function Header() {
               lineHeight: 1,
               letterSpacing: '-0.01em',
               color: transparent ? '#fff' : 'var(--color-ink)',
-              transition: 'color 0.3s ease',
+              transition: 'color 350ms cubic-bezier(0.22, 1, 0.36, 1)',
             }}
           >
             Signo
@@ -294,7 +294,7 @@ export default function Header() {
               letterSpacing: '0.14em',
               textTransform: 'uppercase',
               color: 'var(--color-stone)',
-              transition: 'color 0.3s ease',
+              transition: 'color 350ms cubic-bezier(0.22, 1, 0.36, 1)',
             }}
             onMouseOver={(e) => (e.currentTarget.style.color = '#fff')}
             onMouseOut={(e) => (e.currentTarget.style.color = 'var(--color-stone)')}
@@ -413,7 +413,7 @@ export default function Header() {
                     color: 'var(--color-stone)',
                     borderBottom: '1px solid rgba(255,255,255,0.3)',
                     paddingBottom: '0.2rem',
-                    transition: 'color 0.3s, border-color 0.3s',
+                    transition: 'color 350ms cubic-bezier(0.22, 1, 0.36, 1), border-color 350ms cubic-bezier(0.22, 1, 0.36, 1)',
                   }}
                   onMouseOver={(e) => {
                     e.currentTarget.style.color = '#fff';
@@ -448,7 +448,7 @@ export default function Header() {
                   color: 'var(--color-stone)',
                   borderBottom: '1px solid rgba(255,255,255,0.3)',
                   paddingBottom: '0.2rem',
-                  transition: 'color 0.3s, border-color 0.3s',
+                  transition: 'color 350ms cubic-bezier(0.22, 1, 0.36, 1), border-color 350ms cubic-bezier(0.22, 1, 0.36, 1)',
                 }}
                 onMouseOver={(e) => {
                   e.currentTarget.style.color = '#fff';
@@ -517,7 +517,7 @@ function OverlayLink({
       style={
         animate
           ? {
-              animation: `overlay-link-in 500ms cubic-bezier(0.22, 1, 0.36, 1) ${index * 50}ms backwards`,
+              animation: `overlay-link-in 350ms cubic-bezier(0.22, 1, 0.36, 1) ${index * 50}ms backwards`,
             }
           : undefined
       }
@@ -530,7 +530,7 @@ function OverlayLink({
           fontSize: 'clamp(2rem, 4.4vw, 3.4rem)',
           lineHeight: 1.2,
           color: 'var(--color-stone-dark)',
-          transition: 'color 0.3s ease',
+          transition: 'color 350ms cubic-bezier(0.22, 1, 0.36, 1)',
           letterSpacing: '-0.01em',
         }}
         onMouseOver={(e) => ((e.currentTarget as HTMLAnchorElement).style.color = '#fff')}

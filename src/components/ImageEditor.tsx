@@ -184,7 +184,7 @@ export default function ImageEditor({ src, onApply, onCancel }: ImageEditorProps
 
     // ── Grid overlay for straighten ──
     if (tool === 'straighten' && rotation !== 0) {
-      ctx.strokeStyle = 'rgba(107, 124, 78, 0.4)';
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.35)';
       ctx.lineWidth = 1;
       const lines = 6;
       for (let i = 1; i < lines; i++) {
@@ -462,7 +462,7 @@ export default function ImageEditor({ src, onApply, onCancel }: ImageEditorProps
         <button
           onClick={handleApply}
           disabled={applying || !hasChanges}
-          className="flex items-center gap-1.5 px-4 py-1.5 bg-[#6b7c4e] text-white text-sm font-semibold rounded-full hover:bg-[#5a6b3f] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+          className="flex items-center gap-1.5 px-4 py-1.5 bg-white text-[#111] text-sm font-semibold rounded-full hover:bg-white/90 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
         >
           {applying ? (
             <span className="flex items-center gap-1.5">

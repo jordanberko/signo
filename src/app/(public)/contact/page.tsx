@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Mail, Clock, Send } from 'lucide-react';
+import Link from 'next/link';
 
 export default function ContactPage() {
   const [formState, setFormState] = useState<'idle' | 'submitting' | 'success' | 'error'>('idle');
@@ -48,168 +48,329 @@ export default function ContactPage() {
   }
 
   return (
-    <div>
-      {/* Hero */}
-      <section className="bg-cream border-b border-border">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-16 md:py-24 text-center">
-          <p className="text-accent-dark text-sm font-medium tracking-[0.2em] uppercase mb-4">Get in Touch</p>
-          <h1 className="font-editorial text-4xl md:text-5xl lg:text-6xl font-medium leading-tight">
-            Contact Us
-          </h1>
-          <p className="mt-6 text-lg text-muted max-w-xl mx-auto leading-relaxed">
-            Have a question, suggestion, or just want to say hello? We&apos;d love to hear from you.
-          </p>
-        </div>
-      </section>
+    <div style={{ background: 'var(--color-warm-white)' }}>
+      {/* ── Editorial header ── */}
+      <header
+        className="px-6 sm:px-10"
+        style={{
+          paddingTop: 'clamp(4rem, 9vw, 7rem)',
+          paddingBottom: 'clamp(3rem, 6vw, 5rem)',
+        }}
+      >
+        <p
+          style={{
+            fontSize: '0.68rem',
+            letterSpacing: '0.22em',
+            textTransform: 'uppercase',
+            color: 'var(--color-stone)',
+            marginBottom: '1.2rem',
+          }}
+        >
+          Get in touch
+        </p>
+        <h1
+          className="font-serif"
+          style={{
+            fontSize: 'clamp(2.6rem, 6vw, 4.8rem)',
+            lineHeight: 1.02,
+            letterSpacing: '-0.015em',
+            color: 'var(--color-ink)',
+            fontWeight: 400,
+            maxWidth: '20ch',
+          }}
+        >
+          Say hello, ask a <em style={{ fontStyle: 'italic' }}>question.</em>
+        </h1>
+        <p
+          style={{
+            marginTop: '1.8rem',
+            fontSize: '1rem',
+            fontWeight: 300,
+            lineHeight: 1.7,
+            color: 'var(--color-stone-dark)',
+            maxWidth: '52ch',
+          }}
+        >
+          Whether it&apos;s a question about a work, a partnership, a correction, or a simple hello — we read
+          every message and reply ourselves.
+        </p>
+      </header>
 
-      <section className="py-20 md:py-28">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
-            {/* Contact Info */}
-            <div className="space-y-8">
-              <div className="flex items-start gap-4">
-                <div className="w-10 h-10 bg-accent/10 rounded-xl flex items-center justify-center shrink-0">
-                  <Mail className="w-5 h-5 text-accent-dark" />
-                </div>
-                <div>
-                  <h3 className="font-medium text-sm mb-1">Email</h3>
-                  <a href="mailto:hello@signoart.com.au" className="text-sm text-accent-dark hover:underline">
-                    hello@signoart.com.au
-                  </a>
-                </div>
-              </div>
-              <div className="flex items-start gap-4">
-                <div className="w-10 h-10 bg-accent/10 rounded-xl flex items-center justify-center shrink-0">
-                  <Clock className="w-5 h-5 text-accent-dark" />
-                </div>
-                <div>
-                  <h3 className="font-medium text-sm mb-1">Response Time</h3>
-                  <p className="text-sm text-muted leading-relaxed">
-                    We typically respond within 24 hours during business days.
-                  </p>
-                </div>
-              </div>
+      <div style={{ borderTop: '1px solid var(--color-border)' }} />
 
-              <div className="p-6 bg-muted-bg rounded-xl border border-border mt-8">
-                <h3 className="font-medium text-sm mb-2">Before you reach out</h3>
-                <p className="text-sm text-muted leading-relaxed">
-                  Check our{' '}
-                  <a href="/seller-guide" className="text-accent-dark hover:underline">Seller Guide</a>
-                  {' '}and{' '}
-                  <a href="/returns" className="text-accent-dark hover:underline">Returns Policy</a>
-                  {' '}— your question may already be answered there.
-                </p>
-              </div>
+      {/* ── Body — split ── */}
+      <section
+        className="px-6 sm:px-10"
+        style={{
+          paddingTop: 'clamp(4rem, 7vw, 6rem)',
+          paddingBottom: 'clamp(5rem, 9vw, 8rem)',
+        }}
+      >
+        <div className="grid grid-cols-1 lg:grid-cols-12" style={{ gap: 'clamp(2.5rem, 5vw, 5rem)' }}>
+          {/* ── Contact detail column ── */}
+          <div className="lg:col-span-4">
+            <div style={{ marginBottom: '2.4rem' }}>
+              <p
+                style={{
+                  fontSize: '0.62rem',
+                  letterSpacing: '0.22em',
+                  textTransform: 'uppercase',
+                  color: 'var(--color-stone)',
+                  marginBottom: '0.6rem',
+                }}
+              >
+                By email
+              </p>
+              <a
+                href="mailto:hello@signoart.com.au"
+                className="font-serif"
+                style={{
+                  fontSize: '1.15rem',
+                  color: 'var(--color-ink)',
+                  textDecoration: 'none',
+                  borderBottom: '1px solid var(--color-border-strong)',
+                  paddingBottom: '0.2rem',
+                  fontStyle: 'italic',
+                }}
+              >
+                hello@signoart.com.au
+              </a>
             </div>
 
-            {/* Contact Form */}
-            <div className="md:col-span-2">
-              {formState === 'success' ? (
-                <div className="bg-accent/5 border border-accent/20 rounded-2xl p-10 text-center">
-                  <div className="w-14 h-14 bg-accent/10 rounded-full flex items-center justify-center mx-auto mb-6">
-                    <Send className="w-6 h-6 text-accent-dark" />
-                  </div>
-                  <h2 className="font-editorial text-2xl font-semibold mb-3">Message sent!</h2>
-                  <p className="text-muted leading-relaxed max-w-sm mx-auto">
-                    Thanks for reaching out! We&apos;ll get back to you within 24 hours.
-                  </p>
-                  <button
-                    onClick={() => {
-                      setFormState('idle');
-                      setForm({ name: '', email: '', subject: '', message: '' });
-                    }}
-                    className="mt-6 text-sm text-accent-dark hover:underline"
-                  >
-                    Send another message
-                  </button>
-                </div>
-              ) : (
-                <form onSubmit={handleSubmit} className="space-y-6">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                    <div>
-                      <label htmlFor="name" className="block text-sm font-medium mb-2">
-                        Name
-                      </label>
-                      <input
-                        type="text"
-                        id="name"
-                        name="name"
-                        required
-                        value={form.name}
-                        onChange={handleChange}
-                        className="w-full px-4 py-3 bg-muted-bg border border-border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-accent/30 focus:border-accent transition-colors"
-                        placeholder="Your name"
-                      />
-                    </div>
-                    <div>
-                      <label htmlFor="email" className="block text-sm font-medium mb-2">
-                        Email
-                      </label>
-                      <input
-                        type="email"
-                        id="email"
-                        name="email"
-                        required
-                        value={form.email}
-                        onChange={handleChange}
-                        className="w-full px-4 py-3 bg-muted-bg border border-border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-accent/30 focus:border-accent transition-colors"
-                        placeholder="you@example.com"
-                      />
-                    </div>
-                  </div>
+            <div style={{ marginBottom: '2.4rem' }}>
+              <p
+                style={{
+                  fontSize: '0.62rem',
+                  letterSpacing: '0.22em',
+                  textTransform: 'uppercase',
+                  color: 'var(--color-stone)',
+                  marginBottom: '0.6rem',
+                }}
+              >
+                Response time
+              </p>
+              <p
+                style={{
+                  fontSize: '0.94rem',
+                  color: 'var(--color-stone-dark)',
+                  fontWeight: 300,
+                  lineHeight: 1.6,
+                  maxWidth: '32ch',
+                }}
+              >
+                Typically within 24 hours on business days.
+              </p>
+            </div>
 
-                  <div>
-                    <label htmlFor="subject" className="block text-sm font-medium mb-2">
-                      Subject
-                    </label>
-                    <select
-                      id="subject"
-                      name="subject"
-                      required
-                      value={form.subject}
-                      onChange={handleChange}
-                      className="w-full px-4 py-3 bg-muted-bg border border-border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-accent/30 focus:border-accent transition-colors appearance-none"
-                    >
-                      <option value="" disabled>Select a topic</option>
-                      <option value="general">General enquiry</option>
-                      <option value="selling">Selling on Signo</option>
-                      <option value="buying">Buying artwork</option>
-                      <option value="issue">Report an issue</option>
-                      <option value="partnership">Partnership enquiry</option>
-                    </select>
-                  </div>
+            <div
+              style={{
+                borderTop: '1px solid var(--color-border)',
+                paddingTop: '2rem',
+              }}
+            >
+              <p
+                style={{
+                  fontSize: '0.62rem',
+                  letterSpacing: '0.22em',
+                  textTransform: 'uppercase',
+                  color: 'var(--color-stone)',
+                  marginBottom: '0.8rem',
+                }}
+              >
+                Before reaching out
+              </p>
+              <p
+                style={{
+                  fontSize: '0.88rem',
+                  color: 'var(--color-stone-dark)',
+                  fontWeight: 300,
+                  lineHeight: 1.65,
+                  maxWidth: '34ch',
+                }}
+              >
+                Your question may already be answered in our{' '}
+                <Link
+                  href="/seller-guide"
+                  style={{
+                    color: 'var(--color-ink)',
+                    borderBottom: '1px solid var(--color-stone)',
+                    textDecoration: 'none',
+                  }}
+                >
+                  Seller Guide
+                </Link>{' '}
+                or{' '}
+                <Link
+                  href="/returns"
+                  style={{
+                    color: 'var(--color-ink)',
+                    borderBottom: '1px solid var(--color-stone)',
+                    textDecoration: 'none',
+                  }}
+                >
+                  Returns Policy
+                </Link>
+                .
+              </p>
+            </div>
+          </div>
 
+          {/* ── Form column ── */}
+          <div className="lg:col-span-8">
+            {formState === 'success' ? (
+              <div>
+                <p
+                  style={{
+                    fontSize: '0.68rem',
+                    letterSpacing: '0.22em',
+                    textTransform: 'uppercase',
+                    color: 'var(--color-stone)',
+                    marginBottom: '1.2rem',
+                  }}
+                >
+                  Received
+                </p>
+                <h2
+                  className="font-serif"
+                  style={{
+                    fontSize: 'clamp(1.8rem, 3.5vw, 2.6rem)',
+                    lineHeight: 1.1,
+                    color: 'var(--color-ink)',
+                    fontWeight: 400,
+                    letterSpacing: '-0.01em',
+                  }}
+                >
+                  Message sent. <em style={{ fontStyle: 'italic' }}>We&apos;ll be in touch.</em>
+                </h2>
+                <p
+                  style={{
+                    marginTop: '1rem',
+                    fontSize: '0.94rem',
+                    color: 'var(--color-stone-dark)',
+                    fontWeight: 300,
+                    lineHeight: 1.65,
+                    maxWidth: '46ch',
+                    marginBottom: '2rem',
+                  }}
+                >
+                  Thanks for reaching out. We&apos;ll reply within 24 hours on business days.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setFormState('idle');
+                    setForm({ name: '', email: '', subject: '', message: '' });
+                  }}
+                  className="editorial-link"
+                  style={{ background: 'transparent', cursor: 'pointer' }}
+                >
+                  Send another
+                </button>
+              </div>
+            ) : (
+              <form onSubmit={handleSubmit}>
+                <div
+                  className="grid grid-cols-1 sm:grid-cols-2"
+                  style={{ gap: 'clamp(1.5rem, 3vw, 2.5rem)' }}
+                >
                   <div>
-                    <label htmlFor="message" className="block text-sm font-medium mb-2">
-                      Message
+                    <label htmlFor="name" className="commission-label">
+                      Name
                     </label>
-                    <textarea
-                      id="message"
-                      name="message"
+                    <input
+                      type="text"
+                      id="name"
+                      name="name"
                       required
-                      rows={6}
-                      value={form.message}
+                      value={form.name}
                       onChange={handleChange}
-                      className="w-full px-4 py-3 bg-muted-bg border border-border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-accent/30 focus:border-accent transition-colors resize-none"
-                      placeholder="Tell us what's on your mind..."
+                      className="commission-field"
+                      placeholder="Your name"
                     />
                   </div>
+                  <div>
+                    <label htmlFor="email" className="commission-label">
+                      Email
+                    </label>
+                    <input
+                      type="email"
+                      id="email"
+                      name="email"
+                      required
+                      value={form.email}
+                      onChange={handleChange}
+                      className="commission-field"
+                      placeholder="you@example.com"
+                    />
+                  </div>
+                </div>
 
-                  {formState === 'error' && errorMsg && (
-                    <p className="text-error text-sm">{errorMsg}</p>
-                  )}
+                <div style={{ marginTop: 'clamp(1.5rem, 3vw, 2.5rem)' }}>
+                  <label htmlFor="subject" className="commission-label">
+                    Topic
+                  </label>
+                  <select
+                    id="subject"
+                    name="subject"
+                    required
+                    value={form.subject}
+                    onChange={handleChange}
+                    className="commission-field"
+                  >
+                    <option value="" disabled>
+                      Select a topic
+                    </option>
+                    <option value="general">General enquiry</option>
+                    <option value="selling">Selling on Signo</option>
+                    <option value="buying">Buying artwork</option>
+                    <option value="issue">Report an issue</option>
+                    <option value="partnership">Partnership enquiry</option>
+                  </select>
+                </div>
 
+                <div style={{ marginTop: 'clamp(1.5rem, 3vw, 2.5rem)' }}>
+                  <label htmlFor="message" className="commission-label">
+                    Message
+                  </label>
+                  <textarea
+                    id="message"
+                    name="message"
+                    required
+                    rows={6}
+                    value={form.message}
+                    onChange={handleChange}
+                    className="commission-field"
+                    placeholder="Tell us what&apos;s on your mind…"
+                  />
+                </div>
+
+                {formState === 'error' && errorMsg && (
+                  <p
+                    className="error-animate"
+                    style={{
+                      marginTop: '1.4rem',
+                      fontSize: '0.82rem',
+                      color: 'var(--color-error, #b4452b)',
+                      fontStyle: 'italic',
+                      fontWeight: 300,
+                    }}
+                  >
+                    {errorMsg}
+                  </p>
+                )}
+
+                <div style={{ marginTop: 'clamp(2rem, 4vw, 3rem)' }}>
                   <button
                     type="submit"
                     disabled={formState === 'submitting'}
-                    className="group inline-flex items-center justify-center gap-3 px-7 py-3.5 bg-primary text-white font-semibold rounded-full hover:bg-primary/90 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="artwork-primary-cta artwork-primary-cta--compact"
+                    style={{ minWidth: '14rem' }}
                   >
-                    {formState === 'submitting' ? 'Sending...' : 'Send Message'}
-                    <Send className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
+                    {formState === 'submitting' ? 'Sending…' : 'Send Message'}
                   </button>
-                </form>
-              )}
-            </div>
+                </div>
+              </form>
+            )}
           </div>
         </div>
       </section>

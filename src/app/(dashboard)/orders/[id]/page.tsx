@@ -4,23 +4,6 @@ import { useState, useEffect, useCallback, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
-import {
-  CheckCircle2,
-  Package,
-  Truck,
-  ShieldCheck,
-  Clock,
-  ImageIcon,
-  Loader2,
-  ArrowRight,
-  Download,
-  Copy,
-  Check,
-  AlertCircle,
-  Star,
-  CircleDot,
-  Circle,
-} from 'lucide-react';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { useRequireAuth } from '@/lib/hooks/useRequireAuth';
 import { formatPrice } from '@/lib/utils';
@@ -56,66 +39,102 @@ interface OrderDetail {
   } | null;
 }
 
-function statusConfig(status: string) {
+function statusLabel(status: string): string {
   switch (status) {
     case 'paid':
-      return {
-        label: 'Paid — Awaiting Shipment',
-        color: 'text-amber-700 bg-amber-50',
-        icon: Clock,
-      };
+      return 'Paid · Awaiting shipment';
     case 'shipped':
-      return {
-        label: 'Shipped',
-        color: 'text-blue-700 bg-blue-50',
-        icon: Truck,
-      };
+      return 'In transit';
     case 'delivered':
-      return {
-        label: 'Delivered — Inspection Window',
-        color: 'text-blue-700 bg-blue-50',
-        icon: ShieldCheck,
-      };
+      return 'Delivered · Inspection window';
     case 'completed':
-      return {
-        label: 'Completed',
-        color: 'text-green-700 bg-green-50',
-        icon: CheckCircle2,
-      };
+      return 'Completed';
     case 'disputed':
-      return {
-        label: 'Disputed',
-        color: 'text-red-700 bg-red-50',
-        icon: AlertCircle,
-      };
+      return 'Disputed';
     case 'refunded':
-      return {
-        label: 'Refunded',
-        color: 'text-gray-700 bg-gray-100',
-        icon: AlertCircle,
-      };
+      return 'Refunded';
     case 'cancelled':
-      return {
-        label: 'Cancelled',
-        color: 'text-gray-700 bg-gray-100',
-        icon: AlertCircle,
-      };
+      return 'Cancelled';
     default:
-      return {
-        label: status,
-        color: 'text-gray-700 bg-gray-100',
-        icon: Package,
-      };
+      return status;
   }
+}
+
+// ── Editorial section helper ──
+
+function Section({
+  kicker,
+  children,
+}: {
+  kicker: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <section style={{ marginBottom: 'clamp(2.4rem, 4vw, 3.4rem)' }}>
+      <p
+        style={{
+          fontSize: '0.6rem',
+          letterSpacing: '0.22em',
+          textTransform: 'uppercase',
+          color: 'var(--color-stone)',
+          marginBottom: '0.9rem',
+          paddingBottom: '0.9rem',
+          borderBottom: '1px solid var(--color-border-strong)',
+          fontWeight: 400,
+        }}
+      >
+        {kicker}
+      </p>
+      {children}
+    </section>
+  );
+}
+
+function DetailRow({
+  label,
+  value,
+}: {
+  label: string;
+  value: React.ReactNode;
+}) {
+  return (
+    <div
+      style={{
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'baseline',
+        gap: '1rem',
+        padding: '0.65rem 0',
+        borderBottom: '1px solid var(--color-border)',
+      }}
+    >
+      <span
+        style={{
+          fontSize: '0.78rem',
+          color: 'var(--color-stone)',
+          fontWeight: 300,
+          letterSpacing: '0.01em',
+        }}
+      >
+        {label}
+      </span>
+      <span
+        className="font-serif"
+        style={{
+          fontSize: '0.95rem',
+          color: 'var(--color-ink)',
+          textAlign: 'right',
+        }}
+      >
+        {value}
+      </span>
+    </div>
+  );
 }
 
 // ── Content component ──
 
-function OrderContent({
-  orderId,
-}: {
-  orderId: string;
-}) {
+function OrderContent({ orderId }: { orderId: string }) {
   const searchParams = useSearchParams();
   const isSuccess = searchParams.get('success') === 'true';
 
@@ -231,11 +250,25 @@ function OrderContent({
 
   if (loading) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh] gap-3">
-        <Loader2 className="h-6 w-6 animate-spin text-muted" />
-        {isSuccess && (
-          <p className="text-sm text-muted">Processing your order...</p>
-        )}
+      <div
+        style={{
+          minHeight: '60vh',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          background: 'var(--color-warm-white)',
+        }}
+      >
+        <p
+          className="font-serif"
+          style={{
+            fontStyle: 'italic',
+            fontSize: '0.95rem',
+            color: 'var(--color-stone)',
+          }}
+        >
+          {isSuccess ? 'Finalising your order…' : 'Retrieving order…'}
+        </p>
       </div>
     );
   }
@@ -244,54 +277,122 @@ function OrderContent({
 
   if (!order) {
     return (
-      <div className="max-w-lg mx-auto px-4 py-16 text-center">
-        {isSuccess ? (
-          <>
-            <CheckCircle2 className="h-16 w-16 text-green-500 mx-auto mb-4" />
-            <h1 className="font-editorial text-2xl font-semibold mb-2">
-              Payment received!
-            </h1>
-            <p className="text-muted mb-6">
-              Your order is being processed. This page will update automatically,
-              or you can check your{' '}
-              <Link href="/dashboard" className="text-accent-dark underline">
-                dashboard
-              </Link>{' '}
-              in a moment.
-            </p>
-            <Link
-              href="/dashboard"
-              className="inline-flex items-center gap-2 px-6 py-3 bg-primary text-white font-semibold rounded-full hover:bg-accent hover:text-primary transition-colors"
-            >
-              Go to Dashboard
-              <ArrowRight className="h-4 w-4" />
-            </Link>
-          </>
-        ) : (
-          <>
-            <AlertCircle className="h-12 w-12 text-muted mx-auto mb-4" />
-            <h1 className="font-editorial text-2xl font-semibold mb-2">
-              Order not found
-            </h1>
-            <p className="text-muted mb-6">
-              This order doesn&apos;t exist or you don&apos;t have access to it.
-            </p>
-            <Link
-              href="/dashboard"
-              className="inline-flex items-center gap-2 px-6 py-3 bg-primary text-white font-semibold rounded-full hover:bg-accent hover:text-primary transition-colors"
-            >
-              Go to Dashboard
-            </Link>
-          </>
-        )}
+      <div style={{ background: 'var(--color-warm-white)', minHeight: '100vh' }}>
+        <div
+          className="px-6 sm:px-10"
+          style={{
+            maxWidth: '42rem',
+            margin: '0 auto',
+            paddingTop: 'clamp(4rem, 8vw, 6rem)',
+            paddingBottom: 'clamp(4rem, 8vw, 6rem)',
+          }}
+        >
+          {isSuccess ? (
+            <>
+              <p
+                style={{
+                  fontSize: '0.62rem',
+                  letterSpacing: '0.22em',
+                  textTransform: 'uppercase',
+                  color: 'var(--color-stone)',
+                  marginBottom: '1.2rem',
+                }}
+              >
+                — Received —
+              </p>
+              <h1
+                className="font-serif"
+                style={{
+                  fontSize: 'clamp(2.2rem, 4.4vw, 3.4rem)',
+                  lineHeight: 1.05,
+                  color: 'var(--color-ink)',
+                  fontWeight: 400,
+                  marginBottom: '1.2rem',
+                }}
+              >
+                Payment <em style={{ fontStyle: 'italic' }}>received.</em>
+              </h1>
+              <p
+                style={{
+                  fontSize: '0.95rem',
+                  color: 'var(--color-stone-dark)',
+                  fontWeight: 300,
+                  lineHeight: 1.6,
+                  marginBottom: '1.8rem',
+                  maxWidth: '52ch',
+                }}
+              >
+                Your order is being processed. This page will update automatically, or you can return to your{' '}
+                <Link
+                  href="/dashboard"
+                  className="editorial-link"
+                  style={{ display: 'inline' }}
+                >
+                  dashboard
+                </Link>{' '}
+                in a moment.
+              </p>
+              <Link
+                href="/dashboard"
+                className="artwork-primary-cta artwork-primary-cta--compact"
+                style={{ minWidth: '14rem' }}
+              >
+                Go to dashboard
+              </Link>
+            </>
+          ) : (
+            <>
+              <p
+                style={{
+                  fontSize: '0.62rem',
+                  letterSpacing: '0.22em',
+                  textTransform: 'uppercase',
+                  color: 'var(--color-stone)',
+                  marginBottom: '1.2rem',
+                }}
+              >
+                — Not found —
+              </p>
+              <h1
+                className="font-serif"
+                style={{
+                  fontSize: 'clamp(2rem, 4vw, 3rem)',
+                  lineHeight: 1.05,
+                  color: 'var(--color-ink)',
+                  fontWeight: 400,
+                  marginBottom: '1.2rem',
+                }}
+              >
+                This order isn&apos;t in your ledger.
+              </h1>
+              <p
+                style={{
+                  fontSize: '0.95rem',
+                  color: 'var(--color-stone-dark)',
+                  fontWeight: 300,
+                  lineHeight: 1.6,
+                  marginBottom: '1.8rem',
+                  maxWidth: '52ch',
+                }}
+              >
+                Either the order doesn&apos;t exist, or it belongs to a different account.
+              </p>
+              <Link
+                href="/dashboard"
+                className="artwork-primary-cta artwork-primary-cta--compact"
+                style={{ minWidth: '14rem' }}
+              >
+                Go to dashboard
+              </Link>
+            </>
+          )}
+        </div>
       </div>
     );
   }
 
   // ── Order found ──
 
-  const status = statusConfig(order.status);
-  const StatusIcon = status.icon;
   const thumbnail = order.artwork?.images?.[0];
   const isDigital = order.artwork?.category === 'digital';
   const orderDate = new Date(order.created_at).toLocaleDateString('en-AU', {
@@ -301,403 +402,682 @@ function OrderContent({
     year: 'numeric',
   });
 
+  const fmtStep = (d: string | null) =>
+    d
+      ? new Date(d).toLocaleDateString('en-AU', {
+          day: 'numeric',
+          month: 'short',
+          year: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit',
+        })
+      : null;
+
+  const statusOrder = ['paid', 'shipped', 'delivered', 'completed'];
+  const currentIdx = statusOrder.indexOf(order.status);
+
+  const steps: {
+    label: string;
+    detail: string | null;
+    done: boolean;
+    current?: boolean;
+    extra?: string | null;
+  }[] = [
+    {
+      label: 'Order placed',
+      detail: fmtStep(order.created_at),
+      done: true,
+    },
+    {
+      label: 'Payment confirmed',
+      detail: fmtStep(order.created_at),
+      done: currentIdx >= 0,
+    },
+    {
+      label: 'Shipped',
+      detail: order.shipped_at ? fmtStep(order.shipped_at) : 'Awaiting shipment',
+      done: currentIdx >= 1,
+      current: currentIdx === 0,
+      extra:
+        order.shipped_at && order.shipping_tracking_number
+          ? `${order.shipping_carrier ? order.shipping_carrier + ' · ' : ''}${order.shipping_tracking_number}`
+          : null,
+    },
+    {
+      label: 'Delivered',
+      detail: order.delivered_at ? fmtStep(order.delivered_at) : null,
+      done: currentIdx >= 2,
+      current: currentIdx === 1,
+    },
+    {
+      label: 'Completed',
+      detail: order.payout_released_at ? fmtStep(order.payout_released_at) : null,
+      done: currentIdx >= 3,
+      current: currentIdx === 2,
+    },
+  ];
+
+  const deadlinePassed =
+    order.inspection_deadline &&
+    new Date(order.inspection_deadline).getTime() < Date.now();
+
   return (
-    <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      {/* Success banner */}
-      {isSuccess && (
-        <div className="mb-8 p-5 bg-green-50 border border-green-200 rounded-2xl flex items-start gap-4 animate-fade-in">
-          <CheckCircle2 className="h-6 w-6 text-green-600 flex-shrink-0 mt-0.5" />
-          <div>
-            <h2 className="font-semibold text-green-800">
-              Order placed successfully!
-            </h2>
-            <p className="text-sm text-green-700 mt-1">
+    <div style={{ background: 'var(--color-warm-white)', minHeight: '100vh' }}>
+      <div
+        className="px-6 sm:px-10"
+        style={{
+          maxWidth: '58rem',
+          margin: '0 auto',
+          paddingTop: 'clamp(7.5rem, 10vw, 9.5rem)',
+          paddingBottom: 'clamp(4rem, 7vw, 6rem)',
+        }}
+      >
+        {/* ── Success banner ── */}
+        {isSuccess && (
+          <div
+            style={{
+              marginBottom: '2.4rem',
+              paddingBottom: '1.6rem',
+              borderBottom: '1px solid var(--color-border)',
+            }}
+          >
+            <p
+              style={{
+                fontSize: '0.62rem',
+                letterSpacing: '0.22em',
+                textTransform: 'uppercase',
+                color: 'var(--color-stone)',
+                marginBottom: '0.8rem',
+              }}
+            >
+              — Confirmed —
+            </p>
+            <p
+              className="font-serif"
+              style={{
+                fontSize: 'clamp(1.4rem, 2.6vw, 1.9rem)',
+                lineHeight: 1.2,
+                color: 'var(--color-ink)',
+                fontStyle: 'italic',
+                fontWeight: 400,
+                maxWidth: '38ch',
+              }}
+            >
+              Your order is placed.
+            </p>
+            <p
+              style={{
+                marginTop: '0.8rem',
+                fontSize: '0.88rem',
+                color: 'var(--color-stone-dark)',
+                fontWeight: 300,
+                lineHeight: 1.6,
+                maxWidth: '54ch',
+              }}
+            >
               {isDigital
                 ? 'Your download link will be available shortly.'
-                : 'The artist will ship your artwork within 7 days. You\u2019ll receive tracking information once it ships.'}
+                : 'The artist will ship within 7 days. You\u2019ll receive tracking information once the work is on its way.'}
             </p>
           </div>
-        </div>
-      )}
+        )}
 
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
-        <div>
-          <h1 className="font-editorial text-2xl md:text-3xl font-semibold">
-            {isSuccess ? 'Order Confirmation' : 'Order Details'}
+        {/* ── Editorial header ── */}
+        <header style={{ marginBottom: 'clamp(2.4rem, 4vw, 3.4rem)' }}>
+          <p
+            style={{
+              fontSize: '0.62rem',
+              letterSpacing: '0.22em',
+              textTransform: 'uppercase',
+              color: 'var(--color-stone)',
+              marginBottom: '1rem',
+            }}
+          >
+            The Studio · Order {order.id.slice(0, 8)}
+          </p>
+          <h1
+            className="font-serif"
+            style={{
+              fontSize: 'clamp(1.9rem, 3.6vw, 2.6rem)',
+              lineHeight: 1.1,
+              letterSpacing: '-0.015em',
+              color: 'var(--color-ink)',
+              fontWeight: 400,
+              marginBottom: '0.8rem',
+            }}
+          >
+            {isSuccess ? (
+              <>
+                Order <em style={{ fontStyle: 'italic' }}>confirmation.</em>
+              </>
+            ) : (
+              <>
+                Order <em style={{ fontStyle: 'italic' }}>ledger.</em>
+              </>
+            )}
           </h1>
-          <div className="flex items-center gap-2 mt-1">
-            <p className="text-sm text-muted">
-              Order #{order.id.slice(0, 8)}
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '1.2rem',
+              flexWrap: 'wrap',
+            }}
+          >
+            <p
+              className="font-serif"
+              style={{
+                fontSize: '0.85rem',
+                color: 'var(--color-ink)',
+                fontStyle: 'italic',
+                fontWeight: 400,
+              }}
+            >
+              {statusLabel(order.status)}
             </p>
             <button
               onClick={copyOrderId}
-              className="text-muted hover:text-foreground transition-colors"
-              title="Copy order ID"
+              className="editorial-link"
+              style={{ fontSize: '0.66rem' }}
+              aria-label="Copy order ID"
             >
-              {copied ? (
-                <Check className="h-3.5 w-3.5 text-green-600" />
-              ) : (
-                <Copy className="h-3.5 w-3.5" />
-              )}
+              {copied ? 'Copied' : 'Copy ID'}
             </button>
           </div>
-        </div>
+        </header>
 
-        <div
-          className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium ${status.color}`}
-        >
-          <StatusIcon className="h-4 w-4" />
-          {status.label}
-        </div>
-      </div>
-
-      {/* Artwork card */}
-      <div className="bg-white border border-border rounded-2xl p-5 mb-6">
-        <div className="flex gap-5">
-          <Link
-            href={`/artwork/${order.artwork?.id}`}
-            className="w-24 h-24 sm:w-32 sm:h-32 rounded-xl bg-muted-bg flex-shrink-0 overflow-hidden"
+        {/* ── Artwork block ── */}
+        <Section kicker="01 · The work">
+          <div
+            style={{
+              display: 'flex',
+              gap: '1.6rem',
+              alignItems: 'flex-start',
+              flexWrap: 'wrap',
+            }}
           >
-            {thumbnail ? (
-              <Image
-                src={thumbnail}
-                alt={order.artwork?.title || ''}
-                width={128}
-                height={128}
-                className="w-full h-full object-cover"
-              />
-            ) : (
-              <div className="w-full h-full flex items-center justify-center">
-                <ImageIcon className="h-8 w-8 text-border" />
-              </div>
-            )}
-          </Link>
-
-          <div className="flex-1 min-w-0">
             <Link
               href={`/artwork/${order.artwork?.id}`}
-              className="font-editorial text-lg font-medium hover:text-accent-dark transition-colors"
+              style={{
+                width: 148,
+                height: 148,
+                background: 'var(--color-cream)',
+                flexShrink: 0,
+                overflow: 'hidden',
+                display: 'block',
+              }}
             >
-              {order.artwork?.title || 'Artwork'}
+              {thumbnail && (
+                <Image
+                  src={thumbnail}
+                  alt={order.artwork?.title || ''}
+                  width={148}
+                  height={148}
+                  style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                />
+              )}
             </Link>
-            <p className="text-sm text-muted mt-0.5">
-              by{' '}
+            <div style={{ flex: 1, minWidth: '18rem' }}>
               <Link
-                href={`/artists/${order.artist?.id}`}
-                className="hover:text-accent-dark transition-colors"
+                href={`/artwork/${order.artwork?.id}`}
+                className="font-serif"
+                style={{
+                  fontSize: '1.5rem',
+                  color: 'var(--color-ink)',
+                  textDecoration: 'none',
+                  lineHeight: 1.2,
+                  display: 'block',
+                }}
               >
-                {order.artist?.full_name || 'Unknown Artist'}
+                {order.artwork?.title || 'Artwork'}
               </Link>
-            </p>
-            {order.artwork?.medium && (
-              <p className="text-xs text-warm-gray mt-1">
-                {order.artwork.medium}
+              <p
+                style={{
+                  marginTop: '0.5rem',
+                  fontSize: '0.9rem',
+                  fontWeight: 300,
+                  color: 'var(--color-stone-dark)',
+                }}
+              >
+                by{' '}
+                <Link
+                  href={`/artists/${order.artist?.id}`}
+                  className="footer-link"
+                  style={{ fontStyle: 'italic' }}
+                >
+                  {order.artist?.full_name || 'Unknown artist'}
+                </Link>
               </p>
-            )}
-            <div className="flex items-center gap-2 mt-2">
-              {isDigital ? (
-                <span className="text-[10px] font-medium px-2 py-0.5 bg-blue-50 text-blue-700 rounded-full flex items-center gap-1">
-                  <Download className="h-2.5 w-2.5" />
-                  Digital
-                </span>
-              ) : (
-                <span className="text-[10px] font-medium px-2 py-0.5 bg-muted-bg text-muted rounded-full flex items-center gap-1">
-                  <Package className="h-2.5 w-2.5" />
-                  {order.artwork?.category === 'print' ? 'Print' : 'Original'}
-                </span>
+              {order.artwork?.medium && (
+                <p
+                  style={{
+                    marginTop: '0.3rem',
+                    fontSize: '0.78rem',
+                    color: 'var(--color-stone)',
+                    fontWeight: 300,
+                  }}
+                >
+                  {order.artwork.medium}
+                </p>
               )}
+              <p
+                style={{
+                  marginTop: '0.9rem',
+                  fontSize: '0.6rem',
+                  letterSpacing: '0.2em',
+                  textTransform: 'uppercase',
+                  color: 'var(--color-stone)',
+                }}
+              >
+                {isDigital
+                  ? 'Digital'
+                  : order.artwork?.category === 'print'
+                    ? 'Print'
+                    : 'Original'}
+              </p>
             </div>
           </div>
-        </div>
-      </div>
+        </Section>
 
-      {/* Price breakdown */}
-      <div className="bg-white border border-border rounded-2xl p-5 mb-6">
-        <h3 className="font-medium text-sm mb-4">Payment Summary</h3>
-        <div className="space-y-2.5">
-          <div className="flex justify-between text-sm">
-            <span className="text-muted">Artwork</span>
-            <span>
-              {formatPrice(
-                order.total_amount_aud - (order.shipping_cost_aud || 0)
-              )}
-            </span>
-          </div>
+        {/* ── Payment summary ── */}
+        <Section kicker="02 · Payment">
+          <DetailRow
+            label="Artwork"
+            value={formatPrice(order.total_amount_aud - (order.shipping_cost_aud || 0))}
+          />
           {!isDigital && (
-            <div className="flex justify-between text-sm">
-              <span className="text-muted">Shipping</span>
-              <span className="text-green-700 font-medium">
-                {(order.shipping_cost_aud || 0) > 0
+            <DetailRow
+              label="Shipping"
+              value={
+                (order.shipping_cost_aud || 0) > 0
                   ? formatPrice(order.shipping_cost_aud!)
-                  : 'Free'}
-              </span>
-            </div>
+                  : 'Free'
+              }
+            />
           )}
-          <div className="border-t border-border pt-2.5 flex justify-between">
-            <span className="font-medium">Total paid</span>
-            <span className="font-bold text-lg">
+          <div
+            style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'baseline',
+              gap: '1rem',
+              padding: '1rem 0 0.4rem',
+              marginTop: '0.4rem',
+              borderTop: '1px solid var(--color-border-strong)',
+            }}
+          >
+            <span
+              style={{
+                fontSize: '0.62rem',
+                letterSpacing: '0.22em',
+                textTransform: 'uppercase',
+                color: 'var(--color-stone)',
+              }}
+            >
+              Total paid
+            </span>
+            <span
+              className="font-serif"
+              style={{
+                fontSize: '1.5rem',
+                color: 'var(--color-ink)',
+                fontWeight: 400,
+              }}
+            >
               {formatPrice(order.total_amount_aud)}
             </span>
           </div>
-        </div>
-        <p className="text-xs text-muted mt-3">
-          Ordered on {orderDate}
-        </p>
-      </div>
-
-      {/* Shipping info */}
-      {!isDigital && order.shipping_address && (
-        <div className="bg-white border border-border rounded-2xl p-5 mb-6">
-          <h3 className="font-medium text-sm mb-3">Shipping Address</h3>
-          <p className="text-sm text-muted leading-relaxed">
-            {order.shipping_address.street}
-            <br />
-            {order.shipping_address.city}, {order.shipping_address.state}{' '}
-            {order.shipping_address.postcode}
-            <br />
-            {order.shipping_address.country || 'Australia'}
+          <p
+            style={{
+              marginTop: '0.8rem',
+              fontSize: '0.78rem',
+              color: 'var(--color-stone)',
+              fontWeight: 300,
+              fontStyle: 'italic',
+            }}
+            className="font-serif"
+          >
+            Placed {orderDate}
           </p>
-          {order.shipping_tracking_number && (
-            <div className="mt-4 pt-4 border-t border-border">
-              <p className="text-xs font-medium tracking-wide uppercase text-muted mb-1">
-                Tracking
-              </p>
-              <p className="text-sm font-mono">
-                {order.shipping_carrier && (
-                  <span className="text-muted">
-                    {order.shipping_carrier}:{' '}
-                  </span>
-                )}
-                {order.shipping_tracking_number}
-              </p>
-            </div>
-          )}
-        </div>
-      )}
+        </Section>
 
-      {/* Status Timeline */}
-      <div className="bg-white border border-border rounded-2xl p-5 mb-6">
-        <h3 className="font-medium text-sm mb-5">Order Timeline</h3>
-        <div className="space-y-0">
-          {(() => {
-            const fmtDate = (d: string | null) =>
-              d
-                ? new Date(d).toLocaleDateString('en-AU', {
-                    day: 'numeric',
-                    month: 'short',
-                    year: 'numeric',
-                    hour: '2-digit',
-                    minute: '2-digit',
-                  })
-                : null;
-
-            const statusOrder = ['paid', 'shipped', 'delivered', 'completed'];
-            const currentIdx = statusOrder.indexOf(order.status);
-
-            const steps = [
-              {
-                label: 'Order placed',
-                detail: fmtDate(order.created_at),
-                done: true,
-              },
-              {
-                label: 'Payment confirmed',
-                detail: fmtDate(order.created_at),
-                done: currentIdx >= 0,
-              },
-              {
-                label: 'Shipped',
-                detail: order.shipped_at
-                  ? fmtDate(order.shipped_at)
-                  : 'Awaiting shipment',
-                done: currentIdx >= 1,
-                current: currentIdx === 0,
-                extra:
-                  order.shipped_at && order.shipping_tracking_number
-                    ? `${order.shipping_carrier ? order.shipping_carrier + ': ' : ''}${order.shipping_tracking_number}`
-                    : null,
-              },
-              {
-                label: 'Delivered',
-                detail: order.delivered_at
-                  ? fmtDate(order.delivered_at)
-                  : null,
-                done: currentIdx >= 2,
-                current: currentIdx === 1,
-              },
-              {
-                label: 'Completed',
-                detail: order.payout_released_at
-                  ? fmtDate(order.payout_released_at)
-                  : null,
-                done: currentIdx >= 3,
-                current: currentIdx === 2,
-              },
-            ];
-
-            return steps.map((step, i) => (
-              <div key={step.label} className="flex gap-3">
-                {/* Vertical line + dot */}
-                <div className="flex flex-col items-center">
-                  {step.done ? (
-                    <div className="w-6 h-6 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0">
-                      <Check className="h-3.5 w-3.5 text-green-600" />
-                    </div>
-                  ) : step.current ? (
-                    <div className="w-6 h-6 rounded-full bg-accent/20 flex items-center justify-center flex-shrink-0">
-                      <CircleDot className="h-3.5 w-3.5 text-accent-dark" />
-                    </div>
-                  ) : (
-                    <div className="w-6 h-6 rounded-full border-2 border-gray-200 flex items-center justify-center flex-shrink-0">
-                      <Circle className="h-3 w-3 text-gray-300" />
-                    </div>
+        {/* ── Shipping ── */}
+        {!isDigital && order.shipping_address && (
+          <Section kicker="03 · Shipping">
+            <p
+              className="font-serif"
+              style={{
+                fontSize: '1rem',
+                lineHeight: 1.7,
+                color: 'var(--color-ink)',
+                fontWeight: 400,
+              }}
+            >
+              {order.shipping_address.street}
+              <br />
+              {order.shipping_address.city}, {order.shipping_address.state}{' '}
+              {order.shipping_address.postcode}
+              <br />
+              {order.shipping_address.country || 'Australia'}
+            </p>
+            {order.shipping_tracking_number && (
+              <div
+                style={{
+                  marginTop: '1.4rem',
+                  paddingTop: '1.2rem',
+                  borderTop: '1px solid var(--color-border)',
+                }}
+              >
+                <p
+                  style={{
+                    fontSize: '0.6rem',
+                    letterSpacing: '0.2em',
+                    textTransform: 'uppercase',
+                    color: 'var(--color-stone)',
+                    marginBottom: '0.4rem',
+                  }}
+                >
+                  Tracking
+                </p>
+                <p
+                  style={{
+                    fontFamily: 'ui-monospace, Menlo, monospace',
+                    fontSize: '0.85rem',
+                    color: 'var(--color-ink)',
+                  }}
+                >
+                  {order.shipping_carrier && (
+                    <span style={{ color: 'var(--color-stone)' }}>
+                      {order.shipping_carrier} ·{' '}
+                    </span>
                   )}
+                  {order.shipping_tracking_number}
+                </p>
+              </div>
+            )}
+          </Section>
+        )}
+
+        {/* ── Timeline ── */}
+        <Section kicker={`${!isDigital && order.shipping_address ? '04' : '03'} · Timeline`}>
+          <ol style={{ listStyle: 'none', padding: 0, margin: 0 }}>
+            {steps.map((step, i) => (
+              <li
+                key={step.label}
+                style={{
+                  display: 'flex',
+                  gap: '1.1rem',
+                  alignItems: 'flex-start',
+                  paddingBottom: i < steps.length - 1 ? '1.4rem' : 0,
+                  position: 'relative',
+                }}
+              >
+                {/* Dot column */}
+                <div
+                  style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    flexShrink: 0,
+                    paddingTop: '0.3rem',
+                  }}
+                >
+                  <span
+                    aria-hidden
+                    style={{
+                      width: 10,
+                      height: 10,
+                      borderRadius: '50%',
+                      background: step.done ? 'var(--color-ink)' : 'transparent',
+                      border: step.done
+                        ? '1px solid var(--color-ink)'
+                        : step.current
+                          ? '1px solid var(--color-ink)'
+                          : '1px solid var(--color-border-strong)',
+                      boxShadow: step.current
+                        ? '0 0 0 3px var(--color-warm-white), 0 0 0 4px var(--color-ink)'
+                        : 'none',
+                    }}
+                  />
                   {i < steps.length - 1 && (
-                    <div
-                      className={`w-0.5 flex-1 min-h-[24px] ${
-                        step.done ? 'bg-green-200' : 'bg-gray-200'
-                      }`}
+                    <span
+                      aria-hidden
+                      style={{
+                        width: 1,
+                        flex: 1,
+                        minHeight: 28,
+                        background: step.done
+                          ? 'var(--color-ink)'
+                          : 'var(--color-border)',
+                        marginTop: 4,
+                      }}
                     />
                   )}
                 </div>
-                {/* Content */}
-                <div className="pb-5">
+
+                <div style={{ paddingBottom: '0.2rem', minWidth: 0 }}>
                   <p
-                    className={`text-sm ${
-                      step.current
-                        ? 'font-semibold text-foreground'
-                        : step.done
-                          ? 'text-muted'
-                          : 'text-muted/60'
-                    }`}
+                    className="font-serif"
+                    style={{
+                      fontSize: '1rem',
+                      fontWeight: 400,
+                      color: step.done || step.current
+                        ? 'var(--color-ink)'
+                        : 'var(--color-stone)',
+                      fontStyle: step.current ? 'italic' : 'normal',
+                      margin: 0,
+                      lineHeight: 1.3,
+                    }}
                   >
                     {step.label}
                   </p>
                   {step.detail && (
                     <p
-                      className={`text-xs mt-0.5 ${
-                        step.done ? 'text-muted' : 'text-muted/50'
-                      }`}
+                      style={{
+                        fontSize: '0.76rem',
+                        color: step.done
+                          ? 'var(--color-stone-dark)'
+                          : 'var(--color-stone)',
+                        fontWeight: 300,
+                        marginTop: '0.2rem',
+                      }}
                     >
                       {step.detail}
                     </p>
                   )}
                   {step.extra && (
-                    <p className="text-xs font-mono text-muted mt-1">
+                    <p
+                      style={{
+                        fontFamily: 'ui-monospace, Menlo, monospace',
+                        fontSize: '0.76rem',
+                        color: 'var(--color-stone-dark)',
+                        marginTop: '0.3rem',
+                      }}
+                    >
                       {step.extra}
                     </p>
                   )}
                 </div>
-              </div>
-            ));
-          })()}
-        </div>
-      </div>
+              </li>
+            ))}
+          </ol>
+        </Section>
 
-      {/* Inspection Window — only for delivered orders */}
-      {order.status === 'delivered' && order.inspection_deadline && (
-        <div className="bg-white border border-blue-200 rounded-2xl p-5 mb-6">
-          {(() => {
-            const deadlinePassed =
-              new Date(order.inspection_deadline).getTime() < Date.now();
-
-            if (deadlinePassed) {
-              return (
-                <div className="text-center">
-                  <Clock className="h-6 w-6 text-muted mx-auto mb-2" />
-                  <p className="text-sm font-medium text-muted">
-                    Inspection window has closed
-                  </p>
-                </div>
-              );
-            }
-
-            return (
+        {/* ── Inspection window ── */}
+        {order.status === 'delivered' && order.inspection_deadline && (
+          <Section kicker="Inspection window">
+            {deadlinePassed ? (
+              <p
+                className="font-serif"
+                style={{
+                  fontSize: '1.05rem',
+                  fontStyle: 'italic',
+                  color: 'var(--color-stone)',
+                }}
+              >
+                The inspection window has closed.
+              </p>
+            ) : (
               <>
-                <div className="text-center mb-4">
-                  <h3 className="font-medium text-sm mb-1">
-                    You have 48 hours to inspect your artwork
-                  </h3>
-                  {countdown && (
-                    <div className="flex items-center justify-center gap-1 text-lg font-mono font-semibold text-blue-700">
-                      <Clock className="h-4 w-4" />
-                      {countdown.hours}h {countdown.minutes}m remaining
-                    </div>
-                  )}
-                </div>
-                <div className="flex flex-col sm:flex-row gap-3">
+                <p
+                  className="font-serif"
+                  style={{
+                    fontSize: '1.2rem',
+                    lineHeight: 1.4,
+                    color: 'var(--color-ink)',
+                    fontStyle: 'italic',
+                    fontWeight: 400,
+                    maxWidth: '46ch',
+                  }}
+                >
+                  You have 48 hours to inspect the work.
+                </p>
+                {countdown && (
+                  <p
+                    style={{
+                      marginTop: '0.5rem',
+                      fontFamily: 'ui-monospace, Menlo, monospace',
+                      fontSize: '0.92rem',
+                      color: 'var(--color-ink)',
+                      letterSpacing: '0.05em',
+                    }}
+                  >
+                    {countdown.hours}h {countdown.minutes}m remaining
+                  </p>
+                )}
+                <div
+                  style={{
+                    marginTop: '1.6rem',
+                    display: 'flex',
+                    gap: '1.4rem',
+                    flexWrap: 'wrap',
+                    alignItems: 'center',
+                  }}
+                >
                   <button
                     onClick={handleComplete}
                     disabled={completing}
-                    className="flex-1 py-2.5 bg-green-600 text-white font-semibold rounded-full hover:bg-green-700 transition-colors text-center text-sm disabled:opacity-50"
+                    className="artwork-primary-cta artwork-primary-cta--compact"
+                    style={{
+                      minWidth: '16rem',
+                      opacity: completing ? 0.5 : 1,
+                    }}
                   >
-                    {completing ? (
-                      <Loader2 className="h-4 w-4 animate-spin mx-auto" />
-                    ) : (
-                      'Everything looks great'
-                    )}
+                    {completing ? 'Confirming…' : 'Everything looks great'}
                   </button>
                   <Link
                     href={`/orders/${order.id}/dispute`}
-                    className="flex-1 py-2.5 border border-red-200 text-red-600 font-medium rounded-full hover:bg-red-50 transition-colors text-center text-sm"
+                    className="font-serif"
+                    style={{
+                      fontSize: '0.72rem',
+                      letterSpacing: '0.15em',
+                      textTransform: 'uppercase',
+                      color: 'var(--color-terracotta)',
+                      fontStyle: 'italic',
+                      textDecoration: 'none',
+                      borderBottom: '1px solid var(--color-terracotta)',
+                      paddingBottom: '0.15rem',
+                    }}
                   >
                     Report an issue
                   </Link>
                 </div>
               </>
-            );
-          })()}
-        </div>
-      )}
+            )}
+          </Section>
+        )}
 
-      {/* Dispute banner */}
-      {order.status === 'disputed' && (
-        <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-2xl flex items-start gap-3">
-          <AlertCircle className="h-5 w-5 text-red-600 flex-shrink-0 mt-0.5" />
-          <p className="text-sm text-red-800">
-            A dispute has been opened for this order. We&apos;re reviewing it.
-          </p>
-        </div>
-      )}
-
-      {/* Buyer protection */}
-      <div className="bg-accent-subtle/50 border border-accent/10 rounded-2xl p-5 mb-6">
-        <div className="flex items-start gap-3">
-          <ShieldCheck className="h-5 w-5 text-accent-dark flex-shrink-0 mt-0.5" />
-          <div>
-            <p className="font-medium text-sm">Buyer Protection</p>
-            <p className="text-xs text-muted mt-1 leading-relaxed">
-              Your payment is held securely in escrow. After delivery, you have
-              a 48-hour inspection window. If anything isn&apos;t as described,
-              you can open a dispute for a full refund.
+        {/* ── Dispute banner ── */}
+        {order.status === 'disputed' && (
+          <div
+            style={{
+              marginBottom: '2.4rem',
+              paddingTop: '1.6rem',
+              paddingBottom: '1.6rem',
+              borderTop: '1px solid var(--color-terracotta)',
+              borderBottom: '1px solid var(--color-terracotta)',
+            }}
+          >
+            <p
+              style={{
+                fontSize: '0.6rem',
+                letterSpacing: '0.22em',
+                textTransform: 'uppercase',
+                color: 'var(--color-terracotta)',
+                marginBottom: '0.5rem',
+              }}
+            >
+              — Disputed —
+            </p>
+            <p
+              className="font-serif"
+              style={{
+                fontSize: '1.05rem',
+                fontStyle: 'italic',
+                color: 'var(--color-ink)',
+                lineHeight: 1.5,
+                maxWidth: '52ch',
+              }}
+            >
+              A dispute has been opened for this order. Signo is reviewing it.
             </p>
           </div>
-        </div>
-      </div>
-
-      {/* Actions */}
-      <div className="flex flex-col sm:flex-row gap-3">
-        <Link
-          href="/dashboard"
-          className="flex-1 py-3 bg-primary text-white font-semibold rounded-full hover:bg-accent hover:text-primary transition-colors text-center"
-        >
-          Go to Dashboard
-        </Link>
-        <Link
-          href="/browse"
-          className="flex-1 py-3 border border-border font-medium rounded-full hover:bg-cream transition-colors text-center"
-        >
-          Continue Browsing
-        </Link>
-        {order.status === 'completed' && (
-          <span
-            className="flex-1 py-3 border border-border font-medium rounded-full text-center flex items-center justify-center gap-2 text-muted cursor-not-allowed opacity-60"
-          >
-            <Star className="h-4 w-4" />
-            Reviews coming soon
-          </span>
         )}
+
+        {/* ── Buyer protection ── */}
+        <Section kicker="Buyer protection">
+          <p
+            className="font-serif"
+            style={{
+              fontSize: '1rem',
+              lineHeight: 1.65,
+              color: 'var(--color-ink)',
+              fontWeight: 400,
+              maxWidth: '58ch',
+            }}
+          >
+            Your payment is held in escrow. After delivery, you have a 48-hour inspection window — if
+            anything isn&apos;t as described, open a dispute for a full refund. The artist is paid only
+            once the window closes.
+          </p>
+        </Section>
+
+        {/* ── Actions ── */}
+        <div
+          style={{
+            display: 'flex',
+            gap: '1.6rem',
+            flexWrap: 'wrap',
+            alignItems: 'center',
+            paddingTop: '1.4rem',
+            borderTop: '1px solid var(--color-border-strong)',
+          }}
+        >
+          <Link
+            href="/dashboard"
+            className="artwork-primary-cta artwork-primary-cta--compact"
+            style={{ minWidth: '14rem' }}
+          >
+            Back to dashboard
+          </Link>
+          <Link href="/browse" className="editorial-link">
+            Continue browsing
+          </Link>
+          {order.status === 'completed' && (
+            <span
+              className="font-serif"
+              style={{
+                fontSize: '0.75rem',
+                letterSpacing: '0.14em',
+                textTransform: 'uppercase',
+                color: 'var(--color-stone)',
+                fontStyle: 'italic',
+              }}
+            >
+              Reviews coming soon
+            </span>
+          )}
+        </div>
       </div>
     </div>
   );
@@ -717,24 +1097,34 @@ export default function OrderDetailPage({
     params.then((p) => setOrderId(p.id));
   }, [params]);
 
-  if (authLoading) return <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '60vh' }}><div style={{ width: 32, height: 32, border: '3px solid #E5E2DB', borderTopColor: '#2C2C2A', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} /><style>{'@keyframes spin { to { transform: rotate(360deg) } }'}</style></div>;
+  const spinner = (
+    <div
+      style={{
+        minHeight: '60vh',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        background: 'var(--color-warm-white)',
+      }}
+    >
+      <p
+        className="font-serif"
+        style={{
+          fontStyle: 'italic',
+          fontSize: '0.95rem',
+          color: 'var(--color-stone)',
+        }}
+      >
+        Loading…
+      </p>
+    </div>
+  );
 
-  if (!orderId) {
-    return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <Loader2 className="h-6 w-6 animate-spin text-muted" />
-      </div>
-    );
-  }
+  if (authLoading) return spinner;
+  if (!orderId) return spinner;
 
   return (
-    <Suspense
-      fallback={
-        <div className="flex items-center justify-center min-h-[60vh]">
-          <Loader2 className="h-6 w-6 animate-spin text-muted" />
-        </div>
-      }
-    >
+    <Suspense fallback={spinner}>
       <OrderContent orderId={orderId} />
     </Suspense>
   );

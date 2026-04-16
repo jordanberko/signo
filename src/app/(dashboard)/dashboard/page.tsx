@@ -4,17 +4,6 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useSearchParams } from 'next/navigation';
 import { useEffect, useState, Suspense } from 'react';
-import {
-  Heart,
-  ShoppingBag,
-  Settings,
-  ArrowRight,
-  Palette,
-  Search,
-  Package,
-  ImageIcon,
-  Loader2,
-} from 'lucide-react';
 import ArtworkCard from '@/components/ui/ArtworkCard';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { useRequireAuth } from '@/lib/hooks/useRequireAuth';
@@ -30,6 +19,71 @@ interface RecentOrder {
   price: number;
   date: string;
   status: string;
+}
+
+// ── Editorial helpers (local) ──
+
+function Kicker({ children }: { children: React.ReactNode }) {
+  return (
+    <p
+      style={{
+        fontSize: '0.62rem',
+        letterSpacing: '0.22em',
+        textTransform: 'uppercase',
+        color: 'var(--color-stone)',
+        fontWeight: 400,
+        margin: 0,
+      }}
+    >
+      {children}
+    </p>
+  );
+}
+
+function QuickLink({
+  href,
+  label,
+  detail,
+}: {
+  href: string;
+  label: string;
+  detail: string;
+}) {
+  return (
+    <Link
+      href={href}
+      className="dashboard-quick-link"
+      style={{
+        display: 'block',
+        padding: '1.2rem 0',
+        borderTop: '1px solid var(--color-border)',
+        textDecoration: 'none',
+      }}
+    >
+      <p
+        className="font-serif"
+        style={{
+          fontSize: '1.15rem',
+          fontWeight: 400,
+          color: 'var(--color-ink)',
+          margin: 0,
+          lineHeight: 1.2,
+        }}
+      >
+        {label}
+      </p>
+      <p
+        style={{
+          fontSize: '0.78rem',
+          color: 'var(--color-stone)',
+          fontWeight: 300,
+          marginTop: '0.2rem',
+        }}
+      >
+        {detail}
+      </p>
+    </Link>
+  );
 }
 
 // ── Component ──
@@ -66,7 +120,6 @@ function DashboardContent() {
     let cancelled = false;
     const controller = new AbortController();
 
-    // Safety timeout: show empty state after 5s no matter what
     const timer = setTimeout(() => {
       if (!cancelled) setLoading(false);
     }, 5000);
@@ -152,341 +205,582 @@ function DashboardContent() {
   const firstName = user?.full_name?.split(' ')[0] || '';
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
-      {error === 'unauthorized' && (
-        <div className="mb-6 p-4 bg-error/5 border border-error/20 text-error text-sm rounded-xl animate-fade-in">
-          You don&apos;t have permission to access that page. If you believe
-          this is an error, please contact support.
-        </div>
-      )}
+    <div style={{ background: 'var(--color-warm-white)', minHeight: '100vh' }}>
+      <div
+        className="px-6 sm:px-10"
+        style={{
+          maxWidth: '84rem',
+          margin: '0 auto',
+          paddingTop: 'clamp(7.5rem, 10vw, 9.5rem)',
+          paddingBottom: 'clamp(4rem, 7vw, 6rem)',
+        }}
+      >
+        {error === 'unauthorized' && (
+          <p
+            className="font-serif"
+            style={{
+              marginBottom: '2rem',
+              fontSize: '0.92rem',
+              color: 'var(--color-terracotta, #c45d3e)',
+              fontStyle: 'italic',
+              fontWeight: 400,
+              lineHeight: 1.5,
+              maxWidth: '56ch',
+              paddingBottom: '1rem',
+              borderBottom: '1px solid var(--color-border)',
+            }}
+          >
+            You don&apos;t have permission to access that page. If you believe this is an error, please contact support.
+          </p>
+        )}
 
-      {/* Welcome header */}
-      <div className="mb-10">
-        <h1 className="font-editorial text-3xl md:text-4xl font-semibold">
-          Welcome back{firstName ? `, ${firstName}` : ''}
-        </h1>
-        <p className="text-muted mt-2">
-          Manage your orders, favourites, and account.
-        </p>
-      </div>
+        {/* ── Editorial header ── */}
+        <header style={{ marginBottom: 'clamp(2.8rem, 5vw, 4rem)' }}>
+          <Kicker>The Studio — Your account</Kicker>
+          <h1
+            className="font-serif"
+            style={{
+              fontSize: 'clamp(2.2rem, 4.4vw, 3.4rem)',
+              lineHeight: 1.05,
+              letterSpacing: '-0.015em',
+              color: 'var(--color-ink)',
+              fontWeight: 400,
+              marginTop: '1rem',
+              marginBottom: '0.9rem',
+              maxWidth: '18ch',
+            }}
+          >
+            Welcome back{firstName ? <>, <em style={{ fontStyle: 'italic' }}>{firstName}.</em></> : '.'}
+          </h1>
+          <p
+            style={{
+              fontSize: '0.95rem',
+              fontWeight: 300,
+              lineHeight: 1.6,
+              color: 'var(--color-stone-dark)',
+              maxWidth: '46ch',
+            }}
+          >
+            Your orders, the works you&apos;ve saved, and everything attached to your Signo account.
+          </p>
+        </header>
 
-      {/* Quick Links */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-10">
-        <Link
-          href="/browse"
-          className="flex items-center gap-4 p-5 bg-white border border-border rounded-xl hover:border-accent/40 hover:shadow-sm transition-all duration-300 group"
+        {/* ── Main grid: 8/4 split ── */}
+        <div
+          className="grid grid-cols-1 lg:grid-cols-12"
+          style={{ gap: 'clamp(2.5rem, 4vw, 4rem)', alignItems: 'start' }}
         >
-          <div className="w-10 h-10 bg-muted-bg rounded-full flex items-center justify-center group-hover:bg-accent-subtle transition-colors duration-300">
-            <Search className="h-5 w-5 text-muted group-hover:text-accent-dark transition-colors duration-300" />
-          </div>
-          <div>
-            <p className="font-medium text-sm">Browse Artwork</p>
-            <p className="text-xs text-muted">Discover new pieces</p>
-          </div>
-        </Link>
+          {/* Left: orders + favourites (8/12) */}
+          <div className="lg:col-span-8" style={{ minWidth: 0 }}>
+            {/* ── Recent orders ── */}
+            <section style={{ marginBottom: 'clamp(3rem, 5vw, 4.5rem)' }}>
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'baseline',
+                  justifyContent: 'space-between',
+                  paddingBottom: '1rem',
+                  marginBottom: '1.4rem',
+                  borderBottom: '1px solid var(--color-border-strong)',
+                  gap: '1rem',
+                }}
+              >
+                <div>
+                  <Kicker>01 · Recent orders</Kicker>
+                  <h2
+                    className="font-serif"
+                    style={{
+                      fontSize: '1.6rem',
+                      fontWeight: 400,
+                      color: 'var(--color-ink)',
+                      marginTop: '0.3rem',
+                      lineHeight: 1.2,
+                    }}
+                  >
+                    {totalOrders === 0 ? 'No acquisitions yet' : `${totalOrders} acquisition${totalOrders === 1 ? '' : 's'}`}
+                  </h2>
+                </div>
+                {totalOrders > 5 && (
+                  <Link href="/orders" className="editorial-link">
+                    View all
+                  </Link>
+                )}
+              </div>
 
-        <Link
-          href="/orders"
-          className="flex items-center gap-4 p-5 bg-white border border-border rounded-xl hover:border-accent/40 hover:shadow-sm transition-all duration-300 group"
-        >
-          <div className="w-10 h-10 bg-muted-bg rounded-full flex items-center justify-center group-hover:bg-accent-subtle transition-colors duration-300">
-            <ShoppingBag className="h-5 w-5 text-muted group-hover:text-accent-dark transition-colors duration-300" />
-          </div>
-          <div>
-            <p className="font-medium text-sm">Orders</p>
-            <p className="text-xs text-muted">
-              {totalOrders} {totalOrders === 1 ? 'order' : 'orders'}
-            </p>
-          </div>
-        </Link>
-
-        <Link
-          href="/favourites"
-          className="flex items-center gap-4 p-5 bg-white border border-border rounded-xl hover:border-accent/40 hover:shadow-sm transition-all duration-300 group"
-        >
-          <div className="w-10 h-10 bg-muted-bg rounded-full flex items-center justify-center group-hover:bg-accent-subtle transition-colors duration-300">
-            <Heart className="h-5 w-5 text-muted group-hover:text-accent-dark transition-colors duration-300" />
-          </div>
-          <div>
-            <p className="font-medium text-sm">Favourites</p>
-            <p className="text-xs text-muted">Saved artworks</p>
-          </div>
-        </Link>
-
-        <Link
-          href="/settings"
-          className="flex items-center gap-4 p-5 bg-white border border-border rounded-xl hover:border-accent/40 hover:shadow-sm transition-all duration-300 group"
-        >
-          <div className="w-10 h-10 bg-muted-bg rounded-full flex items-center justify-center group-hover:bg-accent-subtle transition-colors duration-300">
-            <Settings className="h-5 w-5 text-muted group-hover:text-accent-dark transition-colors duration-300" />
-          </div>
-          <div>
-            <p className="font-medium text-sm">Settings</p>
-            <p className="text-xs text-muted">Account &amp; preferences</p>
-          </div>
-        </Link>
-      </div>
-
-      {/* Artist CTA (if applicable) or Sell Art promo */}
-      <div className="mb-10 p-8 bg-primary text-white rounded-2xl relative overflow-hidden texture-grain">
-        <div className="relative z-10 flex flex-col sm:flex-row items-center justify-between gap-6">
-          <div className="flex items-center gap-5">
-            <div className="w-14 h-14 bg-accent/20 rounded-full flex items-center justify-center flex-shrink-0">
-              <Palette className="h-7 w-7 text-accent-dark" />
-            </div>
-            <div>
-              {isArtist ? (
-                <>
-                  <p className="font-editorial text-xl font-medium">
-                    Your artist dashboard
+              {loading ? (
+                <p
+                  className="font-serif"
+                  style={{
+                    padding: '2.5rem 0',
+                    fontStyle: 'italic',
+                    color: 'var(--color-stone)',
+                    fontSize: '1rem',
+                  }}
+                >
+                  Retrieving your orders…
+                </p>
+              ) : orders.length === 0 ? (
+                <div style={{ padding: '2rem 0', maxWidth: '44ch' }}>
+                  <p
+                    className="font-serif"
+                    style={{
+                      fontSize: '1.2rem',
+                      lineHeight: 1.4,
+                      color: 'var(--color-ink)',
+                      fontStyle: 'italic',
+                      fontWeight: 400,
+                    }}
+                  >
+                    You haven&apos;t acquired any work yet.
                   </p>
-                  <p className="text-sm text-gray-400 mt-1">
-                    Manage your listings, track earnings, and update your
-                    storefront.
+                  <p
+                    style={{
+                      marginTop: '0.8rem',
+                      fontSize: '0.88rem',
+                      color: 'var(--color-stone-dark)',
+                      fontWeight: 300,
+                      lineHeight: 1.6,
+                    }}
+                  >
+                    Discover original work from Australian artists.
                   </p>
-                </>
+                  <Link
+                    href="/browse"
+                    className="editorial-link"
+                    style={{ marginTop: '1.4rem', display: 'inline-block' }}
+                  >
+                    Start exploring
+                  </Link>
+                </div>
               ) : (
                 <>
-                  <p className="font-editorial text-xl font-medium">
-                    Want to sell your artwork?
-                  </p>
-                  <p className="text-sm text-gray-400 mt-1">
-                    $30/month, zero commission. Keep 100% of every sale.
-                  </p>
-                </>
-              )}
-            </div>
-          </div>
-          <Link
-            href={isArtist ? '/artist/dashboard' : '/artist/onboarding'}
-            className="group inline-flex items-center gap-2 px-6 py-3 bg-accent text-primary text-sm font-semibold rounded-full hover:bg-accent-light transition-colors whitespace-nowrap"
-          >
-            {isArtist ? 'Go to Artist Dashboard' : 'Start Selling'}
-            <ArrowRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
-          </Link>
-        </div>
-      </div>
-
-      {/* Recent Orders */}
-      <div className="bg-white border border-border rounded-xl overflow-hidden mb-10">
-        <div className="flex items-center justify-between p-5 border-b border-border">
-          <h2 className="font-editorial text-lg font-medium">
-            Recent Orders
-          </h2>
-          {totalOrders > 5 && (
-            <Link
-              href="/orders"
-              className="text-sm text-accent-dark font-medium hover:underline flex items-center gap-1"
-            >
-              View all orders <ArrowRight className="h-3.5 w-3.5" />
-            </Link>
-          )}
-        </div>
-
-        {loading ? (
-          <div className="p-12 flex items-center justify-center">
-            <Loader2 className="h-5 w-5 animate-spin text-muted" />
-          </div>
-        ) : orders.length === 0 ? (
-          <div className="p-12 text-center">
-            <Package className="h-10 w-10 text-muted mx-auto mb-3" />
-            <p className="font-medium mb-1">
-              You haven&apos;t purchased any artwork yet
-            </p>
-            <p className="text-sm text-muted mb-5">
-              Discover original art from Australian artists.
-            </p>
-            <Link
-              href="/browse"
-              className="group inline-flex items-center gap-2 px-6 py-2.5 bg-primary text-white text-sm font-semibold rounded-full hover:bg-accent transition-colors duration-300"
-            >
-              Start Exploring
-              <ArrowRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
-            </Link>
-          </div>
-        ) : (
-          <>
-            {/* Desktop table */}
-            <div className="hidden md:block">
-              <table className="w-full">
-                <thead>
-                  <tr className="text-left text-xs font-medium tracking-wide uppercase text-muted border-b border-border bg-cream/50">
-                    <th className="px-5 py-3.5">Artwork</th>
-                    <th className="px-5 py-3.5">Artist</th>
-                    <th className="px-5 py-3.5">Price</th>
-                    <th className="px-5 py-3.5">Date</th>
-                    <th className="px-5 py-3.5">Status</th>
-                    <th className="px-5 py-3.5"></th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {orders.map((order) => (
-                    <tr
-                      key={order.id}
-                      className="border-b border-border last:border-0 hover:bg-cream/30 transition-colors"
+                  {/* Desktop table — hairline ruled, dense */}
+                  <div className="hidden md:block">
+                    <table
+                      style={{
+                        width: '100%',
+                        borderCollapse: 'collapse',
+                        fontSize: '0.88rem',
+                      }}
                     >
-                      <td className="px-5 py-4">
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-lg bg-muted-bg flex-shrink-0 overflow-hidden">
-                            {order.artworkImage ? (
+                      <thead>
+                        <tr>
+                          {['Work', 'Artist', 'Price', 'Date', 'Status', ''].map((h) => (
+                            <th
+                              key={h}
+                              style={{
+                                textAlign: 'left',
+                                padding: '0.7rem 1rem 0.7rem 0',
+                                fontSize: '0.6rem',
+                                letterSpacing: '0.2em',
+                                textTransform: 'uppercase',
+                                color: 'var(--color-stone)',
+                                fontWeight: 400,
+                                borderBottom: '1px solid var(--color-border)',
+                              }}
+                            >
+                              {h}
+                            </th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {orders.map((order) => (
+                          <tr
+                            key={order.id}
+                            style={{ borderBottom: '1px solid var(--color-border)' }}
+                          >
+                            <td style={{ padding: '1rem 1rem 1rem 0' }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
+                                <div
+                                  style={{
+                                    width: 44,
+                                    height: 44,
+                                    background: 'var(--color-cream)',
+                                    flexShrink: 0,
+                                    overflow: 'hidden',
+                                  }}
+                                >
+                                  {order.artworkImage && (
+                                    <Image
+                                      src={order.artworkImage}
+                                      alt={order.artworkTitle}
+                                      width={44}
+                                      height={44}
+                                      style={{
+                                        width: '100%',
+                                        height: '100%',
+                                        objectFit: 'cover',
+                                      }}
+                                    />
+                                  )}
+                                </div>
+                                <span
+                                  className="font-serif"
+                                  style={{
+                                    fontSize: '0.96rem',
+                                    color: 'var(--color-ink)',
+                                    maxWidth: '22ch',
+                                    overflow: 'hidden',
+                                    textOverflow: 'ellipsis',
+                                    whiteSpace: 'nowrap',
+                                  }}
+                                >
+                                  {order.artworkTitle}
+                                </span>
+                              </div>
+                            </td>
+                            <td
+                              style={{
+                                padding: '1rem 1rem 1rem 0',
+                                color: 'var(--color-stone-dark)',
+                                fontWeight: 300,
+                              }}
+                            >
+                              {order.artistName}
+                            </td>
+                            <td
+                              className="font-serif"
+                              style={{
+                                padding: '1rem 1rem 1rem 0',
+                                color: 'var(--color-ink)',
+                              }}
+                            >
+                              {formatPrice(order.price)}
+                            </td>
+                            <td
+                              style={{
+                                padding: '1rem 1rem 1rem 0',
+                                color: 'var(--color-stone)',
+                                fontWeight: 300,
+                                fontSize: '0.82rem',
+                              }}
+                            >
+                              {order.date}
+                            </td>
+                            <td style={{ padding: '1rem 1rem 1rem 0' }}>
+                              <span
+                                className={`dashboard-status-pill ${getStatusStyle(order.status)}`}
+                                style={{
+                                  fontSize: '0.6rem',
+                                  letterSpacing: '0.14em',
+                                  textTransform: 'uppercase',
+                                  padding: '0.22rem 0.6rem',
+                                }}
+                              >
+                                {formatStatus(order.status)}
+                              </span>
+                            </td>
+                            <td
+                              style={{
+                                padding: '1rem 0',
+                                textAlign: 'right',
+                                whiteSpace: 'nowrap',
+                              }}
+                            >
+                              <Link
+                                href={`/orders/${order.id}`}
+                                className="editorial-link"
+                                style={{ fontSize: '0.68rem' }}
+                              >
+                                View
+                              </Link>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  {/* Mobile list */}
+                  <ul
+                    className="md:hidden"
+                    style={{ listStyle: 'none', padding: 0, margin: 0 }}
+                  >
+                    {orders.map((order) => (
+                      <li
+                        key={order.id}
+                        style={{ borderBottom: '1px solid var(--color-border)' }}
+                      >
+                        <Link
+                          href={`/orders/${order.id}`}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '0.95rem',
+                            padding: '1rem 0',
+                            textDecoration: 'none',
+                          }}
+                        >
+                          <div
+                            style={{
+                              width: 56,
+                              height: 56,
+                              background: 'var(--color-cream)',
+                              flexShrink: 0,
+                              overflow: 'hidden',
+                            }}
+                          >
+                            {order.artworkImage && (
                               <Image
                                 src={order.artworkImage}
                                 alt={order.artworkTitle}
-                                width={40}
-                                height={40}
-                                className="w-full h-full object-cover"
+                                width={56}
+                                height={56}
+                                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                               />
-                            ) : (
-                              <div className="w-full h-full flex items-center justify-center">
-                                <ImageIcon className="h-4 w-4 text-border" />
-                              </div>
                             )}
                           </div>
-                          <span className="font-medium text-sm truncate max-w-[200px]">
-                            {order.artworkTitle}
-                          </span>
-                        </div>
-                      </td>
-                      <td className="px-5 py-4 text-sm text-muted">
-                        {order.artistName}
-                      </td>
-                      <td className="px-5 py-4 text-sm font-medium">
-                        {formatPrice(order.price)}
-                      </td>
-                      <td className="px-5 py-4 text-sm text-muted">
-                        {order.date}
-                      </td>
-                      <td className="px-5 py-4">
-                        <span
-                          className={`text-xs font-medium px-2.5 py-1 rounded-full ${getStatusStyle(order.status)}`}
-                        >
-                          {formatStatus(order.status)}
-                        </span>
-                      </td>
-                      <td className="px-5 py-4 text-right">
-                        <Link
-                          href={`/orders/${order.id}`}
-                          className="text-xs text-accent-dark font-medium hover:underline"
-                        >
-                          View
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <p
+                              className="font-serif"
+                              style={{
+                                fontSize: '1rem',
+                                color: 'var(--color-ink)',
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis',
+                                whiteSpace: 'nowrap',
+                                margin: 0,
+                              }}
+                            >
+                              {order.artworkTitle}
+                            </p>
+                            <p
+                              style={{
+                                fontSize: '0.76rem',
+                                color: 'var(--color-stone)',
+                                marginTop: '0.15rem',
+                                fontWeight: 300,
+                              }}
+                            >
+                              {order.artistName} · {order.date}
+                            </p>
+                            <div
+                              style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '0.7rem',
+                                marginTop: '0.3rem',
+                              }}
+                            >
+                              <span
+                                className="font-serif"
+                                style={{ fontSize: '0.94rem', color: 'var(--color-ink)' }}
+                              >
+                                {formatPrice(order.price)}
+                              </span>
+                              <span
+                                className={`dashboard-status-pill ${getStatusStyle(order.status)}`}
+                                style={{
+                                  fontSize: '0.58rem',
+                                  letterSpacing: '0.14em',
+                                  textTransform: 'uppercase',
+                                  padding: '0.18rem 0.55rem',
+                                }}
+                              >
+                                {formatStatus(order.status)}
+                              </span>
+                            </div>
+                          </div>
                         </Link>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                      </li>
+                    ))}
+                  </ul>
+                </>
+              )}
+            </section>
 
-            {/* Mobile cards */}
-            <div className="md:hidden divide-y divide-border">
-              {orders.map((order) => (
-                <Link
-                  key={order.id}
-                  href={`/orders/${order.id}`}
-                  className="flex items-center gap-3.5 p-4 hover:bg-cream/30 transition-colors"
-                >
-                  <div className="w-14 h-14 rounded-xl bg-muted-bg flex-shrink-0 overflow-hidden">
-                    {order.artworkImage ? (
-                      <Image
-                        src={order.artworkImage}
-                        alt={order.artworkTitle}
-                        width={56}
-                        height={56}
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center">
-                        <ImageIcon className="h-5 w-5 text-border" />
-                      </div>
-                    )}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-medium text-sm truncate">
-                      {order.artworkTitle}
-                    </p>
-                    <p className="text-xs text-muted mt-0.5">
-                      {order.artistName} &middot; {order.date}
-                    </p>
-                    <div className="flex items-center gap-2 mt-1">
-                      <span className="text-sm font-medium">
-                        {formatPrice(order.price)}
-                      </span>
-                      <span
-                        className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${getStatusStyle(order.status)}`}
-                      >
-                        {formatStatus(order.status)}
-                      </span>
-                    </div>
-                  </div>
-                  <ArrowRight className="h-4 w-4 text-muted flex-shrink-0" />
-                </Link>
-              ))}
-            </div>
-          </>
-        )}
-      </div>
-
-      {/* Favourites */}
-      <div className="bg-white border border-border rounded-xl overflow-hidden">
-        <div className="flex items-center justify-between p-5 border-b border-border">
-          <h2 className="font-editorial text-lg font-medium">Favourites</h2>
-          {favouritesCount > 4 && (
-            <Link
-              href="/favourites"
-              className="text-sm text-accent-dark font-medium hover:underline flex items-center gap-1"
-            >
-              View all <ArrowRight className="h-3.5 w-3.5" />
-            </Link>
-          )}
-        </div>
-
-        {favourites.length === 0 ? (
-          <div className="p-12 text-center">
-            <Heart className="h-10 w-10 text-muted mx-auto mb-3" />
-            <p className="font-medium mb-1">No saved artworks yet</p>
-            <p className="text-sm text-muted mb-5">
-              Save artworks you love by clicking the heart icon while browsing.
-            </p>
-            <Link
-              href="/browse"
-              className="group inline-flex items-center gap-2 text-accent-dark font-medium text-sm hover:underline"
-            >
-              Browse Artwork
-              <ArrowRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
-            </Link>
-          </div>
-        ) : (
-          <div className="p-5">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              {favourites.map((artwork) => (
-                <ArtworkCard
-                  key={artwork.id}
-                  id={artwork.id}
-                  title={artwork.title}
-                  artistName={artwork.artistName}
-                  artistId={artwork.artistId}
-                  price={artwork.price_aud}
-                  imageUrl={artwork.images?.[0] || ''}
-                  medium={artwork.medium}
-                  category={artwork.category}
-                  initialFavourited
-                  hideBadge
-                />
-              ))}
-            </div>
-            {favouritesCount > 0 && (
-              <div className="text-center mt-5">
-                <Link
-                  href="/favourites"
-                  className="group inline-flex items-center gap-2 text-accent-dark font-medium text-sm hover:underline"
-                >
-                  View all {favouritesCount} favourite{favouritesCount === 1 ? '' : 's'}
-                  <ArrowRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
-                </Link>
+            {/* ── Favourites ── */}
+            <section>
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'baseline',
+                  justifyContent: 'space-between',
+                  paddingBottom: '1rem',
+                  marginBottom: '1.6rem',
+                  borderBottom: '1px solid var(--color-border-strong)',
+                  gap: '1rem',
+                }}
+              >
+                <div>
+                  <Kicker>02 · Saved works</Kicker>
+                  <h2
+                    className="font-serif"
+                    style={{
+                      fontSize: '1.6rem',
+                      fontWeight: 400,
+                      color: 'var(--color-ink)',
+                      marginTop: '0.3rem',
+                      lineHeight: 1.2,
+                    }}
+                  >
+                    {favouritesCount === 0
+                      ? 'Nothing saved yet'
+                      : `${favouritesCount} work${favouritesCount === 1 ? '' : 's'} held`}
+                  </h2>
+                </div>
+                {favouritesCount > 4 && (
+                  <Link href="/favourites" className="editorial-link">
+                    View all
+                  </Link>
+                )}
               </div>
-            )}
+
+              {favourites.length === 0 ? (
+                <div style={{ padding: '1rem 0', maxWidth: '42ch' }}>
+                  <p
+                    className="font-serif"
+                    style={{
+                      fontSize: '1.1rem',
+                      lineHeight: 1.5,
+                      color: 'var(--color-ink)',
+                      fontStyle: 'italic',
+                    }}
+                  >
+                    A holding place for the works you&apos;re considering.
+                  </p>
+                  <p
+                    style={{
+                      marginTop: '0.8rem',
+                      fontSize: '0.84rem',
+                      color: 'var(--color-stone-dark)',
+                      fontWeight: 300,
+                      lineHeight: 1.6,
+                    }}
+                  >
+                    Save a work from any listing to find it here later.
+                  </p>
+                  <Link
+                    href="/browse"
+                    className="editorial-link"
+                    style={{ marginTop: '1.2rem', display: 'inline-block' }}
+                  >
+                    Browse the collection
+                  </Link>
+                </div>
+              ) : (
+                <div
+                  className="grid grid-cols-2 md:grid-cols-4"
+                  style={{ columnGap: '1.6rem', rowGap: '2.4rem' }}
+                >
+                  {favourites.map((artwork) => (
+                    <ArtworkCard
+                      key={artwork.id}
+                      id={artwork.id}
+                      title={artwork.title}
+                      artistName={artwork.artistName}
+                      artistId={artwork.artistId}
+                      price={artwork.price_aud}
+                      imageUrl={artwork.images?.[0] || ''}
+                      medium={artwork.medium}
+                      category={artwork.category}
+                      initialFavourited
+                      hideBadge
+                    />
+                  ))}
+                </div>
+              )}
+            </section>
           </div>
-        )}
+
+          {/* Right column: quick links + artist CTA (4/12) */}
+          <aside className="lg:col-span-4" style={{ minWidth: 0 }}>
+            {/* Quick links — typographic stack, no cards */}
+            <div style={{ marginBottom: 'clamp(2.5rem, 4vw, 3.5rem)' }}>
+              <Kicker>Navigate</Kicker>
+              <div style={{ marginTop: '1rem', borderBottom: '1px solid var(--color-border)' }}>
+                <QuickLink href="/browse" label="Browse the collection" detail="Discover new work" />
+                <QuickLink
+                  href="/orders"
+                  label="Orders"
+                  detail={`${totalOrders} ${totalOrders === 1 ? 'order' : 'orders'}`}
+                />
+                <QuickLink
+                  href="/favourites"
+                  label="Saved works"
+                  detail={`${favouritesCount} held`}
+                />
+                <QuickLink href="/following" label="Following" detail="Artists you track" />
+                <QuickLink href="/messages" label="Messages" detail="Conversations" />
+                <QuickLink href="/settings" label="Settings" detail="Account & preferences" />
+              </div>
+            </div>
+
+            {/* Artist CTA — full-bleed ink editorial */}
+            <div
+              style={{
+                background: 'var(--color-ink)',
+                color: 'var(--color-warm-white)',
+                padding: 'clamp(1.8rem, 3vw, 2.4rem)',
+              }}
+            >
+              <p
+                style={{
+                  fontSize: '0.6rem',
+                  letterSpacing: '0.22em',
+                  textTransform: 'uppercase',
+                  color: 'rgba(252, 251, 248, 0.55)',
+                  marginBottom: '0.9rem',
+                }}
+              >
+                {isArtist ? 'The Artist Panel' : 'Sell through Signo'}
+              </p>
+              <p
+                className="font-serif"
+                style={{
+                  fontSize: '1.35rem',
+                  lineHeight: 1.25,
+                  fontWeight: 400,
+                  color: 'var(--color-warm-white)',
+                }}
+              >
+                {isArtist ? (
+                  <>
+                    Your <em style={{ fontStyle: 'italic' }}>storefront</em>, listings, and earnings.
+                  </>
+                ) : (
+                  <>
+                    $30 a month. <em style={{ fontStyle: 'italic' }}>Zero commission.</em>
+                  </>
+                )}
+              </p>
+              <p
+                style={{
+                  fontSize: '0.82rem',
+                  fontWeight: 300,
+                  color: 'rgba(252, 251, 248, 0.72)',
+                  marginTop: '0.8rem',
+                  lineHeight: 1.6,
+                  maxWidth: '32ch',
+                }}
+              >
+                {isArtist
+                  ? 'Manage your listings, orders, and payouts from the artist panel.'
+                  : 'Keep 100% of every sale. Flat subscription, no surprises.'}
+              </p>
+              <Link
+                href={isArtist ? '/artist/dashboard' : '/artist/onboarding'}
+                className="font-serif"
+                style={{
+                  display: 'inline-block',
+                  marginTop: '1.4rem',
+                  padding: '0.8rem 1.3rem',
+                  background: 'var(--color-warm-white)',
+                  color: 'var(--color-ink)',
+                  fontSize: '0.72rem',
+                  letterSpacing: '0.16em',
+                  textTransform: 'uppercase',
+                  fontStyle: 'italic',
+                  textDecoration: 'none',
+                  fontWeight: 400,
+                }}
+              >
+                {isArtist ? 'Open artist panel' : 'Start selling'}
+              </Link>
+            </div>
+          </aside>
+        </div>
       </div>
     </div>
   );
@@ -494,7 +788,30 @@ function DashboardContent() {
 
 export default function BuyerDashboardPage() {
   const { loading: authLoading } = useRequireAuth();
-  if (authLoading) return <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '60vh' }}><div style={{ width: 32, height: 32, border: '3px solid #E5E2DB', borderTopColor: '#2C2C2A', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} /><style>{'@keyframes spin { to { transform: rotate(360deg) } }'}</style></div>;
+  if (authLoading) {
+    return (
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          minHeight: '60vh',
+          background: 'var(--color-warm-white)',
+        }}
+      >
+        <p
+          className="font-serif"
+          style={{
+            fontStyle: 'italic',
+            fontSize: '0.92rem',
+            color: 'var(--color-stone)',
+          }}
+        >
+          Loading…
+        </p>
+      </div>
+    );
+  }
 
   return (
     <Suspense>

@@ -34,18 +34,18 @@ export default function AnalyticsChart({
   return (
     <ResponsiveContainer width="100%" height={height}>
       <LineChart data={data} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
-        <CartesianGrid strokeDasharray="3 3" stroke="#E5E2DB" vertical={false} />
+        <CartesianGrid strokeDasharray="2 4" stroke="rgba(26,26,24,0.06)" vertical={false} />
         <XAxis
           dataKey="date"
           tickFormatter={formatDateLabel}
           interval={tickInterval}
-          tick={{ fontSize: 11, fill: '#9B9688' }}
-          axisLine={{ stroke: '#E5E2DB' }}
+          tick={{ fontSize: 10, fill: '#9a9488', fontFamily: 'var(--font-sans)' }}
+          axisLine={{ stroke: 'rgba(26,26,24,0.06)' }}
           tickLine={false}
         />
         <YAxis
           allowDecimals={false}
-          tick={{ fontSize: 11, fill: '#9B9688' }}
+          tick={{ fontSize: 10, fill: '#9a9488', fontFamily: 'var(--font-sans)' }}
           axisLine={false}
           tickLine={false}
           width={40}
@@ -58,21 +58,23 @@ export default function AnalyticsChart({
             '',
           ]}
           contentStyle={{
-            backgroundColor: '#FFFDF8',
-            border: '1px solid #E5E2DB',
-            borderRadius: '8px',
-            fontSize: '13px',
+            backgroundColor: '#fcfbf8',
+            border: '1px solid rgba(26,26,24,0.1)',
+            borderRadius: '2px',
+            fontSize: '12px',
             padding: '8px 12px',
+            fontFamily: 'var(--font-sans)',
+            color: '#1a1a18',
           }}
-          labelStyle={{ fontWeight: 600, marginBottom: 2 }}
+          labelStyle={{ fontWeight: 500, marginBottom: 2, color: '#1a1a18' }}
         />
         <Line
           type="monotone"
           dataKey="value"
           stroke={color}
-          strokeWidth={2}
+          strokeWidth={1.5}
           dot={false}
-          activeDot={{ r: 4, strokeWidth: 0, fill: color }}
+          activeDot={{ r: 3, strokeWidth: 0, fill: color }}
         />
       </LineChart>
     </ResponsiveContainer>
