@@ -154,7 +154,7 @@ function Hero() {
 
       {/* Text overlay — bottom-left */}
       <div
-        className="absolute z-10"
+        className="absolute z-10 hero-overlay-text"
         style={{
           left: 'clamp(1.5rem, 4vw, 3rem)',
           right: 'clamp(1.5rem, 4vw, 3rem)',
@@ -193,7 +193,7 @@ function Hero() {
       {/* Numbered indices — bottom-right */}
       {count > 1 && (
         <div
-          className="absolute z-10 flex items-baseline"
+          className="absolute z-10 flex items-baseline hero-slide-indices"
           style={{
             right: 'clamp(1.5rem, 4vw, 3rem)',
             bottom: 'clamp(2.5rem, 6vw, 4rem)',
