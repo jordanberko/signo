@@ -95,11 +95,42 @@ export default function Footer() {
           />
         </div>
 
-        {/* Bottom bar */}
+        {/* Payment methods — trust signal, quiet.
+            Single hairline above; copyright row follows without its own divider
+            so the lower chrome reads as one block. */}
         <div
-          className="mt-14 pt-8 flex flex-col sm:flex-row justify-between gap-3"
+          className="mt-14 pt-8"
+          style={{ borderTop: '1px solid var(--color-border)' }}
+        >
+          <h4
+            style={{
+              fontSize: '0.66rem',
+              fontWeight: 500,
+              letterSpacing: '0.18em',
+              textTransform: 'uppercase',
+              color: 'var(--color-stone)',
+              marginBottom: '1.1rem',
+            }}
+          >
+            Accepted payment
+          </h4>
+          <div
+            className="flex items-center flex-wrap gap-5 sm:gap-6"
+            style={{ color: 'var(--color-stone-dark)', opacity: 0.65 }}
+            aria-label="Accepted payment methods"
+          >
+            <VisaMark />
+            <MastercardMark />
+            <AmexMark />
+            <ApplePayMark />
+            <GooglePayMark />
+          </div>
+        </div>
+
+        {/* Bottom bar — copyright. No border-top: shares the chrome block with the payment row above. */}
+        <div
+          className="mt-10 flex flex-col sm:flex-row justify-between gap-3"
           style={{
-            borderTop: '1px solid var(--color-border)',
             fontSize: '0.7rem',
             fontWeight: 300,
             letterSpacing: '0.04em',
@@ -125,6 +156,138 @@ export default function Footer() {
         </div>
       </div>
     </footer>
+  );
+}
+
+/* ────────────────────────────────────────────────────────────────
+   Payment method marks — inline monochrome SVGs.
+   All use `currentColor` so they inherit the muted parent tone.
+   Consistent 18–20px height; width varies by natural aspect ratio.
+   ──────────────────────────────────────────────────────────────── */
+
+const LOGO_FONT = "'Helvetica Neue', Helvetica, Arial, sans-serif";
+
+function VisaMark() {
+  return (
+    <svg
+      height="15"
+      viewBox="0 0 42 14"
+      role="img"
+      aria-label="Visa"
+      style={{ display: 'block' }}
+    >
+      <text
+        x="0"
+        y="12"
+        fontFamily={LOGO_FONT}
+        fontWeight={900}
+        fontStyle="italic"
+        fontSize="14"
+        letterSpacing="-0.5"
+        fill="currentColor"
+      >
+        VISA
+      </text>
+    </svg>
+  );
+}
+
+function MastercardMark() {
+  return (
+    <svg
+      height="20"
+      viewBox="0 0 32 20"
+      role="img"
+      aria-label="Mastercard"
+      style={{ display: 'block' }}
+    >
+      <circle cx="11" cy="10" r="9" fill="currentColor" fillOpacity="0.7" />
+      <circle cx="21" cy="10" r="9" fill="currentColor" fillOpacity="0.7" />
+    </svg>
+  );
+}
+
+function AmexMark() {
+  return (
+    <svg
+      height="18"
+      viewBox="0 0 44 18"
+      role="img"
+      aria-label="American Express"
+      style={{ display: 'block' }}
+    >
+      <rect x="0" y="0" width="44" height="18" rx="2" fill="currentColor" />
+      <text
+        x="22"
+        y="12"
+        textAnchor="middle"
+        fontFamily={LOGO_FONT}
+        fontWeight={700}
+        fontSize="7"
+        letterSpacing="0.8"
+        fill="var(--color-warm-white)"
+      >
+        AMEX
+      </text>
+    </svg>
+  );
+}
+
+function ApplePayMark() {
+  return (
+    <svg
+      height="18"
+      viewBox="0 0 46 22"
+      role="img"
+      aria-label="Apple Pay"
+      style={{ display: 'block' }}
+    >
+      {/* Apple silhouette */}
+      <path
+        d="M17.7 11.3c0-2.1 1.7-3.1 1.8-3.2-1-1.4-2.5-1.6-3-1.7-1.3-.1-2.5.8-3.1.8-.7 0-1.7-.7-2.7-.7-1.4 0-2.7.8-3.4 2.1-1.5 2.5-.4 6.3 1 8.3.7 1 1.6 2.1 2.7 2.1 1.1 0 1.5-.7 2.8-.7 1.3 0 1.7.7 2.8.7 1.2 0 1.9-1 2.6-2 .8-1.1 1.2-2.2 1.2-2.3 0 0-2.3-.9-2.3-3.4h-.4zm-2.1-6.2c.6-.7 1-1.7.9-2.7-.8.04-1.8.5-2.4 1.2-.6.6-1.1 1.6-.9 2.6.9.06 1.8-.5 2.4-1.1z"
+        fill="currentColor"
+      />
+      <text
+        x="25"
+        y="16"
+        fontFamily={LOGO_FONT}
+        fontWeight={500}
+        fontSize="13"
+        letterSpacing="-0.2"
+        fill="currentColor"
+      >
+        Pay
+      </text>
+    </svg>
+  );
+}
+
+function GooglePayMark() {
+  return (
+    <svg
+      height="18"
+      viewBox="0 0 50 22"
+      role="img"
+      aria-label="Google Pay"
+      style={{ display: 'block' }}
+    >
+      {/* G glyph — simplified, monochrome */}
+      <path
+        d="M10.3 16.8c-3.2 0-5.8-2.6-5.8-5.8s2.6-5.8 5.8-5.8c1.6 0 2.8.6 3.8 1.5l-1.3 1.3c-.6-.6-1.5-1-2.5-1-2.1 0-3.9 1.8-3.9 4s1.7 4 3.9 4c1.2 0 2-.4 2.6-1 .5-.5.8-1.2.9-2h-3.5V9.4h5.4c.1.3.1.7.1 1.1 0 1.4-.4 3.1-1.6 4.3-1.1 1.2-2.6 1.8-4.5 1.8z"
+        fill="currentColor"
+      />
+      <text
+        x="20"
+        y="16"
+        fontFamily={LOGO_FONT}
+        fontWeight={500}
+        fontSize="13"
+        letterSpacing="-0.2"
+        fill="currentColor"
+      >
+        Pay
+      </text>
+    </svg>
   );
 }
 
