@@ -37,32 +37,32 @@ describe('formatStatus', () => {
 })
 
 describe('getStatusStyle', () => {
-  it('returns green classes for completed', () => {
-    expect(getStatusStyle('completed')).toBe('bg-green-50 text-green-700')
+  it('returns success modifier for completed', () => {
+    expect(getStatusStyle('completed')).toBe('status-pill--success')
   })
 
-  it('returns blue classes for shipped', () => {
-    expect(getStatusStyle('shipped')).toBe('bg-blue-50 text-blue-700')
+  it('returns progress modifier for shipped', () => {
+    expect(getStatusStyle('shipped')).toBe('status-pill--progress')
   })
 
-  it('returns blue classes for delivered', () => {
-    expect(getStatusStyle('delivered')).toBe('bg-blue-50 text-blue-700')
+  it('returns progress modifier for delivered', () => {
+    expect(getStatusStyle('delivered')).toBe('status-pill--progress')
   })
 
-  it('returns amber classes for paid', () => {
-    expect(getStatusStyle('paid')).toBe('bg-amber-50 text-amber-700')
+  it('returns progress modifier for paid', () => {
+    expect(getStatusStyle('paid')).toBe('status-pill--progress')
   })
 
-  it('returns red classes for disputed', () => {
-    expect(getStatusStyle('disputed')).toBe('bg-red-50 text-red-700')
+  it('returns error modifier for disputed', () => {
+    expect(getStatusStyle('disputed')).toBe('status-pill--error')
   })
 
-  it('returns gray classes for refunded', () => {
-    expect(getStatusStyle('refunded')).toBe('bg-gray-100 text-gray-600')
+  it('returns neutral modifier for refunded', () => {
+    expect(getStatusStyle('refunded')).toBe('status-pill--neutral')
   })
 
-  it('returns default gray classes for unknown status', () => {
-    expect(getStatusStyle('unknown_status')).toBe('bg-gray-50 text-gray-600')
+  it('returns neutral modifier for unknown status', () => {
+    expect(getStatusStyle('unknown_status')).toBe('status-pill--neutral')
   })
 })
 

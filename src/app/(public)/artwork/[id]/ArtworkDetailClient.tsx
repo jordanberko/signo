@@ -321,7 +321,7 @@ export default function ArtworkDetailClient({
                       position: 'absolute',
                       inset: 0,
                       opacity: imageVisible ? 1 : 0,
-                      transition: 'opacity 300ms cubic-bezier(0.22, 1, 0.36, 1)',
+                      transition: 'opacity 300ms var(--ease-out)',
                     }}
                   >
                     <Image
@@ -424,7 +424,7 @@ export default function ArtworkDetailClient({
                           ? '1px solid var(--color-ink)'
                           : '1px solid transparent',
                         paddingBottom: 4,
-                        transition: 'opacity 200ms cubic-bezier(0.22, 1, 0.36, 1), border-color 200ms cubic-bezier(0.22, 1, 0.36, 1)',
+                        transition: 'opacity var(--dur-fast) var(--ease-out), border-color var(--dur-fast) var(--ease-out)',
                       }}
                       aria-label={`Image ${i + 1}`}
                     >
@@ -634,7 +634,7 @@ export default function ArtworkDetailClient({
                           cursor: 'pointer',
                           padding: 0,
                           fontWeight: 400,
-                          transition: 'color 200ms cubic-bezier(0.22, 1, 0.36, 1)',
+                          transition: 'color var(--dur-fast) var(--ease-out)',
                         }}
                         aria-label={isFavourited ? 'Remove from favourites' : 'Save to favourites'}
                       >
@@ -1024,7 +1024,7 @@ export default function ArtworkDetailClient({
           className="fixed bottom-0 left-0 right-0 z-40 md:hidden"
           style={{
             transform: showStickyBar ? 'translateY(0)' : 'translateY(100%)',
-            transition: 'transform 350ms cubic-bezier(0.22, 1, 0.36, 1)',
+            transition: 'transform var(--dur-base) var(--ease-out)',
           }}
         >
           <div

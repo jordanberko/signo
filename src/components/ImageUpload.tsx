@@ -324,7 +324,7 @@ export default function ImageUpload({
             padding: '2.6rem 1.5rem',
             cursor: 'pointer',
             textAlign: 'center',
-            transition: 'background 200ms cubic-bezier(0.22, 1, 0.36, 1), border-color 200ms cubic-bezier(0.22, 1, 0.36, 1)',
+            transition: 'background var(--dur-fast) var(--ease-out), border-color var(--dur-fast) var(--ease-out)',
             color: 'var(--color-ink)',
           }}
         >
@@ -444,7 +444,7 @@ export default function ImageUpload({
                     : HAIRLINE_BORDER,
                 background: 'var(--color-cream)',
                 opacity: dragIndex === index ? 0.55 : 1,
-                transition: 'opacity 200ms cubic-bezier(0.22, 1, 0.36, 1), border-color 200ms cubic-bezier(0.22, 1, 0.36, 1)',
+                transition: 'opacity var(--dur-fast) var(--ease-out), border-color var(--dur-fast) var(--ease-out)',
                 cursor: img.uploading ? 'default' : 'grab',
               }}
               className="image-upload-tile"
@@ -502,7 +502,7 @@ export default function ImageUpload({
                         width: `${img.progress}%`,
                         height: '100%',
                         background: 'var(--color-warm-white)',
-                        transition: 'width 350ms cubic-bezier(0.22, 1, 0.36, 1)',
+                        transition: 'width var(--dur-base) var(--ease-out)',
                       }}
                     />
                   </div>
@@ -580,7 +580,7 @@ export default function ImageUpload({
                     background:
                       'linear-gradient(to top, rgba(26,26,24,0.55) 0%, transparent 45%, transparent 55%, rgba(26,26,24,0.45) 100%)',
                     opacity: 0,
-                    transition: 'opacity 200ms cubic-bezier(0.22, 1, 0.36, 1)',
+                    transition: 'opacity var(--dur-fast) var(--ease-out)',
                     display: 'flex',
                     flexDirection: 'column',
                     justifyContent: 'space-between',
@@ -669,7 +669,7 @@ export default function ImageUpload({
                 alignItems: 'center',
                 justifyContent: 'center',
                 color: 'var(--color-stone-dark)',
-                transition: 'border-color 200ms cubic-bezier(0.22, 1, 0.36, 1), color 200ms cubic-bezier(0.22, 1, 0.36, 1)',
+                transition: 'border-color var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out)',
               }}
               className="image-upload-add-tile"
             >

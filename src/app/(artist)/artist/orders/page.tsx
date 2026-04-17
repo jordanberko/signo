@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useAuth } from '@/components/providers/AuthProvider';
+import EditorialSpinner from '@/components/ui/EditorialSpinner';
 import { useRequireAuth } from '@/lib/hooks/useRequireAuth';
 import { formatPrice } from '@/lib/utils';
 
@@ -36,27 +37,6 @@ const KICKER: React.CSSProperties = {
   color: 'var(--color-stone)',
 };
 
-function EditorialSpinner({ label = 'Loading…' }: { label?: string }) {
-  return (
-    <div
-      style={{
-        minHeight: '60vh',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        background: 'var(--color-warm-white)',
-      }}
-    >
-      <p
-        className="font-serif"
-        style={{ fontStyle: 'italic', fontSize: '0.95rem', color: 'var(--color-stone)' }}
-      >
-        {label}
-      </p>
-    </div>
-  );
-}
-
 // ── Component ──
 
 export default function ArtistOrdersPage() {
@@ -83,7 +63,7 @@ export default function ArtistOrdersPage() {
   }, [user]);
 
   if (authLoading) return <EditorialSpinner />;
-  if (loading) return <EditorialSpinner label="Retrieving your orders…" />;
+  if (loading) return <EditorialSpinner headline="Retrieving your orders…" />;
 
   return (
     <div style={{ background: 'var(--color-warm-white)', minHeight: '100vh' }}>

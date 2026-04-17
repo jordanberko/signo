@@ -5,6 +5,7 @@ import Image from 'next/image';
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { formatPrice, getStatusStyle, formatStatus } from '@/lib/utils';
 import { useAuth } from '@/components/providers/AuthProvider';
+import EditorialSpinner from '@/components/ui/EditorialSpinner';
 import { useRequireAuth } from '@/lib/hooks/useRequireAuth';
 import { uploadStudioImage } from '@/lib/supabase/storage';
 import type { StudioPost } from '@/lib/types/database';
@@ -23,27 +24,6 @@ interface RecentOrder {
 }
 
 // ── Shell ──
-
-function EditorialSpinner({ label = 'Loading…' }: { label?: string }) {
-  return (
-    <div
-      style={{
-        minHeight: '60vh',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        background: 'var(--color-warm-white)',
-      }}
-    >
-      <p
-        className="font-serif"
-        style={{ fontStyle: 'italic', fontSize: '0.95rem', color: 'var(--color-stone)' }}
-      >
-        {label}
-      </p>
-    </div>
-  );
-}
 
 const KICKER: React.CSSProperties = {
   fontSize: '0.62rem',
@@ -899,7 +879,7 @@ export default function ArtistDashboardPage() {
                           color: 'var(--color-stone-dark)',
                         }}
                       >
-                        <span className={getStatusStyle(order.status)}>
+                        <span className={`status-pill ${getStatusStyle(order.status)}`}>
                           {formatStatus(order.status)}
                         </span>
                       </td>
@@ -1015,7 +995,7 @@ export default function ArtistDashboardPage() {
                         color: 'var(--color-stone-dark)',
                       }}
                     >
-                      <span className={getStatusStyle(order.status)}>
+                      <span className={`status-pill ${getStatusStyle(order.status)}`}>
                         {formatStatus(order.status)}
                       </span>
                     </p>

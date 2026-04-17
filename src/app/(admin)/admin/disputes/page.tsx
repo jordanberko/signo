@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { AlertTriangle, CheckCircle, Clock, MessageSquare } from 'lucide-react';
 import { formatPrice } from '@/lib/utils';
 import { useRequireAuth } from '@/lib/hooks/useRequireAuth';
 import EditorialSpinner from '@/components/ui/EditorialSpinner';
@@ -22,14 +21,49 @@ interface DisputeRow {
   };
 }
 
+const KICKER: React.CSSProperties = {
+  fontSize: '0.62rem',
+  letterSpacing: '0.22em',
+  textTransform: 'uppercase',
+  color: 'var(--color-stone)',
+  fontWeight: 400,
+  margin: 0,
+};
+
+type Filter = 'open' | 'under_review' | 'all';
+
+const FILTERS: Array<{ value: Filter; label: string }> = [
+  { value: 'open', label: 'Open' },
+  { value: 'under_review', label: 'Under review' },
+  { value: 'all', label: 'All' },
+];
+
+type Resolution = 'resolved_refund' | 'resolved_no_refund' | 'resolved_return';
+
+function statusToPill(status: string): string {
+  switch (status) {
+    case 'open':
+      return 'status-pill--error';
+    case 'under_review':
+      return 'status-pill--attention';
+    case 'resolved_refund':
+    case 'resolved_return':
+      return 'status-pill--success';
+    case 'resolved_no_refund':
+      return 'status-pill--neutral';
+    default:
+      return 'status-pill--neutral';
+  }
+}
+
 export default function AdminDisputesPage() {
   const { loading: authLoading } = useRequireAuth('admin');
   const [disputes, setDisputes] = useState<DisputeRow[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selected, setSelected] = useState<DisputeRow | null>(null);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
   const [resolutionNotes, setResolutionNotes] = useState('');
   const [actionLoading, setActionLoading] = useState(false);
-  const [filter, setFilter] = useState<'open' | 'under_review' | 'all'>('open');
+  const [filter, setFilter] = useState<Filter>('open');
 
   useEffect(() => {
     if (authLoading) return;
@@ -39,16 +73,13 @@ export default function AdminDisputesPage() {
   async function fetchDisputes() {
     setLoading(true);
     try {
-      // Use server API route — bypasses browser client auth timing issues
       const res = await fetch(`/api/admin/disputes?status=${filter}`);
       const json = await res.json();
-
       if (!res.ok) {
         console.error('[AdminDisputes] API error:', json.error);
         setDisputes([]);
         return;
       }
-
       setDisputes((json.data || []) as DisputeRow[]);
     } catch (err) {
       console.error('[AdminDisputes] Fetch error:', err);
@@ -58,7 +89,7 @@ export default function AdminDisputesPage() {
     }
   }
 
-  async function resolveDispute(disputeId: string, resolution: 'resolved_refund' | 'resolved_no_refund' | 'resolved_return') {
+  async function resolveDispute(disputeId: string, resolution: Resolution) {
     setActionLoading(true);
     try {
       const res = await fetch(`/api/admin/disputes/${disputeId}/resolve`, {
@@ -76,128 +107,304 @@ export default function AdminDisputesPage() {
     } catch (err) {
       console.error('[AdminDisputes] Resolve exception:', err);
     }
-
-    setSelected(null);
+    setSelectedId(null);
     setResolutionNotes('');
     setActionLoading(false);
     fetchDisputes();
   }
 
-  const statusBadge: Record<string, { color: string; icon: typeof Clock }> = {
-    open: { color: 'bg-red-50 text-red-700', icon: AlertTriangle },
-    under_review: { color: 'bg-amber-50 text-amber-700', icon: Clock },
-    resolved_refund: { color: 'bg-green-50 text-green-700', icon: CheckCircle },
-    resolved_no_refund: { color: 'bg-gray-100 text-gray-700', icon: CheckCircle },
-    resolved_return: { color: 'bg-blue-50 text-blue-700', icon: CheckCircle },
-  };
-
-  if (authLoading) return <EditorialSpinner label="Loading the disputes" headline="Loading\u2026" />;
+  if (authLoading) {
+    return <EditorialSpinner label="Disputes" headline="One moment\u2026" />;
+  }
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold">Disputes</h1>
-        <p className="text-muted mt-1">Review and resolve buyer disputes</p>
+    <div
+      className="px-6 sm:px-10"
+      style={{
+        maxWidth: '78rem',
+        margin: '0 auto',
+        paddingTop: 'clamp(3rem, 5vw, 4.5rem)',
+        paddingBottom: 'clamp(5rem, 8vw, 7rem)',
+      }}
+    >
+      {/* ── Heading ── */}
+      <div style={{ marginBottom: 'clamp(2.4rem, 4vw, 3.4rem)' }}>
+        <p style={KICKER}>— Disputes —</p>
+        <h1
+          className="font-serif"
+          style={{
+            marginTop: '1.2rem',
+            fontSize: 'clamp(2.2rem, 4.5vw, 3.4rem)',
+            lineHeight: 1.05,
+            letterSpacing: '-0.015em',
+            color: 'var(--color-ink)',
+            fontWeight: 400,
+            maxWidth: '22ch',
+          }}
+        >
+          Sort each case <em style={{ fontStyle: 'italic' }}>fairly.</em>
+        </h1>
       </div>
 
-      {/* Filter */}
-      <div className="flex gap-2 mb-6">
-        {[
-          { value: 'open', label: 'Open' },
-          { value: 'under_review', label: 'Under Review' },
-          { value: 'all', label: 'All' },
-        ].map((tab) => (
-          <button
-            key={tab.value}
-            onClick={() => { setFilter(tab.value as typeof filter); setSelected(null); }}
-            className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
-              filter === tab.value
-                ? 'bg-primary text-white'
-                : 'bg-muted-bg text-foreground hover:bg-gray-200'
-            }`}
-          >
-            {tab.label}
-          </button>
-        ))}
+      {/* ── Filter tabs ── */}
+      <div
+        style={{
+          display: 'flex',
+          gap: '0',
+          flexWrap: 'wrap',
+          borderBottom: '1px solid var(--color-border)',
+          marginBottom: '2.4rem',
+        }}
+      >
+        {FILTERS.map((f) => {
+          const active = filter === f.value;
+          return (
+            <button
+              key={f.value}
+              type="button"
+              onClick={() => {
+                setFilter(f.value);
+                setSelectedId(null);
+              }}
+              style={{
+                background: 'transparent',
+                border: 'none',
+                padding: '0.8rem 0',
+                marginRight: '2rem',
+                fontSize: '0.72rem',
+                letterSpacing: '0.18em',
+                textTransform: 'uppercase',
+                fontWeight: 400,
+                color: active ? 'var(--color-ink)' : 'var(--color-stone)',
+                borderBottom: active
+                  ? '1px solid var(--color-ink)'
+                  : '1px solid transparent',
+                marginBottom: '-1px',
+                cursor: 'pointer',
+                transition: 'color var(--dur-fast) var(--ease-out)',
+              }}
+            >
+              {f.label}
+            </button>
+          );
+        })}
       </div>
 
+      {/* ── List ── */}
       {loading ? (
-        <div className="text-center py-16">
-          <EditorialSpinner label="Loading the disputes" headline="One moment\u2026" />
-        </div>
+        <EditorialSpinner label="Disputes" headline="Fetching cases\u2026" />
       ) : disputes.length === 0 ? (
-        <div className="text-center py-16 border border-border rounded-lg">
-          <CheckCircle className="h-10 w-10 text-success mx-auto mb-3" />
-          <p className="text-muted">No {filter === 'all' ? '' : filter.replace('_', ' ')} disputes</p>
+        <div
+          style={{
+            borderTop: '1px solid var(--color-border)',
+            borderBottom: '1px solid var(--color-border)',
+            padding: '4rem 0',
+            textAlign: 'center',
+          }}
+        >
+          <p
+            className="font-serif"
+            style={{
+              fontStyle: 'italic',
+              color: 'var(--color-stone)',
+              fontSize: '1rem',
+            }}
+          >
+            {filter === 'open'
+              ? 'No open disputes. Quiet news.'
+              : 'Nothing to show.'}
+          </p>
         </div>
       ) : (
-        <div className="space-y-3">
+        <ul
+          style={{
+            listStyle: 'none',
+            padding: 0,
+            margin: 0,
+            borderTop: '1px solid var(--color-border)',
+          }}
+        >
           {disputes.map((dispute) => {
-            const badge = statusBadge[dispute.status] || statusBadge.open;
+            const isOpen = selectedId === dispute.id;
+            const canResolve =
+              dispute.status === 'open' || dispute.status === 'under_review';
             return (
-              <div
+              <li
                 key={dispute.id}
-                className={`border rounded-lg p-5 transition-colors cursor-pointer ${
-                  selected?.id === dispute.id ? 'border-accent bg-accent/5' : 'border-border hover:border-gray-300'
-                }`}
-                onClick={() => { setSelected(dispute); setResolutionNotes(dispute.resolution_notes || ''); }}
+                style={{ borderBottom: '1px solid var(--color-border)' }}
               >
-                <div className="flex items-start justify-between">
-                  <div>
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className={`inline-flex items-center gap-1 text-xs px-2 py-1 rounded capitalize ${badge.color}`}>
-                        <badge.icon className="h-3 w-3" />
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedId(isOpen ? null : dispute.id);
+                    setResolutionNotes(dispute.resolution_notes || '');
+                  }}
+                  style={{
+                    width: '100%',
+                    display: 'grid',
+                    gridTemplateColumns: '1fr auto',
+                    gap: '1.4rem',
+                    padding: '1.8rem 0',
+                    background: 'transparent',
+                    border: 'none',
+                    textAlign: 'left',
+                    cursor: 'pointer',
+                  }}
+                >
+                  <div style={{ minWidth: 0 }}>
+                    <div
+                      style={{
+                        display: 'flex',
+                        gap: '0.6rem',
+                        alignItems: 'center',
+                        flexWrap: 'wrap',
+                        marginBottom: '0.7rem',
+                      }}
+                    >
+                      <span className={`status-pill ${statusToPill(dispute.status)}`}>
                         {dispute.status.replace(/_/g, ' ')}
                       </span>
-                      <span className="text-xs px-2 py-1 bg-muted-bg rounded capitalize">{dispute.type.replace('_', ' ')}</span>
+                      <span
+                        style={{
+                          fontSize: '0.62rem',
+                          letterSpacing: '0.18em',
+                          textTransform: 'uppercase',
+                          color: 'var(--color-stone)',
+                        }}
+                      >
+                        {dispute.type.replace(/_/g, ' ')}
+                      </span>
                     </div>
-                    <p className="font-medium text-sm">{dispute.orders?.artworks?.title || 'Unknown Artwork'}</p>
-                    <p className="text-xs text-muted mt-1">{dispute.description}</p>
+                    <p
+                      className="font-serif"
+                      style={{
+                        fontSize: '1.1rem',
+                        color: 'var(--color-ink)',
+                        margin: 0,
+                      }}
+                    >
+                      {dispute.orders?.artworks?.title || 'Unknown artwork'}
+                    </p>
+                    <p
+                      style={{
+                        marginTop: '0.5rem',
+                        fontSize: '0.88rem',
+                        color: 'var(--color-stone-dark)',
+                        fontWeight: 300,
+                        lineHeight: 1.55,
+                        maxWidth: '60ch',
+                      }}
+                    >
+                      {dispute.description}
+                    </p>
                   </div>
-                  <div className="text-right text-xs text-muted flex-shrink-0 ml-4">
-                    <p>{new Date(dispute.created_at).toLocaleDateString('en-AU')}</p>
-                    {dispute.orders && <p className="font-medium text-foreground">{formatPrice(dispute.orders.total_amount_aud)}</p>}
+                  <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                    <p
+                      className="font-serif"
+                      style={{
+                        fontSize: '1rem',
+                        color: 'var(--color-ink)',
+                        margin: 0,
+                      }}
+                    >
+                      {dispute.orders
+                        ? formatPrice(dispute.orders.total_amount_aud)
+                        : '—'}
+                    </p>
+                    <p
+                      className="font-serif"
+                      style={{
+                        marginTop: '0.3rem',
+                        fontSize: '0.78rem',
+                        fontStyle: 'italic',
+                        color: 'var(--color-stone)',
+                      }}
+                    >
+                      {new Date(dispute.created_at).toLocaleDateString('en-AU', {
+                        day: 'numeric',
+                        month: 'short',
+                      })}
+                    </p>
                   </div>
-                </div>
+                </button>
 
-                {selected?.id === dispute.id && (dispute.status === 'open' || dispute.status === 'under_review') && (
-                  <div className="mt-4 pt-4 border-t border-border space-y-3" onClick={(e) => e.stopPropagation()}>
-                    <textarea
-                      value={resolutionNotes}
-                      onChange={(e) => setResolutionNotes(e.target.value)}
-                      rows={2}
-                      className="w-full px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-accent resize-none"
-                      placeholder="Resolution notes..."
-                    />
-                    <div className="flex gap-2">
+                {isOpen && canResolve && (
+                  <div
+                    style={{
+                      paddingBottom: '2.4rem',
+                      paddingTop: '0.2rem',
+                      paddingLeft: 0,
+                      paddingRight: 0,
+                      display: 'grid',
+                      gap: '1.8rem',
+                    }}
+                  >
+                    <div>
+                      <label htmlFor={`resolution-${dispute.id}`} className="commission-label">
+                        Resolution notes
+                      </label>
+                      <textarea
+                        id={`resolution-${dispute.id}`}
+                        value={resolutionNotes}
+                        onChange={(e) => setResolutionNotes(e.target.value)}
+                        rows={3}
+                        className="commission-field"
+                        placeholder="Why this resolution was reached…"
+                      />
+                    </div>
+                    <div
+                      style={{
+                        display: 'grid',
+                        gridTemplateColumns: 'repeat(auto-fit, minmax(12rem, 1fr))',
+                        gap: '0.8rem',
+                      }}
+                    >
                       <button
+                        type="button"
                         onClick={() => resolveDispute(dispute.id, 'resolved_refund')}
                         disabled={actionLoading}
-                        className="flex-1 py-2 bg-success text-white text-sm font-medium rounded-lg hover:bg-green-600 transition-colors disabled:opacity-50"
+                        className="artwork-primary-cta artwork-primary-cta--compact"
+                        style={{ width: '100%' }}
                       >
-                        Refund Buyer
+                        Refund buyer
                       </button>
                       <button
+                        type="button"
                         onClick={() => resolveDispute(dispute.id, 'resolved_return')}
                         disabled={actionLoading}
-                        className="flex-1 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
+                        className="artwork-primary-cta artwork-primary-cta--compact"
+                        style={{ width: '100%' }}
                       >
-                        Return & Refund
+                        Return &amp; refund
                       </button>
                       <button
+                        type="button"
                         onClick={() => resolveDispute(dispute.id, 'resolved_no_refund')}
                         disabled={actionLoading}
-                        className="flex-1 py-2 bg-gray-600 text-white text-sm font-medium rounded-lg hover:bg-gray-700 transition-colors disabled:opacity-50"
+                        style={{
+                          width: '100%',
+                          padding: '0.7rem 1.3rem',
+                          background: 'transparent',
+                          border: '1px solid var(--color-border-strong)',
+                          fontSize: '0.68rem',
+                          letterSpacing: '0.14em',
+                          textTransform: 'uppercase',
+                          color: 'var(--color-ink)',
+                          fontWeight: 400,
+                          cursor: actionLoading ? 'not-allowed' : 'pointer',
+                          opacity: actionLoading ? 0.55 : 1,
+                          transition: 'border-color var(--dur-fast) var(--ease-out)',
+                        }}
                       >
-                        No Refund
+                        No refund
                       </button>
                     </div>
                   </div>
                 )}
-              </div>
+              </li>
             );
           })}
-        </div>
+        </ul>
       )}
     </div>
   );

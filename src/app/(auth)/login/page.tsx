@@ -18,6 +18,23 @@ function GoogleGlyph() {
   );
 }
 
+/**
+ * Validates a `?redirect=` param before honouring it. Only accepts internal
+ * paths (starts with `/`, not `//` or `/http`) to block open-redirect abuse.
+ */
+function safeRedirect(raw: string | null): string | null {
+  if (!raw) return null;
+  try {
+    const decoded = decodeURIComponent(raw);
+    if (decoded.startsWith('/') && !decoded.startsWith('//') && !decoded.startsWith('/http')) {
+      return decoded;
+    }
+  } catch {
+    /* malformed — ignore */
+  }
+  return null;
+}
+
 function LoginForm() {
   const searchParams = useSearchParams();
   const authError = searchParams.get('error');
@@ -46,9 +63,10 @@ function LoginForm() {
     }
 
     if (authUser) {
-      const redirect = searchParams.get('redirect');
-      if (redirect) {
-        window.location.href = decodeURIComponent(redirect);
+      const rawRedirect = searchParams.get('redirect');
+      const target = safeRedirect(rawRedirect);
+      if (target) {
+        window.location.href = target;
       } else {
         const role = authUser.role;
         window.location.href = role === 'artist' || role === 'admin' ? '/artist/dashboard' : '/browse';
@@ -61,11 +79,9 @@ function LoginForm() {
     setError('');
     setLoading(true);
 
-    const safetyTimeout = setTimeout(() => {
-      window.location.href = '/browse';
-    }, 8000);
-
     try {
+      // Upstream guard — if signIn hangs, surface an error rather than
+      // silently bouncing the user off the page.
       const { error } = await Promise.race([
         signIn(email, password),
         new Promise<never>((_, reject) =>
@@ -74,7 +90,6 @@ function LoginForm() {
       ]);
 
       if (error) {
-        clearTimeout(safetyTimeout);
         if (error.message.includes('Invalid login credentials')) {
           setError('Incorrect email or password. Please try again.');
         } else if (error.message.includes('Email not confirmed')) {
@@ -86,10 +101,10 @@ function LoginForm() {
         return;
       }
 
-      clearTimeout(safetyTimeout);
       const rawRedirect = searchParams.get('redirect');
-      if (rawRedirect) {
-        window.location.href = decodeURIComponent(rawRedirect);
+      const target = safeRedirect(rawRedirect);
+      if (target) {
+        window.location.href = target;
       } else {
         // Fetch session to determine role for redirect
         try {
@@ -102,7 +117,6 @@ function LoginForm() {
         }
       }
     } catch (err) {
-      clearTimeout(safetyTimeout);
       setError(err instanceof Error ? err.message : 'Sign in failed. Please try again.');
       setLoading(false);
     }
@@ -292,7 +306,8 @@ function LoginForm() {
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  tabIndex={-1}
+                  aria-pressed={showPassword}
+                  aria-label={showPassword ? 'Hide password' : 'Show password'}
                   className="font-serif"
                   style={{
                     position: 'absolute',
@@ -301,7 +316,7 @@ function LoginForm() {
                     transform: 'translateY(-50%)',
                     background: 'transparent',
                     border: 'none',
-                    padding: '0.4rem 0',
+                    padding: '0.4rem 0.3rem',
                     fontSize: '0.78rem',
                     fontStyle: 'italic',
                     color: 'var(--color-stone)',

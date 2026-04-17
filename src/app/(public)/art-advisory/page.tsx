@@ -388,7 +388,7 @@ export default function ArtAdvisoryPage() {
             height: '100%',
             background: 'var(--color-ink)',
             width: `${(step / TOTAL_STEPS) * 100}%`,
-            transition: 'width 350ms cubic-bezier(0.22, 1, 0.36, 1)',
+            transition: 'width var(--dur-base) var(--ease-out)',
           }}
         />
       </div>
@@ -447,7 +447,7 @@ export default function ArtAdvisoryPage() {
                 : 'translateX(-16px)'
               : 'translateX(0)',
             opacity: transitioning ? 0 : 1,
-            transition: 'opacity 200ms cubic-bezier(0.22, 1, 0.36, 1), transform 200ms cubic-bezier(0.22, 1, 0.36, 1)',
+            transition: 'opacity var(--dur-fast) var(--ease-out), transform var(--dur-fast) var(--ease-out)',
           }}
         >
           {/* ─ Step 1: Room ─ */}
@@ -613,7 +613,7 @@ export default function ArtAdvisoryPage() {
                         gap: '0.55rem',
                         cursor: disabled ? 'not-allowed' : 'pointer',
                         opacity: disabled ? 0.3 : 1,
-                        transition: 'opacity 200ms',
+                        transition: 'opacity var(--dur-fast)',
                       }}
                     >
                       <span
@@ -628,7 +628,7 @@ export default function ArtAdvisoryPage() {
                           boxShadow: selected
                             ? '0 0 0 3px var(--color-warm-white), 0 0 0 4px var(--color-ink)'
                             : 'none',
-                          transition: 'box-shadow 200ms',
+                          transition: 'box-shadow var(--dur-fast)',
                         }}
                       />
                       <span

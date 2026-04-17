@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/components/providers/AuthProvider';
+import EditorialSpinner from '@/components/ui/EditorialSpinner';
 import { useRequireAuth } from '@/lib/hooks/useRequireAuth';
 
 // ── Types ──
@@ -40,33 +41,6 @@ const disputeTypes: { value: DisputeType; label: string; description: string }[]
     description: 'Something else is wrong with the order.',
   },
 ];
-
-// ── Spinner ──
-
-function Spinner({ label }: { label?: string }) {
-  return (
-    <div
-      style={{
-        minHeight: '60vh',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        background: 'var(--color-warm-white)',
-      }}
-    >
-      <p
-        className="font-serif"
-        style={{
-          fontStyle: 'italic',
-          fontSize: '0.95rem',
-          color: 'var(--color-stone)',
-        }}
-      >
-        {label || 'Loading…'}
-      </p>
-    </div>
-  );
-}
 
 // ── Content ──
 
@@ -171,7 +145,7 @@ function DisputeContent({ orderId }: { orderId: string }) {
 
   // ── Loading ──
 
-  if (loading) return <Spinner label="Loading order…" />;
+  if (loading) return <EditorialSpinner headline="Loading order…" />;
 
   const shellStyle = {
     background: 'var(--color-warm-white)',
@@ -399,7 +373,7 @@ function DisputeContent({ orderId }: { orderId: string }) {
                         background: 'var(--color-ink)',
                         verticalAlign: 'middle',
                         marginRight: active ? 12 : 0,
-                        transition: 'width 200ms cubic-bezier(0.22, 1, 0.36, 1), margin 200ms cubic-bezier(0.22, 1, 0.36, 1)',
+                        transition: 'width var(--dur-fast) var(--ease-out), margin var(--dur-fast) var(--ease-out)',
                       }}
                       aria-hidden
                     />
@@ -422,7 +396,7 @@ function DisputeContent({ orderId }: { orderId: string }) {
                         color: 'var(--color-stone)',
                         fontWeight: 300,
                         lineHeight: 1.5,
-                        transition: 'margin 200ms cubic-bezier(0.22, 1, 0.36, 1)',
+                        transition: 'margin var(--dur-fast) var(--ease-out)',
                       }}
                     >
                       {dt.description}
@@ -566,8 +540,8 @@ export default function DisputePage({
     params.then((p) => setOrderId(p.id));
   }, [params]);
 
-  if (authLoading) return <Spinner />;
-  if (!orderId) return <Spinner />;
+  if (authLoading) return <EditorialSpinner />;
+  if (!orderId) return <EditorialSpinner />;
 
   return <DisputeContent orderId={orderId} />;
 }

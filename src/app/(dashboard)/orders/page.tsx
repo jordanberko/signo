@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
+import EditorialSpinner from '@/components/ui/EditorialSpinner';
 import { useRequireAuth } from '@/lib/hooks/useRequireAuth';
 import { formatPrice, getStatusStyle, formatStatus } from '@/lib/utils';
 
@@ -64,30 +65,7 @@ export default function OrdersPage() {
     fetchOrders().then(() => clearTimeout(safetyTimeout));
   }, [authLoading]);
 
-  if (authLoading || loading) {
-    return (
-      <div
-        style={{
-          background: 'var(--color-warm-white)',
-          minHeight: '60vh',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-        }}
-      >
-        <p
-          className="font-serif"
-          style={{
-            fontStyle: 'italic',
-            color: 'var(--color-stone)',
-            fontSize: '0.95rem',
-          }}
-        >
-          Retrieving your orders…
-        </p>
-      </div>
-    );
-  }
+  if (authLoading || loading) return <EditorialSpinner headline="Retrieving your orders…" />;
 
   return (
     <div style={{ background: 'var(--color-warm-white)', minHeight: '100vh' }}>
@@ -302,16 +280,7 @@ export default function OrdersPage() {
                       >
                         {formatPrice(order.total_amount_aud)}
                       </p>
-                      <span
-                        className={`dashboard-status-pill ${getStatusStyle(order.status)}`}
-                        style={{
-                          fontSize: '0.58rem',
-                          letterSpacing: '0.16em',
-                          textTransform: 'uppercase',
-                          padding: '0.2rem 0.55rem',
-                          fontWeight: 400,
-                        }}
-                      >
+                      <span className={`status-pill ${getStatusStyle(order.status)}`}>
                         {formatStatus(order.status)}
                       </span>
                     </div>

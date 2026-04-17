@@ -3,13 +3,56 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { Check, X, Eye, ChevronLeft, ChevronRight, Clock, MessageSquare, Star } from 'lucide-react';
 import { formatPrice } from '@/lib/utils';
 import { useRequireAuth } from '@/lib/hooks/useRequireAuth';
 import EditorialSpinner from '@/components/ui/EditorialSpinner';
 import type { Artwork, User } from '@/types/database';
 
 type ReviewArtwork = Artwork & { artist: User };
+type Filter = 'pending_review' | 'approved' | 'rejected';
+
+const KICKER: React.CSSProperties = {
+  fontSize: '0.62rem',
+  letterSpacing: '0.22em',
+  textTransform: 'uppercase',
+  color: 'var(--color-stone)',
+  fontWeight: 400,
+  margin: 0,
+};
+
+const FILTERS: Array<{ value: Filter; label: string }> = [
+  { value: 'pending_review', label: 'Pending' },
+  { value: 'approved', label: 'Approved' },
+  { value: 'rejected', label: 'Rejected' },
+];
+
+const DETAIL_LABEL: React.CSSProperties = {
+  fontSize: '0.62rem',
+  letterSpacing: '0.22em',
+  textTransform: 'uppercase',
+  color: 'var(--color-stone)',
+  fontWeight: 400,
+};
+
+const DETAIL_VALUE: React.CSSProperties = {
+  fontSize: '0.88rem',
+  color: 'var(--color-ink)',
+  fontWeight: 400,
+  textAlign: 'right',
+};
+
+const SECONDARY_BUTTON: React.CSSProperties = {
+  padding: '0.7rem 1.3rem',
+  background: 'transparent',
+  border: '1px solid var(--color-border-strong)',
+  fontSize: '0.68rem',
+  letterSpacing: '0.14em',
+  textTransform: 'uppercase',
+  color: 'var(--color-ink)',
+  fontWeight: 400,
+  cursor: 'pointer',
+  transition: 'border-color var(--dur-fast) var(--ease-out)',
+};
 
 export default function AdminReviewsPage() {
   const { loading: authLoading } = useRequireAuth('admin');
@@ -19,26 +62,24 @@ export default function AdminReviewsPage() {
   const [reviewNotes, setReviewNotes] = useState('');
   const [actionLoading, setActionLoading] = useState(false);
   const [selectedImage, setSelectedImage] = useState(0);
-  const [filter, setFilter] = useState<'pending_review' | 'approved' | 'rejected'>('pending_review');
+  const [filter, setFilter] = useState<Filter>('pending_review');
 
   useEffect(() => {
     if (authLoading) return;
     fetchArtworks();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filter, authLoading]);
 
   async function fetchArtworks() {
     setLoading(true);
     try {
-      // Use server API route — bypasses browser client auth timing issues
       const res = await fetch(`/api/admin/artworks?status=${filter}`);
       const json = await res.json();
-
       if (!res.ok) {
         console.error('[AdminReviews] API error:', json.error);
         setArtworks([]);
         return;
       }
-
       setArtworks((json.data || []) as ReviewArtwork[]);
     } catch (err) {
       console.error('[AdminReviews] Fetch exception:', err);
@@ -51,13 +92,11 @@ export default function AdminReviewsPage() {
   async function handleAction(artworkId: string, action: 'approved' | 'rejected') {
     setActionLoading(true);
     try {
-      // Use server API route for review actions
       const res = await fetch(`/api/admin/artworks/${artworkId}/review`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action, review_notes: reviewNotes || null }),
       });
-
       if (!res.ok) {
         const json = await res.json();
         console.error('[AdminReviews] Action error:', json.error);
@@ -65,7 +104,6 @@ export default function AdminReviewsPage() {
     } catch (err) {
       console.error('[AdminReviews] Action exception:', err);
     }
-
     setSelectedArtwork(null);
     setReviewNotes('');
     setSelectedImage(0);
@@ -80,15 +118,13 @@ export default function AdminReviewsPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ is_featured: !currentlyFeatured }),
       });
-
       if (res.ok) {
-        // Update local state immediately
         const updated = !currentlyFeatured;
         setArtworks((prev) =>
           prev.map((a) => (a.id === artworkId ? { ...a, is_featured: updated } : a))
         );
         if (selectedArtwork?.id === artworkId) {
-          setSelectedArtwork((prev) => prev ? { ...prev, is_featured: updated } : prev);
+          setSelectedArtwork((prev) => (prev ? { ...prev, is_featured: updated } : prev));
         }
       }
     } catch (err) {
@@ -102,270 +138,720 @@ export default function AdminReviewsPage() {
     setSelectedImage(0);
   }
 
-  const images = selectedArtwork ? (selectedArtwork.images as string[]) || [] : [];
+  const images = selectedArtwork ? ((selectedArtwork.images as string[]) || []) : [];
+  const isFeatured = !!(selectedArtwork as Record<string, unknown> | null)?.is_featured;
 
-  if (authLoading) return <EditorialSpinner label="Loading the queue" headline="Loading\u2026" />;
+  if (authLoading) {
+    return <EditorialSpinner label="Reviews" headline="One moment\u2026" />;
+  }
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold">Artwork Reviews</h1>
-        <p className="text-muted mt-1">Review and approve artwork submissions</p>
+    <div
+      className="px-6 sm:px-10"
+      style={{
+        maxWidth: '84rem',
+        margin: '0 auto',
+        paddingTop: 'clamp(3rem, 5vw, 4.5rem)',
+        paddingBottom: 'clamp(5rem, 8vw, 7rem)',
+      }}
+    >
+      {/* ── Heading ── */}
+      <div style={{ marginBottom: 'clamp(2.4rem, 4vw, 3.4rem)' }}>
+        <p style={KICKER}>— Reviews —</p>
+        <h1
+          className="font-serif"
+          style={{
+            marginTop: '1.2rem',
+            fontSize: 'clamp(2.2rem, 4.5vw, 3.4rem)',
+            lineHeight: 1.05,
+            letterSpacing: '-0.015em',
+            color: 'var(--color-ink)',
+            fontWeight: 400,
+            maxWidth: '22ch',
+          }}
+        >
+          Read every work <em style={{ fontStyle: 'italic' }}>carefully.</em>
+        </h1>
       </div>
 
-      {/* Filter Tabs */}
-      <div className="flex gap-2 mb-6">
-        {[
-          { value: 'pending_review', label: 'Pending', icon: Clock },
-          { value: 'approved', label: 'Approved', icon: Check },
-          { value: 'rejected', label: 'Rejected', icon: X },
-        ].map((tab) => (
-          <button
-            key={tab.value}
-            onClick={() => { setFilter(tab.value as typeof filter); setSelectedArtwork(null); }}
-            className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-colors ${
-              filter === tab.value
-                ? 'bg-primary text-white'
-                : 'bg-muted-bg text-foreground hover:bg-gray-200'
-            }`}
-          >
-            <tab.icon className="h-4 w-4" />
-            {tab.label}
-          </button>
-        ))}
+      {/* ── Filter tabs ── */}
+      <div
+        style={{
+          display: 'flex',
+          gap: '0',
+          flexWrap: 'wrap',
+          borderBottom: '1px solid var(--color-border)',
+          marginBottom: '2.4rem',
+        }}
+      >
+        {FILTERS.map((f) => {
+          const active = filter === f.value;
+          return (
+            <button
+              key={f.value}
+              type="button"
+              onClick={() => {
+                setFilter(f.value);
+                setSelectedArtwork(null);
+                setSelectedImage(0);
+              }}
+              style={{
+                background: 'transparent',
+                border: 'none',
+                padding: '0.8rem 0',
+                marginRight: '2rem',
+                fontSize: '0.72rem',
+                letterSpacing: '0.18em',
+                textTransform: 'uppercase',
+                fontWeight: 400,
+                color: active ? 'var(--color-ink)' : 'var(--color-stone)',
+                borderBottom: active
+                  ? '1px solid var(--color-ink)'
+                  : '1px solid transparent',
+                marginBottom: '-1px',
+                cursor: 'pointer',
+                transition: 'color var(--dur-fast) var(--ease-out)',
+              }}
+            >
+              {f.label}
+            </button>
+          );
+        })}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Artwork List */}
-        <div className="space-y-3">
+      {/* ── Two-column grid ── */}
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)',
+          gap: 'clamp(2rem, 4vw, 3.5rem)',
+          alignItems: 'start',
+        }}
+      >
+        {/* ── Queue list ── */}
+        <div>
           {loading ? (
-            <div className="text-center py-16">
-              <EditorialSpinner label="Loading the queue" headline="One moment\u2026" />
-            </div>
+            <EditorialSpinner label="Reviews" headline="Loading the queue\u2026" />
           ) : artworks.length === 0 ? (
-            <div className="text-center py-16 border border-border rounded-lg">
-              <p className="text-muted">
-                {filter === 'pending_review' ? 'No artworks pending review.' : `No ${filter} artworks.`}
+            <div
+              style={{
+                borderTop: '1px solid var(--color-border)',
+                borderBottom: '1px solid var(--color-border)',
+                padding: '4rem 0',
+                textAlign: 'center',
+              }}
+            >
+              <p
+                className="font-serif"
+                style={{
+                  fontStyle: 'italic',
+                  color: 'var(--color-stone)',
+                  fontSize: '1rem',
+                }}
+              >
+                {filter === 'pending_review'
+                  ? 'No artworks pending review.'
+                  : `No ${filter} artworks.`}
               </p>
             </div>
           ) : (
-            artworks.map((artwork) => (
-              <button
-                key={artwork.id}
-                onClick={() => openReview(artwork)}
-                className={`w-full flex items-center gap-4 p-4 border rounded-lg text-left transition-colors ${
-                  selectedArtwork?.id === artwork.id
-                    ? 'border-accent bg-accent/5'
-                    : 'border-border hover:border-[color:var(--color-stone)]'
-                }`}
-              >
-                <div className="w-16 h-16 rounded-lg bg-muted-bg flex-shrink-0 overflow-hidden relative">
-                  {(artwork.images as string[])?.[0] && (
-                    <Image src={(artwork.images as string[])[0]} alt={artwork.title} fill className="object-cover" sizes="64px" />
-                  )}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="font-medium text-sm truncate">{artwork.title}</p>
-                  <p className="text-xs text-muted">{artwork.artist?.full_name}</p>
-                  <p className="text-xs text-muted capitalize">{artwork.category} · {artwork.medium}</p>
-                </div>
-                <div className="text-right flex-shrink-0">
-                  <p className="font-semibold text-sm">{formatPrice(artwork.price_aud)}</p>
-                  <div className="flex items-center justify-end gap-1 mt-0.5">
-                    {!!(artwork as Record<string, unknown>).is_featured && (
-                      <Star className="h-3 w-3 fill-amber-500 text-amber-500" />
-                    )}
-                    <p className="text-xs text-muted">
-                      {new Date(artwork.created_at).toLocaleDateString('en-AU')}
-                    </p>
-                  </div>
-                </div>
-              </button>
-            ))
+            <ul
+              style={{
+                listStyle: 'none',
+                padding: 0,
+                margin: 0,
+                borderTop: '1px solid var(--color-border)',
+              }}
+            >
+              {artworks.map((artwork) => {
+                const active = selectedArtwork?.id === artwork.id;
+                const artworkFeatured = !!(artwork as Record<string, unknown>).is_featured;
+                const thumb = (artwork.images as string[])?.[0];
+                return (
+                  <li
+                    key={artwork.id}
+                    style={{ borderBottom: '1px solid var(--color-border)' }}
+                  >
+                    <button
+                      type="button"
+                      onClick={() => openReview(artwork)}
+                      style={{
+                        width: '100%',
+                        display: 'grid',
+                        gridTemplateColumns: '4rem 1fr auto',
+                        alignItems: 'center',
+                        gap: '1.2rem',
+                        padding: '1.2rem',
+                        paddingLeft: active ? 'calc(1.2rem - 3px)' : '1.2rem',
+                        background: active ? 'var(--color-cream)' : 'transparent',
+                        border: 'none',
+                        borderLeft: active
+                          ? '3px solid var(--color-ink)'
+                          : '3px solid transparent',
+                        textAlign: 'left',
+                        cursor: 'pointer',
+                        transition:
+                          'background var(--dur-fast) var(--ease-out), border-color var(--dur-fast) var(--ease-out)',
+                      }}
+                    >
+                      <div
+                        style={{
+                          width: '4rem',
+                          height: '4rem',
+                          background: 'var(--color-cream)',
+                          border: '1px solid var(--color-border)',
+                          overflow: 'hidden',
+                          flexShrink: 0,
+                          position: 'relative',
+                        }}
+                      >
+                        {thumb && (
+                          <Image
+                            src={thumb}
+                            alt={artwork.title}
+                            fill
+                            sizes="64px"
+                            style={{ objectFit: 'cover' }}
+                          />
+                        )}
+                      </div>
+                      <div style={{ minWidth: 0 }}>
+                        <p
+                          className="font-serif"
+                          style={{
+                            fontSize: '1rem',
+                            color: 'var(--color-ink)',
+                            margin: 0,
+                            fontWeight: 400,
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap',
+                          }}
+                        >
+                          {artwork.title}
+                        </p>
+                        <p
+                          style={{
+                            marginTop: '0.3rem',
+                            fontSize: '0.78rem',
+                            color: 'var(--color-stone-dark)',
+                            fontWeight: 300,
+                          }}
+                        >
+                          {artwork.artist?.full_name}
+                        </p>
+                        <p
+                          style={{
+                            marginTop: '0.2rem',
+                            fontSize: '0.72rem',
+                            color: 'var(--color-stone)',
+                            fontWeight: 300,
+                            textTransform: 'capitalize',
+                          }}
+                        >
+                          {artwork.category} · {artwork.medium}
+                          {artworkFeatured && (
+                            <>
+                              {' · '}
+                              <span
+                                className="font-serif"
+                                style={{
+                                  fontStyle: 'italic',
+                                  color: 'var(--color-terracotta)',
+                                }}
+                              >
+                                featured
+                              </span>
+                            </>
+                          )}
+                        </p>
+                      </div>
+                      <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                        <p
+                          className="font-serif"
+                          style={{
+                            fontSize: '0.95rem',
+                            color: 'var(--color-ink)',
+                            margin: 0,
+                            fontWeight: 400,
+                          }}
+                        >
+                          {formatPrice(artwork.price_aud)}
+                        </p>
+                        <p
+                          className="font-serif"
+                          style={{
+                            marginTop: '0.3rem',
+                            fontSize: '0.72rem',
+                            color: 'var(--color-stone)',
+                            fontStyle: 'italic',
+                          }}
+                        >
+                          {new Date(artwork.created_at).toLocaleDateString('en-AU', {
+                            day: 'numeric',
+                            month: 'short',
+                          })}
+                        </p>
+                      </div>
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
           )}
         </div>
 
-        {/* Review Panel */}
-        {selectedArtwork ? (
-          <div className="border border-border rounded-lg p-6 space-y-6 sticky top-24">
-            {/* Images */}
-            <div className="space-y-3">
-              <div className="relative bg-muted-bg rounded-lg overflow-hidden" style={{ aspectRatio: '4/3' }}>
-                {images[selectedImage] ? (
-                  <Image
-                    src={images[selectedImage]}
-                    alt={selectedArtwork.title}
-                    fill
-                    className="object-contain"
-                    sizes="(max-width: 768px) 100vw, 80vw"
-                  />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center text-muted">No image</div>
-                )}
+        {/* ── Detail panel ── */}
+        <div style={{ position: 'sticky', top: '6rem' }}>
+          {selectedArtwork ? (
+            <div style={{ display: 'grid', gap: '1.8rem' }}>
+              {/* Image */}
+              <div>
+                <div
+                  style={{
+                    position: 'relative',
+                    background: 'var(--color-warm-white)',
+                    border: '1px solid var(--color-border)',
+                    aspectRatio: '4/3',
+                    overflow: 'hidden',
+                  }}
+                >
+                  {images[selectedImage] ? (
+                    <Image
+                      src={images[selectedImage]}
+                      alt={selectedArtwork.title}
+                      fill
+                      sizes="(max-width: 768px) 100vw, 40vw"
+                      style={{ objectFit: 'contain' }}
+                    />
+                  ) : (
+                    <div
+                      style={{
+                        width: '100%',
+                        height: '100%',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        color: 'var(--color-stone)',
+                        fontStyle: 'italic',
+                      }}
+                      className="font-serif"
+                    >
+                      No image
+                    </div>
+                  )}
+                </div>
+
                 {images.length > 1 && (
                   <>
-                    <button
-                      onClick={() => setSelectedImage((prev) => (prev === 0 ? images.length - 1 : prev - 1))}
-                      className="absolute left-2 top-1/2 -translate-y-1/2 p-1.5 bg-white/80 rounded-full hover:bg-white"
+                    <div
+                      style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        marginTop: '0.8rem',
+                      }}
                     >
-                      <ChevronLeft className="h-4 w-4" />
-                    </button>
-                    <button
-                      onClick={() => setSelectedImage((prev) => (prev === images.length - 1 ? 0 : prev + 1))}
-                      className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 bg-white/80 rounded-full hover:bg-white"
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setSelectedImage((prev) =>
+                            prev === 0 ? images.length - 1 : prev - 1
+                          )
+                        }
+                        style={{
+                          background: 'transparent',
+                          border: 'none',
+                          padding: 0,
+                          fontSize: '0.68rem',
+                          letterSpacing: '0.14em',
+                          textTransform: 'uppercase',
+                          color: 'var(--color-ink)',
+                          cursor: 'pointer',
+                          fontWeight: 400,
+                        }}
+                      >
+                        ← Previous
+                      </button>
+                      <span
+                        style={{
+                          fontSize: '0.68rem',
+                          letterSpacing: '0.18em',
+                          textTransform: 'uppercase',
+                          color: 'var(--color-stone)',
+                        }}
+                      >
+                        {selectedImage + 1} / {images.length}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setSelectedImage((prev) =>
+                            prev === images.length - 1 ? 0 : prev + 1
+                          )
+                        }
+                        style={{
+                          background: 'transparent',
+                          border: 'none',
+                          padding: 0,
+                          fontSize: '0.68rem',
+                          letterSpacing: '0.14em',
+                          textTransform: 'uppercase',
+                          color: 'var(--color-ink)',
+                          cursor: 'pointer',
+                          fontWeight: 400,
+                        }}
+                      >
+                        Next →
+                      </button>
+                    </div>
+                    <div
+                      style={{
+                        display: 'flex',
+                        gap: '0.5rem',
+                        marginTop: '0.8rem',
+                        overflowX: 'auto',
+                      }}
                     >
-                      <ChevronRight className="h-4 w-4" />
-                    </button>
+                      {images.map((img, i) => {
+                        const activeThumb = selectedImage === i;
+                        return (
+                          <button
+                            key={i}
+                            type="button"
+                            onClick={() => setSelectedImage(i)}
+                            style={{
+                              position: 'relative',
+                              flexShrink: 0,
+                              width: '3.2rem',
+                              height: '3.2rem',
+                              padding: 0,
+                              background: 'var(--color-cream)',
+                              border: activeThumb
+                                ? '1px solid var(--color-ink)'
+                                : '1px solid var(--color-border)',
+                              cursor: 'pointer',
+                              overflow: 'hidden',
+                              transition:
+                                'border-color var(--dur-fast) var(--ease-out)',
+                            }}
+                          >
+                            <Image
+                              src={img}
+                              alt=""
+                              fill
+                              sizes="52px"
+                              style={{ objectFit: 'cover' }}
+                            />
+                          </button>
+                        );
+                      })}
+                    </div>
                   </>
                 )}
               </div>
-              {images.length > 1 && (
-                <div className="flex gap-2 overflow-x-auto">
-                  {images.map((img, i) => (
-                    <button
-                      key={i}
-                      onClick={() => setSelectedImage(i)}
-                      className={`relative flex-shrink-0 w-14 h-14 rounded overflow-hidden border-2 ${
-                        selectedImage === i ? 'border-accent' : 'border-transparent'
-                      }`}
-                    >
-                      <Image src={img} alt="" fill className="object-cover" sizes="56px" />
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
 
-            {/* Details */}
-            <div>
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <h2 className="text-xl font-bold">{selectedArtwork.title}</h2>
-                  <Link href={`/artists/${selectedArtwork.artist_id}`} className="text-sm text-accent-dark hover:underline">
+              {/* Title / artist / price */}
+              <div>
+                <h2
+                  className="font-serif"
+                  style={{
+                    fontSize: 'clamp(1.4rem, 2.5vw, 1.8rem)',
+                    lineHeight: 1.15,
+                    letterSpacing: '-0.01em',
+                    color: 'var(--color-ink)',
+                    fontWeight: 400,
+                    margin: 0,
+                  }}
+                >
+                  {selectedArtwork.title}
+                </h2>
+                <div
+                  style={{
+                    marginTop: '0.6rem',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.7rem',
+                    flexWrap: 'wrap',
+                  }}
+                >
+                  <Link
+                    href={`/artists/${selectedArtwork.artist_id}`}
+                    className="editorial-link"
+                    style={{ fontSize: '0.8rem' }}
+                  >
                     by {selectedArtwork.artist?.full_name}
                   </Link>
-                  <p className="text-lg font-semibold mt-2">{formatPrice(selectedArtwork.price_aud)}</p>
-                </div>
-                {filter === 'approved' && (
-                  <button
-                    onClick={() => handleFeatureToggle(selectedArtwork.id, !!(selectedArtwork as Record<string, unknown>).is_featured)}
-                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
-                      (selectedArtwork as Record<string, unknown>).is_featured
-                        ? 'bg-amber-100 text-amber-800 border border-amber-300'
-                        : 'bg-muted-bg text-muted border border-border hover:border-[color:var(--color-terracotta)] hover:text-[color:var(--color-terracotta)]'
-                    }`}
-                    title={(selectedArtwork as Record<string, unknown>).is_featured ? 'Remove from Featured' : 'Add to Featured'}
+                  <span
+                    style={{
+                      fontSize: '0.8rem',
+                      color: 'var(--color-stone)',
+                    }}
                   >
-                    <Star className={`h-3.5 w-3.5 ${(selectedArtwork as Record<string, unknown>).is_featured ? 'fill-amber-500' : ''}`} />
-                    {(selectedArtwork as Record<string, unknown>).is_featured ? 'Featured' : 'Feature'}
-                  </button>
+                    ·
+                  </span>
+                  <span
+                    className="font-serif"
+                    style={{
+                      fontSize: '1rem',
+                      color: 'var(--color-stone-dark)',
+                      fontWeight: 400,
+                    }}
+                  >
+                    {formatPrice(selectedArtwork.price_aud)}
+                  </span>
+                </div>
+
+                {filter === 'approved' && (
+                  <div style={{ marginTop: '1.2rem' }}>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        handleFeatureToggle(selectedArtwork.id, isFeatured)
+                      }
+                      className={
+                        isFeatured
+                          ? 'artwork-primary-cta artwork-primary-cta--compact'
+                          : undefined
+                      }
+                      style={
+                        isFeatured
+                          ? undefined
+                          : {
+                              ...SECONDARY_BUTTON,
+                            }
+                      }
+                    >
+                      {isFeatured ? 'Featured · Remove' : 'Add to featured'}
+                    </button>
+                  </div>
                 )}
               </div>
-            </div>
 
-            <div className="grid grid-cols-2 gap-y-2 text-sm">
-              <span className="text-muted">Category</span>
-              <span className="capitalize">{selectedArtwork.category}</span>
-              <span className="text-muted">Medium</span>
-              <span>{selectedArtwork.medium}</span>
-              <span className="text-muted">Style</span>
-              <span>{selectedArtwork.style}</span>
-              {selectedArtwork.width_cm && (
-                <>
-                  <span className="text-muted">Dimensions</span>
-                  <span>{selectedArtwork.width_cm} x {selectedArtwork.height_cm}{selectedArtwork.depth_cm ? ` x ${selectedArtwork.depth_cm}` : ''} cm</span>
-                </>
+              {/* Details grid */}
+              <div
+                style={{
+                  borderTop: '1px solid var(--color-border)',
+                  borderBottom: '1px solid var(--color-border)',
+                }}
+              >
+                <DetailRow label="Category" value={selectedArtwork.category} capitalize />
+                <DetailRow label="Medium" value={selectedArtwork.medium} />
+                <DetailRow label="Style" value={selectedArtwork.style} />
+                {selectedArtwork.width_cm && (
+                  <DetailRow
+                    label="Dimensions"
+                    value={`${selectedArtwork.width_cm} × ${selectedArtwork.height_cm}${
+                      selectedArtwork.depth_cm ? ` × ${selectedArtwork.depth_cm}` : ''
+                    } cm`}
+                  />
+                )}
+                <DetailRow
+                  label="Framed"
+                  value={selectedArtwork.is_framed ? 'Yes' : 'No'}
+                  last
+                />
+              </div>
+
+              {/* Description */}
+              {selectedArtwork.description && (
+                <div>
+                  <p style={DETAIL_LABEL}>— Description —</p>
+                  <p
+                    style={{
+                      marginTop: '0.8rem',
+                      fontSize: '0.88rem',
+                      lineHeight: 1.6,
+                      color: 'var(--color-stone-dark)',
+                      fontWeight: 300,
+                      whiteSpace: 'pre-line',
+                      maxHeight: '10rem',
+                      overflowY: 'auto',
+                    }}
+                  >
+                    {selectedArtwork.description}
+                  </p>
+                </div>
               )}
-              <span className="text-muted">Framed</span>
-              <span>{selectedArtwork.is_framed ? 'Yes' : 'No'}</span>
-            </div>
 
-            {selectedArtwork.description && (
+              {/* Tags */}
+              {selectedArtwork.tags && (selectedArtwork.tags as string[]).length > 0 && (
+                <div>
+                  <p style={DETAIL_LABEL}>— Tags —</p>
+                  <div
+                    style={{
+                      marginTop: '0.7rem',
+                      display: 'flex',
+                      flexWrap: 'wrap',
+                      gap: '0.4rem',
+                    }}
+                  >
+                    {(selectedArtwork.tags as string[]).map((tag) => (
+                      <span
+                        key={tag}
+                        style={{
+                          padding: '0.3rem 0.7rem',
+                          border: '1px solid var(--color-border)',
+                          fontSize: '0.72rem',
+                          color: 'var(--color-stone-dark)',
+                          fontWeight: 300,
+                        }}
+                      >
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Review notes */}
               <div>
-                <p className="text-sm font-medium mb-1">Description</p>
-                <p className="text-sm text-muted leading-relaxed whitespace-pre-line max-h-32 overflow-y-auto">
-                  {selectedArtwork.description}
-                </p>
+                <label htmlFor="review-notes" className="commission-label">
+                  Review notes
+                  {filter === 'pending_review' && ' (visible to artist if rejected)'}
+                </label>
+                <textarea
+                  id="review-notes"
+                  value={reviewNotes}
+                  onChange={(e) => setReviewNotes(e.target.value)}
+                  rows={3}
+                  disabled={filter !== 'pending_review'}
+                  className="commission-field"
+                  placeholder={
+                    filter === 'pending_review'
+                      ? 'Add feedback for the artist…'
+                      : 'Review notes…'
+                  }
+                />
               </div>
-            )}
 
-            {selectedArtwork.tags && (selectedArtwork.tags as string[]).length > 0 && (
-              <div className="flex flex-wrap gap-1">
-                {(selectedArtwork.tags as string[]).map((tag) => (
-                  <span key={tag} className="px-2 py-0.5 bg-muted-bg text-xs rounded">{tag}</span>
-                ))}
-              </div>
-            )}
+              {/* Actions */}
+              {filter === 'pending_review' && (
+                <div
+                  style={{
+                    display: 'grid',
+                    gridTemplateColumns: '1fr 1fr',
+                    gap: '0.8rem',
+                  }}
+                >
+                  <button
+                    type="button"
+                    onClick={() => handleAction(selectedArtwork.id, 'approved')}
+                    disabled={actionLoading}
+                    className="artwork-primary-cta artwork-primary-cta--compact"
+                    style={{ width: '100%' }}
+                  >
+                    Approve
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleAction(selectedArtwork.id, 'rejected')}
+                    disabled={actionLoading}
+                    style={{
+                      width: '100%',
+                      padding: '0.7rem 1.3rem',
+                      background: 'transparent',
+                      border: '1px solid var(--color-terracotta)',
+                      fontSize: '0.68rem',
+                      letterSpacing: '0.14em',
+                      textTransform: 'uppercase',
+                      color: 'var(--color-terracotta)',
+                      fontWeight: 400,
+                      cursor: actionLoading ? 'not-allowed' : 'pointer',
+                      opacity: actionLoading ? 0.55 : 1,
+                      transition: 'opacity var(--dur-fast) var(--ease-out)',
+                    }}
+                  >
+                    Reject
+                  </button>
+                </div>
+              )}
 
-            {/* Review Notes */}
-            <div>
-              <label className="block text-sm font-medium mb-1">
-                <MessageSquare className="h-4 w-4 inline mr-1" />
-                Review Notes {filter === 'pending_review' && '(visible to artist if rejected)'}
-              </label>
-              <textarea
-                value={reviewNotes}
-                onChange={(e) => setReviewNotes(e.target.value)}
-                rows={3}
-                className="w-full px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-accent resize-none"
-                placeholder={filter === 'pending_review' ? 'Add feedback for the artist...' : 'Review notes...'}
-                disabled={filter !== 'pending_review'}
-              />
-            </div>
-
-            {/* Actions */}
-            {filter === 'pending_review' && (
-              <div className="flex gap-3">
+              {filter === 'rejected' && (
                 <button
+                  type="button"
                   onClick={() => handleAction(selectedArtwork.id, 'approved')}
                   disabled={actionLoading}
-                  className="flex-1 inline-flex items-center justify-center gap-2 py-2.5 bg-success text-white font-medium rounded-lg hover:bg-green-600 transition-colors disabled:opacity-50"
+                  className="artwork-primary-cta artwork-primary-cta--compact"
+                  style={{ width: '100%' }}
                 >
-                  <Check className="h-4 w-4" />
-                  Approve
+                  Approve this artwork
                 </button>
-                <button
-                  onClick={() => handleAction(selectedArtwork.id, 'rejected')}
-                  disabled={actionLoading}
-                  className="flex-1 inline-flex items-center justify-center gap-2 py-2.5 bg-error text-white font-medium rounded-lg hover:bg-red-600 transition-colors disabled:opacity-50"
+              )}
+
+              {filter === 'approved' && (
+                <Link
+                  href={`/artwork/${selectedArtwork.id}`}
+                  style={{
+                    ...SECONDARY_BUTTON,
+                    width: '100%',
+                    display: 'inline-block',
+                    textAlign: 'center',
+                    textDecoration: 'none',
+                  }}
                 >
-                  <X className="h-4 w-4" />
-                  Reject
-                </button>
-              </div>
-            )}
-
-            {filter === 'rejected' && (
-              <button
-                onClick={() => handleAction(selectedArtwork.id, 'approved')}
-                disabled={actionLoading}
-                className="w-full inline-flex items-center justify-center gap-2 py-2.5 bg-success text-white font-medium rounded-lg hover:bg-green-600 transition-colors disabled:opacity-50"
-              >
-                <Check className="h-4 w-4" />
-                Approve This Artwork
-              </button>
-            )}
-
-            {/* View Live */}
-            {filter === 'approved' && (
-              <Link
-                href={`/artwork/${selectedArtwork.id}`}
-                className="w-full inline-flex items-center justify-center gap-2 py-2.5 border border-border rounded-lg text-sm font-medium hover:bg-muted-bg transition-colors"
-              >
-                <Eye className="h-4 w-4" />
-                View Live Listing
-              </Link>
-            )}
-          </div>
-        ) : (
-          <div className="border border-border rounded-lg p-10 text-center flex items-center justify-center min-h-[400px]">
-            <div>
-              <Eye className="h-10 w-10 text-muted mx-auto mb-3" />
-              <p className="text-muted">Select an artwork to review</p>
+                  View live listing
+                </Link>
+              )}
             </div>
-          </div>
-        )}
+          ) : (
+            <div
+              style={{
+                borderTop: '1px solid var(--color-border)',
+                borderBottom: '1px solid var(--color-border)',
+                padding: '5rem 0',
+                textAlign: 'center',
+              }}
+            >
+              <p
+                className="font-serif"
+                style={{
+                  fontStyle: 'italic',
+                  color: 'var(--color-stone)',
+                  fontSize: '1rem',
+                }}
+              >
+                Select an artwork to review.
+              </p>
+            </div>
+          )}
+        </div>
       </div>
+    </div>
+  );
+}
+
+function DetailRow({
+  label,
+  value,
+  last,
+  capitalize,
+}: {
+  label: string;
+  value: string | null | undefined;
+  last?: boolean;
+  capitalize?: boolean;
+}) {
+  return (
+    <div
+      style={{
+        display: 'grid',
+        gridTemplateColumns: '1fr auto',
+        alignItems: 'baseline',
+        gap: '1rem',
+        padding: '0.9rem 0',
+        borderBottom: last ? 'none' : '1px solid var(--color-border)',
+      }}
+    >
+      <span style={DETAIL_LABEL}>{label}</span>
+      <span
+        className="font-serif"
+        style={{
+          ...DETAIL_VALUE,
+          textTransform: capitalize ? 'capitalize' : 'none',
+        }}
+      >
+        {value || '—'}
+      </span>
     </div>
   );
 }

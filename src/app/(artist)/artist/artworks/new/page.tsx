@@ -3,11 +3,12 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
+import ImageUpload from '@/components/ImageUpload';
 import { useAuth } from '@/components/providers/AuthProvider';
+import EditorialSpinner from '@/components/ui/EditorialSpinner';
 import { useRequireAuth } from '@/lib/hooks/useRequireAuth';
 import { uploadArtworkImage } from '@/lib/supabase/storage';
 import { formatPrice, calculateCommission } from '@/lib/utils';
-import ImageUpload from '@/components/ImageUpload';
 
 // ── Constants ──
 
@@ -156,27 +157,6 @@ function getDefaultForm(): FormState {
 }
 
 // ── Helpers ──
-
-function EditorialSpinner({ label = 'Loading…' }: { label?: string }) {
-  return (
-    <div
-      style={{
-        minHeight: '60vh',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        background: 'var(--color-warm-white)',
-      }}
-    >
-      <p
-        className="font-serif"
-        style={{ fontStyle: 'italic', fontSize: '0.95rem', color: 'var(--color-stone)' }}
-      >
-        {label}
-      </p>
-    </div>
-  );
-}
 
 function FieldLabel({
   children,

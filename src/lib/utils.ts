@@ -30,23 +30,47 @@ export function calculateCommission(price: number) {
   };
 }
 
-/** Tailwind classes for order-status badges. */
+/**
+ * Editorial status-pill classes.
+ *
+ * Maps order/artwork/dispute statuses onto a small palette-consistent
+ * vocabulary defined in `globals.css` (`.status-pill--success`,
+ * `.status-pill--progress`, `.status-pill--attention`,
+ * `.status-pill--error`, `.status-pill--neutral`). Callers combine with
+ * the base `.status-pill` class, e.g.
+ *   `<span className={`status-pill ${getStatusStyle(order.status)}`}>`.
+ */
 export function getStatusStyle(status: string): string {
   switch (status) {
     case 'completed':
-      return 'bg-green-50 text-green-700';
+    case 'approved':
+    case 'active':
+      return 'status-pill--success';
     case 'shipped':
     case 'delivered':
-      return 'bg-blue-50 text-blue-700';
     case 'paid':
-      return 'bg-amber-50 text-amber-700';
+    case 'pending':
+    case 'pending_review':
+    case 'processing':
+    case 'under_review':
+      return 'status-pill--progress';
     case 'disputed':
-      return 'bg-red-50 text-red-700';
+    case 'past_due':
+    case 'rejected':
+    case 'failed':
+      return 'status-pill--error';
+    case 'requires_action':
+    case 'needs_attention':
+    case 'open':
+      return 'status-pill--attention';
     case 'refunded':
     case 'cancelled':
-      return 'bg-gray-100 text-gray-600';
+    case 'closed':
+    case 'paused':
+    case 'archived':
+      return 'status-pill--neutral';
     default:
-      return 'bg-gray-50 text-gray-600';
+      return 'status-pill--neutral';
   }
 }
 

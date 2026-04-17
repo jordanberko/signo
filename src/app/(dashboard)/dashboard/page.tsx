@@ -459,15 +459,7 @@ function DashboardContent() {
                               {order.date}
                             </td>
                             <td style={{ padding: '1rem 1rem 1rem 0' }}>
-                              <span
-                                className={`dashboard-status-pill ${getStatusStyle(order.status)}`}
-                                style={{
-                                  fontSize: '0.6rem',
-                                  letterSpacing: '0.14em',
-                                  textTransform: 'uppercase',
-                                  padding: '0.22rem 0.6rem',
-                                }}
-                              >
+                              <span className={`status-pill ${getStatusStyle(order.status)}`}>
                                 {formatStatus(order.status)}
                               </span>
                             </td>
@@ -569,15 +561,7 @@ function DashboardContent() {
                               >
                                 {formatPrice(order.price)}
                               </span>
-                              <span
-                                className={`dashboard-status-pill ${getStatusStyle(order.status)}`}
-                                style={{
-                                  fontSize: '0.58rem',
-                                  letterSpacing: '0.14em',
-                                  textTransform: 'uppercase',
-                                  padding: '0.18rem 0.55rem',
-                                }}
-                              >
+                              <span className={`status-pill ${getStatusStyle(order.status)}`}>
                                 {formatStatus(order.status)}
                               </span>
                             </div>

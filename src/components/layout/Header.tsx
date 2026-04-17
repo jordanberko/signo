@@ -130,20 +130,12 @@ export default function Header() {
 
   const handleSignOut = useCallback(async () => {
     setMenuOpen(false);
-    const forceRedirect = setTimeout(() => {
-      clearSupabaseCookies();
-      window.location.href = '/';
-    }, 2000);
     try {
       const supabase = createClient();
-      await Promise.race([
-        supabase.auth.signOut(),
-        new Promise((resolve) => setTimeout(resolve, 1500)),
-      ]);
+      await supabase.auth.signOut();
     } catch {
-      /* ignore */
+      /* ignore — cookie clear + reload below still lands the user signed-out */
     }
-    clearTimeout(forceRedirect);
     clearSupabaseCookies();
     window.location.href = '/';
   }, []);
@@ -161,7 +153,7 @@ export default function Header() {
       <nav
         aria-label="Primary"
         className={[
-          'fixed top-0 inset-x-0 z-[200]',
+          'fixed top-0 inset-x-0',
           'flex items-center justify-between',
           'px-6 sm:px-10 py-5 sm:py-6',
           'transition-[background-color,border-color] duration-500 ease-out',
@@ -169,7 +161,10 @@ export default function Header() {
             ? 'mix-blend-difference'
             : 'bg-[color:var(--color-warm-white)] border-b border-[color:var(--color-border)]',
         ].join(' ')}
-        style={transparent ? undefined : { mixBlendMode: 'normal' }}
+        style={{
+          zIndex: 'var(--z-nav)',
+          ...(transparent ? {} : { mixBlendMode: 'normal' }),
+        }}
       >
         <Link
           href="/"
@@ -184,7 +179,7 @@ export default function Header() {
               lineHeight: 1,
               letterSpacing: '-0.01em',
               color: transparent ? '#fff' : 'var(--color-ink)',
-              transition: 'color 350ms cubic-bezier(0.22, 1, 0.36, 1)',
+              transition: 'color var(--dur-base) var(--ease-out)',
             }}
           >
             Signo
@@ -264,12 +259,12 @@ export default function Header() {
       <div
         aria-hidden={!menuOpen}
         className={[
-          'fixed inset-0 z-[300]',
+          'fixed inset-0',
           'flex flex-col',
           'transition-opacity duration-500 ease-out',
           menuOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none',
         ].join(' ')}
-        style={{ background: 'var(--color-ink)' }}
+        style={{ background: 'var(--color-ink)', zIndex: 'var(--z-menu)' }}
       >
         {/* Top bar */}
         <div className="flex items-center justify-between px-6 sm:px-10 py-5 sm:py-6">
@@ -294,7 +289,7 @@ export default function Header() {
               letterSpacing: '0.14em',
               textTransform: 'uppercase',
               color: 'var(--color-stone)',
-              transition: 'color 350ms cubic-bezier(0.22, 1, 0.36, 1)',
+              transition: 'color var(--dur-base) var(--ease-out)',
             }}
             onMouseOver={(e) => (e.currentTarget.style.color = '#fff')}
             onMouseOut={(e) => (e.currentTarget.style.color = 'var(--color-stone)')}
@@ -413,7 +408,7 @@ export default function Header() {
                     color: 'var(--color-stone)',
                     borderBottom: '1px solid rgba(255,255,255,0.3)',
                     paddingBottom: '0.2rem',
-                    transition: 'color 350ms cubic-bezier(0.22, 1, 0.36, 1), border-color 350ms cubic-bezier(0.22, 1, 0.36, 1)',
+                    transition: 'color var(--dur-base) var(--ease-out), border-color var(--dur-base) var(--ease-out)',
                   }}
                   onMouseOver={(e) => {
                     e.currentTarget.style.color = '#fff';
@@ -448,7 +443,7 @@ export default function Header() {
                   color: 'var(--color-stone)',
                   borderBottom: '1px solid rgba(255,255,255,0.3)',
                   paddingBottom: '0.2rem',
-                  transition: 'color 350ms cubic-bezier(0.22, 1, 0.36, 1), border-color 350ms cubic-bezier(0.22, 1, 0.36, 1)',
+                  transition: 'color var(--dur-base) var(--ease-out), border-color var(--dur-base) var(--ease-out)',
                 }}
                 onMouseOver={(e) => {
                   e.currentTarget.style.color = '#fff';
@@ -517,7 +512,7 @@ function OverlayLink({
       style={
         animate
           ? {
-              animation: `overlay-link-in 350ms cubic-bezier(0.22, 1, 0.36, 1) ${index * 50}ms backwards`,
+              animation: `overlay-link-in var(--dur-base) var(--ease-out) ${index * 50}ms backwards`,
             }
           : undefined
       }
@@ -530,7 +525,7 @@ function OverlayLink({
           fontSize: 'clamp(2rem, 4.4vw, 3.4rem)',
           lineHeight: 1.2,
           color: 'var(--color-stone-dark)',
-          transition: 'color 350ms cubic-bezier(0.22, 1, 0.36, 1)',
+          transition: 'color var(--dur-base) var(--ease-out)',
           letterSpacing: '-0.01em',
         }}
         onMouseOver={(e) => ((e.currentTarget as HTMLAnchorElement).style.color = '#fff')}

@@ -70,7 +70,7 @@ export default function MeetOurArtists({ artists }: { artists: SpotlightArtist[]
                     height={350}
                     className="w-full h-full object-cover"
                     style={{
-                      transition: 'transform 1500ms cubic-bezier(0.22, 1, 0.36, 1), filter 350ms cubic-bezier(0.22, 1, 0.36, 1)',
+                      transition: 'transform var(--dur-cinematic) var(--ease-out), filter var(--dur-base) var(--ease-out)',
                       filter: 'grayscale(20%)',
                     }}
                     sizes="280px"

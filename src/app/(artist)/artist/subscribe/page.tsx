@@ -3,8 +3,9 @@
 import { useState, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import { useRequireAuth } from '@/lib/hooks/useRequireAuth';
 import { useAuth } from '@/components/providers/AuthProvider';
+import EditorialSpinner from '@/components/ui/EditorialSpinner';
+import { useRequireAuth } from '@/lib/hooks/useRequireAuth';
 
 // ── Feature list ──
 
@@ -24,27 +25,6 @@ const KICKER: React.CSSProperties = {
   textTransform: 'uppercase',
   color: 'var(--color-stone)',
 };
-
-function EditorialSpinner({ label = 'Loading…' }: { label?: string }) {
-  return (
-    <div
-      style={{
-        minHeight: '60vh',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        background: 'var(--color-warm-white)',
-      }}
-    >
-      <p
-        className="font-serif"
-        style={{ fontStyle: 'italic', fontSize: '0.95rem', color: 'var(--color-stone)' }}
-      >
-        {label}
-      </p>
-    </div>
-  );
-}
 
 // ── Inner component ──
 

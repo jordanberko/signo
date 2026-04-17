@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import ArtworkCard from '@/components/ui/ArtworkCard';
+import EditorialSpinner from '@/components/ui/EditorialSpinner';
 import { useRequireAuth } from '@/lib/hooks/useRequireAuth';
 
 // ── Types ──
@@ -87,26 +88,7 @@ export default function FavouritesPage() {
   const sortLabel =
     SORT_OPTIONS.find((o) => o.value === sort)?.label || 'Recently saved';
 
-  if (authLoading) {
-    return (
-      <div
-        style={{
-          minHeight: '60vh',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          background: 'var(--color-warm-white)',
-        }}
-      >
-        <p
-          className="font-serif"
-          style={{ fontStyle: 'italic', fontSize: '0.95rem', color: 'var(--color-stone)' }}
-        >
-          Loading…
-        </p>
-      </div>
-    );
-  }
+  if (authLoading) return <EditorialSpinner />;
 
   return (
     <div style={{ background: 'var(--color-warm-white)', minHeight: '100vh' }}>
@@ -209,7 +191,7 @@ export default function FavouritesPage() {
                     fontSize: '0.65rem',
                     color: 'var(--color-stone)',
                     transform: sortOpen ? 'rotate(180deg)' : 'none',
-                    transition: 'transform 200ms cubic-bezier(0.22, 1, 0.36, 1)',
+                    transition: 'transform var(--dur-fast) var(--ease-out)',
                     display: 'inline-block',
                   }}
                 >
@@ -414,7 +396,7 @@ export default function FavouritesPage() {
                     ? 'translateY(-4px)'
                     : 'translateY(0)',
                   transition:
-                    'opacity 350ms cubic-bezier(0.22, 1, 0.36, 1), transform 350ms cubic-bezier(0.22, 1, 0.36, 1)',
+                    'opacity var(--dur-base) var(--ease-out), transform var(--dur-base) var(--ease-out)',
                 }}
               >
                 <ArtworkCard

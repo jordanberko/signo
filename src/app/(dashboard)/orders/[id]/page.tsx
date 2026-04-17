@@ -5,6 +5,7 @@ import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useAuth } from '@/components/providers/AuthProvider';
+import EditorialSpinner from '@/components/ui/EditorialSpinner';
 import { useRequireAuth } from '@/lib/hooks/useRequireAuth';
 import { formatPrice } from '@/lib/utils';
 
@@ -248,30 +249,7 @@ function OrderContent({ orderId }: { orderId: string }) {
 
   // ── Loading ──
 
-  if (loading) {
-    return (
-      <div
-        style={{
-          minHeight: '60vh',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          background: 'var(--color-warm-white)',
-        }}
-      >
-        <p
-          className="font-serif"
-          style={{
-            fontStyle: 'italic',
-            fontSize: '0.95rem',
-            color: 'var(--color-stone)',
-          }}
-        >
-          {isSuccess ? 'Finalising your order…' : 'Retrieving order…'}
-        </p>
-      </div>
-    );
-  }
+  if (loading) return <EditorialSpinner headline={isSuccess ? 'Finalising your order…' : 'Retrieving order…'} />;
 
   // ── Order not found / still processing ──
 
@@ -1097,34 +1075,11 @@ export default function OrderDetailPage({
     params.then((p) => setOrderId(p.id));
   }, [params]);
 
-  const spinner = (
-    <div
-      style={{
-        minHeight: '60vh',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        background: 'var(--color-warm-white)',
-      }}
-    >
-      <p
-        className="font-serif"
-        style={{
-          fontStyle: 'italic',
-          fontSize: '0.95rem',
-          color: 'var(--color-stone)',
-        }}
-      >
-        Loading…
-      </p>
-    </div>
-  );
-
-  if (authLoading) return spinner;
-  if (!orderId) return spinner;
+  if (authLoading) return <EditorialSpinner />;
+  if (!orderId) return <EditorialSpinner />;
 
   return (
-    <Suspense fallback={spinner}>
+    <Suspense fallback={<EditorialSpinner />}>
       <OrderContent orderId={orderId} />
     </Suspense>
   );

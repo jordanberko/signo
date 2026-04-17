@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
+import EditorialSpinner from '@/components/ui/EditorialSpinner';
 import { useRequireAuth } from '@/lib/hooks/useRequireAuth';
 
 // ── Types ──
@@ -23,27 +24,6 @@ const KICKER: React.CSSProperties = {
   textTransform: 'uppercase',
   color: 'var(--color-stone)',
 };
-
-function EditorialSpinner({ label = 'Loading…' }: { label?: string }) {
-  return (
-    <div
-      style={{
-        minHeight: '60vh',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        background: 'var(--color-warm-white)',
-      }}
-    >
-      <p
-        className="font-serif"
-        style={{ fontStyle: 'italic', fontSize: '0.95rem', color: 'var(--color-stone)' }}
-      >
-        {label}
-      </p>
-    </div>
-  );
-}
 
 function PayoutsContent() {
   const { loading: authLoading } = useRequireAuth('artist');

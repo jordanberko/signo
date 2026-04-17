@@ -39,7 +39,7 @@ export default function AboutPage() {
             fontWeight: 400,
             maxWidth: '20ch',
             opacity: 0,
-            animation: 'fade-up 700ms cubic-bezier(0.22, 1, 0.36, 1) forwards',
+            animation: 'fade-up var(--dur-slow) var(--ease-out) forwards',
           }}
         >
           Art deserves a <em style={{ fontStyle: 'italic' }}>fairer deal.</em>

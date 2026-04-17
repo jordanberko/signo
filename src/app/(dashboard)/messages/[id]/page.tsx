@@ -7,6 +7,7 @@ import { useAuth } from '@/components/providers/AuthProvider';
 import { useRequireAuth } from '@/lib/hooks/useRequireAuth';
 import { createClient } from '@/lib/supabase/client';
 import Avatar from '@/components/ui/Avatar';
+import EditorialSpinner from '@/components/ui/EditorialSpinner';
 
 // ── Types ──
 
@@ -70,33 +71,6 @@ function isSameDay(d1: string, d2: string): boolean {
     a.getFullYear() === b.getFullYear() &&
     a.getMonth() === b.getMonth() &&
     a.getDate() === b.getDate()
-  );
-}
-
-// ── Spinner ──
-
-function EditorialSpinner({ label = 'Loading…' }: { label?: string }) {
-  return (
-    <div
-      style={{
-        minHeight: '60vh',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        background: 'var(--color-warm-white)',
-      }}
-    >
-      <p
-        className="font-serif"
-        style={{
-          fontStyle: 'italic',
-          fontSize: '0.95rem',
-          color: 'var(--color-stone)',
-        }}
-      >
-        {label}
-      </p>
-    </div>
   );
 }
 
@@ -320,7 +294,7 @@ export default function ConversationPage({
   );
 
   if (authLoading) return <EditorialSpinner />;
-  if (loading) return <EditorialSpinner label="Retrieving the thread…" />;
+  if (loading) return <EditorialSpinner headline="Retrieving the thread…" />;
 
   if (error) {
     return pageShell(

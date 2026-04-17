@@ -206,7 +206,7 @@ export default function HowItWorksPage() {
             fontWeight: 400,
             maxWidth: '18ch',
             opacity: 0,
-            animation: 'fade-up 700ms cubic-bezier(0.22, 1, 0.36, 1) forwards',
+            animation: 'fade-up var(--dur-slow) var(--ease-out) forwards',
           }}
         >
           A transparent process, on <em style={{ fontStyle: 'italic' }}>both sides</em> of the studio door.
@@ -473,7 +473,7 @@ export default function HowItWorksPage() {
                 fontWeight: 400,
                 textDecoration: 'none',
                 border: '1px solid var(--color-warm-white)',
-                transition: 'background 350ms cubic-bezier(0.22, 1, 0.36, 1), color 350ms cubic-bezier(0.22, 1, 0.36, 1)',
+                transition: 'background var(--dur-base) var(--ease-out), color var(--dur-base) var(--ease-out)',
               }}
               onMouseOver={undefined}
             >

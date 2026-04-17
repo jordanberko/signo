@@ -4,6 +4,7 @@ import { useEffect, useState, Suspense } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useAuth } from '@/components/providers/AuthProvider';
+import EditorialSpinner from '@/components/ui/EditorialSpinner';
 import { useRequireAuth } from '@/lib/hooks/useRequireAuth';
 import { formatPrice } from '@/lib/utils';
 
@@ -94,27 +95,6 @@ function PageShell({ children }: { children: React.ReactNode }) {
   );
 }
 
-function EditorialSpinner({ label = 'Loading…' }: { label?: string }) {
-  return (
-    <div
-      style={{
-        minHeight: '60vh',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        background: 'var(--color-warm-white)',
-      }}
-    >
-      <p
-        className="font-serif"
-        style={{ fontStyle: 'italic', fontSize: '0.95rem', color: 'var(--color-stone)' }}
-      >
-        {label}
-      </p>
-    </div>
-  );
-}
-
 // ── Inner content ──
 
 function OrderContent({ orderId }: { orderId: string }) {
@@ -190,7 +170,7 @@ function OrderContent({ orderId }: { orderId: string }) {
     }
   }
 
-  if (loading) return <EditorialSpinner label="Retrieving the order…" />;
+  if (loading) return <EditorialSpinner headline="Retrieving the order…" />;
 
   if (!order) {
     return (

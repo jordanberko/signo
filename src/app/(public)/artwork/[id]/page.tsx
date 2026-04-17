@@ -121,13 +121,16 @@ export default async function ArtworkDetailPage({ params }: Props) {
     .eq('artist_id', data.artist_id)
     .eq('status', 'approved');
 
-  // Fetch all artworks by this artist (for viewing mode pagination)
+  // Fetch the artist's artworks for the detail page's artist-works strip.
+  // Bounded at 24 to prevent unbounded page weight for prolific artists;
+  // the detail view only renders a short list (not a full portfolio).
   const { data: allArtistWorksRaw } = await supabase
     .from('artworks')
     .select('id, title, images')
     .eq('artist_id', data.artist_id)
     .eq('status', 'approved')
-    .order('created_at', { ascending: false });
+    .order('created_at', { ascending: false })
+    .limit(24);
 
   const artistArtworks = (allArtistWorksRaw || []).map(
     (a: Record<string, unknown>) => ({

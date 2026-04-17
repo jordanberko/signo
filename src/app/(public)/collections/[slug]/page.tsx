@@ -160,7 +160,7 @@ export default function CollectionDetailPage() {
             textTransform: 'uppercase',
             color: 'var(--color-stone)',
             textDecoration: 'none',
-            transition: 'color 200ms cubic-bezier(0.22, 1, 0.36, 1)',
+            transition: 'color var(--dur-fast) var(--ease-out)',
           }}
           onMouseOver={(e) => ((e.currentTarget as HTMLAnchorElement).style.color = 'var(--color-ink)')}
           onMouseOut={(e) => ((e.currentTarget as HTMLAnchorElement).style.color = 'var(--color-stone)')}

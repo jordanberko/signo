@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useAuth } from '@/components/providers/AuthProvider';
+import EditorialSpinner from '@/components/ui/EditorialSpinner';
 import { useRequireAuth } from '@/lib/hooks/useRequireAuth';
 import { formatPrice } from '@/lib/utils';
 
@@ -42,27 +43,6 @@ const KICKER: React.CSSProperties = {
   textTransform: 'uppercase',
   color: 'var(--color-stone)',
 };
-
-function EditorialSpinner({ label = 'Loading…' }: { label?: string }) {
-  return (
-    <div
-      style={{
-        minHeight: '60vh',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        background: 'var(--color-warm-white)',
-      }}
-    >
-      <p
-        className="font-serif"
-        style={{ fontStyle: 'italic', fontSize: '0.95rem', color: 'var(--color-stone)' }}
-      >
-        {label}
-      </p>
-    </div>
-  );
-}
 
 // ── Component ──
 
@@ -109,7 +89,7 @@ export default function EarningsPage() {
     .reduce((sum, o) => sum + (o.artist_payout_aud ?? 0), 0);
 
   if (authLoading) return <EditorialSpinner />;
-  if (loading) return <EditorialSpinner label="Gathering the ledger…" />;
+  if (loading) return <EditorialSpinner headline="Gathering the ledger…" />;
 
   const hasOrders = orders.length > 0;
 

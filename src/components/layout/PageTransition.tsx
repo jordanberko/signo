@@ -40,9 +40,9 @@ export default function PageTransition({ children }: { children: ReactNode }) {
       style={{
         opacity: phase === 'out' ? 0 : 1,
         transition: phase === 'out'
-          ? 'opacity 150ms cubic-bezier(0.64, 0, 0.78, 0)'
+          ? 'opacity 150ms var(--ease-in)'
           : phase === 'in'
-          ? 'opacity 350ms cubic-bezier(0.22, 1, 0.36, 1)'
+          ? 'opacity var(--dur-base) var(--ease-out)'
           : undefined,
         minHeight: '100vh',
       }}

@@ -126,9 +126,6 @@ function RegisterForm() {
       const message = err instanceof Error ? err.message : 'Something went wrong. Please try again.';
       setError(message);
       setLoading(false);
-      setTimeout(() => {
-        window.location.href = '/browse';
-      }, 3000);
     }
   }
 
@@ -532,7 +529,8 @@ function RegisterForm() {
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                tabIndex={-1}
+                aria-pressed={showPassword}
+                aria-label={showPassword ? 'Hide password' : 'Show password'}
                 className="font-serif"
                 style={{
                   position: 'absolute',
@@ -540,7 +538,7 @@ function RegisterForm() {
                   top: '1.05rem',
                   background: 'transparent',
                   border: 'none',
-                  padding: '0.4rem 0',
+                  padding: '0.4rem 0.3rem',
                   fontSize: '0.78rem',
                   fontStyle: 'italic',
                   color: 'var(--color-stone)',
@@ -643,16 +641,19 @@ function RegisterForm() {
               type="checkbox"
               checked={agreedToTerms}
               onChange={(e) => setAgreedToTerms(e.target.checked)}
+              className="signo-checkbox-input"
               style={{
                 position: 'absolute',
                 opacity: 0,
                 width: '1px',
                 height: '1px',
-                pointerEvents: 'none',
+                /* pointerEvents kept out so the input can still be
+                   focused via keyboard — focus ring lights up the span */
               }}
             />
             <span
               aria-hidden="true"
+              className="signo-checkbox-mark"
               style={{
                 width: '1.05rem',
                 height: '1.05rem',

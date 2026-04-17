@@ -2,11 +2,12 @@
 
 import { useState, useCallback, useEffect, useMemo } from 'react';
 import Link from 'next/link';
-import { useAuth } from '@/components/providers/AuthProvider';
-import { useRequireAuth } from '@/lib/hooks/useRequireAuth';
 import AvatarUpload from '@/components/AvatarUpload';
-import Avatar from '@/components/ui/Avatar';
 import ImageUpload from '@/components/ImageUpload';
+import { useAuth } from '@/components/providers/AuthProvider';
+import Avatar from '@/components/ui/Avatar';
+import EditorialSpinner from '@/components/ui/EditorialSpinner';
+import { useRequireAuth } from '@/lib/hooks/useRequireAuth';
 import { uploadAvatar, uploadArtworkImage } from '@/lib/supabase/storage';
 import { formatPrice, calculateCommission } from '@/lib/utils';
 
@@ -103,27 +104,6 @@ function clearDraft() {
 }
 
 // ── Helpers ──
-
-function EditorialSpinner({ label = 'Loading…' }: { label?: string }) {
-  return (
-    <div
-      style={{
-        minHeight: '60vh',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        background: 'var(--color-warm-white)',
-      }}
-    >
-      <p
-        className="font-serif"
-        style={{ fontStyle: 'italic', fontSize: '0.95rem', color: 'var(--color-stone)' }}
-      >
-        {label}
-      </p>
-    </div>
-  );
-}
 
 function FieldLabel({
   children,

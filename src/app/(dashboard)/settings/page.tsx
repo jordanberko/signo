@@ -4,12 +4,13 @@ import { useState, useCallback, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
-import { formatPrice } from '@/lib/utils';
+import AvatarUpload from '@/components/AvatarUpload';
 import { useAuth } from '@/components/providers/AuthProvider';
+import EditorialSpinner from '@/components/ui/EditorialSpinner';
 import { useRequireAuth } from '@/lib/hooks/useRequireAuth';
 import { createClient } from '@/lib/supabase/client';
 import { uploadAvatar } from '@/lib/supabase/storage';
-import AvatarUpload from '@/components/AvatarUpload';
+import { formatPrice } from '@/lib/utils';
 
 // ── Types ──
 
@@ -498,30 +499,7 @@ export default function SettingsPage() {
     { id: 'danger', label: 'Close account' },
   ];
 
-  if (authLoading) {
-    return (
-      <div
-        style={{
-          minHeight: '60vh',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          background: 'var(--color-warm-white)',
-        }}
-      >
-        <p
-          className="font-serif"
-          style={{
-            fontStyle: 'italic',
-            fontSize: '0.95rem',
-            color: 'var(--color-stone)',
-          }}
-        >
-          Loading…
-        </p>
-      </div>
-    );
-  }
+  if (authLoading) return <EditorialSpinner />;
 
   return (
     <div style={{ background: 'var(--color-warm-white)', minHeight: '100vh' }}>
@@ -1957,7 +1935,7 @@ export default function SettingsPage() {
                     style={{
                       position: 'fixed',
                       inset: 0,
-                      zIndex: 50,
+                      zIndex: 'var(--z-modal)',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
@@ -1980,7 +1958,7 @@ export default function SettingsPage() {
                       aria-modal="true"
                       style={{
                         position: 'relative',
-                        zIndex: 10,
+                        zIndex: 1,
                         maxWidth: '32rem',
                         width: '100%',
                         background: 'var(--color-warm-white)',

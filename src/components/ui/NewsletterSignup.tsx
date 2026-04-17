@@ -68,7 +68,7 @@ export default function NewsletterSignup() {
   return (
     <div style={{
       opacity: visualState === 'fading' ? 0 : 1,
-      transition: 'opacity 200ms cubic-bezier(0.64, 0, 0.78, 0)',
+      transition: 'opacity var(--dur-fast) var(--ease-in)',
     }}>
     <form onSubmit={handleSubmit} className="flex items-end gap-4">
       <label className="flex-1 min-w-0 block">
@@ -88,6 +88,7 @@ export default function NewsletterSignup() {
         <input
           type="email"
           required
+          aria-label="Email address"
           placeholder="your@email.com"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
@@ -115,7 +116,7 @@ export default function NewsletterSignup() {
           textTransform: 'uppercase',
           color: 'var(--color-ink)',
           borderBottom: '1px solid var(--color-ink)',
-          transition: 'opacity 350ms cubic-bezier(0.22, 1, 0.36, 1)',
+          transition: 'opacity var(--dur-base) var(--ease-out)',
           opacity: state === 'submitting' ? 0.5 : 1,
         }}
       >
@@ -123,6 +124,7 @@ export default function NewsletterSignup() {
       </button>
       {state === 'error' && (
         <span
+          role="alert"
           className="error-animate"
           style={{
             fontSize: '0.7rem',

@@ -2,8 +2,8 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import Image from 'next/image';
-import { Plus, Trash2, ChevronUp, ChevronDown, Search, X } from 'lucide-react';
 import { useRequireAuth } from '@/lib/hooks/useRequireAuth';
+import EditorialSpinner from '@/components/ui/EditorialSpinner';
 
 interface CollectionItem {
   id: string;
@@ -36,6 +36,40 @@ interface SearchResult {
   images: string[];
   artist_name: string;
 }
+
+const KICKER: React.CSSProperties = {
+  fontSize: '0.62rem',
+  letterSpacing: '0.22em',
+  textTransform: 'uppercase',
+  color: 'var(--color-stone)',
+  fontWeight: 400,
+  margin: 0,
+};
+
+const SECONDARY_BUTTON: React.CSSProperties = {
+  padding: '0.65rem 1.2rem',
+  background: 'transparent',
+  border: '1px solid var(--color-border-strong)',
+  fontSize: '0.68rem',
+  letterSpacing: '0.14em',
+  textTransform: 'uppercase',
+  color: 'var(--color-ink)',
+  fontWeight: 400,
+  cursor: 'pointer',
+  transition: 'border-color var(--dur-fast) var(--ease-out)',
+};
+
+const INLINE_ACTION: React.CSSProperties = {
+  background: 'transparent',
+  border: 'none',
+  padding: 0,
+  fontSize: '0.64rem',
+  letterSpacing: '0.14em',
+  textTransform: 'uppercase',
+  color: 'var(--color-ink)',
+  fontWeight: 400,
+  cursor: 'pointer',
+};
 
 export default function AdminCollectionsPage() {
   const { loading: authLoading } = useRequireAuth('admin');
@@ -115,6 +149,8 @@ export default function AdminCollectionsPage() {
         setCoverImageUrl(c.cover_image_url || '');
         setIsPublished(c.is_published);
         setCollectionArtworks(c.artworks || []);
+        setSearchQuery('');
+        setSearchResults([]);
       }
     } catch (err) {
       console.error('[AdminCollections] Fetch detail error:', err);
@@ -133,7 +169,6 @@ export default function AdminCollectionsPage() {
       const finalSlug = slug || generateSlug(title);
 
       if (creating) {
-        // Create collection
         const res = await fetch('/api/admin/collections', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -153,7 +188,6 @@ export default function AdminCollectionsPage() {
           await fetchCollections();
         }
       } else if (editingId) {
-        // Update collection
         await fetch(`/api/admin/collections/${editingId}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
@@ -190,7 +224,9 @@ export default function AdminCollectionsPage() {
     if (!searchQuery.trim()) return;
     setSearching(true);
     try {
-      const res = await fetch(`/api/artworks/browse?q=${encodeURIComponent(searchQuery)}&limit=10&status=approved`);
+      const res = await fetch(
+        `/api/artworks/browse?q=${encodeURIComponent(searchQuery)}&limit=10&status=approved`
+      );
       const json = await res.json();
       if (res.ok) {
         const rows = (json.data || []) as Array<Record<string, unknown>>;
@@ -201,7 +237,8 @@ export default function AdminCollectionsPage() {
             id: a.id as string,
             title: a.title as string,
             images: (a.images as string[]) || [],
-            artist_name: (a.profiles as Record<string, string> | null)?.full_name || 'Unknown',
+            artist_name:
+              (a.profiles as Record<string, string> | null)?.full_name || 'Unknown',
           }));
         setSearchResults(results);
       }
@@ -221,9 +258,7 @@ export default function AdminCollectionsPage() {
         body: JSON.stringify({ artworkId }),
       });
       if (res.ok) {
-        // Refresh collection detail
         await openEdit(editingId);
-        // Remove from search results
         setSearchResults((prev) => prev.filter((r) => r.id !== artworkId));
         await fetchCollections();
       }
@@ -235,11 +270,14 @@ export default function AdminCollectionsPage() {
   async function removeArtwork(artworkId: string) {
     if (!editingId) return;
     try {
-      const res = await fetch(`/api/admin/collections/${editingId}/artworks?artworkId=${artworkId}`, {
-        method: 'DELETE',
-      });
+      const res = await fetch(
+        `/api/admin/collections/${editingId}/artworks?artworkId=${artworkId}`,
+        { method: 'DELETE' }
+      );
       if (res.ok) {
-        setCollectionArtworks((prev) => prev.filter((ca) => ca.artwork_id !== artworkId));
+        setCollectionArtworks((prev) =>
+          prev.filter((ca) => ca.artwork_id !== artworkId)
+        );
         await fetchCollections();
       }
     } catch (err) {
@@ -253,10 +291,12 @@ export default function AdminCollectionsPage() {
     const targetIndex = direction === 'up' ? index - 1 : index + 1;
     if (targetIndex < 0 || targetIndex >= newArtworks.length) return;
 
-    [newArtworks[index], newArtworks[targetIndex]] = [newArtworks[targetIndex], newArtworks[index]];
+    [newArtworks[index], newArtworks[targetIndex]] = [
+      newArtworks[targetIndex],
+      newArtworks[index],
+    ];
     setCollectionArtworks(newArtworks);
 
-    // Save new order
     const artworkIds = newArtworks.map((ca) => ca.artwork_id);
     try {
       await fetch(`/api/admin/collections/${editingId}/artworks`, {
@@ -270,313 +310,765 @@ export default function AdminCollectionsPage() {
   }
 
   if (authLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="inline-block w-8 h-8 border-2 border-accent border-t-transparent rounded-full animate-spin" />
-      </div>
-    );
+    return <EditorialSpinner label="Collections" headline="One moment\u2026" />;
   }
 
   const isEditing = creating || editingId !== null;
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <div className="flex items-center justify-between mb-8">
+    <div
+      className="px-6 sm:px-10"
+      style={{
+        maxWidth: '84rem',
+        margin: '0 auto',
+        paddingTop: 'clamp(3rem, 5vw, 4.5rem)',
+        paddingBottom: 'clamp(5rem, 8vw, 7rem)',
+      }}
+    >
+      {/* ── Heading ── */}
+      <div
+        style={{
+          marginBottom: 'clamp(2.4rem, 4vw, 3.4rem)',
+          display: 'flex',
+          alignItems: 'flex-end',
+          justifyContent: 'space-between',
+          gap: '2rem',
+          flexWrap: 'wrap',
+        }}
+      >
         <div>
-          <h1 className="text-3xl font-bold">Collections</h1>
-          <p className="text-muted mt-1">Manage curated artwork collections</p>
+          <p style={KICKER}>— Collections —</p>
+          <h1
+            className="font-serif"
+            style={{
+              marginTop: '1.2rem',
+              fontSize: 'clamp(2.2rem, 4.5vw, 3.4rem)',
+              lineHeight: 1.05,
+              letterSpacing: '-0.015em',
+              color: 'var(--color-ink)',
+              fontWeight: 400,
+              maxWidth: '22ch',
+            }}
+          >
+            Curate the <em style={{ fontStyle: 'italic' }}>rooms.</em>
+          </h1>
         </div>
         <button
+          type="button"
           onClick={startCreate}
-          className="inline-flex items-center gap-2 px-4 py-2 bg-accent text-white font-medium rounded-lg hover:bg-accent-dark transition-colors"
+          className="artwork-primary-cta artwork-primary-cta--compact"
         >
-          <Plus className="h-4 w-4" />
-          Create Collection
+          Create collection
         </button>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Collection List */}
-        <div className="space-y-3">
+      {/* ── Two-column grid ── */}
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)',
+          gap: 'clamp(2rem, 4vw, 3.5rem)',
+          alignItems: 'start',
+        }}
+      >
+        {/* ── Collection list ── */}
+        <div>
           {loading ? (
-            <div className="text-center py-16">
-              <div className="inline-block w-8 h-8 border-2 border-accent border-t-transparent rounded-full animate-spin" />
-            </div>
+            <EditorialSpinner
+              label="Collections"
+              headline="Fetching the rooms\u2026"
+            />
           ) : collections.length === 0 ? (
-            <div className="text-center py-16 border border-border rounded-lg">
-              <p className="text-muted">No collections yet. Create one to get started.</p>
+            <div
+              style={{
+                borderTop: '1px solid var(--color-border)',
+                borderBottom: '1px solid var(--color-border)',
+                padding: '4rem 0',
+                textAlign: 'center',
+              }}
+            >
+              <p
+                className="font-serif"
+                style={{
+                  fontStyle: 'italic',
+                  color: 'var(--color-stone)',
+                  fontSize: '1rem',
+                }}
+              >
+                No collections yet. Create one to get started.
+              </p>
             </div>
           ) : (
-            collections.map((c) => (
-              <button
-                key={c.id}
-                onClick={() => openEdit(c.id)}
-                className={`w-full flex items-center gap-4 p-4 border rounded-lg text-left transition-colors ${
-                  editingId === c.id
-                    ? 'border-accent bg-accent/5'
-                    : 'border-border hover:border-gray-300'
-                }`}
-              >
-                <div className="w-12 h-12 rounded bg-muted-bg flex-shrink-0 overflow-hidden relative">
-                  {c.cover_image_url && (
-                    <Image src={c.cover_image_url} alt={c.title} fill className="object-cover" sizes="48px" />
-                  )}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="font-medium text-sm truncate">{c.title}</p>
-                  <p className="text-xs text-muted">/{c.slug}</p>
-                </div>
-                <div className="text-right flex-shrink-0 flex items-center gap-3">
-                  <span className="text-xs text-muted">{c.artwork_count} artworks</span>
-                  <span
-                    className={`w-2.5 h-2.5 rounded-full ${
-                      c.is_published ? 'bg-green-500' : 'bg-gray-300'
-                    }`}
-                    title={c.is_published ? 'Published' : 'Draft'}
-                  />
-                  <span className="text-xs text-muted">
-                    {new Date(c.created_at).toLocaleDateString('en-AU')}
-                  </span>
-                </div>
-              </button>
-            ))
+            <ul
+              style={{
+                listStyle: 'none',
+                padding: 0,
+                margin: 0,
+                borderTop: '1px solid var(--color-border)',
+              }}
+            >
+              {collections.map((c) => {
+                const active = editingId === c.id;
+                return (
+                  <li
+                    key={c.id}
+                    style={{ borderBottom: '1px solid var(--color-border)' }}
+                  >
+                    <button
+                      type="button"
+                      onClick={() => openEdit(c.id)}
+                      style={{
+                        width: '100%',
+                        display: 'grid',
+                        gridTemplateColumns: '3.5rem 1fr auto',
+                        alignItems: 'center',
+                        gap: '1.2rem',
+                        padding: '1.2rem',
+                        paddingLeft: active ? 'calc(1.2rem - 3px)' : '1.2rem',
+                        background: active ? 'var(--color-cream)' : 'transparent',
+                        border: 'none',
+                        borderLeft: active
+                          ? '3px solid var(--color-ink)'
+                          : '3px solid transparent',
+                        textAlign: 'left',
+                        cursor: 'pointer',
+                        transition:
+                          'background var(--dur-fast) var(--ease-out), border-color var(--dur-fast) var(--ease-out)',
+                      }}
+                    >
+                      <div
+                        style={{
+                          width: '3.5rem',
+                          height: '3.5rem',
+                          background: 'var(--color-cream)',
+                          border: '1px solid var(--color-border)',
+                          overflow: 'hidden',
+                          position: 'relative',
+                          flexShrink: 0,
+                        }}
+                      >
+                        {c.cover_image_url && (
+                          <Image
+                            src={c.cover_image_url}
+                            alt={c.title}
+                            fill
+                            sizes="56px"
+                            style={{ objectFit: 'cover' }}
+                          />
+                        )}
+                      </div>
+                      <div style={{ minWidth: 0 }}>
+                        <p
+                          className="font-serif"
+                          style={{
+                            fontSize: '1rem',
+                            color: 'var(--color-ink)',
+                            margin: 0,
+                            fontWeight: 400,
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap',
+                          }}
+                        >
+                          {c.title}
+                        </p>
+                        <p
+                          style={{
+                            marginTop: '0.3rem',
+                            fontSize: '0.76rem',
+                            color: 'var(--color-stone-dark)',
+                            fontWeight: 300,
+                          }}
+                        >
+                          /{c.slug} · {c.artwork_count} work
+                          {c.artwork_count === 1 ? '' : 's'}
+                        </p>
+                      </div>
+                      <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                        <p
+                          className="font-serif"
+                          style={{
+                            fontStyle: 'italic',
+                            fontSize: '0.78rem',
+                            color: c.is_published
+                              ? 'var(--color-success)'
+                              : 'var(--color-stone)',
+                            margin: 0,
+                          }}
+                        >
+                          {c.is_published ? 'published' : 'draft'}
+                        </p>
+                        <p
+                          className="font-serif"
+                          style={{
+                            marginTop: '0.3rem',
+                            fontSize: '0.72rem',
+                            color: 'var(--color-stone)',
+                            fontStyle: 'italic',
+                          }}
+                        >
+                          {new Date(c.created_at).toLocaleDateString('en-AU', {
+                            day: 'numeric',
+                            month: 'short',
+                          })}
+                        </p>
+                      </div>
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
           )}
         </div>
 
-        {/* Edit/Create Panel */}
-        {isEditing ? (
-          <div className="border border-border rounded-lg p-6 space-y-5 sticky top-24">
-            <div className="flex items-center justify-between">
-              <h2 className="text-lg font-bold">
-                {creating ? 'New Collection' : 'Edit Collection'}
-              </h2>
-              <button onClick={resetForm} className="text-muted hover:text-foreground">
-                <X className="h-5 w-5" />
-              </button>
-            </div>
-
-            {/* Title */}
-            <div>
-              <label className="block text-sm font-medium mb-1">Title</label>
-              <input
-                type="text"
-                value={title}
-                onChange={(e) => {
-                  setTitle(e.target.value);
-                  if (creating) setSlug(generateSlug(e.target.value));
+        {/* ── Editor panel ── */}
+        <div style={{ position: 'sticky', top: '6rem' }}>
+          {isEditing ? (
+            <div
+              style={{
+                borderTop: '1px solid var(--color-border-strong)',
+                paddingTop: '2rem',
+                display: 'grid',
+                gap: '1.6rem',
+              }}
+            >
+              <div
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'flex-start',
+                  gap: '1rem',
                 }}
-                className="w-full px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-accent"
-                placeholder="e.g. Summer Landscapes"
-              />
-            </div>
-
-            {/* Slug */}
-            <div>
-              <label className="block text-sm font-medium mb-1">Slug</label>
-              <input
-                type="text"
-                value={slug}
-                onChange={(e) => setSlug(e.target.value)}
-                className="w-full px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-accent"
-                placeholder="summer-landscapes"
-              />
-            </div>
-
-            {/* Description */}
-            <div>
-              <label className="block text-sm font-medium mb-1">Description</label>
-              <textarea
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                rows={3}
-                className="w-full px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-accent resize-none"
-                placeholder="Brief description of the collection..."
-              />
-            </div>
-
-            {/* Curator Note */}
-            <div>
-              <label className="block text-sm font-medium mb-1">Curator Note</label>
-              <textarea
-                value={curatorNote}
-                onChange={(e) => setCuratorNote(e.target.value)}
-                rows={3}
-                className="w-full px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-accent resize-none"
-                placeholder="Why this collection was curated..."
-              />
-            </div>
-
-            {/* Cover Image URL */}
-            <div>
-              <label className="block text-sm font-medium mb-1">Cover Image URL</label>
-              <input
-                type="text"
-                value={coverImageUrl}
-                onChange={(e) => setCoverImageUrl(e.target.value)}
-                className="w-full px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-accent"
-                placeholder="https://..."
-              />
-            </div>
-
-            {/* Published Toggle */}
-            <div className="flex items-center gap-3">
-              <button
-                onClick={() => setIsPublished(!isPublished)}
-                className={`relative w-10 h-6 rounded-full transition-colors ${
-                  isPublished ? 'bg-green-500' : 'bg-gray-300'
-                }`}
               >
-                <span
-                  className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${
-                    isPublished ? 'translate-x-4' : ''
-                  }`}
-                />
-              </button>
-              <span className="text-sm font-medium">
-                {isPublished ? 'Published' : 'Draft'}
-              </span>
-            </div>
-
-            {/* Save / Delete buttons */}
-            <div className="flex gap-3">
-              <button
-                onClick={handleSave}
-                disabled={saving || !title.trim()}
-                className="flex-1 py-2.5 bg-accent text-white font-medium rounded-lg hover:bg-accent-dark transition-colors disabled:opacity-50"
-              >
-                {saving ? 'Saving...' : creating ? 'Create' : 'Save Changes'}
-              </button>
-              {editingId && (
+                <div>
+                  <p style={KICKER}>
+                    — {creating ? 'New collection' : 'Editing'} —
+                  </p>
+                  <h2
+                    className="font-serif"
+                    style={{
+                      marginTop: '0.8rem',
+                      fontSize: 'clamp(1.4rem, 2.5vw, 1.8rem)',
+                      lineHeight: 1.15,
+                      color: 'var(--color-ink)',
+                      fontWeight: 400,
+                      margin: 0,
+                    }}
+                  >
+                    {creating ? (
+                      <em style={{ fontStyle: 'italic' }}>A new room.</em>
+                    ) : (
+                      title || <em style={{ fontStyle: 'italic' }}>Untitled</em>
+                    )}
+                  </h2>
+                </div>
                 <button
-                  onClick={handleDelete}
-                  className="py-2.5 px-4 bg-red-50 text-red-600 font-medium rounded-lg hover:bg-red-100 transition-colors"
+                  type="button"
+                  onClick={resetForm}
+                  style={{
+                    ...INLINE_ACTION,
+                    color: 'var(--color-stone)',
+                  }}
+                  aria-label="Close editor"
                 >
-                  <Trash2 className="h-4 w-4" />
+                  Close ×
                 </button>
+              </div>
+
+              {saving && (
+                <EditorialSpinner label="Collections" headline="Saving\u2026" />
               )}
-            </div>
 
-            {/* Add Artworks Section — only when editing (not creating) */}
-            {editingId && (
-              <div className="border-t border-border pt-5 space-y-4">
-                <h3 className="text-sm font-bold">Artworks in Collection</h3>
+              {/* Title */}
+              <div>
+                <label htmlFor="col-title" className="commission-label">
+                  Title
+                </label>
+                <input
+                  id="col-title"
+                  type="text"
+                  value={title}
+                  onChange={(e) => {
+                    setTitle(e.target.value);
+                    if (creating) setSlug(generateSlug(e.target.value));
+                  }}
+                  className="commission-field"
+                  placeholder="e.g. Summer landscapes"
+                />
+              </div>
 
-                {/* Current artworks */}
-                {collectionArtworks.length === 0 ? (
-                  <p className="text-xs text-muted">No artworks added yet.</p>
-                ) : (
-                  <div className="space-y-2 max-h-64 overflow-y-auto">
-                    {collectionArtworks.map((ca, index) => (
-                      <div
-                        key={ca.id}
-                        className="flex items-center gap-3 p-2 border border-border rounded-lg"
-                      >
-                        <div className="w-10 h-10 rounded bg-muted-bg flex-shrink-0 overflow-hidden relative">
-                          {ca.artwork?.images?.[0] && (
-                            <Image
-                              src={ca.artwork.images[0]}
-                              alt={ca.artwork?.title || ''}
-                              fill
-                              className="object-cover"
-                              sizes="40px"
-                            />
-                          )}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-xs font-medium truncate">
-                            {ca.artwork?.title || 'Unknown'}
-                          </p>
-                          <p className="text-xs text-muted">
-                            {(ca.artwork as Record<string, unknown>)?.profiles
-                              ? ((ca.artwork as Record<string, unknown>).profiles as Record<string, string>)?.full_name
-                              : ''}
-                          </p>
-                        </div>
-                        <div className="flex items-center gap-1 flex-shrink-0">
-                          <button
-                            onClick={() => moveArtwork(index, 'up')}
-                            disabled={index === 0}
-                            className="p-1 text-muted hover:text-foreground disabled:opacity-30"
-                          >
-                            <ChevronUp className="h-3.5 w-3.5" />
-                          </button>
-                          <button
-                            onClick={() => moveArtwork(index, 'down')}
-                            disabled={index === collectionArtworks.length - 1}
-                            className="p-1 text-muted hover:text-foreground disabled:opacity-30"
-                          >
-                            <ChevronDown className="h-3.5 w-3.5" />
-                          </button>
-                          <button
-                            onClick={() => removeArtwork(ca.artwork_id)}
-                            className="p-1 text-red-400 hover:text-red-600"
-                          >
-                            <Trash2 className="h-3.5 w-3.5" />
-                          </button>
-                        </div>
-                      </div>
-                    ))}
+              {/* Slug */}
+              <div>
+                <label htmlFor="col-slug" className="commission-label">
+                  Slug
+                </label>
+                <input
+                  id="col-slug"
+                  type="text"
+                  value={slug}
+                  onChange={(e) => setSlug(e.target.value)}
+                  className="commission-field"
+                  placeholder="summer-landscapes"
+                />
+              </div>
+
+              {/* Description */}
+              <div>
+                <label htmlFor="col-description" className="commission-label">
+                  Description
+                </label>
+                <textarea
+                  id="col-description"
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  rows={3}
+                  className="commission-field"
+                  placeholder="Brief description of the collection…"
+                />
+              </div>
+
+              {/* Curator note */}
+              <div>
+                <label htmlFor="col-curator" className="commission-label">
+                  Curator note
+                </label>
+                <textarea
+                  id="col-curator"
+                  value={curatorNote}
+                  onChange={(e) => setCuratorNote(e.target.value)}
+                  rows={3}
+                  className="commission-field"
+                  placeholder="Why this collection was curated…"
+                />
+              </div>
+
+              {/* Cover image */}
+              <div>
+                <label htmlFor="col-cover" className="commission-label">
+                  Cover image URL
+                </label>
+                <input
+                  id="col-cover"
+                  type="text"
+                  value={coverImageUrl}
+                  onChange={(e) => setCoverImageUrl(e.target.value)}
+                  className="commission-field"
+                  placeholder="https://…"
+                />
+                {coverImageUrl && (
+                  <div
+                    style={{
+                      marginTop: '0.8rem',
+                      width: '8rem',
+                      height: '8rem',
+                      border: '1px solid var(--color-border)',
+                      background: 'var(--color-cream)',
+                      position: 'relative',
+                      overflow: 'hidden',
+                    }}
+                  >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={coverImageUrl}
+                      alt=""
+                      style={{
+                        width: '100%',
+                        height: '100%',
+                        objectFit: 'cover',
+                      }}
+                    />
                   </div>
                 )}
+              </div>
 
-                {/* Search artworks to add */}
-                <div>
-                  <label className="block text-xs font-medium mb-1">Add Artwork</label>
-                  <div className="flex gap-2">
-                    <div className="relative flex-1">
-                      <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted" />
+              {/* Published status — paired hairline radios */}
+              <div>
+                <span className="commission-label">Status</span>
+                <div
+                  style={{
+                    display: 'grid',
+                    gridTemplateColumns: '1fr 1fr',
+                    marginTop: '0.6rem',
+                    border: '1px solid var(--color-border-strong)',
+                  }}
+                >
+                  <button
+                    type="button"
+                    onClick={() => setIsPublished(false)}
+                    style={{
+                      padding: '0.8rem 1rem',
+                      background: !isPublished
+                        ? 'var(--color-ink)'
+                        : 'transparent',
+                      color: !isPublished
+                        ? 'var(--color-warm-white)'
+                        : 'var(--color-ink)',
+                      border: 'none',
+                      borderRight: '1px solid var(--color-border-strong)',
+                      fontSize: '0.68rem',
+                      letterSpacing: '0.14em',
+                      textTransform: 'uppercase',
+                      fontWeight: 400,
+                      cursor: 'pointer',
+                      transition: 'background var(--dur-fast) var(--ease-out)',
+                    }}
+                  >
+                    Draft
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setIsPublished(true)}
+                    style={{
+                      padding: '0.8rem 1rem',
+                      background: isPublished
+                        ? 'var(--color-ink)'
+                        : 'transparent',
+                      color: isPublished
+                        ? 'var(--color-warm-white)'
+                        : 'var(--color-ink)',
+                      border: 'none',
+                      fontSize: '0.68rem',
+                      letterSpacing: '0.14em',
+                      textTransform: 'uppercase',
+                      fontWeight: 400,
+                      cursor: 'pointer',
+                      transition: 'background var(--dur-fast) var(--ease-out)',
+                    }}
+                  >
+                    Published
+                  </button>
+                </div>
+              </div>
+
+              {/* Save / Delete actions */}
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: editingId ? '1fr auto' : '1fr',
+                  gap: '0.8rem',
+                }}
+              >
+                <button
+                  type="button"
+                  onClick={handleSave}
+                  disabled={saving || !title.trim()}
+                  className="artwork-primary-cta artwork-primary-cta--compact"
+                  style={{ width: '100%' }}
+                >
+                  {saving
+                    ? 'Saving…'
+                    : creating
+                    ? 'Create collection'
+                    : 'Save changes'}
+                </button>
+                {editingId && (
+                  <button
+                    type="button"
+                    onClick={handleDelete}
+                    style={{
+                      ...SECONDARY_BUTTON,
+                      borderColor: 'var(--color-terracotta)',
+                      color: 'var(--color-terracotta)',
+                    }}
+                  >
+                    Delete
+                  </button>
+                )}
+              </div>
+
+              {/* Artworks in collection (editing only) */}
+              {editingId && (
+                <div
+                  style={{
+                    borderTop: '1px solid var(--color-border)',
+                    paddingTop: '1.8rem',
+                    display: 'grid',
+                    gap: '1.4rem',
+                  }}
+                >
+                  <div>
+                    <p style={KICKER}>— Artworks —</p>
+                    <p
+                      className="font-serif"
+                      style={{
+                        marginTop: '0.6rem',
+                        fontSize: '1.1rem',
+                        color: 'var(--color-ink)',
+                        fontWeight: 400,
+                        fontStyle: 'italic',
+                      }}
+                    >
+                      {collectionArtworks.length === 0
+                        ? 'Nothing added yet.'
+                        : `${collectionArtworks.length} in order.`}
+                    </p>
+                  </div>
+
+                  {collectionArtworks.length > 0 && (
+                    <ul
+                      style={{
+                        listStyle: 'none',
+                        padding: 0,
+                        margin: 0,
+                        borderTop: '1px solid var(--color-border)',
+                        maxHeight: '20rem',
+                        overflowY: 'auto',
+                      }}
+                    >
+                      {collectionArtworks.map((ca, index) => (
+                        <li
+                          key={ca.id}
+                          style={{
+                            borderBottom: '1px solid var(--color-border)',
+                            display: 'grid',
+                            gridTemplateColumns: '2.5rem 1fr auto',
+                            alignItems: 'center',
+                            gap: '1rem',
+                            padding: '0.9rem 0',
+                          }}
+                        >
+                          <div
+                            style={{
+                              width: '2.5rem',
+                              height: '2.5rem',
+                              background: 'var(--color-cream)',
+                              border: '1px solid var(--color-border)',
+                              overflow: 'hidden',
+                              position: 'relative',
+                              flexShrink: 0,
+                            }}
+                          >
+                            {ca.artwork?.images?.[0] && (
+                              <Image
+                                src={ca.artwork.images[0]}
+                                alt={ca.artwork?.title || ''}
+                                fill
+                                sizes="40px"
+                                style={{ objectFit: 'cover' }}
+                              />
+                            )}
+                          </div>
+                          <div style={{ minWidth: 0 }}>
+                            <p
+                              className="font-serif"
+                              style={{
+                                fontSize: '0.9rem',
+                                color: 'var(--color-ink)',
+                                margin: 0,
+                                fontWeight: 400,
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis',
+                                whiteSpace: 'nowrap',
+                              }}
+                            >
+                              {ca.artwork?.title || 'Unknown'}
+                            </p>
+                            <p
+                              style={{
+                                marginTop: '0.2rem',
+                                fontSize: '0.72rem',
+                                color: 'var(--color-stone-dark)',
+                                fontWeight: 300,
+                              }}
+                            >
+                              {ca.artwork?.profiles?.full_name || ''}
+                            </p>
+                          </div>
+                          <div
+                            style={{
+                              display: 'flex',
+                              gap: '0.9rem',
+                              alignItems: 'center',
+                              flexShrink: 0,
+                            }}
+                          >
+                            <button
+                              type="button"
+                              onClick={() => moveArtwork(index, 'up')}
+                              disabled={index === 0}
+                              style={{
+                                ...INLINE_ACTION,
+                                opacity: index === 0 ? 0.3 : 1,
+                                cursor: index === 0 ? 'not-allowed' : 'pointer',
+                              }}
+                            >
+                              ↑ Up
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => moveArtwork(index, 'down')}
+                              disabled={index === collectionArtworks.length - 1}
+                              style={{
+                                ...INLINE_ACTION,
+                                opacity:
+                                  index === collectionArtworks.length - 1
+                                    ? 0.3
+                                    : 1,
+                                cursor:
+                                  index === collectionArtworks.length - 1
+                                    ? 'not-allowed'
+                                    : 'pointer',
+                              }}
+                            >
+                              ↓ Down
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => removeArtwork(ca.artwork_id)}
+                              style={{
+                                ...INLINE_ACTION,
+                                color: 'var(--color-terracotta)',
+                              }}
+                            >
+                              Remove
+                            </button>
+                          </div>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+
+                  {/* Search */}
+                  <div>
+                    <label htmlFor="col-search" className="commission-label">
+                      Add artwork
+                    </label>
+                    <div
+                      style={{
+                        display: 'grid',
+                        gridTemplateColumns: '1fr auto',
+                        gap: '0.6rem',
+                      }}
+                    >
                       <input
+                        id="col-search"
                         type="text"
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
                         onKeyDown={(e) => e.key === 'Enter' && searchArtworks()}
-                        className="w-full pl-8 pr-3 py-2 border border-border rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-accent"
-                        placeholder="Search artworks by title..."
+                        className="commission-field"
+                        placeholder="Search artworks by title…"
                       />
-                    </div>
-                    <button
-                      onClick={searchArtworks}
-                      disabled={searching}
-                      className="px-3 py-2 bg-muted-bg text-sm font-medium rounded-lg hover:bg-gray-200 transition-colors disabled:opacity-50"
-                    >
-                      {searching ? '...' : 'Search'}
-                    </button>
-                  </div>
-                </div>
-
-                {/* Search results */}
-                {searchResults.length > 0 && (
-                  <div className="space-y-1.5 max-h-48 overflow-y-auto">
-                    {searchResults.map((r) => (
                       <button
-                        key={r.id}
-                        onClick={() => addArtwork(r.id)}
-                        className="w-full flex items-center gap-3 p-2 border border-border rounded-lg text-left hover:bg-accent/5 transition-colors"
+                        type="button"
+                        onClick={searchArtworks}
+                        disabled={searching || !searchQuery.trim()}
+                        style={{
+                          ...SECONDARY_BUTTON,
+                          opacity: searching || !searchQuery.trim() ? 0.55 : 1,
+                        }}
                       >
-                        <div className="w-8 h-8 rounded bg-muted-bg flex-shrink-0 overflow-hidden relative">
-                          {r.images?.[0] && (
-                            <Image src={r.images[0]} alt={r.title} fill className="object-cover" sizes="32px" />
-                          )}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-xs font-medium truncate">{r.title}</p>
-                          <p className="text-xs text-muted">{r.artist_name}</p>
-                        </div>
-                        <Plus className="h-3.5 w-3.5 text-accent flex-shrink-0" />
+                        {searching ? 'Searching…' : 'Search'}
                       </button>
-                    ))}
+                    </div>
                   </div>
-                )}
-              </div>
-            )}
-          </div>
-        ) : (
-          <div className="border border-border rounded-lg p-10 text-center flex items-center justify-center min-h-[400px]">
-            <div>
-              <p className="text-muted">Select a collection to edit, or create a new one.</p>
+
+                  {searchResults.length > 0 && (
+                    <ul
+                      style={{
+                        listStyle: 'none',
+                        padding: 0,
+                        margin: 0,
+                        borderTop: '1px solid var(--color-border)',
+                        maxHeight: '18rem',
+                        overflowY: 'auto',
+                      }}
+                    >
+                      {searchResults.map((r) => (
+                        <li
+                          key={r.id}
+                          style={{
+                            borderBottom: '1px solid var(--color-border)',
+                            display: 'grid',
+                            gridTemplateColumns: '2.5rem 1fr auto',
+                            alignItems: 'center',
+                            gap: '1rem',
+                            padding: '0.9rem 0',
+                          }}
+                        >
+                          <div
+                            style={{
+                              width: '2.5rem',
+                              height: '2.5rem',
+                              background: 'var(--color-cream)',
+                              border: '1px solid var(--color-border)',
+                              overflow: 'hidden',
+                              position: 'relative',
+                              flexShrink: 0,
+                            }}
+                          >
+                            {r.images?.[0] && (
+                              <Image
+                                src={r.images[0]}
+                                alt={r.title}
+                                fill
+                                sizes="40px"
+                                style={{ objectFit: 'cover' }}
+                              />
+                            )}
+                          </div>
+                          <div style={{ minWidth: 0 }}>
+                            <p
+                              className="font-serif"
+                              style={{
+                                fontSize: '0.9rem',
+                                color: 'var(--color-ink)',
+                                margin: 0,
+                                fontWeight: 400,
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis',
+                                whiteSpace: 'nowrap',
+                              }}
+                            >
+                              {r.title}
+                            </p>
+                            <p
+                              style={{
+                                marginTop: '0.2rem',
+                                fontSize: '0.72rem',
+                                color: 'var(--color-stone-dark)',
+                                fontWeight: 300,
+                              }}
+                            >
+                              {r.artist_name}
+                            </p>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => addArtwork(r.id)}
+                            style={SECONDARY_BUTTON}
+                          >
+                            Add
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              )}
             </div>
-          </div>
-        )}
+          ) : (
+            <div
+              style={{
+                borderTop: '1px solid var(--color-border)',
+                borderBottom: '1px solid var(--color-border)',
+                padding: '5rem 0',
+                textAlign: 'center',
+              }}
+            >
+              <p
+                className="font-serif"
+                style={{
+                  fontStyle: 'italic',
+                  color: 'var(--color-stone)',
+                  fontSize: '1rem',
+                }}
+              >
+                Select a collection to edit, or create a new one.
+              </p>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

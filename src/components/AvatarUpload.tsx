@@ -180,7 +180,7 @@ export default function AvatarUpload({
                   width: `${progress}%`,
                   height: '100%',
                   background: 'var(--color-warm-white)',
-                  transition: 'width 350ms cubic-bezier(0.22, 1, 0.36, 1)',
+                  transition: 'width var(--dur-base) var(--ease-out)',
                 }}
               />
             </div>
@@ -222,7 +222,7 @@ export default function AvatarUpload({
               padding: 0,
               borderBottom: '1px solid var(--color-stone)',
               paddingBottom: '0.15rem',
-              transition: 'border-color 200ms cubic-bezier(0.22, 1, 0.36, 1)',
+              transition: 'border-color var(--dur-fast) var(--ease-out)',
             }}
             onMouseOver={(e) =>
               (e.currentTarget.style.borderBottomColor = 'var(--color-ink)')

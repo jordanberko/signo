@@ -1,27 +1,33 @@
 import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
+import type { User } from '@supabase/supabase-js';
+
+export interface SessionResult {
+  /** The response with any refreshed cookies applied. */
+  response: NextResponse;
+  /** The authenticated Supabase user, or null if none. */
+  user: User | null;
+}
 
 /**
- * Middleware: ONLY refreshes the Supabase session.
+ * Refreshes the Supabase session and returns both the response (with updated
+ * cookies) and the current user, if any. The proxy uses the user value to
+ * gate protected routes server-side before the client ever renders.
  *
- * No redirects, no role checks, no auth gating.
- * Pages handle their own auth via useRequireAuth hook.
- * This prevents the middleware from breaking sessions.
- *
- * Optimisation: skips the getUser() network call entirely when
- * no Supabase auth cookies are present (i.e. anonymous visitors).
+ * Optimisation: skips the getUser() network call entirely when no Supabase
+ * auth cookies are present (i.e. anonymous visitors). Saves a 200-500ms
+ * round-trip on every anonymous request.
  */
-export async function updateSession(request: NextRequest) {
-  // Fast path: if no Supabase auth cookies exist, skip the network call.
-  // This avoids a 200-500ms round-trip to Supabase on every anonymous request.
+export async function updateSession(request: NextRequest): Promise<SessionResult> {
   const hasAuthCookies = request.cookies.getAll().some(
     (c) => c.name.startsWith('sb-')
   );
 
   if (!hasAuthCookies) {
-    return NextResponse.next({
-      request: { headers: request.headers },
-    });
+    return {
+      response: NextResponse.next({ request: { headers: request.headers } }),
+      user: null,
+    };
   }
 
   let response = NextResponse.next({
@@ -56,11 +62,13 @@ export async function updateSession(request: NextRequest) {
   );
 
   // Refresh the session token — MUST use getUser() not getSession()
+  let user: User | null = null;
   try {
-    await supabase.auth.getUser();
+    const { data } = await supabase.auth.getUser();
+    user = data.user ?? null;
   } catch {
-    // If refresh fails, just continue — page components will handle auth
+    // If refresh fails, treat as anonymous and let the page handle it.
   }
 
-  return response;
+  return { response, user };
 }

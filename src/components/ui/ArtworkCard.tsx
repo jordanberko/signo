@@ -121,8 +121,8 @@ export default function ArtworkCard({
             alt={title}
             className="block w-full h-full object-cover transition-[transform,filter] group-hover:scale-[1.03] group-hover:grayscale-0"
             style={{
-              transitionDuration: '1500ms, 350ms',
-              transitionTimingFunction: 'cubic-bezier(0.22, 1, 0.36, 1)',
+              transitionDuration: 'var(--dur-cinematic), var(--dur-base)',
+              transitionTimingFunction: 'var(--ease-out)',
               filter: 'grayscale(8%)',
             }}
             loading="lazy"
@@ -202,8 +202,8 @@ export default function ArtworkCard({
               letterSpacing: '-0.01em',
               color: 'var(--color-ink)',
               margin: 0,
-              transitionDuration: '350ms',
-              transitionTimingFunction: 'cubic-bezier(0.22, 1, 0.36, 1)',
+              transitionDuration: 'var(--dur-base)',
+              transitionTimingFunction: 'var(--ease-out)',
             }}
           >
             {title}
@@ -218,7 +218,7 @@ export default function ArtworkCard({
             fontSize: '0.82rem',
             fontWeight: 300,
             color: 'var(--color-stone-dark)',
-            transition: 'color 350ms cubic-bezier(0.22, 1, 0.36, 1)',
+            transition: 'color var(--dur-base) var(--ease-out)',
           }}
           onMouseOver={(e) => ((e.currentTarget as HTMLAnchorElement).style.color = 'var(--color-ink)')}
           onMouseOut={(e) => ((e.currentTarget as HTMLAnchorElement).style.color = 'var(--color-stone-dark)')}

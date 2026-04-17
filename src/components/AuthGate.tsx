@@ -27,7 +27,11 @@ export default function AuthGate({
     if (loading) return;
 
     if (!user) {
-      const returnUrl = encodeURIComponent(window.location.pathname);
+      // Server-side proxy normally catches this first. This is the fallback
+      // when a signed-in session expires mid-session and the client renders
+      // before the next request hits the proxy.
+      const path = window.location.pathname + window.location.search;
+      const returnUrl = encodeURIComponent(path);
       window.location.href = `${loginUrl}?redirect=${returnUrl}`;
       return;
     }
@@ -35,7 +39,14 @@ export default function AuthGate({
     if (allowedRoles.length > 0) {
       const role = (user as Record<string, unknown>).role as string ?? 'buyer';
       if (!allowedRoles.includes(role) && role !== 'admin') {
-        window.location.href = '/dashboard';
+        // Send the user to their own home, not an unrelated role's dashboard.
+        const home =
+          role === 'artist'
+            ? '/artist/dashboard'
+            : role === 'admin'
+              ? '/admin/dashboard'
+              : '/dashboard';
+        window.location.href = home;
         return;
       }
     }
@@ -45,8 +56,19 @@ export default function AuthGate({
 
   if (!authorized) {
     return (
-      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '60vh' }}>
-        <span className="editorial-spinner" aria-label="Loading" />
+      <div
+        role="status"
+        aria-live="polite"
+        aria-busy="true"
+        style={{
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          minHeight: '60vh',
+        }}
+      >
+        <span className="editorial-spinner" aria-hidden="true" />
+        <span className="sr-only">Checking your access — one moment.</span>
       </div>
     );
   }

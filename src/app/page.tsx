@@ -127,7 +127,7 @@ function Hero() {
           className="absolute inset-0"
           style={{
             opacity: i === index ? 1 : 0,
-            transition: 'opacity 1500ms cubic-bezier(0.22, 1, 0.36, 1)',
+            transition: 'opacity var(--dur-cinematic) var(--ease-out)',
           }}
           aria-hidden={i !== index}
         >
@@ -139,7 +139,7 @@ function Hero() {
             sizes="100vw"
             className="object-cover"
             style={{
-              animation: i === index ? 'ken-burns 20s cubic-bezier(0.22, 1, 0.36, 1) forwards' : undefined,
+              animation: i === index ? 'ken-burns 20s var(--ease-out) forwards' : undefined,
             }}
           />
           <div
@@ -225,7 +225,7 @@ function Hero() {
                   borderBottom: active
                     ? '1px solid rgba(252, 251, 248, 0.95)'
                     : '1px solid transparent',
-                  transition: 'color 350ms cubic-bezier(0.22, 1, 0.36, 1), border-color 350ms cubic-bezier(0.22, 1, 0.36, 1)',
+                  transition: 'color var(--dur-base) var(--ease-out), border-color var(--dur-base) var(--ease-out)',
                 }}
                 onMouseEnter={(e) => {
                   if (!active) {
@@ -395,7 +395,7 @@ function RecentlyListed({ artworks }: { artworks: FeaturedArtwork[] }) {
               key={art.id}
               style={{
                 opacity: 0,
-                animation: `fade-up 400ms cubic-bezier(0.22, 1, 0.36, 1) ${i * 40}ms forwards`,
+                animation: `fade-up 400ms var(--ease-out) ${i * 40}ms forwards`,
               }}
             >
               <Link
@@ -411,7 +411,7 @@ function RecentlyListed({ artworks }: { artworks: FeaturedArtwork[] }) {
                   padding: '1.15rem 0',
                   borderBottom: '1px solid var(--color-border)',
                   color: 'var(--color-ink)',
-                  transition: 'color 350ms cubic-bezier(0.22, 1, 0.36, 1)',
+                  transition: 'color var(--dur-base) var(--ease-out)',
                 }}
                 onMouseOver={(e) => {
                   const el = e.currentTarget as HTMLAnchorElement;
@@ -452,7 +452,7 @@ function RecentlyListed({ artworks }: { artworks: FeaturedArtwork[] }) {
                       fontSize: 'clamp(1.2rem, 2.2vw, 1.5rem)',
                       letterSpacing: '-0.01em',
                       fontWeight: 400,
-                      transition: 'color 350ms cubic-bezier(0.22, 1, 0.36, 1)',
+                      transition: 'color var(--dur-base) var(--ease-out)',
                       lineHeight: 1.2,
                       minWidth: 0,
                     }}
@@ -501,22 +501,26 @@ function RecentlyListed({ artworks }: { artworks: FeaturedArtwork[] }) {
         </ul>
       </div>
 
-      {/* Floating cursor preview */}
+      {/* Floating cursor preview.
+          Uses translate3d rather than left/top so mousemove updates are
+          composited instead of triggering layout every frame. */}
       <div
         ref={previewRef}
         className="hidden md:block"
         style={{
           position: 'fixed',
+          top: 0,
+          left: 0,
           width: 260,
           height: 320,
           pointerEvents: 'none',
-          zIndex: 100,
+          zIndex: 'var(--z-cursor)',
           overflow: 'hidden',
           opacity: hoverIdx !== null ? 1 : 0,
-          transition: 'opacity 350ms cubic-bezier(0.22, 1, 0.36, 1)',
+          transition: 'opacity var(--dur-base) var(--ease-out)',
           border: '1px solid var(--color-ink)',
-          left: mouse.x + 24,
-          top: mouse.y - 160,
+          transform: `translate3d(${mouse.x + 24}px, ${mouse.y - 160}px, 0)`,
+          willChange: 'transform',
           background: 'var(--color-cream)',
         }}
         aria-hidden
@@ -787,7 +791,7 @@ function SellCTA() {
     };
   }, [started]);
 
-  const EASE = 'cubic-bezier(0.22, 1, 0.36, 1)';
+  const EASE = 'var(--ease-out)';
 
   return (
     <section
@@ -838,7 +842,7 @@ function SellCTA() {
               background: 'var(--color-ink)',
               transformOrigin: 'left',
               transform: started ? 'scaleX(1)' : 'scaleX(0)',
-              transition: `transform 700ms ${EASE}`,
+              transition: `transform var(--dur-slow) ${EASE}`,
             }}
           />
 
@@ -854,7 +858,7 @@ function SellCTA() {
                   display: 'inline-block',
                   transform: zeroLanded ? 'scale(1)' : 'scale(0.9)',
                   opacity: zeroLanded ? 1 : 0,
-                  transition: `transform 350ms ${EASE}, opacity 350ms ${EASE}`,
+                  transition: `transform var(--dur-base) ${EASE}, opacity var(--dur-base) ${EASE}`,
                   color: 'var(--color-terracotta)',
                   fontStyle: 'italic',
                   transformOrigin: 'right center',

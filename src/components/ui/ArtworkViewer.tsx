@@ -29,7 +29,7 @@ interface Props {
   onClose: () => void;
 }
 
-const EASE_OUT = 'cubic-bezier(0.22, 1, 0.36, 1)';
+const EASE_OUT = 'var(--ease-out)';
 const DUR = 550;
 
 export default function ArtworkViewer({
@@ -214,7 +214,7 @@ export default function ArtworkViewer({
           color: 'var(--color-stone-dark)',
           padding: '0.5rem',
           opacity: showChrome ? 1 : 0,
-          transition: `opacity 350ms ${EASE_OUT} 200ms`,
+          transition: `opacity var(--dur-base) ${EASE_OUT} var(--dur-fast)`,
           fontWeight: 400,
           fontFamily: 'inherit',
         }}
@@ -265,7 +265,7 @@ export default function ArtworkViewer({
                 opacity: phase === 'exit' || phase === 'enter' ? 1 : 0,
                 animation:
                   phase === 'open'
-                    ? `fade-in 350ms ${EASE_OUT} forwards`
+                    ? `fade-in var(--dur-base) ${EASE_OUT} forwards`
                     : 'none',
               }}
               draggable={false}
@@ -286,7 +286,7 @@ export default function ArtworkViewer({
             alignItems: 'baseline',
             gap: 'clamp(0.4rem, 0.8vw, 0.8rem)',
             opacity: showChrome ? 1 : 0,
-            transition: `opacity 350ms ${EASE_OUT} 200ms`,
+            transition: `opacity var(--dur-base) ${EASE_OUT} var(--dur-fast)`,
             pointerEvents: showChrome ? 'auto' : 'none',
           }}
         >
@@ -308,7 +308,7 @@ export default function ArtworkViewer({
                   i === index
                     ? 'var(--color-ink)'
                     : 'var(--color-stone)',
-                transition: `color 350ms ${EASE_OUT}`,
+                transition: `color var(--dur-base) ${EASE_OUT}`,
               }}
               aria-label={`View photo ${i + 1}`}
               aria-current={i === index ? 'true' : undefined}
@@ -329,7 +329,7 @@ export default function ArtworkViewer({
           zIndex: 10,
           textAlign: 'center',
           opacity: showChrome ? 1 : 0,
-          transition: `opacity 350ms ${EASE_OUT} 200ms`,
+          transition: `opacity var(--dur-base) ${EASE_OUT} var(--dur-fast)`,
           pointerEvents: 'none',
           whiteSpace: 'nowrap',
           paddingBottom: '0.3rem',

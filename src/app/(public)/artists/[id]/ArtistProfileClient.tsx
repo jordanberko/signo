@@ -481,7 +481,7 @@ export default function ArtistProfileClient({
                       border: 'none',
                       cursor: 'pointer',
                       padding: 0,
-                      transition: 'width 350ms cubic-bezier(0.22, 1, 0.36, 1), background 350ms cubic-bezier(0.22, 1, 0.36, 1)',
+                      transition: 'width var(--dur-base) var(--ease-out), background var(--dur-base) var(--ease-out)',
                     }}
                   />
                 ))}
@@ -601,7 +601,7 @@ export default function ArtistProfileClient({
                     color: isFollowing ? 'var(--color-terracotta)' : 'var(--color-ink)',
                     borderColor: isFollowing ? 'var(--color-terracotta)' : 'var(--color-stone)',
                     opacity: followLoading ? 0.5 : 1,
-                    transition: 'color 350ms cubic-bezier(0.22, 1, 0.36, 1), border-color 350ms cubic-bezier(0.22, 1, 0.36, 1)',
+                    transition: 'color var(--dur-base) var(--ease-out), border-color var(--dur-base) var(--ease-out)',
                   }}
                 >
                   <span className={followPulsing ? 'save-pulse' : ''}>

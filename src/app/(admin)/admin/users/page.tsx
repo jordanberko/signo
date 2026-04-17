@@ -1,17 +1,46 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import Link from 'next/link';
-import { Users, Search, ShieldCheck, Palette, ShoppingBag } from 'lucide-react';
 import { useRequireAuth } from '@/lib/hooks/useRequireAuth';
+import EditorialSpinner from '@/components/ui/EditorialSpinner';
 import type { User } from '@/types/database';
+
+const KICKER: React.CSSProperties = {
+  fontSize: '0.62rem',
+  letterSpacing: '0.22em',
+  textTransform: 'uppercase',
+  color: 'var(--color-stone)',
+  fontWeight: 400,
+  margin: 0,
+};
+
+const COLUMN_HEAD: React.CSSProperties = {
+  fontSize: '0.62rem',
+  letterSpacing: '0.22em',
+  textTransform: 'uppercase',
+  color: 'var(--color-stone)',
+  fontWeight: 400,
+  textAlign: 'left',
+  padding: '1rem 1rem 1rem 0',
+  borderBottom: '1px solid var(--color-border-strong)',
+};
+
+type RoleFilter = 'all' | 'artist' | 'buyer' | 'admin';
+type RoleValue = 'buyer' | 'artist' | 'admin';
+
+const FILTERS: Array<{ value: RoleFilter; label: string }> = [
+  { value: 'all', label: 'All' },
+  { value: 'artist', label: 'Artists' },
+  { value: 'buyer', label: 'Buyers' },
+  { value: 'admin', label: 'Admins' },
+];
 
 export default function AdminUsersPage() {
   const { loading: authLoading } = useRequireAuth('admin');
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
-  const [roleFilter, setRoleFilter] = useState<'all' | 'artist' | 'buyer' | 'admin'>('all');
+  const [roleFilter, setRoleFilter] = useState<RoleFilter>('all');
 
   useEffect(() => {
     if (authLoading) return;
@@ -21,15 +50,12 @@ export default function AdminUsersPage() {
   async function fetchUsers() {
     setLoading(true);
     try {
-      // Use server API route — bypasses browser client auth timing issues
       const res = await fetch(`/api/admin/users?role=${roleFilter}`);
       const json = await res.json();
-
       if (!res.ok) {
         console.error('[AdminUsers] API error:', json.error);
         return;
       }
-
       setUsers((json.data || []) as User[]);
     } catch (err) {
       console.error('[AdminUsers] Fetch error:', err);
@@ -38,7 +64,7 @@ export default function AdminUsersPage() {
     }
   }
 
-  async function updateRole(userId: string, newRole: 'buyer' | 'artist' | 'admin') {
+  async function updateRole(userId: string, newRole: RoleValue) {
     try {
       const res = await fetch('/api/admin/users', {
         method: 'PATCH',
@@ -58,115 +84,279 @@ export default function AdminUsersPage() {
   const filteredUsers = users.filter((u) => {
     if (!searchQuery) return true;
     const q = searchQuery.toLowerCase();
-    return (u.full_name ?? '').toLowerCase().includes(q) || (u.email ?? '').toLowerCase().includes(q);
+    return (
+      (u.full_name ?? '').toLowerCase().includes(q) ||
+      (u.email ?? '').toLowerCase().includes(q)
+    );
   });
 
-  const roleBadge: Record<string, { bg: string; icon: typeof Users }> = {
-    admin: { bg: 'bg-purple-50 text-purple-700', icon: ShieldCheck },
-    artist: { bg: 'bg-amber-50 text-amber-700', icon: Palette },
-    buyer: { bg: 'bg-blue-50 text-blue-700', icon: ShoppingBag },
-  };
+  if (authLoading) {
+    return <EditorialSpinner label="Users" headline="One moment\u2026" />;
+  }
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold">User Management</h1>
-        <p className="text-muted mt-1">View and manage all platform users</p>
+    <div
+      className="px-6 sm:px-10"
+      style={{
+        maxWidth: '84rem',
+        margin: '0 auto',
+        paddingTop: 'clamp(3rem, 5vw, 4.5rem)',
+        paddingBottom: 'clamp(5rem, 8vw, 7rem)',
+      }}
+    >
+      {/* ── Heading ── */}
+      <div style={{ marginBottom: 'clamp(2.4rem, 4vw, 3.4rem)' }}>
+        <p style={KICKER}>— Users —</p>
+        <h1
+          className="font-serif"
+          style={{
+            marginTop: '1.2rem',
+            fontSize: 'clamp(2.2rem, 4.5vw, 3.4rem)',
+            lineHeight: 1.05,
+            letterSpacing: '-0.015em',
+            color: 'var(--color-ink)',
+            fontWeight: 400,
+          }}
+        >
+          Everyone on the <em style={{ fontStyle: 'italic' }}>platform.</em>
+        </h1>
       </div>
 
-      {/* Filters */}
-      <div className="flex flex-col sm:flex-row gap-4 mb-6">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted" />
+      {/* ── Filters ── */}
+      <div
+        style={{
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '1.8rem',
+          marginBottom: '2.4rem',
+        }}
+      >
+        <div>
+          <label htmlFor="user-search" className="commission-label">
+            Search
+          </label>
           <input
+            id="user-search"
             type="text"
-            placeholder="Search by name or email..."
+            placeholder="Name or email"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-10 pr-4 py-2.5 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-accent"
+            className="commission-field"
           />
         </div>
-        <div className="flex gap-2">
-          {['all', 'artist', 'buyer', 'admin'].map((role) => (
-            <button
-              key={role}
-              onClick={() => setRoleFilter(role as typeof roleFilter)}
-              className={`px-4 py-2 rounded-full text-sm font-medium capitalize transition-colors ${
-                roleFilter === role
-                  ? 'bg-primary text-white'
-                  : 'bg-muted-bg text-foreground hover:bg-gray-200'
-              }`}
-            >
-              {role === 'all' ? 'All' : `${role}s`}
-            </button>
-          ))}
+
+        <div
+          style={{
+            display: 'flex',
+            gap: '0.2rem',
+            flexWrap: 'wrap',
+            borderBottom: '1px solid var(--color-border)',
+          }}
+        >
+          {FILTERS.map((f) => {
+            const active = roleFilter === f.value;
+            return (
+              <button
+                key={f.value}
+                type="button"
+                onClick={() => setRoleFilter(f.value)}
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  padding: '0.8rem 1.2rem 0.8rem 0',
+                  marginRight: '1.8rem',
+                  fontSize: '0.72rem',
+                  letterSpacing: '0.18em',
+                  textTransform: 'uppercase',
+                  fontWeight: 400,
+                  color: active ? 'var(--color-ink)' : 'var(--color-stone)',
+                  borderBottom: active
+                    ? '1px solid var(--color-ink)'
+                    : '1px solid transparent',
+                  marginBottom: '-1px',
+                  cursor: 'pointer',
+                  transition: 'color var(--dur-fast) var(--ease-out)',
+                }}
+              >
+                {f.label}
+              </button>
+            );
+          })}
         </div>
       </div>
 
-      {/* Users Table */}
+      {/* ── Table ── */}
       {loading ? (
-        <div className="text-center py-16">
-          <div className="inline-block w-8 h-8 border-2 border-accent border-t-transparent rounded-full animate-spin" />
+        <EditorialSpinner label="Users" headline="Fetching the register\u2026" />
+      ) : filteredUsers.length === 0 ? (
+        <div
+          style={{
+            borderTop: '1px solid var(--color-border)',
+            borderBottom: '1px solid var(--color-border)',
+            padding: '4rem 0',
+            textAlign: 'center',
+          }}
+        >
+          <p
+            className="font-serif"
+            style={{
+              fontStyle: 'italic',
+              color: 'var(--color-stone)',
+              fontSize: '1rem',
+            }}
+          >
+            No users match.
+          </p>
         </div>
       ) : (
-        <div className="border border-border rounded-lg overflow-hidden">
-          <table className="w-full">
+        <div style={{ overflowX: 'auto' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
-              <tr className="text-left text-xs text-muted border-b border-border bg-muted-bg">
-                <th className="p-4">User</th>
-                <th className="p-4">Role</th>
-                <th className="p-4">Location</th>
-                <th className="p-4">Joined</th>
-                <th className="p-4">Actions</th>
+              <tr>
+                <th style={COLUMN_HEAD}>Person</th>
+                <th style={COLUMN_HEAD}>Role</th>
+                <th style={COLUMN_HEAD}>Location</th>
+                <th style={COLUMN_HEAD}>Joined</th>
+                <th style={{ ...COLUMN_HEAD, textAlign: 'right', paddingRight: 0 }}>
+                  Change role
+                </th>
               </tr>
             </thead>
             <tbody>
-              {filteredUsers.map((user) => {
-                const badge = roleBadge[user.role] || roleBadge.buyer;
-                return (
-                  <tr key={user.id} className="border-b border-border last:border-0 hover:bg-muted-bg/50">
-                    <td className="p-4">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full bg-gray-300 flex-shrink-0 overflow-hidden">
-                          {user.avatar_url && <img src={user.avatar_url} alt="" className="w-full h-full object-cover" />}
-                        </div>
-                        <div>
-                          <p className="font-medium text-sm">{user.full_name}</p>
-                          <p className="text-xs text-muted">{user.email}</p>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="p-4">
-                      <span className={`inline-flex items-center gap-1 text-xs px-2 py-1 rounded capitalize ${badge.bg}`}>
-                        <badge.icon className="h-3 w-3" />
-                        {user.role}
-                      </span>
-                    </td>
-                    <td className="p-4 text-sm text-muted">{user.location || '—'}</td>
-                    <td className="p-4 text-sm text-muted">
-                      {new Date(user.created_at).toLocaleDateString('en-AU')}
-                    </td>
-                    <td className="p-4">
-                      <select
-                        value={user.role}
-                        onChange={(e) => updateRole(user.id, e.target.value as 'buyer' | 'artist' | 'admin')}
-                        className="text-xs border border-border rounded px-2 py-1 bg-white"
+              {filteredUsers.map((u) => (
+                <tr
+                  key={u.id}
+                  style={{ borderBottom: '1px solid var(--color-border)' }}
+                >
+                  <td
+                    style={{
+                      padding: '1.2rem 1rem 1.2rem 0',
+                      verticalAlign: 'middle',
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                      <div
+                        style={{
+                          width: '2.6rem',
+                          height: '2.6rem',
+                          background: 'var(--color-cream)',
+                          border: '1px solid var(--color-border)',
+                          overflow: 'hidden',
+                          flexShrink: 0,
+                        }}
                       >
-                        <option value="buyer">Buyer</option>
-                        <option value="artist">Artist</option>
-                        <option value="admin">Admin</option>
-                      </select>
-                    </td>
-                  </tr>
-                );
-              })}
+                        {u.avatar_url && (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img
+                            src={u.avatar_url}
+                            alt=""
+                            style={{
+                              width: '100%',
+                              height: '100%',
+                              objectFit: 'cover',
+                            }}
+                          />
+                        )}
+                      </div>
+                      <div>
+                        <p
+                          className="font-serif"
+                          style={{
+                            fontSize: '1rem',
+                            color: 'var(--color-ink)',
+                            margin: 0,
+                          }}
+                        >
+                          {u.full_name || 'Unnamed'}
+                        </p>
+                        <p
+                          style={{
+                            marginTop: '0.2rem',
+                            fontSize: '0.78rem',
+                            color: 'var(--color-stone-dark)',
+                            fontWeight: 300,
+                          }}
+                        >
+                          {u.email}
+                        </p>
+                      </div>
+                    </div>
+                  </td>
+                  <td style={{ padding: '1.2rem 1rem 1.2rem 0', verticalAlign: 'middle' }}>
+                    <span className={`status-pill ${roleToPill(u.role)}`}>
+                      {u.role}
+                    </span>
+                  </td>
+                  <td
+                    style={{
+                      padding: '1.2rem 1rem 1.2rem 0',
+                      verticalAlign: 'middle',
+                      fontSize: '0.85rem',
+                      color: 'var(--color-stone-dark)',
+                      fontWeight: 300,
+                    }}
+                  >
+                    {u.location || '—'}
+                  </td>
+                  <td
+                    style={{
+                      padding: '1.2rem 1rem 1.2rem 0',
+                      verticalAlign: 'middle',
+                      fontSize: '0.85rem',
+                      color: 'var(--color-stone-dark)',
+                      fontWeight: 300,
+                      fontStyle: 'italic',
+                    }}
+                    className="font-serif"
+                  >
+                    {new Date(u.created_at).toLocaleDateString('en-AU', {
+                      day: 'numeric',
+                      month: 'short',
+                      year: 'numeric',
+                    })}
+                  </td>
+                  <td
+                    style={{
+                      padding: '1.2rem 0 1.2rem 0',
+                      verticalAlign: 'middle',
+                      textAlign: 'right',
+                    }}
+                  >
+                    <select
+                      value={u.role}
+                      onChange={(e) => updateRole(u.id, e.target.value as RoleValue)}
+                      className="commission-field"
+                      style={{
+                        width: 'auto',
+                        minWidth: '9rem',
+                        fontSize: '0.8rem',
+                        textAlign: 'right',
+                      }}
+                    >
+                      <option value="buyer">Buyer</option>
+                      <option value="artist">Artist</option>
+                      <option value="admin">Admin</option>
+                    </select>
+                  </td>
+                </tr>
+              ))}
             </tbody>
           </table>
-          {filteredUsers.length === 0 && (
-            <div className="p-10 text-center text-muted">No users found.</div>
-          )}
         </div>
       )}
     </div>
   );
+}
+
+function roleToPill(role: string): string {
+  switch (role) {
+    case 'admin':
+      return 'status-pill--attention';
+    case 'artist':
+      return 'status-pill--success';
+    case 'buyer':
+      return 'status-pill--progress';
+    default:
+      return 'status-pill--neutral';
+  }
 }

@@ -262,7 +262,7 @@ function FilterRow({
           background: 'var(--color-ink)',
           verticalAlign: 'middle',
           marginRight: active ? 10 : 0,
-          transition: 'width 200ms cubic-bezier(0.22, 1, 0.36, 1), margin 200ms cubic-bezier(0.22, 1, 0.36, 1)',
+          transition: 'width var(--dur-fast) var(--ease-out), margin var(--dur-fast) var(--ease-out)',
         }}
       />
       {label}
@@ -811,7 +811,7 @@ function BrowseContent() {
             fontWeight: 400,
             maxWidth: '18ch',
             opacity: 0,
-            animation: 'fade-up 700ms cubic-bezier(0.22, 1, 0.36, 1) forwards',
+            animation: 'fade-up var(--dur-slow) var(--ease-out) forwards',
           }}
         >
           Original work from Australian artists.
@@ -963,7 +963,7 @@ function BrowseContent() {
                               background: 'none',
                               border: 'none',
                               cursor: 'pointer',
-                              transition: 'opacity 200ms cubic-bezier(0.22, 1, 0.36, 1)',
+                              transition: 'opacity var(--dur-fast) var(--ease-out)',
                             }}
                           >
                             ×
@@ -1396,7 +1396,7 @@ function BrowseContent() {
                       key={artwork.id}
                       style={{
                         opacity: 0,
-                        animation: `fade-up 700ms cubic-bezier(0.22, 1, 0.36, 1) ${Math.min(i * 60, 320)}ms forwards`,
+                        animation: `fade-up var(--dur-slow) var(--ease-out) ${Math.min(i * 60, 320)}ms forwards`,
                       }}
                     >
                     <ArtworkCard

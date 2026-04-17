@@ -6,6 +6,7 @@ import Image from 'next/image';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { useRequireAuth } from '@/lib/hooks/useRequireAuth';
 import Avatar from '@/components/ui/Avatar';
+import EditorialSpinner from '@/components/ui/EditorialSpinner';
 
 // ── Types ──
 
@@ -53,27 +54,6 @@ function PageShell({ children }: { children: React.ReactNode }) {
       >
         {children}
       </div>
-    </div>
-  );
-}
-
-function EditorialSpinner({ label = 'Loading…' }: { label?: string }) {
-  return (
-    <div
-      style={{
-        minHeight: '60vh',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        background: 'var(--color-warm-white)',
-      }}
-    >
-      <p
-        className="font-serif"
-        style={{ fontStyle: 'italic', fontSize: '0.95rem', color: 'var(--color-stone)' }}
-      >
-        {label}
-      </p>
     </div>
   );
 }
@@ -135,7 +115,7 @@ export default function MessagesPage() {
   }, [loading]);
 
   if (authLoading) return <EditorialSpinner />;
-  if (loading) return <EditorialSpinner label="Retrieving your correspondence…" />;
+  if (loading) return <EditorialSpinner headline="Retrieving your correspondence…" />;
 
   // Editorial header fragment reused across states
   const header = (

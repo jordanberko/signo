@@ -136,16 +136,68 @@ export default async function ArtistProfilePage({ params }: PageProps) {
     .insert({ profile_id: id })
     .then(() => {});
 
+  // ── JSON-LD structured data (Schema.org Person + linked OfferCatalog) ──
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://signoart.com.au';
+  const artistUrl = `${appUrl}/artists/${id}`;
+
+  const personJsonLdRaw = {
+    '@context': 'https://schema.org',
+    '@type': 'Person',
+    name: artist.full_name || 'Artist',
+    url: artistUrl,
+    description: artist.bio || undefined,
+    image: artist.avatar_url || undefined,
+    jobTitle: 'Visual Artist',
+    ...(artist.location ? { address: { '@type': 'PostalAddress', addressLocality: artist.location } } : {}),
+    ...(reviews && reviews.length > 0
+      ? {
+          aggregateRating: {
+            '@type': 'AggregateRating',
+            ratingValue: avgRating.toFixed(1),
+            reviewCount: reviews.length,
+            bestRating: 5,
+            worstRating: 1,
+          },
+        }
+      : {}),
+    ...(artworks && artworks.length > 0
+      ? {
+          makesOffer: (artworks as Array<Record<string, unknown>>).slice(0, 12).map((a) => ({
+            '@type': 'Offer',
+            url: `${appUrl}/artwork/${a.id as string}`,
+            price: a.price_aud,
+            priceCurrency: 'AUD',
+            availability: 'https://schema.org/InStock',
+            itemOffered: {
+              '@type': 'VisualArtwork',
+              name: a.title as string,
+              ...(a.medium ? { artMedium: a.medium as string } : {}),
+              ...(Array.isArray(a.images) && (a.images as string[])[0]
+                ? { image: (a.images as string[])[0] }
+                : {}),
+            },
+          })),
+        }
+      : {}),
+  };
+  const personJsonLd = JSON.parse(JSON.stringify(personJsonLdRaw));
+
   return (
-    <ArtistProfileClient
-      artist={artist}
-      artworks={(artworks ?? []) as typeof artworks & { images: string[] }[]}
-      reviews={reviews ?? []}
-      salesCount={salesCount ?? 0}
-      avgRating={avgRating}
-      initialFollowerCount={followerCount ?? 0}
-      featuredArtworks={(featuredArtworks ?? []) as typeof artworks & { images: string[] }[]}
-      studioPosts={studioPosts ?? []}
-    />
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(personJsonLd) }}
+      />
+      <ArtistProfileClient
+        artist={artist}
+        artworks={(artworks ?? []) as typeof artworks & { images: string[] }[]}
+        reviews={reviews ?? []}
+        salesCount={salesCount ?? 0}
+        avgRating={avgRating}
+        initialFollowerCount={followerCount ?? 0}
+        featuredArtworks={(featuredArtworks ?? []) as typeof artworks & { images: string[] }[]}
+        studioPosts={studioPosts ?? []}
+      />
+    </>
   );
 }

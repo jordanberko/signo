@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useAuth } from '@/components/providers/AuthProvider';
+import EditorialSpinner from '@/components/ui/EditorialSpinner';
 import { useRequireAuth } from '@/lib/hooks/useRequireAuth';
 import { formatPrice } from '@/lib/utils';
 
@@ -33,33 +34,6 @@ interface ShippingAddress {
 }
 
 const AU_STATES = ['ACT', 'NSW', 'NT', 'QLD', 'SA', 'TAS', 'VIC', 'WA'];
-
-// ── Spinner ──
-
-function EditorialSpinner({ label = 'Loading…' }: { label?: string }) {
-  return (
-    <div
-      style={{
-        minHeight: '60vh',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        background: 'var(--color-warm-white)',
-      }}
-    >
-      <p
-        className="font-serif"
-        style={{
-          fontStyle: 'italic',
-          fontSize: '0.95rem',
-          color: 'var(--color-stone)',
-        }}
-      >
-        {label}
-      </p>
-    </div>
-  );
-}
 
 // ── Component ──
 
@@ -206,7 +180,7 @@ export default function CheckoutPage({
   }
 
   if (authLoading) return <EditorialSpinner />;
-  if (loading) return <EditorialSpinner label="Preparing checkout…" />;
+  if (loading) return <EditorialSpinner headline="Preparing checkout…" />;
 
   // ── Not available ──
   if (!artwork) {

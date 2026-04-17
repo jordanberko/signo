@@ -264,7 +264,7 @@ export default function FollowingPage() {
                   transform: unfollowing.has(artist.id)
                     ? 'translateY(-4px)'
                     : 'translateY(0)',
-                  transition: 'opacity 350ms cubic-bezier(0.22, 1, 0.36, 1), transform 350ms cubic-bezier(0.22, 1, 0.36, 1)',
+                  transition: 'opacity var(--dur-base) var(--ease-out), transform var(--dur-base) var(--ease-out)',
                 }}
               >
                 <div

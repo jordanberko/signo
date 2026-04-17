@@ -177,7 +177,7 @@ export default function EntryAnimation() {
     <div
       className="fixed inset-0"
       style={{
-        zIndex: 99999,
+        zIndex: 'var(--z-transition)',
         cursor: isSettling ? 'default' : 'pointer',
         pointerEvents: isSettling ? 'none' : 'auto',
       }}
