@@ -136,6 +136,21 @@ future preview-based end-to-end verification.
 6. When the preview is no longer being tested, delete the endpoint
    (`stripe webhook_endpoints delete we_<id> --confirm`).
 
+## Group 3a notes
+
+Reminders that apply when Group 3a (cron configuration in `vercel.json`)
+is executed. Do NOT action these before Group 3a begins — left here so
+they aren't lost.
+
+### C3 cron schedule change
+Once `vercel.json` is updated for Group 3a, the release-reservations
+schedule should be `*/5 * * * *` (every 5 minutes), not `*/15 * * * *`.
+
+Rationale: with a 10-minute reservation window (changed 2026-04-22), a
+15-minute cron means worst-case cleanup latency is 25 min (10m
+reservation + 15m cron gap), effectively defeating the shorter window.
+5-minute cron reduces worst case to 15 min, which is the right ratio.
+
 ## Medium
 
 ### M1 — `charge.refunded` webhook handler

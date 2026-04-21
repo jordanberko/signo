@@ -968,6 +968,21 @@ export default function CheckoutPage({
                 You&apos;ll be handed over to Stripe&apos;s secure checkout.
                 Funds are held in escrow until delivery is confirmed.
               </p>
+              {!isOwnArtwork && (
+                <p
+                  style={{
+                    marginTop: '0.8rem',
+                    fontSize: '0.7rem',
+                    letterSpacing: '0.08em',
+                    color: 'var(--color-stone)',
+                    textAlign: 'center',
+                    fontWeight: 300,
+                    lineHeight: 1.5,
+                  }}
+                >
+                  Held for ten minutes while you complete payment.
+                </p>
+              )}
             </div>
           </aside>
         </div>
