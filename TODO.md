@@ -237,3 +237,26 @@ Actions, once Signo has dedicated support contact info:
 - `company.structure: "sole_proprietorship"` — reflects actual business structure; change only if Signo is restructured.
 - `settings.payments.statement_descriptor: "SIGNO ART"` — already correct.
 - `settings.card_payments.statement_descriptor_prefix: "SIGNO"` — already correct.
+
+## Post-launch monitoring
+
+### Stuck reservation monitoring
+Set up a daily check (or Vercel cron) that alerts if any artwork
+has `status='reserved'` for more than 1 hour. Post-Group-1/2/3
+deployment, this should always be zero except during active
+checkouts. Any persistent non-zero count means reservation cleanup
+is broken.
+
+Query:
+```sql
+SELECT COUNT(*) FROM artworks
+WHERE status = 'reserved'
+  AND updated_at < NOW() - INTERVAL '1 hour';
+```
+
+Alert via email to admin if count > 0.
+
+Surfaced 2026-04-21 after an abandoned checkout on
+signoart.com.au left artwork `74f3803e-4cbf-4365-bcf3-589c2af502a5`
+("Untitled #3", $999.97) stuck at `reserved` for ~10 hours until
+manual reset. Broken webhook + absent cron meant no auto-recovery.
