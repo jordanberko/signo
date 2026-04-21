@@ -44,6 +44,64 @@ Options to consider long-term:
       terminal" workflow for developers testing webhook paths on
       previews. Zero infra cost but error-prone.
 
+### Vercel Deployment Protection blocks webhook POSTs
+Vercel Deployment Protection (the SSO gate on non-production previews)
+intercepts incoming requests at the edge and returns HTTP 401
+"Authentication Required" HTML before the serverless function runs.
+Stripe — or any third-party POSTer — can never reach the webhook
+handler on a preview URL without a workaround.
+
+Production deployments at `signoart.com.au` won't hit this — production
+URLs don't sit behind deployment protection. But every non-production
+preview that needs webhook testing needs the Protection Bypass for
+Automation pattern (see "Webhook testing runbook" below).
+
+Surfaced 2026-04-21 while verifying Group 1 security fixes: Stripe
+delivered `checkout.session.completed` to the preview endpoint and
+received 401 HTML from Vercel, so the function never ran. Fixed by
+appending `?x-vercel-protection-bypass=<token>` to the endpoint URL.
+
+## Webhook testing runbook
+
+Standard pattern for exercising the webhook codepath on a Vercel
+preview deploy — use this for Group 2 and Group 3 testing, and for any
+future preview-based end-to-end verification.
+
+1. Confirm the project has a Protection Bypass for Automation token
+   (Vercel → Project → Settings → Deployment Protection). Create one
+   if missing. The token is project-scoped and survives redeploys, and
+   is auto-exposed to the runtime as `VERCEL_AUTOMATION_BYPASS_SECRET`.
+
+2. Register the webhook endpoint with the bypass token baked into the
+   URL (`stripe webhook_endpoints create --url
+   "https://<preview-host>.vercel.app/api/stripe/payment-webhook?x-vercel-protection-bypass=<TOKEN>"
+   --enabled-events checkout.session.completed --enabled-events
+   charge.dispute.created`). Capture the `whsec_…` signing secret the
+   command prints.
+
+3. Rotate `STRIPE_PAYMENT_WEBHOOK_SECRET` in the preview scope of the
+   branch being tested:
+   `vercel env rm STRIPE_PAYMENT_WEBHOOK_SECRET preview <branch> --yes`
+   then `vercel env add STRIPE_PAYMENT_WEBHOOK_SECRET preview <branch>
+   --value "$(cat /tmp/whsec.tmp)" --yes`. Use a `chmod 600` tempfile
+   so the secret isn't echoed to shell history; `shred` or `rm` it
+   after.
+
+4. Trigger a redeploy so the function picks up the rotated env
+   (`git commit --allow-empty -m "Chore: rebuild preview after webhook
+   rotation" && git push`).
+
+5. Probe the URL to confirm the function is reachable
+   (`curl -X POST
+   "https://<preview-host>.vercel.app/api/stripe/payment-webhook?x-vercel-protection-bypass=<TOKEN>"`).
+   Expected response: HTTP 400 with body containing
+   `"Webhook signature verification failed"`. That's the function
+   running and correctly rejecting an unsigned body — not the SSO gate
+   returning 401 HTML.
+
+6. When the preview is no longer being tested, delete the endpoint
+   (`stripe webhook_endpoints delete we_<id> --confirm`).
+
 ## Medium
 
 ### M1 — `charge.refunded` webhook handler
