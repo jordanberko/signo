@@ -3,6 +3,47 @@
 These were identified in the Phase 1 audit (see audit report in session
 history) and deliberately deferred. Listed so they don't get lost.
 
+## Pre-launch blockers
+
+### CRITICAL — Production webhook secret mismatch
+The `STRIPE_PAYMENT_WEBHOOK_SECRET` env var on Vercel **Production** does
+not match the signing secret of webhook endpoint `we_1THAZfAFoloYAF9YCSozHoTi`
+(`https://signo-tau.vercel.app/api/stripe/payment-webhook`). Surfaced
+2026-04-21 while diagnosing why a preview-deploy test payment didn't create
+an order row — Stripe delivered `checkout.session.completed` to prod (that's
+where the endpoint points), and prod rejected with HTTP 400 "Signature
+verification failed" on both delivery attempts.
+
+Consequence if not fixed before live cutover: every real buyer payment
+will succeed on Stripe (money captured) but every `orders` row insert
+will fail, every artwork will stay `reserved` forever, and every artist
+will miss their payout. Silent catastrophic failure.
+
+- [ ] When configuring production env vars pre-launch, set
+      `STRIPE_PAYMENT_WEBHOOK_SECRET` on Vercel Production to the
+      signing secret of endpoint `we_1THAZfAFoloYAF9YCSozHoTi`.
+      (Dashboard → Developers → Webhooks → the live endpoint → Reveal
+      signing secret.) Test with `stripe trigger checkout.session.completed`
+      against the live endpoint before announcing launch.
+
+### Architectural — Webhook endpoint URL is hardcoded to prod
+Today there's exactly one payment-webhook endpoint in Stripe and it's
+pinned to `signo-tau.vercel.app`. Previews can't exercise the webhook
+codepath without manual intervention (adding a second endpoint, as was
+done for Group 1 — `we_1TOW8fAFoloYAF9YoTjEVzbT` points at
+`signo-git-group-1-security-fixes-...`). That workaround doesn't scale.
+
+Options to consider long-term:
+- (a) Maintain separate per-environment webhook endpoints in Stripe,
+      one per long-lived branch (main/staging/dev). Branch-scoped Vercel
+      env vars pick the right secret.
+- (b) CI step that registers a transient webhook endpoint at deploy
+      time for each preview and tears it down on PR close. Most work,
+      most automated.
+- (c) Document a "run `stripe listen --forward-to <preview-url>` in a
+      terminal" workflow for developers testing webhook paths on
+      previews. Zero infra cost but error-prone.
+
 ## Medium
 
 ### M1 — `charge.refunded` webhook handler
