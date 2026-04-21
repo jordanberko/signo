@@ -22,6 +22,13 @@ interface EscrowOrder {
   stripe_account_id: string | null; // from joined profile
 }
 
+// Only these order states may have funds released. Anything else is
+// either not ready (e.g. 'paid', 'shipped'), already settled ('completed',
+// 'refunded', 'cancelled'), or in the wrong lifecycle branch.
+// 'delivered' is the normal escrow auto-release case.
+// 'disputed' is the admin "resolved in artist's favour" path.
+const RELEASABLE_STATUSES = new Set(['delivered', 'disputed']);
+
 // ── Fund Release ──
 
 /**
@@ -35,6 +42,14 @@ interface EscrowOrder {
  *   2. Validate the artist has a connected account
  *   3. Transfer funds via Stripe Transfer API
  *   4. Mark order as completed with payout timestamp
+ *
+ * Guards (fail fast, no Stripe call):
+ *   - Order must be in a releasable status (see RELEASABLE_STATUSES).
+ *   - payout_released_at must be null (double-release protection).
+ *   The Stripe-side idempotency key on createTransfer is the final
+ *   defence against duplicate transfers, but we also want to avoid
+ *   the round-trip and the misleading "success" when the order is
+ *   already completed.
  */
 export async function releaseFunds(orderId: string): Promise<{
   success: boolean;
@@ -47,13 +62,29 @@ export async function releaseFunds(orderId: string): Promise<{
   const { data: order, error: orderError } = await supabase
     .from('orders')
     .select(
-      'id, artist_id, total_amount_aud, artist_payout_aud, stripe_payment_intent_id, profiles!orders_artist_id_fkey(stripe_account_id)'
+      'id, artist_id, status, payout_released_at, total_amount_aud, artist_payout_aud, stripe_payment_intent_id, profiles!orders_artist_id_fkey(stripe_account_id)'
     )
     .eq('id', orderId)
     .single();
 
   if (orderError || !order) {
     return { success: false, error: `Order not found: ${orderId}` };
+  }
+
+  // Status guard — refuse to release from unexpected states
+  if (!RELEASABLE_STATUSES.has(order.status)) {
+    return {
+      success: false,
+      error: `Cannot release funds for order ${orderId} in status '${order.status}'`,
+    };
+  }
+
+  // Already-released guard — belt-and-braces on top of the idempotency key
+  if (order.payout_released_at) {
+    return {
+      success: false,
+      error: `Order ${orderId} already released at ${order.payout_released_at}`,
+    };
   }
 
   const profileData = order.profiles as unknown as

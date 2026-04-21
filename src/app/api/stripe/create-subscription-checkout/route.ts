@@ -6,7 +6,7 @@ import {
   createSubscriptionCheckoutSession,
 } from '@/lib/stripe/subscriptions';
 
-export async function POST(request: Request) {
+export async function POST(_request: Request) {
   try {
     const supabase = await createClient();
 
@@ -69,9 +69,10 @@ export async function POST(request: Request) {
       .update({ stripe_customer_id: customerId })
       .eq('id', user.id);
 
-    // Parse request for URLs
-    const body = await request.json().catch(() => ({}));
-    const origin = body.origin || process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+    // Use server-side origin only — never trust client-supplied origin.
+    // A malicious actor could pass an attacker-controlled host and
+    // turn the Stripe redirect into an open-redirect / phishing vector.
+    const origin = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
 
     // Create checkout session
     const session = await createSubscriptionCheckoutSession(

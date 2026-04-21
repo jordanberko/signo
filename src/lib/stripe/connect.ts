@@ -107,14 +107,24 @@ export async function createTransfer(
   orderId: string
 ) {
   const stripe = getStripe();
-  const transfer = await stripe.transfers.create({
-    amount: amountCents,
-    currency: 'aud',
-    destination: accountId,
-    metadata: {
-      signo_order_id: orderId,
+  // Idempotency key scoped to the order — if this function is invoked
+  // twice for the same order (overlapping cron runs, manual complete
+  // racing with the auto-release cron, a retry after a transient 5xx),
+  // Stripe will return the original transfer instead of creating a
+  // duplicate. Without this, double-payout is possible.
+  const transfer = await stripe.transfers.create(
+    {
+      amount: amountCents,
+      currency: 'aud',
+      destination: accountId,
+      metadata: {
+        signo_order_id: orderId,
+      },
     },
-  });
+    {
+      idempotencyKey: `transfer_order_${orderId}`,
+    }
+  );
   return transfer;
 }
 

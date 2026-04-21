@@ -8,7 +8,7 @@ import { createConnectAccount, createAccountLink } from '@/lib/stripe/connect';
  * Creates a Stripe Connect Express account for the authenticated artist
  * (or uses their existing one) and returns the onboarding URL.
  */
-export async function POST(request: Request) {
+export async function POST(_request: Request) {
   try {
     const supabase = await createClient();
 
@@ -34,9 +34,10 @@ export async function POST(request: Request) {
       );
     }
 
-    const body = await request.json().catch(() => ({}));
-    const origin =
-      body.origin || process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+    // Use server-side origin only — never trust client-supplied origin.
+    // A malicious actor could pass an attacker-controlled host and
+    // turn the Stripe redirect into an open-redirect / phishing vector.
+    const origin = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
 
     let accountId = profile.stripe_account_id;
 

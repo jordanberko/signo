@@ -145,6 +145,14 @@ export async function POST(request: Request) {
       session = await stripe.checkout.sessions.create({
         mode: 'payment',
         customer_email: buyerProfile?.email || user.email || undefined,
+        // Expire the session after 30 minutes. This matches the
+        // `release-reservations` cron's 30-minute reservation cutoff —
+        // if the buyer abandons, Stripe fires `checkout.session.expired`
+        // roughly in sync with when the artwork gets un-reserved, so
+        // we don't end up in a state where a "fresh" payment webhook
+        // tries to mark an already-re-approved artwork as sold.
+        // 30 minutes is Stripe's minimum allowed expiry.
+        expires_at: Math.floor(Date.now() / 1000) + 30 * 60,
         line_items: [
           {
             price_data: {

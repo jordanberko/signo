@@ -9,7 +9,7 @@ import { createAccountLink } from '@/lib/stripe/connect';
  * Account links expire after a short time, so this is needed when the artist
  * returns to finish onboarding after the link has gone stale.
  */
-export async function POST(request: Request) {
+export async function POST(_request: Request) {
   try {
     const supabase = await createClient();
 
@@ -34,9 +34,10 @@ export async function POST(request: Request) {
       );
     }
 
-    const body = await request.json().catch(() => ({}));
-    const origin =
-      body.origin || process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+    // Use server-side origin only — never trust client-supplied origin.
+    // A malicious actor could pass an attacker-controlled host and
+    // turn the Stripe redirect into an open-redirect / phishing vector.
+    const origin = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
 
     const url = await createAccountLink(
       profile.stripe_account_id,
