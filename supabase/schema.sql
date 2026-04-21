@@ -10,7 +10,7 @@ create extension if not exists "uuid-ossp";
 
 create type user_role as enum ('buyer', 'artist', 'admin');
 create type artwork_category as enum ('original', 'print', 'digital');
-create type artwork_status as enum ('draft', 'pending_review', 'approved', 'rejected', 'sold', 'paused');
+create type artwork_status as enum ('draft', 'pending_review', 'approved', 'rejected', 'sold', 'paused', 'reserved');
 create type order_status as enum ('pending_payment', 'paid', 'shipped', 'delivered', 'completed', 'disputed', 'refunded', 'cancelled');
 create type dispute_type as enum ('damaged', 'not_as_described', 'not_received', 'other');
 create type dispute_status as enum ('open', 'under_review', 'resolved_refund', 'resolved_no_refund', 'resolved_return');
