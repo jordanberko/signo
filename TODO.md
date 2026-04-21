@@ -25,6 +25,40 @@ will miss their payout. Silent catastrophic failure.
       (Dashboard → Developers → Webhooks → the live endpoint → Reveal
       signing secret.) Test with `stripe trigger checkout.session.completed`
       against the live endpoint before announcing launch.
+- [ ] Re-enable webhook endpoint `we_1THAZfAFoloYAF9YCSozHoTi` after
+      setting `STRIPE_PAYMENT_WEBHOOK_SECRET` in Vercel production to
+      match the endpoint's actual signing secret. Disabled 2026-04-21
+      during preview testing to reduce noise — it was failing signature
+      verification on every test-mode event and pointlessly
+      incrementing `pending_webhooks` on every delivery. Re-enable via
+      `stripe webhook_endpoints update we_1THAZfAFoloYAF9YCSozHoTi
+      --no-disabled --api-key $SK_LIVE` (note: use `--no-disabled` to
+      un-set the disabled flag).
+
+### Migration apply workflow gap
+Creating migration files in `supabase/migrations/` does **not**
+auto-apply them to Supabase. Both 017 (`reserved` status) and 018
+(`processed_stripe_events`) had to be manually pasted into the SQL
+Editor after the commit. Each time, the app was broken between commit
+and manual apply, and the failure mode was silent in preview until we
+hit the relevant code path.
+
+Before multi-developer workflow or CI deployment, set up one of:
+- (a) Supabase CLI integration (`supabase db push` in CI). Requires
+      linking the project and adding a CI step that runs on deploy.
+      Cleanest long-term.
+- (b) Automated migration runner on app startup or via a protected
+      API route. Risky — can apply partial migrations or race.
+- (c) Documented manual apply step in a deploy checklist (e.g. an
+      `.github/pull_request_template.md` reminder: "If this PR adds
+      a `supabase/migrations/*.sql` file, apply it to the target DB
+      before merging"). Zero infra, works today, depends on
+      discipline.
+
+Surfaced 2026-04-21 when the Group 2 H3 webhook refactor shipped but
+migration 018 wasn't applied — Stripe delivered a paid event, the
+webhook hit the missing table, returned 500, and no order was created
+until the migration was applied manually and the event was resent.
 
 ### Architectural — Webhook endpoint URL is hardcoded to prod
 Today there's exactly one payment-webhook endpoint in Stripe and it's
