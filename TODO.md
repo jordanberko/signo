@@ -113,6 +113,22 @@ but easy to get wrong when the team does manual refunds.
 - Look up the order by `stripe_payment_intent_id` (a `Charge` has
   `payment_intent`) and set `status = 'refunded'` if it isn't already.
 
+### M2 — Apply H3 pattern to subscription webhook
+`src/app/api/stripe/subscription-webhook/route.ts` silently returns 200
+on all errors — the same bug Group 2 is fixing for the payment webhook.
+Lower priority than payment webhook because subscription volume is low
+right now, but needed before significant artist onboarding: a failed
+subscription renewal today silently succeeds and the artist keeps
+access despite non-payment.
+
+Once Group 2 lands, port the same pattern to the subscription webhook:
+- 400 on signature verification failure
+- 200 on unhandled event types
+- 200 on already-processed events (check `processed_stripe_events` by
+  `event.id`)
+- 500 on write failures (so Stripe retries)
+- 200 on success (after `processed_stripe_events` insert)
+
 ### M3 — In-memory rate limiter
 `src/lib/rate-limit.ts` is per-Vercel-function-instance, not global.
 Under autoscaling the 10-per-hour checkout cap is really "10 per hour
