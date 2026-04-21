@@ -332,30 +332,31 @@ export default function Header() {
                 {user.full_name || 'Account'}
               </div>
               <ul className="list-none p-0 m-0 space-y-2">
-                {/* Orders — everyone on Signo can be a buyer (artists and
-                    admins can also purchase work), so this lives above
-                    the role split and is rendered for every signed-in user. */}
+                {/* Shared buyer-side links — roles are not exclusive on
+                    Signo. Artists and admins can also buy, save, and
+                    follow, so these live above the role split and are
+                    rendered for every signed-in user. */}
                 <OverlayLink href="/orders" label="Orders" onNavigate={() => setMenuOpen(false)} index={0} animate={menuOpen} />
+                <OverlayLink href="/favourites" label="Favourites" onNavigate={() => setMenuOpen(false)} index={1} animate={menuOpen} />
+                <OverlayLink href="/following" label="Following" onNavigate={() => setMenuOpen(false)} index={2} animate={menuOpen} />
                 {!isArtist ? (
                   <>
-                    <OverlayLink href="/dashboard" label="Dashboard" onNavigate={() => setMenuOpen(false)} index={1} animate={menuOpen} />
-                    <OverlayLink href="/favourites" label="Favourites" onNavigate={() => setMenuOpen(false)} index={2} animate={menuOpen} />
-                    <OverlayLink href="/messages" label="Messages" onNavigate={() => setMenuOpen(false)} badge={unreadCount} index={3} animate={menuOpen} />
-                    <OverlayLink href="/following" label="Following" onNavigate={() => setMenuOpen(false)} index={4} animate={menuOpen} />
+                    <OverlayLink href="/dashboard" label="Dashboard" onNavigate={() => setMenuOpen(false)} index={3} animate={menuOpen} />
+                    <OverlayLink href="/messages" label="Messages" onNavigate={() => setMenuOpen(false)} badge={unreadCount} index={4} animate={menuOpen} />
                     <OverlayLink href="/settings" label="Settings" onNavigate={() => setMenuOpen(false)} index={5} animate={menuOpen} />
                   </>
                 ) : (
                   <>
-                    <OverlayLink href="/artist/dashboard" label="Studio dashboard" onNavigate={() => setMenuOpen(false)} index={1} animate={menuOpen} />
-                    <OverlayLink href="/artist/artworks" label="My listings" onNavigate={() => setMenuOpen(false)} index={2} animate={menuOpen} />
-                    <OverlayLink href="/artist/analytics" label="Analytics" onNavigate={() => setMenuOpen(false)} index={3} animate={menuOpen} />
-                    <OverlayLink href="/artist/earnings" label="Earnings" onNavigate={() => setMenuOpen(false)} index={4} animate={menuOpen} />
-                    <OverlayLink href="/messages" label="Messages" onNavigate={() => setMenuOpen(false)} badge={unreadCount} index={5} animate={menuOpen} />
-                    <OverlayLink href="/settings" label="Settings" onNavigate={() => setMenuOpen(false)} index={6} animate={menuOpen} />
+                    <OverlayLink href="/artist/dashboard" label="Studio dashboard" onNavigate={() => setMenuOpen(false)} index={3} animate={menuOpen} />
+                    <OverlayLink href="/artist/artworks" label="My listings" onNavigate={() => setMenuOpen(false)} index={4} animate={menuOpen} />
+                    <OverlayLink href="/artist/analytics" label="Analytics" onNavigate={() => setMenuOpen(false)} index={5} animate={menuOpen} />
+                    <OverlayLink href="/artist/earnings" label="Earnings" onNavigate={() => setMenuOpen(false)} index={6} animate={menuOpen} />
+                    <OverlayLink href="/messages" label="Messages" onNavigate={() => setMenuOpen(false)} badge={unreadCount} index={7} animate={menuOpen} />
+                    <OverlayLink href="/settings" label="Settings" onNavigate={() => setMenuOpen(false)} index={8} animate={menuOpen} />
                   </>
                 )}
                 {isAdmin && (
-                  <OverlayLink href="/admin/reviews" label="Admin review queue" onNavigate={() => setMenuOpen(false)} index={7} animate={menuOpen} />
+                  <OverlayLink href="/admin/reviews" label="Admin review queue" onNavigate={() => setMenuOpen(false)} index={9} animate={menuOpen} />
                 )}
               </ul>
             </div>
