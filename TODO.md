@@ -60,6 +60,17 @@ migration 018 wasn't applied — Stripe delivered a paid event, the
 webhook hit the missing table, returned 500, and no order was created
 until the migration was applied manually and the event was resent.
 
+Related — no operator path for privileged SQL. The
+`set_updated_at_artworks` BEFORE UPDATE trigger (migration 001, lines
+155–157) unconditionally resets `updated_at = now()`, and PostgREST
+service-role bypasses RLS but not BEFORE triggers. With no
+`DATABASE_URL` or `supabase db exec` path exposed to preview/prod,
+there's no supported way to seed stale rows for reservation/escrow
+bug repro — so whichever option above ships, it should also cover an
+operator SQL path (dev/preview-gated `DATABASE_URL`, documented
+`supabase db …` procedure, or admin-only RPC). Surfaced 2026-04-22
+during end-to-end verification of the release-reservations cron.
+
 ### Architectural — Webhook endpoint URL is hardcoded to prod
 Today there's exactly one payment-webhook endpoint in Stripe and it's
 pinned to `signo-tau.vercel.app`. Previews can't exercise the webhook
