@@ -290,11 +290,14 @@ async function handleCheckoutSessionCompleted(
     `[Payment Webhook] Order created: ${order.id} | Artwork: ${artworkId} | Total: $${totalAud} | Artist receives: $${artistPayout}`
   );
 
-  // ── Send email notifications (fire-and-forget) ──
-  // Email failures are non-critical — they should not cause a webhook
-  // retry because re-running the handler would attempt a duplicate
-  // order creation (caught by existingOrder check) but also a
-  // duplicate email. So we swallow email failures here.
+  // ── Send email notifications ──
+  // These are awaited so the serverless function doesn't tear down
+  // the HTTP connection to Resend mid-flight. Failures are caught
+  // locally and logged — they must NOT throw out of this handler,
+  // because the order row + artwork flip have already committed and
+  // a non-2xx here would make Stripe retry (which would re-run email
+  // sends — the existingOrder guard prevents duplicate orders, not
+  // duplicate emails).
   const [buyerResult, artistResult, artworkResult] = await Promise.all([
     supabase.from('profiles').select('email, full_name').eq('id', buyerId).single(),
     supabase.from('profiles').select('email, full_name').eq('id', artistId).single(),
@@ -306,42 +309,46 @@ async function handleCheckoutSessionCompleted(
   const artwork = artworkResult.data;
 
   if (buyer?.email) {
-    sendOrderConfirmation({
-      buyerEmail: buyer.email,
-      buyerName: buyer.full_name || '',
-      orderId: order.id,
-      artworkTitle: artwork?.title || 'Artwork',
-      artistName: artist?.full_name || 'Artist',
-      artworkImageUrl: artwork?.images?.[0] || undefined,
-      totalAmount: totalAud,
-    }).catch((err) =>
+    try {
+      await sendOrderConfirmation({
+        buyerEmail: buyer.email,
+        buyerName: buyer.full_name || '',
+        orderId: order.id,
+        artworkTitle: artwork?.title || 'Artwork',
+        artistName: artist?.full_name || 'Artist',
+        artworkImageUrl: artwork?.images?.[0] || undefined,
+        totalAmount: totalAud,
+      });
+    } catch (err) {
       console.warn('[EMAIL_FAILED]', {
         type: 'order_confirmation',
         orderId: order.id,
         recipient: buyer.email,
-        error: err?.message,
-      })
-    );
+        error: err instanceof Error ? err.message : String(err),
+      });
+    }
   }
 
   if (artist?.email) {
-    sendNewSaleNotification({
-      artistEmail: artist.email,
-      artistName: artist.full_name || '',
-      orderId: order.id,
-      artworkTitle: artwork?.title || 'Artwork',
-      salePrice: totalAud,
-      artistPayout,
-      buyerCity: shippingAddress?.city,
-      buyerState: shippingAddress?.state,
-    }).catch((err) =>
+    try {
+      await sendNewSaleNotification({
+        artistEmail: artist.email,
+        artistName: artist.full_name || '',
+        orderId: order.id,
+        artworkTitle: artwork?.title || 'Artwork',
+        salePrice: totalAud,
+        artistPayout,
+        buyerCity: shippingAddress?.city,
+        buyerState: shippingAddress?.state,
+      });
+    } catch (err) {
       console.warn('[EMAIL_FAILED]', {
         type: 'new_sale_notification',
         orderId: order.id,
         recipient: artist.email,
-        error: err?.message,
-      })
-    );
+        error: err instanceof Error ? err.message : String(err),
+      });
+    }
   }
 }
 
