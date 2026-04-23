@@ -23,20 +23,18 @@ function getServiceClient() {
  * are logged and swallowed — the artwork flip must not be blocked by
  * a best-effort session cleanup.
  *
- * Desired cadence: every 5 minutes, to match the 10-minute reservation
- * window (a8774f7, 2026-04-22). Currently running daily due to Vercel
- * Hobby tier restriction on non-daily cron schedules. Revisit when
- * upgrading to Vercel Pro or migrating to GitHub Actions cron.
+ * Cadence: every 5 minutes (vercel.json: `*\/5 * * * *`), tied to the
+ * 10-minute reservation window set in a8774f7 (2026-04-22). Worst-case
+ * cleanup latency = reservation window + cron gap, so a 5-minute cron
+ * keeps latency at ≤15 minutes. Anything coarser (hourly, daily) makes
+ * the shortened reservation window functionally meaningless — pieces
+ * would sit reserved long after the buyer abandoned checkout.
+ * Requires Vercel Pro or higher (Hobby caps cron frequency at
+ * once-per-day).
  *
- * Implication of the deferred cadence: a daily cron against a 10-min
- * reservation window means pieces can sit reserved for up to ~24h
- * after an abandoned checkout, functionally defeating the shortened
- * window. Acceptable short-term because reservation volume is low
- * pre-launch; revisit before scale.
- *
- * Idempotent on concurrent fires regardless of cadence: the
- * status+updated_at filter matches only rows that haven't been
- * flipped yet.
+ * Idempotent on concurrent fires: the status+updated_at filter matches
+ * only rows that haven't been flipped yet. Safe if the schedule
+ * overlaps or a run is double-triggered.
  *
  * Protected by CRON_SECRET. Vercel Cron calls GET; POST is kept as an
  * ops-accessible alias so `curl -X POST` still works during incidents.
