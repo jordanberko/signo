@@ -178,6 +178,7 @@ called out explicitly.
 | 016 | `collections_studio_analytics.sql` | 2026-04-14 | collections, studio_posts, analytics tables |
 | 017 | `add_reserved_status.sql` | 2026-04-22 | structural (CHECK constraint) |
 | 018 | `processed_stripe_events.sql` | 2026-04-22 | webhook idempotency table |
+| 019 | `profile_structured_address.sql` | already present in prod (codified 2026-04-23) | codifies the four reverse-drifted address columns; apply is a no-op in prod, creates columns in fresh dev / preview. |
 
 ## Incident retrospective — migrations 006 + 012 drift (pattern)
 

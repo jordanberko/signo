@@ -83,6 +83,7 @@ const PROBES = {
   '016_collections_studio_analytics.sql':    { kind: 'table-many', tables: ['collections', 'studio_posts'] },
   '017_add_reserved_status.sql':             { kind: 'structural' },
   '018_processed_stripe_events.sql':         { kind: 'table',   table: 'processed_stripe_events' },
+  '019_profile_structured_address.sql':      { kind: 'column',  table: 'profiles', column: 'street_address' },
 };
 
 // ── Probe executors ────────────────────────────────────────────────
