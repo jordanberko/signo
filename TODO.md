@@ -5,35 +5,135 @@ history) and deliberately deferred. Listed so they don't get lost.
 
 ## Pre-launch blockers
 
-### CRITICAL — Production webhook secret mismatch
-The `STRIPE_PAYMENT_WEBHOOK_SECRET` env var on Vercel **Production** does
-not match the signing secret of webhook endpoint `we_1THAZfAFoloYAF9YCSozHoTi`
-(`https://signo-tau.vercel.app/api/stripe/payment-webhook`). Surfaced
-2026-04-21 while diagnosing why a preview-deploy test payment didn't create
-an order row — Stripe delivered `checkout.session.completed` to prod (that's
-where the endpoint points), and prod rejected with HTTP 400 "Signature
-verification failed" on both delivery attempts.
+### Production Stripe env vars — RESOLVED for test mode
 
-Consequence if not fixed before live cutover: every real buyer payment
-will succeed on Stripe (money captured) but every `orders` row insert
-will fail, every artwork will stay `reserved` forever, and every artist
-will miss their payout. Silent catastrophic failure.
+**Status 2026-04-22: RESOLVED for test mode (pending Commit 2 post-DNS verification + prod redeploy).**
 
-- [ ] When configuring production env vars pre-launch, set
-      `STRIPE_PAYMENT_WEBHOOK_SECRET` on Vercel Production to the
-      signing secret of endpoint `we_1THAZfAFoloYAF9YCSozHoTi`.
-      (Dashboard → Developers → Webhooks → the live endpoint → Reveal
-      signing secret.) Test with `stripe trigger checkout.session.completed`
-      against the live endpoint before announcing launch.
-- [ ] Re-enable webhook endpoint `we_1THAZfAFoloYAF9YCSozHoTi` after
-      setting `STRIPE_PAYMENT_WEBHOOK_SECRET` in Vercel production to
-      match the endpoint's actual signing secret. Disabled 2026-04-21
-      during preview testing to reduce noise — it was failing signature
-      verification on every test-mode event and pointlessly
-      incrementing `pending_webhooks` on every delivery. Re-enable via
-      `stripe webhook_endpoints update we_1THAZfAFoloYAF9YCSozHoTi
-      --no-disabled --api-key $SK_LIVE` (note: use `--no-disabled` to
-      un-set the disabled flag).
+Original framing was "webhook secret *mismatch*". The actual root cause
+was broader: missing env vars + Preview-only scoping. All six `STRIPE_*`
+vars (`STRIPE_SECRET_KEY`, `STRIPE_PAYMENT_WEBHOOK_SECRET`,
+`STRIPE_SUBSCRIPTION_WEBHOOK_SECRET`, `STRIPE_CONNECT_WEBHOOK_SECRET`,
+`STRIPE_SUBSCRIPTION_PRICE_ID`, `STRIPE_ENFORCE_SUBSCRIPTIONS`) were
+scoped Preview-only — Production was running against baked-in
+build-time snapshots or nothing at all.
+
+Would-have-been consequence if not caught: every real buyer payment
+would have succeeded on Stripe (money captured) but every `orders` row
+insert would have failed, every artwork would have stayed `reserved`
+forever, every artist would have missed their payout. Silent
+catastrophic failure.
+
+Fix applied 2026-04-22:
+- All six `STRIPE_*` env vars now anchored at Production scope (HTTP
+  201 on each `POST /v10/projects/:id/env`).
+- Prod redeployed to `dpl_BgsNZLtpKm6FjfDHSXhSvVNB2jsQ`, alias
+  repointed.
+- Live probe against `signoart.com.au` confirmed payment webhook now
+  returns "No signatures found" (function reached) instead of
+  "Received undefined" (env missing).
+- Webhook endpoint `we_1THAZfAFoloYAF9YCSozHoTi` re-enabled.
+- Smoke test confirmed end-to-end DB state: order
+  `4b4836e8-4911-4e0e-9706-b6734f43625c`, `artworks.status='sold'`,
+  `platform_fee_aud=0`, `artist_payout_aud ≈ 9.52`, `stripe_fee ≈ 0.48`.
+
+**STRIPE_WEBHOOK_SECRET build-time snapshot finding.** Before the fix,
+some `STRIPE_*` values were effectively baked into the live Production
+bundle at build time rather than resolved at runtime. Any Production
+rebuild would have silently dropped the baked-in value and the failure
+mode wouldn't have surfaced until the next payment. Re-anchoring all
+six to Production scope prevents the silent-drop-on-rebuild failure
+mode — the values now live in project settings, not in a deployment
+snapshot.
+
+Residual work:
+- [ ] Commit 2 (post-DNS verification): fix `RESEND_FROM_ADDRESS` typo
+      on Vercel Preview + Production. Current value `Signo
+      <noreply@signo.com.au>` (short form — missing `art`); target
+      `Signo <noreply@signoart.com.au>`.
+- [ ] Redeploy prod after Commit 2 lands so the corrected
+      `RESEND_FROM_ADDRESS` ships to the serverless bundle.
+- [ ] Re-run the smoke-test purchase after domain verification +
+      Commit 2 + redeploy. Verify both buyer AND artist emails
+      actually deliver (not just webhook 200).
+- [ ] After re-test passes, clean up smoke-test DB rows: order
+      `4b4836e8-4911-4e0e-9706-b6734f43625c` and artwork
+      `30f505c9-5767-4981-b724-108570af0152`.
+
+### CRITICAL — Live-mode cutover required before launch
+
+Today `signoart.com.au` runs Stripe **test mode** in production. No
+live-mode infrastructure exists yet — the fix above resolved test-mode
+env vars only.
+
+This blocker is a *pre-launch gate*, not an active production failure.
+No real money moves through the platform today — `signoart.com.au`
+only accepts test-mode payments — so there is no live-customer risk
+right now. What this item blocks is the ability to accept real
+payments at all.
+
+Cutting to live mode is a separate, deliberate pre-launch step.
+Required actions:
+- [ ] Set live-mode `STRIPE_SECRET_KEY` (`sk_live_…`) at Vercel
+      Production scope. Do NOT mirror this to Preview scope — previews
+      should never touch live money.
+- [ ] Register live-mode webhook endpoints in Stripe:
+      - Payment webhook at
+        `https://signoart.com.au/api/stripe/payment-webhook`
+      - Subscription webhook at
+        `https://signoart.com.au/api/stripe/subscription-webhook`
+      - Connect webhook once Connect live onboarding ships.
+- [ ] Capture live-mode signing secrets (`whsec_…`) from each live
+      endpoint and set at Production scope:
+      `STRIPE_PAYMENT_WEBHOOK_SECRET`,
+      `STRIPE_SUBSCRIPTION_WEBHOOK_SECRET`,
+      `STRIPE_CONNECT_WEBHOOK_SECRET`. Test-mode secrets do NOT
+      validate live events and vice versa.
+- [ ] Complete Stripe Connect live onboarding for the platform
+      account (`acct_1MsXu7AFoloYAF9Y`). Connect is currently test-mode
+      only.
+- [ ] Recreate the artist subscription price in live mode and update
+      `STRIPE_SUBSCRIPTION_PRICE_ID` at Production scope.
+- [ ] Keep `STRIPE_ENFORCE_SUBSCRIPTIONS=false` during the cutover;
+      flip to `true` only after artist onboarding + subscription flow
+      are proven end-to-end in live mode.
+- [ ] After cutover: run a real low-value ($1 AUD) live purchase
+      end-to-end and verify every step against the same checklist used
+      for the 2026-04-22 test-mode smoke test (order insert, artwork
+      flip, payout calc, buyer + artist emails).
+
+**Do not flip live-mode on until every other pre-launch blocker in
+this file is closed.** This is the last-mile step, not something to
+do in parallel with test-mode work.
+
+### CRITICAL — Resend domain verification pending
+
+`signoart.com.au` has been added to Resend as a sending domain but
+currently shows status "Not Started" — the required DNS records (SPF,
+DKIM, DMARC, and MX if configured) are not yet in place. Until
+verification completes, Resend refuses to deliver any email sent from
+`@signoart.com.au`, independent of whether the webhook handler's
+fire-and-forget issue has been fixed.
+
+Gated on Vercel nameserver migration in progress 2026-04-22.
+
+Residual work (pairs with the blocker above):
+- [ ] Complete Vercel nameserver migration for `signoart.com.au`.
+- [ ] Add SPF / DKIM / DMARC DNS records as specified by Resend's
+      domain page.
+- [ ] Wait for Resend to flip the domain status to "Verified".
+- [ ] Execute Commit 2 (`RESEND_FROM_ADDRESS` typo fix) + prod
+      redeploy.
+- [ ] Re-run payment-webhook smoke path; confirm both buyer and
+      artist emails deliver to real inboxes.
+
+Surfaced 2026-04-22 during post-smoke-test email investigation: the
+Resend dashboard showed zero inbound email requests for the smoke
+order, despite the webhook handler running end-to-end successfully.
+Two compounding causes identified: (a) fire-and-forget promise
+termination in the handler (fixed in `bca8579`), and (b) the
+`signoart.com.au` sending domain not yet verified in Resend. Either
+alone would drop delivery; both in combination left no evidence at
+the send side.
 
 ### Migration apply workflow gap
 Creating migration files in `supabase/migrations/` does **not**
@@ -70,6 +170,19 @@ bug repro — so whichever option above ships, it should also cover an
 operator SQL path (dev/preview-gated `DATABASE_URL`, documented
 `supabase db …` procedure, or admin-only RPC). Surfaced 2026-04-22
 during end-to-end verification of the release-reservations cron.
+
+Related — Vercel env var scoping convention. The Preview-only-scoping
+failure mode that caused the "Production Stripe env vars" blocker
+above could recur on any env var added during future preview work. No
+enforced convention exists today to prevent a developer from scoping a
+new secret Preview-only when it's actually required at runtime in
+Production. Before multi-developer workflow or post-launch, document
+and enforce a convention alongside the migration workflow — e.g. "all
+new env vars that affect prod runtime code MUST be added at Production
+scope at creation time, not just Preview; CI or a pre-push hook should
+flag `process.env.FOO` references whose corresponding Vercel var is
+missing from the Production scope." Surfaced 2026-04-22 during the
+root-cause analysis of the webhook signing-secret failure.
 
 ### Architectural — Webhook endpoint URL is hardcoded to prod
 Today there's exactly one payment-webhook endpoint in Stripe and it's
@@ -216,6 +329,39 @@ order creation.
 - Webhook looks up the address by session id instead of parsing from
   metadata.
 
+### M6 — Convert fire-and-forget Resend sends to awaited try/catch
+
+The payment webhook was fixed in `bca8579` — its two calls to
+`sendOrderConfirmation` and `sendNewSaleNotification` are now awaited
+inside a try/catch. The same fire-and-forget pattern exists at 6 other
+call sites. Under Vercel's serverless Node runtime, unawaited HTTP
+requests can be severed the moment the handler returns, silently
+dropping emails (which is how the 2026-04-22 smoke test appeared to
+succeed while zero emails were delivered — see "Resend domain
+verification pending" for the parallel domain cause).
+
+Call sites to convert — same mechanical change in each: `sendFoo({…}).catch((err) => console.error(…))` → `try { await sendFoo({…}) } catch (err) { … }`:
+
+| File | Line | Function |
+|------|------|----------|
+| `src/lib/stripe/escrow.ts` | 168 | `sendFirstSaleActivation` |
+| `src/lib/stripe/escrow.ts` | 320 | `sendPayoutReleased` (auto-release cron) |
+| `src/lib/stripe/escrow.ts` | 416 | `sendOrderCancelled` (cancel-unshipped cron) |
+| `src/app/api/orders/[id]/ship/route.ts` | 75 | `sendShippingConfirmation` |
+| `src/app/api/orders/[id]/complete/route.ts` | 55 | `sendPayoutReleased` |
+| `src/app/api/admin/artworks/[id]/review/route.ts` | 70, 77 | `sendArtworkApproved`, `sendArtworkRejected` |
+| `src/app/api/email/welcome/route.ts` | 21 | `sendWelcomeEmail` |
+
+Already correctly awaited — do not touch:
+- `src/app/api/cron/expire-grace-periods/route.ts:52,89` —
+  `sendListingsPaused`, `sendGracePeriodReminder`.
+
+Semantic to preserve in each conversion: email failures must be caught
+and logged, never rethrown. The containing handler must keep returning
+2xx (or whatever its success shape is) so a Resend-side failure
+doesn't cascade into Stripe retries, admin review failure,
+order-ship failure, etc.
+
 ## Low
 
 ### L1 — Remove unused `@stripe/stripe-js`
@@ -248,6 +394,28 @@ Only `src/lib/__tests__/utils.test.ts` exists. Nothing covers:
 - The dispute resolution path
 Add Vitest specs that mock Stripe and Supabase, plus a Stripe CLI
 `stripe trigger` harness wired up in CI.
+
+### L5 — Add `stripe_session_id` and `stripe_fee_aud` columns to `orders`
+
+`orders` today carries `stripe_payment_intent_id` (sufficient for
+refund + dispute correlation — payment intent is the canonical Stripe
+handle) but lacks two handles that would simplify debugging and
+reporting:
+- `stripe_session_id` — the `cs_…` Checkout Session id. Not required
+  for refunds/disputes, but makes it trivial to cross-reference a
+  Stripe Dashboard session URL against an order row without doing a
+  payment-intent → session lookup.
+- `stripe_fee_aud` — the Stripe processing fee per order, in AUD
+  dollars. Currently derived at webhook time via
+  `calculateStripeFee()` but never persisted. Persisting it allows
+  reconciling actual vs calculated fees and auditing payouts without
+  recomputing.
+
+Both would be nullable additive columns; no migration risk.
+
+Surfaced 2026-04-22 during smoke-test verification — would have made
+the verification table trivially readable rather than requiring
+re-derivation from payment intent + total.
 
 ## Stripe live-mode polish
 
@@ -320,3 +488,28 @@ Surfaced 2026-04-21 after an abandoned checkout on
 signoart.com.au left artwork `74f3803e-4cbf-4365-bcf3-589c2af502a5`
 ("Untitled #3", $999.97) stuck at `reserved` for ~10 hours until
 manual reset. Broken webhook + absent cron meant no auto-recovery.
+
+### Vercel log retention is under 24 hours
+
+Observed 2026-04-22 during the payment-webhook smoke-test
+investigation: request logs for deployments older than ~24 hours age
+out of Vercel's log UI and the internal
+`vercel.com/api/logs/request-logs` endpoint returns empty arrays for
+older requests. Anything that needs to persist longer than 24h for
+debugging, audit, or compliance MUST live elsewhere.
+
+Today's persistent signals:
+- `processed_stripe_events` table — dedup + audit trail for webhook
+  deliveries. Survives independently of Vercel log retention.
+
+Candidates to consider for post-launch:
+- Ship Vercel function logs to an external service (Logtail, Axiom,
+  Datadog, S3 via Vercel log drain).
+- Add a lightweight `webhook_events_log` table capturing Stripe event
+  id + type + handler outcome, keyed for fast lookup. Extends the
+  existing `processed_stripe_events` pattern.
+- Structured error table for payment-flow exceptions (email send
+  failures, refund failures, transfer failures).
+
+Decision deferred until post-launch when real traffic volume and
+debugging patterns are observed.
