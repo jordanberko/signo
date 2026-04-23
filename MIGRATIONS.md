@@ -165,13 +165,13 @@ called out explicitly.
 | 003 | `subscriptions.sql` | 2026-03-31 | |
 | 004 | `admin_rls_policies.sql` | 2026-04-01 | structural (RLS) — probe can't verify |
 | 005 | `fix_profiles_rls_recursion.sql` | 2026-04-06 | structural (RLS) — probe can't verify |
-| **006** | **`contact_and_newsletter.sql`** | **NOT APPLIED (as of Commit 1 of this work — pending Dashboard paste today)** | **committed 2026-04-07. See Incident retrospective.** |
+| 006 | `contact_and_newsletter.sql` | 2026-04-23 | committed 2026-04-07, drift fixed 2026-04-23. See Incident retrospective. |
 | 007 | `conversations_messages.sql` | 2026-04-07 | |
 | 008 | `favourites.sql` | 2026-04-07 | |
 | 009 | `artwork_fk_set_null.sql` | 2026-04-08 | structural (FK cascade) |
 | 010 | `is_featured.sql` | 2026-04-09 | |
 | 011 | `avatars_storage.sql` | 2026-04-09 | storage bucket + policies |
-| **012** | **`artist_subscription_lifecycle.sql`** | **NOT APPLIED (as of Commit 1 of this work — pending Dashboard paste today)** | **committed 2026-04-12. See Incident retrospective.** |
+| 012 | `artist_subscription_lifecycle.sql` | 2026-04-23 | committed 2026-04-12, drift fixed 2026-04-23. See Incident retrospective. |
 | 013 | `new_artwork_fields.sql` | 2026-04-14 | adds `availability`, `colors`, `surface`, etc. |
 | 014 | `follows.sql` | 2026-04-14 | |
 | 015 | `commissions_notifications_trade.sql` | 2026-04-14 | `artwork_notifications` + `trade_enquiries` |
@@ -203,8 +203,11 @@ happens to exercise the affected code path in a way that surfaces.
 - **2026-04-23**: the live-probe script identified
   `contact_messages` and `newsletter_subscribers` as missing. Applied
   via Supabase Dashboard SQL Editor the same day; migrations:check
-  flipped `MISSING` → `APPLIED`; `POST /api/contact` and
-  `POST /api/newsletter` confirmed returning 200.
+  flipped `MISSING` → `APPLIED`; `POST /api/contact` confirmed
+  returning 200. `POST /api/newsletter` surfaced a **separate,
+  pre-existing** RLS-vs-upsert bug now that the table exists (see
+  Residual follow-ups below); the drift portion of the failure was
+  cleared but the endpoint still 500s for a new reason.
 
 ### Instance 2 — migration 012 (forward drift, 11 days)
 
@@ -264,12 +267,29 @@ runtime logs.
 - This document defines the convention and before-merge procedure.
 - `scripts/verify/migrations-applied.mjs` is the automated tripwire.
   `npm run migrations:check` must return OK before every deploy.
-- Migrations 006 and 012 applied to prod via Dashboard; verified by
-  re-running `migrations:check` and re-testing affected endpoints.
+- Migrations 006 and 012 applied to prod via Dashboard on 2026-04-23;
+  verified by re-running `migrations:check` (0 missing) and smoke-testing
+  `POST /api/contact` (200). The 2026-04-12 → 2026-04-23 column-missing
+  errors on `subscription_status`-dependent endpoints also stop as a
+  result.
 - Migration 019 codifies the four reverse-drifted address columns.
 
 ### Residual follow-ups (tracked as TODO.md Low)
 
+- **Newsletter upsert vs RLS mismatch (surfaced 2026-04-23, post-apply).**
+  `src/app/api/newsletter/route.ts` uses `supabase.from(...).upsert(...,
+  { onConflict: 'email' })`, which PostgREST translates to
+  `INSERT ... ON CONFLICT DO UPDATE`. That statement requires
+  UPDATE privilege on the row even when no conflict occurs, and
+  migration 006 only grants an INSERT policy. Every anon upsert
+  therefore returns `HTTP 401 42501 "new row violates row-level
+  security policy"`, which the endpoint maps to a generic 500. Was
+  hidden for 16 days by the 006 drift; revealed the moment the table
+  came into existence. Fix options: (a) change the endpoint to a
+  plain `.insert()` and handle the duplicate-email 409 client-side, or
+  (b) add a narrow UPDATE policy for the `email` column. Flagging (a)
+  as the cleaner fix since subscribe-again-when-already-subscribed is
+  legitimately a client-side idempotent no-op.
 - Probe RLS / CHECK / trigger / policy / function drift via
   `pg_policies` / `pg_trigger` / `pg_proc` / `pg_indexes` using
   `psql $DATABASE_URL` — the current PostgREST-based probe misses
@@ -281,6 +301,9 @@ runtime logs.
   `src/app/api/newsletter/route.ts` (and anywhere else that swallows
   PostgREST errors) should log the underlying PGRST code so the next
   drift is visibly broken in runtime logs, not just at the user.
+  The 2026-04-23 newsletter finding above is a case in point — the
+  endpoint still returns a generic 500 on the 42501 and tells the user
+  nothing useful.
 - No automated test exercises the contact / newsletter send paths or
   the subscription-status query paths; they regressed silently and
   could again without a CI tripwire.
