@@ -3,14 +3,16 @@ import { createClient } from '@supabase/supabase-js';
 import { sendListingsPaused, sendGracePeriodReminder } from '@/lib/email';
 
 /**
- * POST /api/cron/expire-grace-periods
+ * GET|POST /api/cron/expire-grace-periods
  *
  * 1. Pauses profiles whose grace period has expired (pending_activation + deadline passed).
  * 2. Sends reminder emails to profiles approaching their deadline (~4 days remaining).
  *
- * Protected by CRON_SECRET — called by Vercel Cron daily at 02:00 UTC.
+ * Protected by CRON_SECRET. Vercel Cron calls GET daily at 02:00 UTC;
+ * POST is kept as an ops-accessible alias so `curl -X POST` still
+ * works during incidents.
  */
-export async function POST(request: Request) {
+async function handler(request: Request) {
   const authHeader = request.headers.get('authorization');
   const cronSecret = process.env.CRON_SECRET;
 
@@ -110,4 +112,12 @@ export async function POST(request: Request) {
     console.error('[Cron] expire-grace-periods error:', message);
     return NextResponse.json({ error: message }, { status: 500 });
   }
+}
+
+export async function GET(request: Request) {
+  return handler(request);
+}
+
+export async function POST(request: Request) {
+  return handler(request);
 }

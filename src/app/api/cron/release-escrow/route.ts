@@ -2,12 +2,13 @@ import { NextResponse } from 'next/server';
 import { autoReleaseFunds } from '@/lib/stripe/escrow';
 
 /**
- * POST /api/cron/release-escrow
+ * GET|POST /api/cron/release-escrow
  *
  * Releases escrowed funds for orders past their inspection deadline.
- * Protected by CRON_SECRET — called by Vercel Cron every hour.
+ * Protected by CRON_SECRET. Vercel Cron calls GET; POST is kept as an
+ * ops-accessible alias so `curl -X POST` still works during incidents.
  */
-export async function POST(request: Request) {
+async function handler(request: Request) {
   const authHeader = request.headers.get('authorization');
   const cronSecret = process.env.CRON_SECRET;
 
@@ -28,4 +29,12 @@ export async function POST(request: Request) {
     console.error('[Cron] release-escrow error:', message);
     return NextResponse.json({ error: message }, { status: 500 });
   }
+}
+
+export async function GET(request: Request) {
+  return handler(request);
+}
+
+export async function POST(request: Request) {
+  return handler(request);
 }

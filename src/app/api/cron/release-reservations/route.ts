@@ -11,7 +11,7 @@ function getServiceClient() {
 }
 
 /**
- * POST /api/cron/release-reservations
+ * GET|POST /api/cron/release-reservations
  *
  * Releases orphaned artwork reservations that were never completed.
  * If a Stripe checkout session expires without the webhook firing,
@@ -23,9 +23,10 @@ function getServiceClient() {
  * are logged and swallowed — the artwork flip must not be blocked by
  * a best-effort session cleanup.
  *
- * Protected by CRON_SECRET.
+ * Protected by CRON_SECRET. Vercel Cron calls GET; POST is kept as an
+ * ops-accessible alias so `curl -X POST` still works during incidents.
  */
-export async function POST(request: Request) {
+async function handler(request: Request) {
   const authHeader = request.headers.get('authorization');
   const cronSecret = process.env.CRON_SECRET;
 
@@ -144,4 +145,12 @@ export async function POST(request: Request) {
     console.error('[Cron] release-reservations error:', message);
     return NextResponse.json({ error: message }, { status: 500 });
   }
+}
+
+export async function GET(request: Request) {
+  return handler(request);
+}
+
+export async function POST(request: Request) {
+  return handler(request);
 }

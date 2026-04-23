@@ -44,7 +44,7 @@ vi.mock('@supabase/supabase-js', () => ({
 }));
 
 // Import AFTER the mocks are defined so the route picks them up
-import { POST } from '../route';
+import { GET, POST } from '../route';
 
 // ── Helpers ──────────────────────────────────────────────────────────
 
@@ -157,6 +157,16 @@ describe('POST /api/cron/release-reservations', () => {
 
   it('returns 401 when CRON_SECRET does not match', async () => {
     const res = await POST(makeRequest({ authHeader: 'Bearer wrong' }));
+    expect(res.status).toBe(401);
+    expect(mockCreateClient).not.toHaveBeenCalled();
+  });
+
+  it('GET is a method-parity alias for POST — same handler, same 401', async () => {
+    // Vercel Cron hits GET; POST stays for manual curl-during-incident.
+    // Both must route to the same handler body. Checked via the auth-
+    // fail path since it exercises the handler without needing Supabase
+    // or Stripe mocks.
+    const res = await GET(makeRequest({ authHeader: 'Bearer wrong' }));
     expect(res.status).toBe(401);
     expect(mockCreateClient).not.toHaveBeenCalled();
   });
