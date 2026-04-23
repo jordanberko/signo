@@ -8,7 +8,8 @@
     "start": "next start",
     "lint": "eslint",
     "test": "vitest",
-    "test:run": "vitest run"
+    "test:run": "vitest run",
+    "migrations:check": "node scripts/verify/migrations-applied.mjs"
   },
   "dependencies": {
     "@stripe/stripe-js": "^9.0.0",
