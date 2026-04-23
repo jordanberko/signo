@@ -23,6 +23,15 @@ function getServiceClient() {
  * are logged and swallowed — the artwork flip must not be blocked by
  * a best-effort session cleanup.
  *
+ * Cadence: every 5 minutes (vercel.json: `*\/5 * * * *`).
+ * The reservation window is 10 minutes (see `tenMinutesAgo` below).
+ * Worst-case cleanup latency = reservation window + cron gap, so a
+ * 5-minute cron keeps latency at ≤15 minutes. A daily or even hourly
+ * cron would make the 10-minute window functionally meaningless —
+ * pieces would sit reserved long after the buyer abandoned checkout.
+ * Idempotent on concurrent fires: the status+updated_at filter
+ * matches only rows that haven't been flipped yet.
+ *
  * Protected by CRON_SECRET. Vercel Cron calls GET; POST is kept as an
  * ops-accessible alias so `curl -X POST` still works during incidents.
  */
