@@ -4,6 +4,7 @@ import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import PageTransition from "@/components/layout/PageTransition";
 import { AuthProvider } from "@/components/providers/AuthProvider";
+import { appUrl } from "@/lib/urls";
 import "./globals.css";
 
 // ── Display / editorial serif ──
@@ -40,7 +41,7 @@ const outfit = localFont({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || "https://signoart.com.au"),
+  metadataBase: new URL(appUrl()),
   title: {
     default: "Signo — Where Art Finds Its People",
     template: "%s — Signo",
@@ -81,7 +82,7 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://signoart.com.au";
+  const baseUrl = appUrl();
 
   // Sitewide structured data. Organization establishes brand identity for
   // Google knowledge panels; WebSite enables the sitelinks search box.
@@ -89,8 +90,8 @@ export default function RootLayout({
     "@context": "https://schema.org",
     "@type": "Organization",
     name: "Signo",
-    url: appUrl,
-    logo: `${appUrl}/icon-512.png`,
+    url: baseUrl,
+    logo: `${baseUrl}/icon-512.png`,
     description:
       "A curated Australian art marketplace. Zero commission. Artists keep 100% of every sale.",
     sameAs: [] as string[],
@@ -100,12 +101,12 @@ export default function RootLayout({
     "@context": "https://schema.org",
     "@type": "WebSite",
     name: "Signo",
-    url: appUrl,
+    url: baseUrl,
     potentialAction: {
       "@type": "SearchAction",
       target: {
         "@type": "EntryPoint",
-        urlTemplate: `${appUrl}/browse?q={search_term_string}`,
+        urlTemplate: `${baseUrl}/browse?q={search_term_string}`,
       },
       "query-input": "required name=search_term_string",
     },

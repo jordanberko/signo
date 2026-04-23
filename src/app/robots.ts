@@ -1,7 +1,8 @@
 import type { MetadataRoute } from 'next';
+import { appUrl } from '@/lib/urls';
 
 export default function robots(): MetadataRoute.Robots {
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://signoart.com.au';
+  const baseUrl = appUrl();
 
   return {
     rules: [

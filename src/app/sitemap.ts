@@ -1,5 +1,6 @@
 import type { MetadataRoute } from 'next';
 import { createClient } from '@supabase/supabase-js';
+import { appUrl } from '@/lib/urls';
 
 function getServiceClient() {
   return createClient(
@@ -9,7 +10,7 @@ function getServiceClient() {
 }
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://signoart.com.au';
+  const baseUrl = appUrl();
   const supabase = getServiceClient();
 
   // Static pages

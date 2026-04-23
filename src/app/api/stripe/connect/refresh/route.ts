@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { createAccountLink } from '@/lib/stripe/connect';
+import { appUrl } from '@/lib/urls';
 
 /**
  * POST /api/stripe/connect/refresh
@@ -37,7 +38,7 @@ export async function POST(_request: Request) {
     // Use server-side origin only — never trust client-supplied origin.
     // A malicious actor could pass an attacker-controlled host and
     // turn the Stripe redirect into an open-redirect / phishing vector.
-    const origin = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+    const origin = appUrl();
 
     const url = await createAccountLink(
       profile.stripe_account_id,

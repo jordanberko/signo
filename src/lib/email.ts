@@ -1,4 +1,5 @@
 import { Resend } from 'resend';
+import { appUrl } from '@/lib/urls';
 
 // ── Resend client (lazy-init to avoid errors when key is missing) ──
 
@@ -21,7 +22,7 @@ function getResend(): Resend {
  * Falls back to Resend's sandbox address for development/testing.
  */
 const FROM_ADDRESS = process.env.RESEND_FROM_ADDRESS || 'Signo <onboarding@resend.dev>';
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://signoart.com.au';
+const APP_URL = appUrl();
 
 // ── Editorial palette (mirrors --color-* tokens in src/app/globals.css) ──
 

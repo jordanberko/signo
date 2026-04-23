@@ -1,5 +1,6 @@
 import { notFound } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
+import { appUrl } from '@/lib/urls';
 import type { Metadata } from 'next';
 import ArtistProfileClient from './ArtistProfileClient';
 
@@ -31,8 +32,8 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     : `Discover artwork by ${name} on Signo — Australia\u2019s curated art marketplace.${count > 0 ? ` ${count} artwork${count === 1 ? '' : 's'} available.` : ''}`;
 
   const title = `${name} \u2014 Artist on Signo`;
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://signoart.com.au';
-  const url = `${appUrl}/artists/${id}`;
+  const baseUrl = appUrl();
+  const url = `${baseUrl}/artists/${id}`;
 
   return {
     title,
@@ -137,8 +138,8 @@ export default async function ArtistProfilePage({ params }: PageProps) {
     .then(() => {});
 
   // ── JSON-LD structured data (Schema.org Person + linked OfferCatalog) ──
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://signoart.com.au';
-  const artistUrl = `${appUrl}/artists/${id}`;
+  const baseUrl = appUrl();
+  const artistUrl = `${baseUrl}/artists/${id}`;
 
   const personJsonLdRaw = {
     '@context': 'https://schema.org',
@@ -164,7 +165,7 @@ export default async function ArtistProfilePage({ params }: PageProps) {
       ? {
           makesOffer: (artworks as Array<Record<string, unknown>>).slice(0, 12).map((a) => ({
             '@type': 'Offer',
-            url: `${appUrl}/artwork/${a.id as string}`,
+            url: `${baseUrl}/artwork/${a.id as string}`,
             price: a.price_aud,
             priceCurrency: 'AUD',
             availability: 'https://schema.org/InStock',

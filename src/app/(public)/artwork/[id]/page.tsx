@@ -1,6 +1,7 @@
 import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
 import { createClient } from '@/lib/supabase/server';
+import { appUrl } from '@/lib/urls';
 import ArtworkDetailClient from './ArtworkDetailClient';
 import type { ArtworkDetail, RelatedArtwork } from './ArtworkDetailClient';
 
@@ -51,8 +52,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const description = `${prefix}${descBody}`.slice(0, 200);
 
   const ogImage = (data.images as string[])?.[0];
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://signoart.com.au';
-  const url = `${appUrl}/artwork/${id}`;
+  const baseUrl = appUrl();
+  const url = `${baseUrl}/artwork/${id}`;
 
   return {
     title,
@@ -274,14 +275,14 @@ export default async function ArtworkDetailPage({ params }: Props) {
   }
 
   // JSON-LD structured data for artwork (VisualArtwork schema)
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://signoart.com.au';
+  const baseUrl = appUrl();
   const jsonLdRaw = {
     '@context': 'https://schema.org',
     '@type': 'VisualArtwork',
     name: artwork.title,
     description: data.description || `${artwork.title} by ${artwork.artist.full_name}`,
     image: artwork.images[0] || undefined,
-    url: `${appUrl}/artwork/${id}`,
+    url: `${baseUrl}/artwork/${id}`,
     artist: {
       '@type': 'Person',
       name: artwork.artist.full_name || 'Artist',
@@ -300,7 +301,7 @@ export default async function ArtworkDetailPage({ params }: Props) {
       availability: data.status === 'approved'
         ? 'https://schema.org/InStock'
         : 'https://schema.org/SoldOut',
-      url: `${appUrl}/artwork/${id}`,
+      url: `${baseUrl}/artwork/${id}`,
     },
   };
   // Strip undefined values for clean JSON-LD output

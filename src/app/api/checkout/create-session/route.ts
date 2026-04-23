@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { getStripe } from '@/lib/stripe/config';
 import { rateLimit } from '@/lib/rate-limit';
+import { appUrl } from '@/lib/urls';
 
 /**
  * POST /api/checkout/create-session
@@ -132,8 +133,7 @@ export async function POST(request: Request) {
       .single();
 
     // Use server-side origin only — never trust client-supplied origin
-    const appOrigin =
-      process.env.NEXT_PUBLIC_APP_URL || 'https://signoart.com.au';
+    const appOrigin = appUrl();
 
     const thumbnail = (artwork.images as string[])?.[0];
     const artistProfile = artwork.profiles as Record<string, string> | null;
