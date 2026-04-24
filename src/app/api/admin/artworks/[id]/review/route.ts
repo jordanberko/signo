@@ -67,19 +67,37 @@ export async function PUT(request: Request, context: RouteContext) {
 
     if (artistProfile?.email) {
       if (action === 'approved') {
-        sendArtworkApproved({
-          artistEmail: artistProfile.email,
-          artistName: artistProfile.full_name || '',
-          artworkId: id,
-          artworkTitle: artwork.title,
-        }).catch((err) => console.error('[Review] Artwork approved email failed:', err));
+        try {
+          await sendArtworkApproved({
+            artistEmail: artistProfile.email,
+            artistName: artistProfile.full_name || '',
+            artworkId: id,
+            artworkTitle: artwork.title,
+          });
+        } catch (err) {
+          console.warn('[EMAIL_FAILED]', {
+            type: 'artwork_approved',
+            artworkId: id,
+            recipient: artistProfile.email,
+            error: err instanceof Error ? err.message : String(err),
+          });
+        }
       } else {
-        sendArtworkRejected({
-          artistEmail: artistProfile.email,
-          artistName: artistProfile.full_name || '',
-          artworkTitle: artwork.title,
-          reviewNotes: review_notes || undefined,
-        }).catch((err) => console.error('[Review] Artwork rejected email failed:', err));
+        try {
+          await sendArtworkRejected({
+            artistEmail: artistProfile.email,
+            artistName: artistProfile.full_name || '',
+            artworkTitle: artwork.title,
+            reviewNotes: review_notes || undefined,
+          });
+        } catch (err) {
+          console.warn('[EMAIL_FAILED]', {
+            type: 'artwork_rejected',
+            artworkId: id,
+            recipient: artistProfile.email,
+            error: err instanceof Error ? err.message : String(err),
+          });
+        }
       }
     }
 

@@ -6,7 +6,8 @@ import { sendWelcomeEmail } from '@/lib/email';
  *
  * Sends the welcome email after registration.
  * Called from the client-side register page after successful signUp.
- * Fire-and-forget — failures are logged but never surface to the user.
+ * Failures are logged and swallowed; they don't surface to the user
+ * (the client treats this endpoint as fire-and-forget via its own .catch).
  */
 export async function POST(request: Request) {
   try {
@@ -17,14 +18,19 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Email is required' }, { status: 400 });
     }
 
-    // Fire and forget — don't block registration
-    sendWelcomeEmail({
-      email,
-      name: name || '',
-      role: role === 'artist' ? 'artist' : 'buyer',
-    }).catch((err) => {
-      console.error('[Welcome Email] Background send failed:', err);
-    });
+    try {
+      await sendWelcomeEmail({
+        email,
+        name: name || '',
+        role: role === 'artist' ? 'artist' : 'buyer',
+      });
+    } catch (err) {
+      console.warn('[EMAIL_FAILED]', {
+        type: 'welcome',
+        recipient: email,
+        error: err instanceof Error ? err.message : String(err),
+      });
+    }
 
     return NextResponse.json({ sent: true });
   } catch {

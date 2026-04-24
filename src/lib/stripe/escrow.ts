@@ -165,15 +165,22 @@ export async function releaseFunds(orderId: string): Promise<{
             if (artworkData?.title) artworkTitle = artworkData.title;
           }
 
-          sendFirstSaleActivation({
-            email: artistProfile.email,
-            artistName: artistProfile.full_name || '',
-            artworkTitle,
-            saleAmount: order.total_amount_aud ?? 0,
-            payoutAmount: payoutAmountAud,
-          }).catch((err) =>
-            console.error(`[Escrow] First sale activation email failed for artist ${order.artist_id}:`, err)
-          );
+          try {
+            await sendFirstSaleActivation({
+              email: artistProfile.email,
+              artistName: artistProfile.full_name || '',
+              artworkTitle,
+              saleAmount: order.total_amount_aud ?? 0,
+              payoutAmount: payoutAmountAud,
+            });
+          } catch (err) {
+            console.warn('[EMAIL_FAILED]', {
+              type: 'first_sale_activation',
+              artistId: order.artist_id,
+              recipient: artistProfile.email,
+              error: err instanceof Error ? err.message : String(err),
+            });
+          }
         }
 
         if (updateError) {
@@ -317,13 +324,22 @@ export async function autoReleaseFunds(): Promise<{
       ]);
 
       if (artistResult.data?.email) {
-        sendPayoutReleased({
-          artistEmail: artistResult.data.email,
-          artistName: artistResult.data.full_name || '',
-          orderId: order.id,
-          artworkTitle: artworkResult.data?.title || 'Artwork',
-          payoutAmount: order.artist_payout_aud || 0,
-        }).catch((err) => console.error(`[Escrow Auto-Release] Payout email failed for ${order.id}:`, err));
+        try {
+          await sendPayoutReleased({
+            artistEmail: artistResult.data.email,
+            artistName: artistResult.data.full_name || '',
+            orderId: order.id,
+            artworkTitle: artworkResult.data?.title || 'Artwork',
+            payoutAmount: order.artist_payout_aud || 0,
+          });
+        } catch (err) {
+          console.warn('[EMAIL_FAILED]', {
+            type: 'payout_released_auto',
+            orderId: order.id,
+            recipient: artistResult.data.email,
+            error: err instanceof Error ? err.message : String(err),
+          });
+        }
       }
     } else {
       failed++;
@@ -413,13 +429,22 @@ export async function cancelUnshippedOrders(): Promise<{
       ]);
 
       if (buyerResult.data?.email) {
-        sendOrderCancelled({
-          buyerEmail: buyerResult.data.email,
-          buyerName: buyerResult.data.full_name || '',
-          orderId: order.id,
-          artworkTitle: artworkResult.data?.title || 'Artwork',
-          reason: 'The artwork was not shipped within the required timeframe.',
-        }).catch((err) => console.error(`[Cancel Unshipped] Cancellation email failed for ${order.id}:`, err));
+        try {
+          await sendOrderCancelled({
+            buyerEmail: buyerResult.data.email,
+            buyerName: buyerResult.data.full_name || '',
+            orderId: order.id,
+            artworkTitle: artworkResult.data?.title || 'Artwork',
+            reason: 'The artwork was not shipped within the required timeframe.',
+          });
+        } catch (err) {
+          console.warn('[EMAIL_FAILED]', {
+            type: 'order_cancelled_unshipped',
+            orderId: order.id,
+            recipient: buyerResult.data.email,
+            error: err instanceof Error ? err.message : String(err),
+          });
+        }
       }
     } else {
       failed++;

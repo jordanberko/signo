@@ -72,14 +72,23 @@ export async function PUT(request: Request, context: RouteContext) {
     ]);
 
     if (buyerResult.data?.email) {
-      sendShippingConfirmation({
-        buyerEmail: buyerResult.data.email,
-        buyerName: buyerResult.data.full_name || '',
-        orderId: id,
-        artworkTitle: artworkResult.data?.title || 'Artwork',
-        trackingNumber: tracking_number.trim(),
-        carrier: carrier.trim(),
-      }).catch((err) => console.error('[Ship] Shipping confirmation email failed:', err));
+      try {
+        await sendShippingConfirmation({
+          buyerEmail: buyerResult.data.email,
+          buyerName: buyerResult.data.full_name || '',
+          orderId: id,
+          artworkTitle: artworkResult.data?.title || 'Artwork',
+          trackingNumber: tracking_number.trim(),
+          carrier: carrier.trim(),
+        });
+      } catch (err) {
+        console.warn('[EMAIL_FAILED]', {
+          type: 'shipping_confirmation',
+          orderId: id,
+          recipient: buyerResult.data.email,
+          error: err instanceof Error ? err.message : String(err),
+        });
+      }
     }
 
     return NextResponse.json({

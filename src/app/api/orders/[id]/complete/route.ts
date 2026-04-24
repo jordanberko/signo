@@ -52,13 +52,22 @@ export async function PUT(_request: Request, context: RouteContext) {
     ]);
 
     if (artistResult.data?.email) {
-      sendPayoutReleased({
-        artistEmail: artistResult.data.email,
-        artistName: artistResult.data.full_name || '',
-        orderId: id,
-        artworkTitle: artworkResult.data?.title || 'Artwork',
-        payoutAmount: order.artist_payout_aud || 0,
-      }).catch((err) => console.error('[Complete] Payout released email failed:', err));
+      try {
+        await sendPayoutReleased({
+          artistEmail: artistResult.data.email,
+          artistName: artistResult.data.full_name || '',
+          orderId: id,
+          artworkTitle: artworkResult.data?.title || 'Artwork',
+          payoutAmount: order.artist_payout_aud || 0,
+        });
+      } catch (err) {
+        console.warn('[EMAIL_FAILED]', {
+          type: 'payout_released_manual_complete',
+          orderId: id,
+          recipient: artistResult.data.email,
+          error: err instanceof Error ? err.message : String(err),
+        });
+      }
     }
 
     return NextResponse.json(result);
