@@ -61,6 +61,13 @@ Residual work:
 
 ### CRITICAL — Live-mode cutover required before launch
 
+**Status 2026-04-24:** no change to cutover scope. The Vercel Pro
+upgrade (2026-04-24) doesn't affect live-mode readiness — it unlocked
+sub-daily cron schedules and password-protected previews, neither of
+which gate the cutover. All pre-launch test-mode env-var plumbing is
+in place and proven end-to-end; the flip follows the checklist below
+once every other pre-launch blocker is closed.
+
 Today `signoart.com.au` runs Stripe **test mode** in production. No
 live-mode infrastructure exists yet — the fix above resolved test-mode
 env vars only.
@@ -105,119 +112,132 @@ Required actions:
 this file is closed.** This is the last-mile step, not something to
 do in parallel with test-mode work.
 
-### CRITICAL — Resend domain verification pending
+### CRITICAL — Fire-and-forget Resend sends at 6 remaining call sites (M6)
 
-`signoart.com.au` has been added to Resend as a sending domain but
-currently shows status "Not Started" — the required DNS records (SPF,
-DKIM, DMARC, and MX if configured) are not yet in place. Until
-verification completes, Resend refuses to deliver any email sent from
-`@signoart.com.au`, independent of whether the webhook handler's
-fire-and-forget issue has been fixed.
+**Elevated from Medium to pre-launch blocker 2026-04-24.** Same class
+of silent-email-failure risk that caused the 2026-04-22 smoke test to
+appear successful while zero emails delivered (see "Resend domain
+verification — RESOLVED" below for that incident's parallel cause).
 
-Gated on Vercel nameserver migration in progress 2026-04-22.
+The payment webhook was fixed in `bca8579` — its two calls to
+`sendOrderConfirmation` and `sendNewSaleNotification` are now awaited
+inside try / catch. The same fire-and-forget pattern exists at 6
+other call sites. Under Vercel's serverless Node runtime, unawaited
+HTTP requests can be severed the moment the handler returns,
+silently dropping emails.
 
-Residual work (pairs with the blocker above):
-- [ ] Complete Vercel nameserver migration for `signoart.com.au`.
-- [ ] Add SPF / DKIM / DMARC DNS records as specified by Resend's
-      domain page.
-- [ ] Wait for Resend to flip the domain status to "Verified".
-- [ ] Execute Commit 2 (`RESEND_FROM_ADDRESS` typo fix) + prod
-      redeploy.
-- [ ] Re-run payment-webhook smoke path; confirm both buyer and
-      artist emails deliver to real inboxes.
+Call sites to convert — same mechanical change in each:
+`sendFoo({…}).catch((err) => console.error(…))` →
+`try { await sendFoo({…}) } catch (err) { … }`:
 
-Surfaced 2026-04-22 during post-smoke-test email investigation: the
-Resend dashboard showed zero inbound email requests for the smoke
-order, despite the webhook handler running end-to-end successfully.
-Two compounding causes identified: (a) fire-and-forget promise
-termination in the handler (fixed in `bca8579`), and (b) the
-`signoart.com.au` sending domain not yet verified in Resend. Either
-alone would drop delivery; both in combination left no evidence at
-the send side.
+| File | Line | Function |
+|------|------|----------|
+| `src/lib/stripe/escrow.ts` | 168 | `sendFirstSaleActivation` |
+| `src/lib/stripe/escrow.ts` | 320 | `sendPayoutReleased` (auto-release cron) |
+| `src/lib/stripe/escrow.ts` | 416 | `sendOrderCancelled` (cancel-unshipped cron) |
+| `src/app/api/orders/[id]/ship/route.ts` | 75 | `sendShippingConfirmation` |
+| `src/app/api/orders/[id]/complete/route.ts` | 55 | `sendPayoutReleased` |
+| `src/app/api/admin/artworks/[id]/review/route.ts` | 70, 77 | `sendArtworkApproved`, `sendArtworkRejected` |
+| `src/app/api/email/welcome/route.ts` | 21 | `sendWelcomeEmail` |
 
-### Migration apply workflow gap
-Creating migration files in `supabase/migrations/` does **not**
-auto-apply them to Supabase. Both 017 (`reserved` status) and 018
-(`processed_stripe_events`) had to be manually pasted into the SQL
-Editor after the commit. Each time, the app was broken between commit
-and manual apply, and the failure mode was silent in preview until we
-hit the relevant code path.
+Already correctly awaited — do not touch:
+- `src/app/api/cron/expire-grace-periods/route.ts:52,89` —
+  `sendListingsPaused`, `sendGracePeriodReminder`.
 
-Before multi-developer workflow or CI deployment, set up one of:
-- (a) Supabase CLI integration (`supabase db push` in CI). Requires
-      linking the project and adding a CI step that runs on deploy.
-      Cleanest long-term.
-- (b) Automated migration runner on app startup or via a protected
-      API route. Risky — can apply partial migrations or race.
-- (c) Documented manual apply step in a deploy checklist (e.g. an
-      `.github/pull_request_template.md` reminder: "If this PR adds
-      a `supabase/migrations/*.sql` file, apply it to the target DB
-      before merging"). Zero infra, works today, depends on
-      discipline.
+Semantic to preserve in each conversion: email failures must be
+caught and logged, never rethrown. The containing handler must keep
+returning 2xx (or whatever its success shape is) so a Resend-side
+failure doesn't cascade into Stripe retries, admin review failure,
+order-ship failure, etc.
 
-Surfaced 2026-04-21 when the Group 2 H3 webhook refactor shipped but
-migration 018 wasn't applied — Stripe delivered a paid event, the
-webhook hit the missing table, returned 500, and no order was created
-until the migration was applied manually and the event was resent.
+Rationale for pre-launch classification: post-launch, a silent email
+drop on order confirmation or payout notification erodes buyer /
+artist trust with no operator-visible signal. Same shape of risk as
+silent SQL drift (now tripwired by `migrations:check`) and silent
+cron drift (now documented in [CRONS.md](CRONS.md)). M6 is the
+equivalent tripwire for email-send paths — either convert to awaited
+sends, or build a send observer that alerts on drop.
 
-Related — no operator path for privileged SQL. The
-`set_updated_at_artworks` BEFORE UPDATE trigger (migration 001, lines
-155–157) unconditionally resets `updated_at = now()`, and PostgREST
-service-role bypasses RLS but not BEFORE triggers. With no
-`DATABASE_URL` or `supabase db exec` path exposed to preview/prod,
-there's no supported way to seed stale rows for reservation/escrow
-bug repro — so whichever option above ships, it should also cover an
-operator SQL path (dev/preview-gated `DATABASE_URL`, documented
-`supabase db …` procedure, or admin-only RPC). Surfaced 2026-04-22
-during end-to-end verification of the release-reservations cron.
+### Resend domain verification — RESOLVED 2026-04-23
 
-Related — Vercel env var scoping convention. The Preview-only-scoping
-failure mode that caused the "Production Stripe env vars" blocker
-above could recur on any env var added during future preview work. No
-enforced convention exists today to prevent a developer from scoping a
-new secret Preview-only when it's actually required at runtime in
-Production. Before multi-developer workflow or post-launch, document
-and enforce a convention alongside the migration workflow — e.g. "all
-new env vars that affect prod runtime code MUST be added at Production
-scope at creation time, not just Preview; CI or a pre-push hook should
-flag `process.env.FOO` references whose corresponding Vercel var is
-missing from the Production scope." Surfaced 2026-04-22 during the
-root-cause analysis of the webhook signing-secret failure.
+**Status 2026-04-23: RESOLVED.** `signoart.com.au` is verified in
+Resend; live payment-webhook smoke test on 2026-04-23 confirmed both
+buyer and artist emails deliver end-to-end. DNS records (SPF, DKIM,
+DMARC) landed via the Vercel nameserver migration. No commit — the
+fix was operator actions in the Resend Dashboard and the DNS
+provider.
 
-### Architectural — Webhook endpoint URL is hardcoded to prod
-Today there's exactly one payment-webhook endpoint in Stripe and it's
-pinned to `signo-tau.vercel.app`. Previews can't exercise the webhook
-codepath without manual intervention (adding a second endpoint, as was
-done for Group 1 — `we_1TOW8fAFoloYAF9YoTjEVzbT` points at
-`signo-git-group-1-security-fixes-...`). That workaround doesn't scale.
+Original context retained for history: the domain was the second of
+two compounding causes of the 2026-04-22 email-drop incident. Cause
+(a), fire-and-forget promise termination in the handler, was fixed
+for the payment-webhook path in `bca8579` — **the same pattern still
+affects 6 other call sites, elevated to the pre-launch-blocker
+section above as M6 (CRITICAL)**.
 
-Options to consider long-term:
-- (a) Maintain separate per-environment webhook endpoints in Stripe,
-      one per long-lived branch (main/staging/dev). Branch-scoped Vercel
-      env vars pick the right secret.
-- (b) CI step that registers a transient webhook endpoint at deploy
-      time for each preview and tears it down on PR close. Most work,
-      most automated.
-- (c) Document a "run `stripe listen --forward-to <preview-url>` in a
-      terminal" workflow for developers testing webhook paths on
-      previews. Zero infra cost but error-prone.
+### Migration apply workflow gap — RESOLVED 2026-04-23
 
-### Vercel Deployment Protection blocks webhook POSTs
-Vercel Deployment Protection (the SSO gate on non-production previews)
-intercepts incoming requests at the edge and returns HTTP 401
-"Authentication Required" HTML before the serverless function runs.
-Stripe — or any third-party POSTer — can never reach the webhook
-handler on a preview URL without a workaround.
+**Status 2026-04-23: RESOLVED.** [MIGRATIONS.md](MIGRATIONS.md) is the
+authoritative process doc; `scripts/verify/migrations-applied.mjs`
+(invoked as `npm run migrations:check`) is the automated tripwire.
+Every `supabase/migrations/*.sql` file has a probe registered; every
+migration's apply date is tracked in the audit table. Commits:
+`d1f2ff0` (tripwire + doc), `4bfdb4a` (drift cleared for 006 + 012),
+`8699f48` (reverse drift codified as migration 019).
 
-Production deployments at `signoart.com.au` won't hit this — production
-URLs don't sit behind deployment protection. But every non-production
-preview that needs webhook testing needs the Protection Bypass for
-Automation pattern (see "Webhook testing runbook" below).
+**Retrospective — 006 + 012 drift pattern** (full write-up in
+[MIGRATIONS.md](MIGRATIONS.md) § "Incident retrospective"):
 
-Surfaced 2026-04-21 while verifying Group 1 security fixes: Stripe
-delivered `checkout.session.completed` to the preview endpoint and
-received 401 HTML from Vercel, so the function never ran. Fixed by
-appending `?x-vercel-protection-bypass=<token>` to the endpoint URL.
+- **006** (`contact_messages` + `newsletter_subscribers`): committed 2026-04-07, applied 2026-04-23 — 16 days of silent 500s on contact + newsletter.
+- **012** (`profiles.subscription_status` + 2 sibling columns): committed 2026-04-12, applied 2026-04-23 — 11 days of silent PGRST 400s across subscription webhook, browse, escrow.
+- **Reverse drift**: 4 `profiles` columns existed in prod with no migration file; codified as 019.
+- Shared root cause: Dashboard paste without verification, generic 500 handlers masking the PGRST codes.
+
+Follow-up remaining open: **operator SQL path** for privileged seed
+/ repro operations that need to bypass the BEFORE-UPDATE
+`set_updated_at_artworks` trigger (PostgREST service-role can read
+through RLS but not through BEFORE triggers). Tracked as M7 below;
+subsumes the "no operator SQL path" concern surfaced 2026-04-22
+during end-to-end release-reservations verification.
+
+### Architectural — Webhook endpoint URL hardcoded to prod — RESOLVED 2026-04-23
+
+**Status 2026-04-23: RESOLVED.** Both Stripe webhook endpoints now
+point at `signoart.com.au` (payment webhook
+`we_1THAZfAFoloYAF9YCSozHoTi`, subscription webhook
+`we_1THAVeAFoloYAF9YzG1hqnc4`). The Stripe Dashboard flip was an
+operator action, not a commit. Parallel code-side work in commits
+`6eabdc8` + `006bc43` extracted [src/lib/urls.ts](src/lib/urls.ts)
+`appUrl()` as the single source of truth for deployment URL
+resolution (production / preview / dev), so no call site hard-codes
+a host any more.
+
+Preview webhook testing continues to use the
+`x-vercel-protection-bypass=<token>` header pattern documented in
+the webhook testing runbook above — by design, not residual work.
+
+### Vercel Deployment Protection — RESOLVED 2026-04-23 (non-issue in current config)
+
+**Status 2026-04-23: RESOLVED.** Blocker 4 investigation confirmed
+the current Vercel config serves webhook traffic correctly by
+design: Production has no Deployment Protection (webhooks land
+directly on the handler), Preview is protected (intentional — no
+webhook testing from third parties is expected on preview URLs
+without the documented bypass pattern). No code change, no Vercel
+config change required. Operator actions landed same day:
+`NEXT_PUBLIC_APP_URL` + `CRON_SECRET` set on Production scope
+(previously missing; silent failure surfaced during the same
+investigation).
+
+Rationale for keeping Production unprotected: webhook sources
+(Stripe, Resend, any future integration) must POST without passing
+the Vercel SSO gate. The documented
+`x-vercel-protection-bypass=<token>` pattern remains valid for the
+rare case of preview webhook testing — see "Webhook testing runbook"
+above.
+
+The full "why prod Deployment Protection is off" write-up is
+tracked as VL1 below to prevent a future operator from "fixing" an
+intentional config.
 
 ## Webhook testing runbook
 
@@ -259,21 +279,6 @@ future preview-based end-to-end verification.
 
 6. When the preview is no longer being tested, delete the endpoint
    (`stripe webhook_endpoints delete we_<id> --confirm`).
-
-## Group 3a notes
-
-Reminders that apply when Group 3a (cron configuration in `vercel.json`)
-is executed. Do NOT action these before Group 3a begins — left here so
-they aren't lost.
-
-### C3 cron schedule change
-Once `vercel.json` is updated for Group 3a, the release-reservations
-schedule should be `*/5 * * * *` (every 5 minutes), not `*/15 * * * *`.
-
-Rationale: with a 10-minute reservation window (changed 2026-04-22), a
-15-minute cron means worst-case cleanup latency is 25 min (10m
-reservation + 15m cron gap), effectively defeating the shorter window.
-5-minute cron reduces worst case to 15 min, which is the right ratio.
 
 ## Medium
 
@@ -329,38 +334,68 @@ order creation.
 - Webhook looks up the address by session id instead of parsing from
   metadata.
 
-### M6 — Convert fire-and-forget Resend sends to awaited try/catch
+### M6 — Elevated to pre-launch blocker 2026-04-24
 
-The payment webhook was fixed in `bca8579` — its two calls to
-`sendOrderConfirmation` and `sendNewSaleNotification` are now awaited
-inside a try/catch. The same fire-and-forget pattern exists at 6 other
-call sites. Under Vercel's serverless Node runtime, unawaited HTTP
-requests can be severed the moment the handler returns, silently
-dropping emails (which is how the 2026-04-22 smoke test appeared to
-succeed while zero emails were delivered — see "Resend domain
-verification pending" for the parallel domain cause).
+See `CRITICAL — Fire-and-forget Resend sends at 6 remaining call
+sites (M6)` in the Pre-launch blockers section above. Placeholder
+kept here so the M6 identifier remains discoverable in this section;
+the active tracking lives with the other pre-launch blockers.
 
-Call sites to convert — same mechanical change in each: `sendFoo({…}).catch((err) => console.error(…))` → `try { await sendFoo({…}) } catch (err) { … }`:
+### M7 — Full schema audit via direct Postgres introspection
 
-| File | Line | Function |
-|------|------|----------|
-| `src/lib/stripe/escrow.ts` | 168 | `sendFirstSaleActivation` |
-| `src/lib/stripe/escrow.ts` | 320 | `sendPayoutReleased` (auto-release cron) |
-| `src/lib/stripe/escrow.ts` | 416 | `sendOrderCancelled` (cancel-unshipped cron) |
-| `src/app/api/orders/[id]/ship/route.ts` | 75 | `sendShippingConfirmation` |
-| `src/app/api/orders/[id]/complete/route.ts` | 55 | `sendPayoutReleased` |
-| `src/app/api/admin/artworks/[id]/review/route.ts` | 70, 77 | `sendArtworkApproved`, `sendArtworkRejected` |
-| `src/app/api/email/welcome/route.ts` | 21 | `sendWelcomeEmail` |
+Motivated by the 2026-04-23 reverse-drift finding — four `profiles`
+columns existed in prod with no matching migration file. The current
+probe (`npm run migrations:check`) only detects missing tables,
+columns, and storage buckets via PostgREST; it cannot see RLS
+policies, CHECK constraints, triggers, functions, or indexes that
+exist in prod without a committed migration.
 
-Already correctly awaited — do not touch:
-- `src/app/api/cron/expire-grace-periods/route.ts:52,89` —
-  `sendListingsPaused`, `sendGracePeriodReminder`.
+Once `DATABASE_URL` is set in `.env.local` (per
+[MIGRATIONS.md](MIGRATIONS.md) § "Operator SQL path"), run a one-off
+audit:
 
-Semantic to preserve in each conversion: email failures must be caught
-and logged, never rethrown. The containing handler must keep returning
-2xx (or whatever its success shape is) so a Resend-side failure
-doesn't cascade into Stripe retries, admin review failure,
-order-ship failure, etc.
+- `pg_policies` vs declared RLS policies in `supabase/migrations/*.sql`
+- `pg_trigger` vs declared triggers
+- `pg_proc` vs declared functions (stored procedures)
+- `pg_indexes` vs declared `CREATE INDEX` statements
+- Full column list per table vs declared `ADD COLUMN` / `CREATE TABLE`
+
+Goal: detect any structural drift the PostgREST probe misses. Output
+is a one-off drift report; persistent probing can come later if the
+one-off finds meaningful drift.
+
+Also subsumes the "no operator SQL path" concern folded into the
+Migration apply workflow gap section above — running this audit is
+itself the privileged-operator path, and requires the same
+`DATABASE_URL` plumbing.
+
+### M8 — Newsletter upsert vs RLS policy mismatch (user-facing 500)
+
+`src/app/api/newsletter/route.ts` calls
+`supabase.from('newsletter_subscribers').upsert(..., { onConflict:
+'email' })`. PostgREST translates this to
+`INSERT ... ON CONFLICT DO UPDATE`, which Postgres requires UPDATE
+privilege for even when no conflict actually occurs. Migration 006
+only grants an `INSERT` policy on this table, so every anonymous
+subscribe attempt returns `42501 "new row violates row-level
+security policy"` which the endpoint maps to a generic HTTP 500.
+
+Hidden for 16 days by the 006 drift (table didn't exist — different
+failure path). Surfaced the moment the table came into existence on
+2026-04-23.
+
+Two fix paths:
+- (a) Swap `.upsert()` for plain `.insert()` and handle the 409
+      duplicate-email case client-side. Simpler — the idempotent
+      "already subscribed" behaviour is naturally a client-side UX
+      concern.
+- (b) Add a narrow `UPDATE` policy on `newsletter_subscribers` so
+      the upsert ON CONFLICT path is authorised. More code, more
+      surface area in the RLS review.
+
+Recommend (a). Full context:
+[MIGRATIONS.md](MIGRATIONS.md) § "Residual follow-ups — Newsletter
+upsert".
 
 ## Low
 
@@ -416,6 +451,96 @@ Both would be nullable additive columns; no migration risk.
 Surfaced 2026-04-22 during smoke-test verification — would have made
 the verification table trivially readable rather than requiring
 re-derivation from payment intent + total.
+
+### L6 — Dev-scope `RESEND_FROM_ADDRESS` re-add
+
+Currently unset on Vercel Development scope after the 2026-04-23 env
+var work. Not blocking — Development scope only runs locally — but
+violates the pattern of "every env var has the same shape across
+Production, Preview, and Development, or is documented why it
+doesn't". Re-add at Development scope matching the Production value.
+
+### L7 — Branch-scoped `NEXT_PUBLIC_APP_URL` override cleanup
+
+The `group-1-security-fixes` branch-scoped override on Vercel Preview
+becomes dormant scaffolding once that branch merges and deletes.
+Remove from Vercel env after merge. Preview deployments of other
+branches will then cleanly fall through to `appUrl()`'s `VERCEL_URL`
+branch per the resolution order at [src/lib/urls.ts](src/lib/urls.ts).
+
+### L8 — Payment webhook 80% historical error rate audit
+
+Stripe Dashboard → Webhooks → `we_1THAZfAFoloYAF9YCSozHoTi` showed
+12 failed / 15 total events for the week as of 2026-04-23. Most
+predate the 2026-04-22 test-mode env-var fix (`bca8579`), the
+2026-04-23 URL flip from `signo-tau.vercel.app` to `signoart.com.au`,
+and the 2026-04-23 fire-and-forget fix. Worth a one-off click-through
+of the failed-event list to confirm the remaining failures are all
+from historical test-mode state, not an ongoing code issue we haven't
+noticed.
+
+### L9 — `NEXT_PUBLIC_APP_URL` Sensitive toggle off
+
+On Vercel Production scope, `NEXT_PUBLIC_APP_URL` was accidentally
+saved with Sensitive=ON on 2026-04-23. Functionally fine — the value
+still resolves at build time — but hides the value from
+`vercel env pull` output, which breaks the pattern used in
+[scripts/verify/migrations-applied.mjs](scripts/verify/migrations-applied.mjs)
+and any future operator tooling that pulls env and inspects values.
+Toggle Sensitive=OFF in Dashboard → Project → Settings → Environment
+Variables, edit the row.
+
+## Very Low
+
+### VL1 — Document Deployment Protection prod-off strategy
+
+Production has no Vercel Deployment Protection by design — webhooks
+from Stripe (and any future integration) must POST directly to
+handlers without passing the Vercel SSO gate. Preview deployments
+are protected, and the `x-vercel-protection-bypass=<token>` pattern
+is the documented workaround for rare preview webhook testing (see
+"Webhook testing runbook" above).
+
+Current state is correct but undocumented outside TODO.md entries.
+Add a short `DEPLOYMENT.md` or similar at repo root covering: what
+Deployment Protection is, why prod is off, why preview is on, how
+the bypass pattern works, how to verify the current state. Intent:
+prevent a future operator from "fixing" an intentional config.
+
+### VL2 — Vercel env var scoping convention — retain `RESEND_FROM_ADDRESS` typo as reference example
+
+The 2026-04-22 incident — `RESEND_FROM_ADDRESS` set to
+`Signo <noreply@signo.com.au>` (missing `art`) — is a useful
+reference example of the Vercel env var scoping / typo failure mode.
+Same-day fix already landed; keep this in reminder form for when the
+"Vercel env var convention enforcement" work eventually happens
+(originally surfaced 2026-04-22 during the webhook signing-secret
+root-cause analysis). Canonical convention-doc home is TBD — likely
+alongside `DEPLOYMENT.md` or `OPERATIONS.md`.
+
+Candidate convention: "all new env vars that affect prod runtime
+code MUST be added at Production scope at creation time, not just
+Preview; CI or a pre-push hook should flag `process.env.FOO`
+references whose corresponding Vercel var is missing from Production
+scope." Scope reminder: the Preview-only-scoping failure mode caused
+the original Production Stripe env vars blocker; re-occurrence
+likelihood compounds with each additional env var the project adds.
+
+### VL3 — `CRON_SECRET` rotation post-session
+
+The current `CRON_SECRET` value has been visible across terminal
+history and chat context during the 2026-04-23 Vercel Pro / cron
+re-enable work. Not actively compromised, but good hygiene before
+live-mode launch. Procedure:
+
+1. Generate new secret: `openssl rand -base64 32`.
+2. Update on Vercel Production scope (mark Sensitive=ON this time).
+3. Redeploy to pick up the new value.
+4. Verify via `vercel logs` after the next scheduled cron fire:
+   expect 200, not 401.
+
+Full procedure documented in [CRONS.md](CRONS.md) § "Rotating
+`CRON_SECRET`".
 
 ## Stripe live-mode polish
 
@@ -513,3 +638,31 @@ Candidates to consider for post-launch:
 
 Decision deferred until post-launch when real traffic volume and
 debugging patterns are observed.
+
+## Dated reminders
+
+### DR1 — 2026-06-07: Vercel Pro evaluation gate
+
+Six-week review of the Vercel Pro upgrade (made 2026-04-24,
+$20/month). Decision criteria — if any of these is YES, Pro stays;
+if all are NO, downgrade to Hobby and migrate the two sub-daily
+crons to GitHub Actions:
+
+- Have we used the sub-daily cron schedules (`release-escrow`
+  hourly, `release-reservations` every 5 min) in a way that produced
+  measurable product value — faster payouts, more liquid
+  reservation releases, measurable drop in stuck-reservation
+  incidents?
+- Has the longer log retention window (Pro vs Hobby's 24h) caught
+  at least one real incident we couldn't have caught on Hobby?
+- Have we needed password-protected previews for client /
+  stakeholder review?
+- Have we hit Hobby serverless limits on any real traffic spike?
+
+If downgrading: the two schedules that require Pro
+(`release-escrow 0 * * * *`, `release-reservations */5 * * * *`,
+per [vercel.json](vercel.json)) would move to `schedule:` entries
+in a `.github/workflows/cron.yml` workflow, hitting the same HTTPS
+endpoints with `Authorization: Bearer $CRON_SECRET`. Handler
+contract is unchanged — the routes already accept both GET and POST
+(see [CRONS.md](CRONS.md) § "Operator notes").
