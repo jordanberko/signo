@@ -68,6 +68,16 @@ which gate the cutover. All pre-launch test-mode env-var plumbing is
 in place and proven end-to-end; the flip follows the checklist below
 once every other pre-launch blocker is closed.
 
+**Reconciliation 2026-04-24:** env var names in the checklist below
+have been corrected against code as part of cutover prep. Subscription
+webhook handler now reads `STRIPE_SUBSCRIPTION_WEBHOOK_SECRET` (was
+`STRIPE_WEBHOOK_SECRET` in code; renamed in the cutover-prep commit
+that also lazy-initialised its Stripe client per L2). The price ID
+env var is `STRIPE_ARTIST_SUBSCRIPTION_PRICE_ID` — earlier drafts of
+this checklist used `STRIPE_SUBSCRIPTION_PRICE_ID` which never matched
+code. `STRIPE_CONNECT_WEBHOOK_SECRET` is dropped from cutover scope:
+no Connect webhook handler exists in code yet.
+
 Today `signoart.com.au` runs Stripe **test mode** in production. No
 live-mode infrastructure exists yet — the fix above resolved test-mode
 env vars only.
@@ -83,26 +93,29 @@ Required actions:
 - [ ] Set live-mode `STRIPE_SECRET_KEY` (`sk_live_…`) at Vercel
       Production scope. Do NOT mirror this to Preview scope — previews
       should never touch live money.
+- [ ] Set live-mode `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` (`pk_live_…`)
+      at Vercel Production scope.
 - [ ] Register live-mode webhook endpoints in Stripe:
       - Payment webhook at
         `https://signoart.com.au/api/stripe/payment-webhook`
       - Subscription webhook at
         `https://signoart.com.au/api/stripe/subscription-webhook`
-      - Connect webhook once Connect live onboarding ships.
 - [ ] Capture live-mode signing secrets (`whsec_…`) from each live
       endpoint and set at Production scope:
       `STRIPE_PAYMENT_WEBHOOK_SECRET`,
-      `STRIPE_SUBSCRIPTION_WEBHOOK_SECRET`,
-      `STRIPE_CONNECT_WEBHOOK_SECRET`. Test-mode secrets do NOT
+      `STRIPE_SUBSCRIPTION_WEBHOOK_SECRET`. Test-mode secrets do NOT
       validate live events and vice versa.
-- [ ] Complete Stripe Connect live onboarding for the platform
-      account (`acct_1MsXu7AFoloYAF9Y`). Connect is currently test-mode
-      only.
 - [ ] Recreate the artist subscription price in live mode and update
-      `STRIPE_SUBSCRIPTION_PRICE_ID` at Production scope.
+      `STRIPE_ARTIST_SUBSCRIPTION_PRICE_ID` at Production scope.
 - [ ] Keep `STRIPE_ENFORCE_SUBSCRIPTIONS=false` during the cutover;
       flip to `true` only after artist onboarding + subscription flow
       are proven end-to-end in live mode.
+- [ ] Connect live onboarding deferred to a follow-up session. No
+      Connect webhook handler exists in code yet (only payment +
+      subscription handlers ship today). When Connect live ships, it
+      gets its own handler at `/api/stripe/connect-webhook`, its own
+      endpoint registration in Stripe, and a new env var
+      `STRIPE_CONNECT_WEBHOOK_SECRET`.
 - [ ] After cutover: run a real low-value ($1 AUD) live purchase
       end-to-end and verify every step against the same checklist used
       for the 2026-04-22 test-mode smoke test (order insert, artwork
@@ -404,15 +417,26 @@ upsert".
 imports it. Checkout is 100% server-driven via Stripe-hosted Checkout.
 - `npm uninstall @stripe/stripe-js`
 
-### L2 — Consolidate Stripe import pattern
-Subscription webhook uses the deprecated `stripe` Proxy export
-(`src/lib/stripe/config.ts:23`). Payment webhook uses `getStripe()`.
-Pick one and remove the Proxy. Prefer `getStripe()`.
-- `src/app/api/stripe/subscription-webhook/route.ts:3` — change to
-  `import { getStripe } from '@/lib/stripe/config';` and call inside
-  the handler.
-- Remove the deprecated `stripe` Proxy export from
-  `src/lib/stripe/config.ts` once no callers remain.
+### L2 — Consolidate Stripe import pattern (partially complete)
+
+**Status:** subscription webhook converted in the cutover-prep commit.
+Two Proxy consumers remain — both in `lib/`, no impact on the
+live-mode cutover path. Finish post-cutover.
+
+- [x] `src/app/api/stripe/subscription-webhook/route.ts` — converted
+      to lazy `getStripe()` in the cutover-prep commit.
+- [ ] `src/lib/stripe/subscriptions.ts` — still imports the Proxy.
+      Seven method call sites to convert (`customers.create`,
+      `customers.search`, `subscriptions.create`, `subscriptions.update`
+      ×2, `subscriptions.retrieve`, `checkout.sessions.create`). Same
+      lazy pattern as subscription-webhook: `const stripe = getStripe();`
+      at the top of each function body.
+- [ ] `src/lib/stripe.ts` — legacy shim re-exports the `stripe` Proxy.
+      Zero callers (`@/lib/stripe` is unused in `src/`). Drop the
+      re-export, or delete the shim file entirely.
+- [ ] Remove the `stripe` Proxy export from
+      `src/lib/stripe/config.ts:23` once the two consumers above are
+      converted.
 
 ### L3 — Insufficient platform balance on transfer
 `createTransfer` in `src/lib/stripe/connect.ts` will throw if the

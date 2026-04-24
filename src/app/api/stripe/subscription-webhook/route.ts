@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import Stripe from 'stripe';
-import { stripe } from '@/lib/stripe/config';
+import { getStripe } from '@/lib/stripe/config';
 import { createClient } from '@supabase/supabase-js';
 
 // Use service role client to bypass RLS (webhooks are server-to-server)
@@ -27,10 +27,11 @@ export async function POST(request: Request) {
   let event: Stripe.Event;
 
   try {
+    const stripe = getStripe();
     event = stripe.webhooks.constructEvent(
       body,
       sig,
-      process.env.STRIPE_WEBHOOK_SECRET!
+      process.env.STRIPE_SUBSCRIPTION_WEBHOOK_SECRET!
     );
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Unknown error';
