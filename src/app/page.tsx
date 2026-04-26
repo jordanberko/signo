@@ -24,8 +24,10 @@ import { formatPrice } from '@/lib/utils';
 
 // Gallery installation photographs for the hero.
 const HERO_SLIDES = [
-  '/hero/36bc29c9-fbb9-4d66-917f-ed742abc97d4.png',
-  '/hero/89a3a75a-34a9-42b4-a9bb-afe63c1d612a.png',
+  '/hero/hero_2_large_red_abstract.webp',
+  '/hero/hero_5_botanical_still_life.webp',
+  '/hero/hero_4_oak_concrete_salon.webp',
+  '/hero/hero_3_coral_salon_hang.webp',
 ];
 
 interface FeaturedArtwork {
@@ -106,7 +108,7 @@ function Hero() {
     ) {
       return;
     }
-    const id = setInterval(() => setIndex((i) => (i + 1) % count), 9000);
+    const id = setInterval(() => setIndex((i) => (i + 1) % count), 7000);
     return () => clearInterval(id);
   }, [count, tick]);
 
