@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { getStripe } from '@/lib/stripe/config';
+import { sendOpsAlert } from '@/lib/ops-alert';
 
 /**
  * GET /api/checkout/success?session_id=<session_id>
@@ -73,6 +74,22 @@ export async function GET(request: NextRequest) {
     }
 
     if (!orderData) {
+      await sendOpsAlert({
+        title: 'Webhook race: order missing on /checkout/success',
+        description:
+          `A buyer landed on /checkout/success for a Stripe session and no matching order ` +
+          `exists in the DB (neither by payment_intent nor by recent buyer activity). The ` +
+          `webhook may have failed. Stripe will retry for up to 3 days; if it never ` +
+          `recovers, the buyer was charged with no order record. ` +
+          `Note: this can fire multiple times per failed session (page polls every 1s ` +
+          `for up to 10s).`,
+        context: {
+          session_id: sessionId,
+          buyer_id: authUser.id,
+          payment_intent_id: paymentIntentId ?? '—',
+        },
+        level: 'error',
+      });
       return NextResponse.json({ order: null }, { status: 202 });
     }
 
