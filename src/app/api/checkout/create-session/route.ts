@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { getStripe } from '@/lib/stripe/config';
+import { getAccountStatus } from '@/lib/stripe/connect';
 import { rateLimit } from '@/lib/rate-limit';
 import { appUrl } from '@/lib/urls';
 
@@ -46,7 +47,7 @@ export async function POST(request: Request) {
     const { data: artwork, error: artworkError } = await supabase
       .from('artworks')
       .select(
-        'id, title, price_aud, category, images, artist_id, shipping_weight_kg, profiles!artworks_artist_id_fkey(full_name, email)'
+        'id, title, price_aud, category, images, artist_id, shipping_weight_kg, profiles!artworks_artist_id_fkey(full_name, email, stripe_account_id)'
       )
       .eq('id', artworkId)
       .single();
@@ -76,6 +77,52 @@ export async function POST(request: Request) {
       return NextResponse.json(
         { error: 'Shipping address is required for physical artwork' },
         { status: 400 }
+      );
+    }
+
+    // ── Connect payouts gate ──
+    // Runs before reservation so a failed gate doesn't leave the artwork locked.
+    const stripeAccountId =
+      (artwork.profiles as { stripe_account_id?: string | null } | null)
+        ?.stripe_account_id ?? null;
+
+    if (!stripeAccountId) {
+      console.log('[Checkout] Artist has no stripe_account_id', {
+        artworkId,
+        artistId: artwork.artist_id,
+      });
+      return NextResponse.json(
+        { error: "This artist hasn't set up payouts yet. Please check back soon." },
+        { status: 409 }
+      );
+    }
+
+    let payoutsEnabled = false;
+    try {
+      const status = await getAccountStatus(stripeAccountId);
+      payoutsEnabled = status.payoutsEnabled;
+    } catch (err) {
+      console.error('[Checkout] Stripe getAccountStatus failed', {
+        artworkId,
+        artistId: artwork.artist_id,
+        stripeAccountId,
+        error: err instanceof Error ? err.message : String(err),
+      });
+      return NextResponse.json(
+        { error: "This artist's payment setup needs attention. Please contact support if this persists." },
+        { status: 409 }
+      );
+    }
+
+    if (!payoutsEnabled) {
+      console.log('[Checkout] Artist payouts not yet enabled', {
+        artworkId,
+        artistId: artwork.artist_id,
+        stripeAccountId,
+      });
+      return NextResponse.json(
+        { error: "The artist's payouts aren't enabled yet. Please check back soon." },
+        { status: 409 }
       );
     }
 
