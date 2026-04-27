@@ -245,8 +245,13 @@ export async function uploadAvatar(
   if (!ACCEPTED_TYPES.includes(file.type)) {
     throw new Error('Please use JPG, PNG, or WebP.');
   }
-  if (file.size > 10 * 1024 * 1024) {
-    throw new Error('Avatar must be under 10MB.');
+  // Bucket is provisioned at 5 MB (see file header). Compression usually
+  // produces a much smaller final file, but a 15-second compression
+  // timeout falls back to the original — without this guard, a 5–10 MB
+  // original would slip past the client check and surface as a raw
+  // Supabase 4xx from uploadToStorage.
+  if (file.size > 5 * 1024 * 1024) {
+    throw new Error('Avatar must be under 5MB.');
   }
 
   onProgress?.(10);
