@@ -2,6 +2,7 @@ import { getStripe } from './config';
 import { createTransfer } from './connect';
 import { createClient } from '@supabase/supabase-js';
 import { sendPayoutReleased, sendOrderCancelled, sendFirstSaleActivation } from '@/lib/email';
+import { sendOpsAlert } from '@/lib/ops-alert';
 
 // Service role client — bypasses RLS for server-side operations
 function getServiceClient() {
@@ -196,6 +197,21 @@ export async function releaseFunds(orderId: string): Promise<{
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Unknown transfer error';
     console.error(`[Escrow] Transfer failed for order ${orderId}:`, message);
+    await sendOpsAlert({
+      title: 'Stripe transfer failed',
+      description:
+        `Escrow release to the artist's Connect account failed for order ${orderId}. ` +
+        `The cron will retry; if the failure is permanent (e.g. restricted or deauthorized ` +
+        `account) this alert will repeat each cron run until the order is cleared.`,
+      context: {
+        order_id: orderId,
+        artist_id: order.artist_id,
+        stripe_account_id: connectAccountId,
+        payout_aud: payoutAmountAud,
+        error: message,
+      },
+      level: 'error',
+    });
     return { success: false, error: message };
   }
 }
