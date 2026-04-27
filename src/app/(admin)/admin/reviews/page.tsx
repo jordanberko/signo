@@ -63,6 +63,7 @@ export default function AdminReviewsPage() {
   const [actionLoading, setActionLoading] = useState(false);
   const [selectedImage, setSelectedImage] = useState(0);
   const [filter, setFilter] = useState<Filter>('pending_review');
+  const [actionError, setActionError] = useState<string | null>(null);
 
   useEffect(() => {
     if (authLoading) return;
@@ -91,6 +92,7 @@ export default function AdminReviewsPage() {
 
   async function handleAction(artworkId: string, action: 'approved' | 'rejected') {
     setActionLoading(true);
+    setActionError(null);
     try {
       const res = await fetch(`/api/admin/artworks/${artworkId}/review`, {
         method: 'PUT',
@@ -98,11 +100,20 @@ export default function AdminReviewsPage() {
         body: JSON.stringify({ action, review_notes: reviewNotes || null }),
       });
       if (!res.ok) {
-        const json = await res.json();
-        console.error('[AdminReviews] Action error:', json.error);
+        const json = await res.json().catch(() => ({}));
+        const message =
+          json.error ||
+          `Couldn't ${action === 'approved' ? 'approve' : 'reject'} this artwork (${res.status}). Please try again.`;
+        console.error('[AdminReviews] Action error:', message);
+        setActionError(message);
+        setActionLoading(false);
+        return;
       }
     } catch (err) {
       console.error('[AdminReviews] Action exception:', err);
+      setActionError('Network error. Please check your connection and try again.');
+      setActionLoading(false);
+      return;
     }
     setSelectedArtwork(null);
     setReviewNotes('');
@@ -136,6 +147,7 @@ export default function AdminReviewsPage() {
     setSelectedArtwork(artwork);
     setReviewNotes(artwork.review_notes || '');
     setSelectedImage(0);
+    setActionError(null);
   }
 
   const images = selectedArtwork ? ((selectedArtwork.images as string[]) || []) : [];
@@ -194,6 +206,7 @@ export default function AdminReviewsPage() {
                 setFilter(f.value);
                 setSelectedArtwork(null);
                 setSelectedImage(0);
+                setActionError(null);
               }}
               style={{
                 background: 'transparent',
@@ -723,6 +736,23 @@ export default function AdminReviewsPage() {
                   }
                 />
               </div>
+
+              {/* Action error */}
+              {actionError && (
+                <p
+                  className="font-serif"
+                  role="alert"
+                  style={{
+                    fontStyle: 'italic',
+                    color: 'var(--color-terracotta)',
+                    fontSize: '0.88rem',
+                    margin: 0,
+                    lineHeight: 1.5,
+                  }}
+                >
+                  {actionError}
+                </p>
+              )}
 
               {/* Actions */}
               {filter === 'pending_review' && (
