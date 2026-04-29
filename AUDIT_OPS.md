@@ -81,47 +81,47 @@ Sensitivity legend:
 
 | Variable | Sensitive? | Storage | Recovery procedure | Current value |
 | --- | --- | --- | --- | --- |
-| `NEXT_PUBLIC_SUPABASE_URL` | Public | VercelProd + VercelPreview + VercelDev + Local | Supabase Dashboard → Settings → API → Project URL | `_____________________` |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Public (RLS-bounded) | VercelProd + VercelPreview + VercelDev + Local | Supabase Dashboard → Settings → API → anon key | `_____________________` |
-| `SUPABASE_SERVICE_ROLE_KEY` | **Secret** (admin, bypasses RLS) | VercelProd + Local | Supabase Dashboard → Settings → API → service_role → "Reveal" / regenerate | `_____________________` |
+| `NEXT_PUBLIC_SUPABASE_URL` | Public | VercelProd + VercelPreview + VercelDev + Local | Supabase Dashboard → Settings → API → Project URL | `https://leppiftwjreqqvfiartt.supabase.co` |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Public (RLS-bounded) | VercelProd + VercelPreview + VercelDev + Local | Supabase Dashboard → Settings → API → anon key | `sb_publishable_vMqv3vWduqv4H-EufJh_nQ_ZK8TTuVz` |
+| `SUPABASE_SERVICE_ROLE_KEY` | **Secret** (admin, bypasses RLS) | VercelProd + Local | Supabase Dashboard → Settings → API → service_role → "Reveal" / regenerate | [stored locally — see CREDENTIALS_VALUES.local.md] |
 
 ### Stripe
 
 | Variable | Sensitive? | Storage | Recovery procedure | Current value |
 | --- | --- | --- | --- | --- |
-| `STRIPE_SECRET_KEY` | **Secret** | VercelProd (live) + VercelPreview override on `group-1-security-fixes` + Local (test) | Stripe Dashboard → Developers → API keys → Roll | `_____________________` |
-| `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` | Public | VercelProd + VercelPreview + VercelDev + Local | Stripe Dashboard → Developers → API keys → Publishable | `_____________________` |
-| `STRIPE_PAYMENT_WEBHOOK_SECRET` | **Secret** | VercelProd + Local | Stripe Dashboard → Developers → Webhooks → (payment endpoint) → Signing secret → Roll | `_____________________` |
-| `STRIPE_SUBSCRIPTION_WEBHOOK_SECRET` | **Secret** | VercelProd + Local | Stripe Dashboard → Developers → Webhooks → (subscription endpoint) → Signing secret → Roll | `_____________________` |
-| `STRIPE_ARTIST_SUBSCRIPTION_PRICE_ID` | Public-ish (product identifier) | VercelProd + Local | Stripe Dashboard → Products → Signo Artist Subscription → Pricing → Copy ID | `_____________________` |
-| `STRIPE_ENFORCE_SUBSCRIPTIONS` | Public (feature flag) | VercelProd + Local | Manual toggle — `'true'` or `'false'` | `_____________________` |
+| `STRIPE_SECRET_KEY` | **Secret** | VercelProd (live) + VercelPreview override on `group-1-security-fixes` + Local (test) | Stripe Dashboard → Developers → API keys → Roll | [stored locally — see CREDENTIALS_VALUES.local.md] |
+| `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` | Public | VercelProd + VercelPreview + VercelDev + Local | Stripe Dashboard → Developers → API keys → Publishable | `pk_test_51MsXu7AFoloYAF9YWJEH2OctnfzjZMGKoxobmXmEOnP5QRBjigbMTgTUalbaLxoRWJlpPtl7mqhDDYXfK8RliBt200i3clXi58` (test-mode key from `.env.local`; verify Vercel prod for live key) |
+| `STRIPE_PAYMENT_WEBHOOK_SECRET` | **Secret** | VercelProd + Local | Stripe Dashboard → Developers → Webhooks → (payment endpoint) → Signing secret → Roll | [stored locally — see CREDENTIALS_VALUES.local.md] |
+| `STRIPE_SUBSCRIPTION_WEBHOOK_SECRET` | **Secret** | VercelProd + Local | Stripe Dashboard → Developers → Webhooks → (subscription endpoint) → Signing secret → Roll | [stored locally — see CREDENTIALS_VALUES.local.md] |
+| `STRIPE_ARTIST_SUBSCRIPTION_PRICE_ID` | Public-ish (product identifier) | VercelProd + Local | Stripe Dashboard → Products → Signo Artist Subscription → Pricing → Copy ID | `price_1TGyL5AFoloYAF9Y7HVZHaro` |
+| `STRIPE_ENFORCE_SUBSCRIPTIONS` | Public (feature flag) | VercelProd + Local | Manual toggle — `'true'` or `'false'` | `false` |
 
 ### Resend
 
 | Variable | Sensitive? | Storage | Recovery procedure | Current value |
 | --- | --- | --- | --- | --- |
-| `RESEND_API_KEY` | **Secret** | VercelProd + Local | Resend Dashboard → API Keys → Revoke + Create new | `_____________________` |
-| `RESEND_FROM_ADDRESS` | Public | VercelProd + Local | Resend Dashboard → Domains → Verify domain → Set value to `Signo <noreply@signoart.com.au>` | `_____________________` |
+| `RESEND_API_KEY` | **Secret** | VercelProd + Local | Resend Dashboard → API Keys → Revoke + Create new | [stored locally — see CREDENTIALS_VALUES.local.md] |
+| `RESEND_FROM_ADDRESS` | Public | VercelProd + Local | Resend Dashboard → Domains → Verify domain → Set value to `Signo <noreply@signoart.com.au>` | `Signo <noreply@signoart.com.au>` |
 
 ### Discord
 
 | Variable | Sensitive? | Storage | Recovery procedure | Current value |
 | --- | --- | --- | --- | --- |
-| `DISCORD_OPS_WEBHOOK_URL` | **Secret** (URL grants posting rights) | VercelProd | Discord server → channel settings → Integrations → Webhooks → Edit/regenerate URL | `_____________________` |
+| `DISCORD_OPS_WEBHOOK_URL` | **Secret** (URL grants posting rights) | VercelProd | Discord server → channel settings → Integrations → Webhooks → Edit/regenerate URL | [stored locally — see CREDENTIALS_VALUES.local.md] (currently not configured) |
 
 ### Application
 
 | Variable | Sensitive? | Storage | Recovery procedure | Current value |
 | --- | --- | --- | --- | --- |
-| `NEXT_PUBLIC_APP_URL` | Public | VercelProd (`https://signoart.com.au`) + Local (`http://localhost:3000`) | Manual; per-environment | `_____________________` |
-| `NEXT_PUBLIC_VERCEL_URL` | Public | VercelPreview only (set to `${VERCEL_URL}` template) | Vercel Project Settings → Environment Variables → set to `${VERCEL_URL}` | `_____________________` |
-| `CRON_SECRET` | **Secret** | VercelProd + cron provider config | Generate random 32+ char string; set in Vercel; update Vercel Cron job auth headers | `_____________________` |
+| `NEXT_PUBLIC_APP_URL` | Public | VercelProd (`https://signoart.com.au`) + Local (`http://localhost:3000`) | Manual; per-environment | `https://signoart.com.au` |
+| `NEXT_PUBLIC_VERCEL_URL` | Public | VercelPreview only (set to `${VERCEL_URL}` template) | Vercel Project Settings → Environment Variables → set to `${VERCEL_URL}` | Vercel auto-populated per deploy |
+| `CRON_SECRET` | **Secret** | VercelProd + cron provider config | Generate random 32+ char string; set in Vercel; update Vercel Cron job auth headers | [stored locally — see CREDENTIALS_VALUES.local.md] |
 
 ### Operator-only (never propagate to Vercel)
 
 | Variable | Sensitive? | Storage | Recovery procedure | Current value |
 | --- | --- | --- | --- | --- |
-| `DATABASE_URL` | **Secret** | LaptopOnly (commented out in `.env.example`) | Supabase Dashboard → Settings → Database → Direct connection (port 5432). Note: Transaction Pooler on port 6543 breaks `psql` interactive use — see MIGRATIONS.md | `_____________________` |
+| `DATABASE_URL` | **Secret** | LaptopOnly (commented out in `.env.example`) | Supabase Dashboard → Settings → Database → Direct connection (port 5432). Note: Transaction Pooler on port 6543 breaks `psql` interactive use — see MIGRATIONS.md | [stored locally — see CREDENTIALS_VALUES.local.md] |
 
 ### Vercel auto-populated
 

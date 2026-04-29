@@ -33,6 +33,9 @@ yarn-error.log*
 # env files (can opt-in for committing if needed)
 .env*
 
+# local credentials reference (populated from .env.local + Vercel; never commit)
+CREDENTIALS_VALUES.local.md
+
 # vercel
 .vercel
 
