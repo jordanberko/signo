@@ -64,6 +64,7 @@ export default function AdminDisputesPage() {
   const [resolutionNotes, setResolutionNotes] = useState('');
   const [actionLoading, setActionLoading] = useState(false);
   const [filter, setFilter] = useState<Filter>('open');
+  const [actionError, setActionError] = useState<string | null>(null);
 
   useEffect(() => {
     if (authLoading) return;
@@ -91,6 +92,7 @@ export default function AdminDisputesPage() {
 
   async function resolveDispute(disputeId: string, resolution: Resolution) {
     setActionLoading(true);
+    setActionError(null);
     try {
       const res = await fetch(`/api/admin/disputes/${disputeId}/resolve`, {
         method: 'PUT',
@@ -101,11 +103,20 @@ export default function AdminDisputesPage() {
         }),
       });
       if (!res.ok) {
-        const json = await res.json();
-        console.error('[AdminDisputes] Resolve error:', json.error);
+        const json = await res.json().catch(() => ({}));
+        const message =
+          json.error ||
+          `Couldn't resolve this dispute (${res.status}). Please try again.`;
+        console.error('[AdminDisputes] Resolve error:', message);
+        setActionError(message);
+        setActionLoading(false);
+        return;
       }
     } catch (err) {
       console.error('[AdminDisputes] Resolve exception:', err);
+      setActionError('Network error. Please check your connection and try again.');
+      setActionLoading(false);
+      return;
     }
     setSelectedId(null);
     setResolutionNotes('');
@@ -165,6 +176,7 @@ export default function AdminDisputesPage() {
               onClick={() => {
                 setFilter(f.value);
                 setSelectedId(null);
+                setActionError(null);
               }}
               style={{
                 background: 'transparent',
@@ -238,6 +250,7 @@ export default function AdminDisputesPage() {
                   onClick={() => {
                     setSelectedId(isOpen ? null : dispute.id);
                     setResolutionNotes(dispute.resolution_notes || '');
+                    setActionError(null);
                   }}
                   style={{
                     width: '100%',
@@ -352,6 +365,21 @@ export default function AdminDisputesPage() {
                         placeholder="Why this resolution was reached…"
                       />
                     </div>
+                    {actionError && (
+                      <p
+                        className="font-serif"
+                        role="alert"
+                        style={{
+                          fontStyle: 'italic',
+                          color: 'var(--color-terracotta)',
+                          fontSize: '0.88rem',
+                          margin: 0,
+                          lineHeight: 1.5,
+                        }}
+                      >
+                        {actionError}
+                      </p>
+                    )}
                     <div
                       style={{
                         display: 'grid',

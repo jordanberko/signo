@@ -41,6 +41,7 @@ export default function AdminUsersPage() {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [roleFilter, setRoleFilter] = useState<RoleFilter>('all');
+  const [actionError, setActionError] = useState<string | null>(null);
 
   useEffect(() => {
     if (authLoading) return;
@@ -65,6 +66,7 @@ export default function AdminUsersPage() {
   }
 
   async function updateRole(userId: string, newRole: RoleValue) {
+    setActionError(null);
     try {
       const res = await fetch('/api/admin/users', {
         method: 'PATCH',
@@ -72,11 +74,18 @@ export default function AdminUsersPage() {
         body: JSON.stringify({ userId, role: newRole }),
       });
       if (!res.ok) {
-        const json = await res.json();
-        console.error('[AdminUsers] Update error:', json.error);
+        const json = await res.json().catch(() => ({}));
+        const message =
+          json.error ||
+          `Couldn't update this user's role (${res.status}). Please try again.`;
+        console.error('[AdminUsers] Update error:', message);
+        setActionError(message);
+        return;
       }
     } catch (err) {
       console.error('[AdminUsers] Update exception:', err);
+      setActionError('Network error. Please check your connection and try again.');
+      return;
     }
     fetchUsers();
   }
@@ -91,7 +100,7 @@ export default function AdminUsersPage() {
   });
 
   if (authLoading) {
-    return <EditorialSpinner label="Users" headline="One moment\u2026" />;
+    return <EditorialSpinner label="Users" headline="One moment…" />;
   }
 
   return (
@@ -159,7 +168,10 @@ export default function AdminUsersPage() {
               <button
                 key={f.value}
                 type="button"
-                onClick={() => setRoleFilter(f.value)}
+                onClick={() => {
+                  setRoleFilter(f.value);
+                  setActionError(null);
+                }}
                 style={{
                   background: 'transparent',
                   border: 'none',
@@ -185,9 +197,27 @@ export default function AdminUsersPage() {
         </div>
       </div>
 
+      {/* ── Action error ── */}
+      {actionError && (
+        <p
+          className="font-serif"
+          role="alert"
+          style={{
+            fontStyle: 'italic',
+            color: 'var(--color-terracotta)',
+            fontSize: '0.88rem',
+            margin: 0,
+            marginBottom: '1.6rem',
+            lineHeight: 1.5,
+          }}
+        >
+          {actionError}
+        </p>
+      )}
+
       {/* ── Table ── */}
       {loading ? (
-        <EditorialSpinner label="Users" headline="Fetching the register\u2026" />
+        <EditorialSpinner label="Users" headline="Fetching the register…" />
       ) : filteredUsers.length === 0 ? (
         <div
           style={{
