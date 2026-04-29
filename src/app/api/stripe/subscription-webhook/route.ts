@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import { getStripe } from '@/lib/stripe/config';
 import { createClient } from '@supabase/supabase-js';
+import { sendOpsAlert } from '@/lib/ops-alert';
 
 // Use service role client to bypass RLS (webhooks are server-to-server)
 function getServiceClient() {
@@ -36,6 +37,13 @@ export async function POST(request: Request) {
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Unknown error';
     console.error('[Stripe Webhook] Signature verification failed:', message);
+    await sendOpsAlert({
+      title: 'Stripe subscription webhook signature verification failed',
+      description:
+        'An incoming subscription webhook had an invalid signature. Likely causes: misrotated STRIPE_SUBSCRIPTION_WEBHOOK_SECRET, replay attack, or misconfigured endpoint URL in Stripe. Stripe is being told 400 (no retry).',
+      context: { error: message },
+      level: 'error',
+    });
     return NextResponse.json(
       { error: `Webhook signature verification failed: ${message}` },
       { status: 400 }

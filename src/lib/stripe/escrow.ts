@@ -282,6 +282,17 @@ export async function refundBuyer(orderId: string): Promise<{
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Unknown refund error';
     console.error(`[Escrow] Refund failed for order ${orderId}:`, message);
+    await sendOpsAlert({
+      title: `Refund failed for order ${orderId}`,
+      description:
+        `Stripe refunds.create threw for order ${orderId}. Buyer is expecting funds back; this requires manual intervention via the Stripe dashboard or a re-attempt of refundBuyer once the underlying issue is fixed.`,
+      context: {
+        order_id: orderId,
+        payment_intent: order.stripe_payment_intent_id,
+        error: message,
+      },
+      level: 'error',
+    });
     return { success: false, error: message };
   }
 }
