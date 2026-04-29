@@ -27,7 +27,7 @@ export default function TermsPage() {
             marginBottom: '1.2rem',
           }}
         >
-          Legal · Last updated April 2026
+          Legal
         </p>
         <h1
           className="font-serif"
@@ -43,8 +43,20 @@ export default function TermsPage() {
           Terms, <em style={{ fontStyle: 'italic' }}>kept as readable as we can.</em>
         </h1>
         <p
+          className="font-serif"
           style={{
-            marginTop: '1.8rem',
+            marginTop: '1.4rem',
+            fontSize: '0.95rem',
+            fontStyle: 'italic',
+            fontWeight: 400,
+            color: 'var(--color-stone)',
+          }}
+        >
+          Last updated: 29 April 2026
+        </p>
+        <p
+          style={{
+            marginTop: '1.4rem',
             fontSize: '1rem',
             fontWeight: 300,
             lineHeight: 1.7,
@@ -52,8 +64,8 @@ export default function TermsPage() {
             maxWidth: '56ch',
           }}
         >
-          By using Signo you agree to these terms — a binding agreement between you and Signo Pty Ltd
-          (ABN: to be confirmed). If anything is unclear,{' '}
+          By using Signo you agree to these terms — a binding agreement between you and Jordan
+          Berkovich trading as Signo (ABN: 75 324 750 643). If anything is unclear,{' '}
           <Link
             href="/contact"
             style={{
@@ -188,6 +200,11 @@ export default function TermsPage() {
               label: 'Outstanding orders',
               detail:
                 'Even after cancellation, you must fulfil any outstanding orders. Cancelling a subscription does not cancel orders buyers have already paid for.',
+            },
+            {
+              label: 'In-flight sales',
+              detail:
+                'Cancelling your subscription does not affect listings that have already been purchased. Active sales continue through to delivery and payout normally. Subscription status only affects your ability to maintain active listings going forward.',
             },
             {
               label: 'Price changes',
