@@ -27,7 +27,7 @@ export default function PrivacyPage() {
             marginBottom: '1.2rem',
           }}
         >
-          Legal · Last updated April 2026
+          Legal
         </p>
         <h1
           className="font-serif"
@@ -43,8 +43,20 @@ export default function PrivacyPage() {
           Privacy, <em style={{ fontStyle: 'italic' }}>plainly stated.</em>
         </h1>
         <p
+          className="font-serif"
           style={{
-            marginTop: '1.8rem',
+            marginTop: '1.4rem',
+            fontSize: '0.95rem',
+            fontStyle: 'italic',
+            fontWeight: 400,
+            color: 'var(--color-stone)',
+          }}
+        >
+          Last updated: 29 April 2026
+        </p>
+        <p
+          style={{
+            marginTop: '1.4rem',
             fontSize: '1rem',
             fontWeight: 300,
             lineHeight: 1.7,
@@ -167,9 +179,9 @@ export default function PrivacyPage() {
           for the platform to function.
         </p>
         <p style={{ ...policyProseStyle, marginTop: '1.2rem' }}>
-          We may use analytics tools to understand how the platform is used. These collect anonymous,
-          aggregated data about page views, feature usage and performance. We do not use cookies for
-          advertising or tracking across other websites.
+          We do not currently use analytics tools. If we add analytics in the future, we will update
+          this policy to disclose what is collected. We do not use cookies for advertising or tracking
+          across other websites.
         </p>
       </PolicySection>
 
@@ -209,6 +221,58 @@ export default function PrivacyPage() {
               label: 'Complaint',
               detail:
                 'Lodge a complaint with us or with the Office of the Australian Information Commissioner (OAIC) if you believe your privacy has been breached.',
+            },
+          ]}
+        />
+      </PolicySection>
+
+      <PolicySection
+        number="07"
+        kicker="Contact"
+        title="Questions about your privacy"
+        headline="Two ways to reach us, depending on the question."
+      >
+        <CollectList
+          items={[
+            {
+              label: 'General questions',
+              detail: (
+                <>
+                  Reach out anytime at{' '}
+                  <a
+                    href="mailto:hello@signoart.com.au"
+                    style={{
+                      color: 'var(--color-ink)',
+                      borderBottom: '1px solid var(--color-stone)',
+                      textDecoration: 'none',
+                    }}
+                  >
+                    hello@signoart.com.au
+                  </a>
+                  .
+                </>
+              ),
+            },
+            {
+              label: 'Formal complaints',
+              detail: (
+                <>
+                  For formal complaints under the Australian Privacy Principles, write to{' '}
+                  <a
+                    href="mailto:disputes@signoart.com.au"
+                    style={{
+                      color: 'var(--color-ink)',
+                      borderBottom: '1px solid var(--color-stone)',
+                      textDecoration: 'none',
+                    }}
+                  >
+                    disputes@signoart.com.au
+                  </a>
+                  . We respond within 5 business days. If you are not satisfied with our response,
+                  you can lodge a complaint with the Office of the Australian Information Commissioner
+                  (OAIC).
+                </>
+              ),
             },
           ]}
         />
