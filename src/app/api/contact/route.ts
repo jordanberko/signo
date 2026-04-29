@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { rateLimit } from '@/lib/rate-limit';
 import { sendOpsAlert } from '@/lib/ops-alert';
+import { sendContactFormNotification } from '@/lib/email';
 
 /**
  * POST /api/contact
@@ -54,21 +55,31 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Fire-and-forget Discord ping so contact submissions don't sit
-    // unnoticed in the contact_messages table. Helper is missing-URL
-    // safe and never throws.
-    await sendOpsAlert({
-      title: 'New contact form submission',
-      description:
-        'A new contact message has arrived. The full record is in the contact_messages table.',
-      context: {
+    // Fire Discord ping + email notification in parallel. Both helpers
+    // swallow their own errors and never throw, so allSettled is
+    // belt-and-braces — neither path can fail the request.
+    const submittedAt = new Date();
+    await Promise.allSettled([
+      sendOpsAlert({
+        title: 'New contact form submission',
+        description:
+          'A new contact message has arrived. The full record is in the contact_messages table.',
+        context: {
+          name,
+          email,
+          subject,
+          message: typeof message === 'string' ? message.slice(0, 500) : '',
+        },
+        level: 'warn',
+      }),
+      sendContactFormNotification({
         name,
         email,
         subject,
-        message: typeof message === 'string' ? message.slice(0, 500) : '',
-      },
-      level: 'warn',
-    });
+        message,
+        submittedAt,
+      }),
+    ]);
 
     return NextResponse.json({ success: true });
   } catch (err) {
