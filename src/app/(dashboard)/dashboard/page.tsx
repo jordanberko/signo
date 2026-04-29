@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { useSearchParams } from 'next/navigation';
-import { useEffect, useState, Suspense } from 'react';
+import { useEffect, useState, useCallback, Suspense } from 'react';
 import ArtworkCard from '@/components/ui/ArtworkCard';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { useRequireAuth } from '@/lib/hooks/useRequireAuth';
@@ -96,6 +96,15 @@ function DashboardContent() {
   const [orders, setOrders] = useState<RecentOrder[]>([]);
   const [totalOrders, setTotalOrders] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [ordersError, setOrdersError] = useState<string | null>(null);
+  const [retryCounter, setRetryCounter] = useState(0);
+
+  const handleOrdersRetry = useCallback(() => {
+    setOrdersError(null);
+    setLoading(true);
+    setRetryCounter((c) => c + 1);
+  }, []);
+
   const [favourites, setFavourites] = useState<
     {
       id: string;
@@ -121,7 +130,10 @@ function DashboardContent() {
     const controller = new AbortController();
 
     const timer = setTimeout(() => {
-      if (!cancelled) setLoading(false);
+      if (!cancelled) {
+        setOrdersError('Loading is taking longer than expected. Try again.');
+        setLoading(false);
+      }
     }, 5000);
 
     async function fetchOrders() {
@@ -130,12 +142,19 @@ function DashboardContent() {
 
         if (!res.ok) {
           console.error('[Dashboard] Orders API error:', res.status);
+          if (!cancelled) {
+            setOrdersError(
+              `Couldn't load your orders (${res.status}). Try again.`
+            );
+          }
           return;
         }
 
         const data = await res.json();
 
         if (cancelled) return;
+
+        setOrdersError(null);
 
         const ordersList = data.orders || [];
         setTotalOrders(ordersList.length);
@@ -162,6 +181,11 @@ function DashboardContent() {
       } catch (err) {
         if ((err as Error).name !== 'AbortError') {
           console.error('[Dashboard] Orders fetch error:', err);
+          if (!cancelled) {
+            setOrdersError(
+              "Couldn't load your orders. Check your connection and try again."
+            );
+          }
         }
       } finally {
         clearTimeout(timer);
@@ -176,7 +200,7 @@ function DashboardContent() {
       controller.abort();
       clearTimeout(timer);
     };
-  }, [user]);
+  }, [user, retryCounter]);
 
   // Fetch favourites preview
   useEffect(() => {
@@ -297,7 +321,11 @@ function DashboardContent() {
                       lineHeight: 1.2,
                     }}
                   >
-                    {totalOrders === 0 ? 'No acquisitions yet' : `${totalOrders} acquisition${totalOrders === 1 ? '' : 's'}`}
+                    {ordersError
+                      ? 'Recent orders'
+                      : totalOrders === 0
+                        ? 'No acquisitions yet'
+                        : `${totalOrders} acquisition${totalOrders === 1 ? '' : 's'}`}
                   </h2>
                 </div>
                 {totalOrders > 5 && (
@@ -319,6 +347,30 @@ function DashboardContent() {
                 >
                   Retrieving your orders…
                 </p>
+              ) : ordersError ? (
+                <div role="alert" style={{ padding: '2rem 0' }}>
+                  <p
+                    className="font-serif"
+                    style={{
+                      fontStyle: 'italic',
+                      color: 'var(--color-terracotta)',
+                      fontSize: '0.95rem',
+                      margin: 0,
+                      marginBottom: '0.6rem',
+                      lineHeight: 1.5,
+                    }}
+                  >
+                    {ordersError}
+                  </p>
+                  <button
+                    type="button"
+                    onClick={handleOrdersRetry}
+                    className="editorial-link bg-transparent border-0 cursor-pointer p-0"
+                    style={{ paddingBottom: '0.2rem' }}
+                  >
+                    Try again
+                  </button>
+                </div>
               ) : orders.length === 0 ? (
                 <div style={{ padding: '2rem 0', maxWidth: '44ch' }}>
                   <p
@@ -678,7 +730,11 @@ function DashboardContent() {
                 <QuickLink
                   href="/orders"
                   label="Orders"
-                  detail={`${totalOrders} ${totalOrders === 1 ? 'order' : 'orders'}`}
+                  detail={
+                    ordersError
+                      ? '—'
+                      : `${totalOrders} ${totalOrders === 1 ? 'order' : 'orders'}`
+                  }
                 />
                 <QuickLink
                   href="/favourites"
