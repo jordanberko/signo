@@ -54,6 +54,14 @@ export default function ArtistDashboardPage() {
 
   const [recentOrders, setRecentOrders] = useState<RecentOrder[]>([]);
   const [ordersLoaded, setOrdersLoaded] = useState(false);
+  const [ordersError, setOrdersError] = useState<string | null>(null);
+  const [retryCounter, setRetryCounter] = useState(0);
+
+  const handleOrdersRetry = useCallback(() => {
+    setOrdersError(null);
+    setOrdersLoaded(false);
+    setRetryCounter((c) => c + 1);
+  }, []);
 
   const [studioPosts, setStudioPosts] = useState<StudioPost[]>([]);
   const [studioLoaded, setStudioLoaded] = useState(false);
@@ -72,7 +80,10 @@ export default function ArtistDashboardPage() {
       return;
     }
 
-    const timer = setTimeout(() => setOrdersLoaded(true), 5000);
+    const timer = setTimeout(() => {
+      setOrdersError('Loading is taking longer than expected. Try again.');
+      setOrdersLoaded(true);
+    }, 5000);
     const controller = new AbortController();
 
     async function fetchDashboard() {
@@ -83,10 +94,14 @@ export default function ArtistDashboardPage() {
 
         if (!res.ok) {
           console.error('[ArtistDashboard] API error:', res.status);
+          setOrdersError(
+            `Couldn't load your dashboard (${res.status}). Try again.`
+          );
           return;
         }
 
         const data = await res.json();
+        setOrdersError(null);
 
         if (data.stats) {
           setTotalSales(data.stats.totalSales ?? 0);
@@ -119,6 +134,9 @@ export default function ArtistDashboardPage() {
       } catch (err) {
         if ((err as Error).name !== 'AbortError') {
           console.error('[ArtistDashboard] Fetch error:', err);
+          setOrdersError(
+            "Couldn't load your dashboard. Check your connection and try again."
+          );
         }
       } finally {
         clearTimeout(timer);
@@ -132,7 +150,7 @@ export default function ArtistDashboardPage() {
       clearTimeout(timer);
       controller.abort();
     };
-  }, [user]);
+  }, [user, retryCounter]);
 
   const fetchStudioPosts = useCallback(async () => {
     if (!user) return;
@@ -232,10 +250,22 @@ export default function ArtistDashboardPage() {
   if (authLoading) return <EditorialSpinner />;
 
   const STATS = [
-    { label: 'Total sales', value: String(totalSales) },
-    { label: 'Total earnings', value: formatPrice(totalEarnings) },
-    { label: 'Active listings', value: String(activeListings) },
-    { label: 'Pending review', value: String(pendingReview) },
+    {
+      label: 'Total sales',
+      value: ordersError ? '—' : String(totalSales),
+    },
+    {
+      label: 'Total earnings',
+      value: ordersError ? '—' : formatPrice(totalEarnings),
+    },
+    {
+      label: 'Active listings',
+      value: ordersError ? '—' : String(activeListings),
+    },
+    {
+      label: 'Pending review',
+      value: ordersError ? '—' : String(pendingReview),
+    },
   ];
 
   // ── Subscription banner copy ──
@@ -507,6 +537,38 @@ export default function ArtistDashboardPage() {
           </Link>
         )}
 
+        {/* ── Action error ── */}
+        {ordersError && (
+          <div
+            role="alert"
+            style={{
+              marginBottom: 'clamp(2.4rem, 4vw, 3.4rem)',
+            }}
+          >
+            <p
+              className="font-serif"
+              style={{
+                fontStyle: 'italic',
+                color: 'var(--color-terracotta)',
+                fontSize: '0.95rem',
+                margin: 0,
+                marginBottom: '0.6rem',
+                lineHeight: 1.5,
+              }}
+            >
+              {ordersError}
+            </p>
+            <button
+              type="button"
+              onClick={handleOrdersRetry}
+              className="editorial-link bg-transparent border-0 cursor-pointer p-0"
+              style={{ paddingBottom: '0.2rem' }}
+            >
+              Try again
+            </button>
+          </div>
+        )}
+
         {/* ── Stats as typographic dl ── */}
         <section
           style={{
@@ -737,6 +799,27 @@ export default function ArtistDashboardPage() {
                 }}
               >
                 Gathering the ledger…
+              </p>
+            </div>
+          ) : ordersError ? (
+            <div
+              role="alert"
+              style={{
+                borderTop: '1px solid var(--color-border-strong)',
+                paddingTop: '2rem',
+              }}
+            >
+              <p
+                className="font-serif"
+                style={{
+                  fontStyle: 'italic',
+                  color: 'var(--color-terracotta)',
+                  fontSize: '0.95rem',
+                  margin: 0,
+                  lineHeight: 1.5,
+                }}
+              >
+                Couldn&apos;t load recent orders.
               </p>
             </div>
           ) : recentOrders.length === 0 ? (
