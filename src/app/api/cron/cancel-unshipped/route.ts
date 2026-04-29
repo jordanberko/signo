@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { cancelUnshippedOrders } from '@/lib/stripe/escrow';
+import { sendOpsAlert } from '@/lib/ops-alert';
 
 /**
  * GET|POST /api/cron/cancel-unshipped
@@ -28,6 +29,13 @@ async function handler(request: Request) {
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Unknown error';
     console.error('[Cron] cancel-unshipped error:', message);
+    await sendOpsAlert({
+      title: 'Cron failure: cancel-unshipped',
+      description:
+        'The daily unshipped-order cancellation cron threw before completing. Orders past the 7-day shipping window will not auto-refund or re-list the artwork until the next scheduled fire (24 hours).',
+      context: { error: message },
+      level: 'error',
+    });
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }

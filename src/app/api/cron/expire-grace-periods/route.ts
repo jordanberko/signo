@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { sendListingsPaused, sendGracePeriodReminder } from '@/lib/email';
+import { sendOpsAlert } from '@/lib/ops-alert';
 
 /**
  * GET|POST /api/cron/expire-grace-periods
@@ -110,6 +111,18 @@ async function handler(request: Request) {
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Unknown error';
     console.error('[Cron] expire-grace-periods error:', message);
+    await sendOpsAlert({
+      title: 'Cron failure: expire-grace-periods',
+      description:
+        'The daily grace-period expiry cron threw before completing. Artists past their 14-day grace deadline will not have listings paused, and reminder emails will not send, until the next scheduled fire (24 hours).',
+      context: {
+        error: message,
+        partial_paused: paused,
+        partial_reminded: reminded,
+        partial_failed: failed,
+      },
+      level: 'error',
+    });
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }

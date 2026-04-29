@@ -3,6 +3,7 @@ import Stripe from 'stripe';
 import { getStripe } from '@/lib/stripe/config';
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import { sendOrderConfirmation, sendNewSaleNotification } from '@/lib/email';
+import { sendOpsAlert } from '@/lib/ops-alert';
 import { calculateStripeFee } from '@/lib/utils';
 
 // ── Webhook handler ──
@@ -58,6 +59,13 @@ export async function POST(request: Request) {
       '[Payment Webhook] Signature verification failed:',
       message
     );
+    await sendOpsAlert({
+      title: 'Stripe payment webhook signature verification failed',
+      description:
+        'An incoming payment webhook had an invalid signature. Likely causes: misrotated STRIPE_PAYMENT_WEBHOOK_SECRET, replay attack, or misconfigured endpoint URL in Stripe. Stripe is being told 400 (no retry).',
+      context: { error: message },
+      level: 'error',
+    });
     return NextResponse.json(
       { error: `Webhook signature verification failed: ${message}` },
       { status: 400 }
@@ -310,7 +318,7 @@ async function handleCheckoutSessionCompleted(
 
   if (buyer?.email) {
     try {
-      await sendOrderConfirmation({
+      const result = await sendOrderConfirmation({
         buyerEmail: buyer.email,
         buyerName: buyer.full_name || '',
         orderId: order.id,
@@ -319,6 +327,25 @@ async function handleCheckoutSessionCompleted(
         artworkImageUrl: artwork?.images?.[0] || undefined,
         totalAmount: totalAud,
       });
+      if (!result.success) {
+        console.warn('[EMAIL_FAILED]', {
+          type: 'order_confirmation',
+          orderId: order.id,
+          recipient: buyer.email,
+          error: result.error || 'unknown',
+        });
+        await sendOpsAlert({
+          title: 'Order confirmation email failed',
+          description:
+            `Order ${order.id} was created and the artwork is marked sold, but the buyer's confirmation email did not send. Buyer may not know the order succeeded.`,
+          context: {
+            order_id: order.id,
+            recipient: buyer.email,
+            error: result.error || 'unknown',
+          },
+          level: 'error',
+        });
+      }
     } catch (err) {
       console.warn('[EMAIL_FAILED]', {
         type: 'order_confirmation',
@@ -331,7 +358,7 @@ async function handleCheckoutSessionCompleted(
 
   if (artist?.email) {
     try {
-      await sendNewSaleNotification({
+      const result = await sendNewSaleNotification({
         artistEmail: artist.email,
         artistName: artist.full_name || '',
         orderId: order.id,
@@ -341,6 +368,25 @@ async function handleCheckoutSessionCompleted(
         buyerCity: shippingAddress?.city,
         buyerState: shippingAddress?.state,
       });
+      if (!result.success) {
+        console.warn('[EMAIL_FAILED]', {
+          type: 'new_sale_notification',
+          orderId: order.id,
+          recipient: artist.email,
+          error: result.error || 'unknown',
+        });
+        await sendOpsAlert({
+          title: 'New sale notification email failed',
+          description:
+            `Order ${order.id} committed and artwork sold, but the artist's new-sale email did not send. Artist may not know to ship until they check the orders page.`,
+          context: {
+            order_id: order.id,
+            recipient: artist.email,
+            error: result.error || 'unknown',
+          },
+          level: 'error',
+        });
+      }
     } catch (err) {
       console.warn('[EMAIL_FAILED]', {
         type: 'new_sale_notification',
@@ -354,10 +400,22 @@ async function handleCheckoutSessionCompleted(
 
 async function handlePaymentIntentFailed(event: Stripe.Event): Promise<void> {
   const paymentIntent = event.data.object as Stripe.PaymentIntent;
+  const errMessage = paymentIntent.last_payment_error?.message;
   console.error(
     `[Payment Webhook] Payment failed: ${paymentIntent.id}`,
-    paymentIntent.last_payment_error?.message
+    errMessage
   );
+  await sendOpsAlert({
+    title: 'Stripe payment intent failed',
+    description:
+      `A buyer's payment was declined by Stripe. The buyer was not charged. Common causes: insufficient funds, fraud flag, 3DS challenge failure. No order created; nothing to retry.`,
+    context: {
+      payment_intent: paymentIntent.id,
+      error: errMessage || 'unknown',
+      decline_code: paymentIntent.last_payment_error?.decline_code || '',
+    },
+    level: 'warn',
+  });
   // Don't create an order — the payment didn't go through. Nothing to
   // retry, nothing to write; acknowledging is correct.
 }

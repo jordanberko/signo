@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { getStripe } from '@/lib/stripe/config';
+import { sendOpsAlert } from '@/lib/ops-alert';
 
 // Service role client — bypasses RLS for server-side operations
 function getServiceClient() {
@@ -156,6 +157,13 @@ async function handler(request: Request) {
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Unknown error';
     console.error('[Cron] release-reservations error:', message);
+    await sendOpsAlert({
+      title: 'Cron failure: release-reservations',
+      description:
+        'The 5-minute artwork reservation cleanup cron threw before completing. Abandoned-checkout artworks will sit in `reserved` status (invisible to buyers) until the next successful run. Worst-case visibility delay is now ~10 minutes plus retry interval.',
+      context: { error: message },
+      level: 'error',
+    });
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }

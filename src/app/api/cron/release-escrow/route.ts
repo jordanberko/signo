@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { autoReleaseFunds } from '@/lib/stripe/escrow';
+import { sendOpsAlert } from '@/lib/ops-alert';
 
 /**
  * GET|POST /api/cron/release-escrow
@@ -27,6 +28,13 @@ async function handler(request: Request) {
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Unknown error';
     console.error('[Cron] release-escrow error:', message);
+    await sendOpsAlert({
+      title: 'Cron failure: release-escrow',
+      description:
+        'The hourly escrow release cron threw before completing. Vercel Cron does not retry, so artist payouts past the inspection window will not transfer until the next scheduled fire (1 hour). A manual run via POST /api/cron/release-escrow with the CRON_SECRET bearer token recovers immediately.',
+      context: { error: message },
+      level: 'error',
+    });
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }
