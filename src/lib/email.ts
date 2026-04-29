@@ -201,11 +201,18 @@ function numberedList(items: string[]): string {
 /**
  * All email sends go through this wrapper.
  * Failures are logged but never thrown — email must never block business logic.
+ *
+ * Pass `html` for templated customer-facing emails, `text` for plain-text
+ * internal notifications, or both for a multipart message. `replyTo` is
+ * useful when the recipient should be able to reply to the original
+ * submitter (e.g. contact form notifications).
  */
 async function safeSend(params: {
   to: string;
   subject: string;
-  html: string;
+  html?: string;
+  text?: string;
+  replyTo?: string;
 }): Promise<{ success: boolean; id?: string; error?: string }> {
   try {
     const r = getResend();
@@ -213,8 +220,10 @@ async function safeSend(params: {
       from: FROM_ADDRESS,
       to: params.to,
       subject: params.subject,
-      html: params.html,
-    });
+      ...(params.html ? { html: params.html } : {}),
+      ...(params.text ? { text: params.text } : {}),
+      ...(params.replyTo ? { replyTo: params.replyTo } : {}),
+    } as Parameters<typeof r.emails.send>[0]);
 
     if (error) {
       console.error('[Email] Resend API error:', error);
@@ -787,6 +796,51 @@ export async function sendNewArtworkFollowNotification(data: NewArtworkFollowNot
     to: data.followerEmail,
     subject: `A new work by ${escapeHtml(data.artistName)} — "${escapeHtml(data.artworkTitle)}"`,
     html,
+  });
+}
+
+// ════════════════════════════════════════════════════════════════════
+// 12b. CONTACT FORM NOTIFICATION (to admin, plain text)
+// ════════════════════════════════════════════════════════════════════
+
+export interface ContactFormNotificationData {
+  name: string;
+  email: string;
+  subject: string;
+  message: string;
+  submittedAt: Date;
+}
+
+/**
+ * Plain-text internal notification when someone submits the public
+ * contact form. Recipient is hardcoded; Reply-To is set to the
+ * submitter so a reply from Gmail goes straight back to them.
+ */
+export async function sendContactFormNotification(data: ContactFormNotificationData) {
+  const formattedTime = new Intl.DateTimeFormat('en-AU', {
+    dateStyle: 'medium',
+    timeStyle: 'long',
+    timeZone: 'Australia/Melbourne',
+  }).format(data.submittedAt);
+
+  const text = [
+    `New contact form submission from ${data.name}`,
+    '',
+    `Name:      ${data.name}`,
+    `Email:     ${data.email}`,
+    `Subject:   ${data.subject}`,
+    `Submitted: ${formattedTime}`,
+    '',
+    '─────────────────',
+    '',
+    data.message,
+  ].join('\n');
+
+  return safeSend({
+    to: 'jordan@signoart.com.au',
+    subject: `New contact form submission from ${data.name}`,
+    text,
+    replyTo: data.email,
   });
 }
 
