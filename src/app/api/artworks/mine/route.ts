@@ -19,8 +19,13 @@ export async function GET() {
       .order('created_at', { ascending: false });
 
     if (error) {
-      console.error('[API artworks/mine]', error.message);
-      return NextResponse.json({ error: error.message }, { status: 500 });
+      // Log full Postgrest error object for debugging; user-facing
+      // message is generic so schema details don't leak.
+      console.error('[API artworks/mine] Query error:', error);
+      return NextResponse.json(
+        { error: 'Failed to load your artworks. Please try again.' },
+        { status: 500 }
+      );
     }
 
     return NextResponse.json({ artworks: data || [] }, {

@@ -117,6 +117,34 @@ async function compressImage(
 // ── Direct Upload (bypasses Supabase JS SDK) ──
 
 /**
+ * Maps an HTTP status from a failed upload to a user-facing message.
+ *
+ * Supabase Storage error response bodies expose bucket configuration,
+ * RLS policy hints, and other implementation detail — they must never
+ * surface to the user. The status code is sufficient signal to pick
+ * a friendly message; the raw body is written to `console.error` for
+ * server-side debugging only.
+ */
+function friendlyUploadError(status: number): string {
+  if (status === 401 || status === 403) {
+    return 'Please sign in again and try again.';
+  }
+  if (status === 413) {
+    return 'This file is too large. Please choose a smaller one.';
+  }
+  if (status === 415) {
+    return 'This file type is not supported. Use JPG, PNG, WebP, or HEIC.';
+  }
+  if (status === 429) {
+    return 'Too many uploads at once. Please wait a moment and try again.';
+  }
+  if (status >= 500) {
+    return 'Upload failed — our storage service is temporarily unavailable. Please try again.';
+  }
+  return 'Upload failed. Please try again.';
+}
+
+/**
  * Upload a file directly to Supabase Storage REST API.
  * No SDK involvement — just fetch with the auth token from cookies.
  */
@@ -159,9 +187,12 @@ async function uploadToStorage(
     clearTimeout(timer);
 
     if (!response.ok) {
-      const errText = await response.text();
+      // Read the body for server-side logging only; never include it in
+      // the thrown message — Supabase Storage returns JSON or plain text
+      // that exposes bucket configuration and RLS hints.
+      const errText = await response.text().catch(() => '');
       console.error('[Upload] Storage error:', response.status, errText);
-      throw new Error(`Upload failed (${response.status}): ${errText}`);
+      throw new Error(friendlyUploadError(response.status));
     }
 
     const publicUrl = `${supabaseUrl}/storage/v1/object/public/${bucket}/${path}`;
