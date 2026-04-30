@@ -4,6 +4,15 @@ import { rateLimit } from '@/lib/rate-limit';
 import { sendOpsAlert } from '@/lib/ops-alert';
 import { sendContactFormNotification } from '@/lib/email';
 
+// Tightened from `/^[^\s@]+@[^\s@]+\.[^\s@]+$/` (P1-2 in the forms
+// audit). The previous form accepted strings like `a@b.c` because it
+// only required ONE non-whitespace character after the dot. Requiring a
+// 2+ character alphabetic TLD blocks the most common malformed-address
+// patterns. Defined inline (no shared regex util) per the PR's
+// scope-discipline rule; the matching client-side regex lives in the
+// contact page component.
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[a-zA-Z]{2,}$/;
+
 /**
  * POST /api/contact
  *
@@ -23,17 +32,31 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { name, email, subject, message } = body;
 
-    if (!name || !email || !subject || !message) {
-      return NextResponse.json(
-        { error: 'All fields are required' },
-        { status: 400 },
-      );
+    // Field-level validation. Returns 400 with both `error` (top-level
+    // summary for the banner) and `errors` (field map for inline UI),
+    // matching the response shape used by the artworks route.
+    const errors: Record<string, string> = {};
+    if (!name || (typeof name === 'string' && !name.trim())) {
+      errors.name = 'Your name is required.';
+    }
+    if (!email || (typeof email === 'string' && !email.trim())) {
+      errors.email = 'Email is required.';
+    } else if (typeof email === 'string' && !EMAIL_REGEX.test(email.trim())) {
+      errors.email = 'Please enter a valid email address.';
+    }
+    if (!subject || (typeof subject === 'string' && !subject.trim())) {
+      errors.subject = 'Please choose a topic.';
+    }
+    if (!message || (typeof message === 'string' && !message.trim())) {
+      errors.message = 'Message is required.';
     }
 
-    // Basic email format check
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    if (Object.keys(errors).length > 0) {
       return NextResponse.json(
-        { error: 'Invalid email address' },
+        {
+          error: 'Please check the highlighted fields below.',
+          errors,
+        },
         { status: 400 },
       );
     }

@@ -2,6 +2,10 @@
 
 import { useState, useEffect } from 'react';
 
+// Mirrors the server regex in `src/app/api/newsletter/route.ts`.
+// Defined inline (no shared util) per scope discipline.
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[a-zA-Z]{2,}$/;
+
 /**
  * NewsletterSignup — editorial, minimal, Huxley-aligned.
  *
@@ -12,6 +16,7 @@ export default function NewsletterSignup() {
   const [email, setEmail] = useState('');
   const [state, setState] = useState<'idle' | 'submitting' | 'success' | 'error'>('idle');
   const [visualState, setVisualState] = useState<'form' | 'fading' | 'success'>('form');
+  const [errorMsg, setErrorMsg] = useState<string>('Try again');
 
   useEffect(() => {
     if (state === 'success') {
@@ -23,7 +28,20 @@ export default function NewsletterSignup() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!email.trim()) return;
+
+    // Pre-submit validation — give the user an inline message instead
+    // of a network round-trip on obvious bad input.
+    const trimmed = email.trim();
+    if (!trimmed) {
+      setErrorMsg('Please enter your email.');
+      setState('error');
+      return;
+    }
+    if (!EMAIL_REGEX.test(trimmed)) {
+      setErrorMsg('Please enter a valid email address.');
+      setState('error');
+      return;
+    }
 
     setState('submitting');
     try {
@@ -33,7 +51,7 @@ export default function NewsletterSignup() {
       const res = await fetch('/api/newsletter', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: email.trim() }),
+        body: JSON.stringify({ email: trimmed }),
         signal: controller.signal,
       });
       clearTimeout(timeout);
@@ -41,9 +59,28 @@ export default function NewsletterSignup() {
       if (res.ok) {
         setState('success');
       } else {
+        // Branch the user-visible copy on response status. 400 with a
+        // field-level error map → use that message. 429 → already-tried
+        // copy. 5xx → "couldn't subscribe right now". Everything else
+        // → fall back to a generic short message.
+        if (res.status === 400) {
+          const json = await res.json().catch(() => ({}));
+          const msg =
+            (json.errors && typeof json.errors === 'object' && typeof json.errors.email === 'string' && json.errors.email) ||
+            (typeof json.error === 'string' && json.error) ||
+            'Please enter a valid email address.';
+          setErrorMsg(msg);
+        } else if (res.status === 429) {
+          setErrorMsg("Looks like you've already subscribed — or please try again in a moment.");
+        } else if (res.status >= 500) {
+          setErrorMsg("Couldn't subscribe right now — please try again later.");
+        } else {
+          setErrorMsg('Try again');
+        }
         setState('error');
       }
     } catch {
+      setErrorMsg("Couldn't reach the network — please try again.");
       setState('error');
     }
   }
@@ -89,9 +126,15 @@ export default function NewsletterSignup() {
           type="email"
           required
           aria-label="Email address"
+          aria-invalid={state === 'error'}
           placeholder="your@email.com"
           value={email}
-          onChange={(e) => setEmail(e.target.value)}
+          onChange={(e) => {
+            setEmail(e.target.value);
+            // Reset error state as soon as the user edits — same
+            // affordance as the artwork forms' fieldErrors clearing.
+            if (state === 'error') setState('idle');
+          }}
           style={{
             width: '100%',
             background: 'transparent',
@@ -122,20 +165,23 @@ export default function NewsletterSignup() {
       >
         {state === 'submitting' ? 'Sending' : 'Subscribe'}
       </button>
-      {state === 'error' && (
-        <span
-          role="alert"
-          className="error-animate"
-          style={{
-            fontSize: '0.7rem',
-            color: 'var(--color-terracotta)',
-            fontWeight: 400,
-          }}
-        >
-          Try again
-        </span>
-      )}
     </form>
+    {state === 'error' && (
+      <p
+        role="alert"
+        className="font-serif error-animate"
+        style={{
+          marginTop: '0.6rem',
+          fontSize: '0.78rem',
+          fontStyle: 'italic',
+          color: 'var(--color-terracotta)',
+          fontWeight: 400,
+          lineHeight: 1.5,
+        }}
+      >
+        {errorMsg}
+      </p>
+    )}
     </div>
   );
 }

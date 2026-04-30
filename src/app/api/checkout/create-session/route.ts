@@ -72,12 +72,38 @@ export async function POST(request: Request) {
     const shippingCost = 0; // Free shipping (included in price)
     const totalAmount = artwork.price_aud + shippingCost;
 
-    // Validate shipping address for physical items
-    if (!isDigital && (!shippingAddress || !shippingAddress.street || !shippingAddress.city || !shippingAddress.postcode)) {
-      return NextResponse.json(
-        { error: 'Shipping address is required for physical artwork' },
-        { status: 400 }
-      );
+    // Validate shipping address for physical items. The client form
+    // already validates these fields and disables submit when invalid;
+    // this server-side check is defence-in-depth so a crafted payload
+    // can't bypass the client. Returns field-level errors in the same
+    // `{ error, errors: { field: msg } }` shape used by the artworks
+    // route so a future client revision could surface them inline.
+    if (!isDigital) {
+      const addr = (shippingAddress || {}) as Record<string, unknown>;
+      const addressErrors: Record<string, string> = {};
+      const isNonEmptyString = (v: unknown): v is string =>
+        typeof v === 'string' && v.trim().length > 0;
+
+      if (!isNonEmptyString(addr.street)) addressErrors.street = 'Street is required.';
+      if (!isNonEmptyString(addr.city)) addressErrors.city = 'City is required.';
+      if (!isNonEmptyString(addr.state)) addressErrors.state = 'State is required.';
+      if (!isNonEmptyString(addr.country)) addressErrors.country = 'Country is required.';
+      if (!isNonEmptyString(addr.postcode)) {
+        addressErrors.postcode = 'Postcode is required.';
+      } else if (typeof addr.postcode === 'string' && addr.postcode.trim().length < 4) {
+        // Mirrors the client's postcode-min-4 rule.
+        addressErrors.postcode = 'Postcode must be at least 4 characters.';
+      }
+
+      if (Object.keys(addressErrors).length > 0) {
+        return NextResponse.json(
+          {
+            error: 'Please check your shipping address.',
+            errors: addressErrors,
+          },
+          { status: 400 }
+        );
+      }
     }
 
     // ── Connect payouts gate ──
