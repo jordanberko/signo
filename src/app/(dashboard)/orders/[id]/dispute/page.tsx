@@ -5,6 +5,9 @@ import Link from 'next/link';
 import { useAuth } from '@/components/providers/AuthProvider';
 import EditorialSpinner from '@/components/ui/EditorialSpinner';
 import { useRequireAuth } from '@/lib/hooks/useRequireAuth';
+import { uploadDisputeEvidence } from '@/lib/supabase/storage';
+
+const MAX_EVIDENCE_FILES = 5;
 
 // ── Types ──
 
@@ -57,6 +60,10 @@ function DisputeContent({ orderId }: { orderId: string }) {
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Tracks "Uploading X of Y" feedback during evidence upload. Null
+  // outside the upload phase so the button label can fall back to the
+  // ordinary "Submitting…" text once uploads finish.
+  const [uploadProgress, setUploadProgress] = useState<{ current: number; total: number } | null>(null);
 
   useEffect(() => {
     if (!user) return;
@@ -118,15 +125,37 @@ function DisputeContent({ orderId }: { orderId: string }) {
 
     setSubmitting(true);
     setError(null);
+    setUploadProgress(null);
 
     try {
+      // Cap before any uploads start. Five files is plenty for a dispute;
+      // beyond that, ask the user to contact support so the conversation
+      // doesn't degenerate into an upload race.
+      const fileArray = files ? Array.from(files) : [];
+      if (fileArray.length > MAX_EVIDENCE_FILES) {
+        throw new Error(
+          `Please select up to ${MAX_EVIDENCE_FILES} photos. If you need to share more, contact support.`,
+        );
+      }
+
+      // Sequential upload — stop on first failure. The user retries by
+      // clicking submit again; previously-uploaded files re-upload, which
+      // we accept as a trade-off for a simple progress UX.
+      const evidenceUrls: string[] = [];
+      for (let i = 0; i < fileArray.length; i++) {
+        setUploadProgress({ current: i + 1, total: fileArray.length });
+        const url = await uploadDisputeEvidence(fileArray[i], order.id);
+        evidenceUrls.push(url);
+      }
+      setUploadProgress(null);
+
       const res = await fetch(`/api/orders/${order.id}/dispute`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           type: disputeType,
           description,
-          evidence_images: [],
+          evidence_images: evidenceUrls,
         }),
       });
 
@@ -140,6 +169,7 @@ function DisputeContent({ orderId }: { orderId: string }) {
       setError(err instanceof Error ? err.message : 'Something went wrong');
     } finally {
       setSubmitting(false);
+      setUploadProgress(null);
     }
   }
 
@@ -519,7 +549,11 @@ function DisputeContent({ orderId }: { orderId: string }) {
             opacity: !disputeType || description.length < 20 || submitting ? 0.5 : 1,
           }}
         >
-          {submitting ? 'Submitting…' : 'Submit dispute'}
+          {submitting
+            ? uploadProgress
+              ? `Uploading ${uploadProgress.current} of ${uploadProgress.total}…`
+              : 'Submitting…'
+            : 'Submit dispute'}
         </button>
       </form>
     </>
