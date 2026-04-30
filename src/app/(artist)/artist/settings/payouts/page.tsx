@@ -74,9 +74,15 @@ function PayoutsContent() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed to generate link');
+      if (!data.url) throw new Error('Stripe did not return a redirect URL. Please try again.');
       window.location.href = data.url;
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong');
+    } finally {
+      // Always re-enable the button. On success the page is about to
+      // navigate, so the briefly re-enabled state is invisible to the
+      // user; on any failure mode (API error, missing URL, network throw)
+      // the button is unstuck so the user can retry.
       setActionLoading(false);
     }
   }
@@ -99,9 +105,13 @@ function PayoutsContent() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed to start onboarding');
+      if (!data.url) throw new Error('Stripe did not return a redirect URL. Please try again.');
       window.location.href = data.url;
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong');
+    } finally {
+      // Always re-enable the button — see the same comment in
+      // handleContinueOnboarding for the rationale.
       setActionLoading(false);
     }
   }

@@ -44,8 +44,17 @@ interface FeaturedArtwork {
   availability?: string;
 }
 
+// Tracks whether the homepage's featured-artworks fetch succeeded,
+// is still in flight, or failed outright. We need to distinguish
+// `failed` from `loaded-with-empty-array` so a transient API failure
+// renders a graceful fallback section rather than silently collapsing
+// the recently-listed strip — the "marketing surface" concern in the
+// error-states audit (P1-12).
+type FeaturedLoadStatus = 'loading' | 'loaded' | 'failed';
+
 export default function HomePage() {
   const [featured, setFeatured] = useState<FeaturedArtwork[]>([]);
+  const [loadStatus, setLoadStatus] = useState<FeaturedLoadStatus>('loading');
 
   useEffect(() => {
     const controller = new AbortController();
@@ -60,11 +69,16 @@ export default function HomePage() {
         if (res.ok) {
           const json = await res.json();
           setFeatured((json.data || []) as FeaturedArtwork[]);
+          setLoadStatus('loaded');
+        } else {
+          setLoadStatus('failed');
         }
       } catch (err) {
+        clearTimeout(timeout);
         if ((err as Error).name !== 'AbortError') {
           console.error('[Home] Load error:', err);
         }
+        setLoadStatus('failed');
       }
     }
     load();
@@ -80,7 +94,14 @@ export default function HomePage() {
       <ScrollReveal>
         <Proposition />
       </ScrollReveal>
-      <RecentlyListed artworks={featuredList} />
+      {/* Failed fetch → graceful editorial fallback that points to /browse;
+          truly empty (loaded with <3 works) keeps the existing skip
+          behaviour because that's an intentional marketplace state. */}
+      {loadStatus === 'failed' ? (
+        <FeaturedFallback />
+      ) : (
+        <RecentlyListed artworks={featuredList} />
+      )}
       <BrowseBreak />
       <SellCTA />
     </div>
@@ -535,6 +556,60 @@ function RecentlyListed({ artworks }: { artworks: FeaturedArtwork[] }) {
             style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
           />
         )}
+      </div>
+    </section>
+  );
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   FEATURED FALLBACK — graceful degradation when the featured-artworks
+   fetch fails. Visually mimics RecentlyListed's section header so the
+   homepage doesn't look broken or empty; copy is a neutral editorial
+   pitch for /browse (no error language — degradation, not surfacing).
+   ══════════════════════════════════════════════════════════════════ */
+
+function FeaturedFallback() {
+  return (
+    <section
+      className="py-6 md:py-10"
+      style={{ borderTop: '1px solid var(--color-border)' }}
+    >
+      <div className="px-6 sm:px-10">
+        <div
+          className="flex items-baseline justify-between mb-8 pb-3"
+          style={{ borderBottom: '1px solid var(--color-border)' }}
+        >
+          <h2
+            className="font-serif"
+            style={{
+              fontSize: '1.35rem',
+              fontWeight: 400,
+              fontStyle: 'italic',
+              color: 'var(--color-ink)',
+              letterSpacing: '-0.01em',
+              margin: 0,
+            }}
+          >
+            The collection
+          </h2>
+        </div>
+        <p
+          style={{
+            fontSize: '1rem',
+            fontWeight: 300,
+            color: 'var(--color-stone-dark)',
+            lineHeight: 1.7,
+            maxWidth: 520,
+            marginBottom: '1.5rem',
+          }}
+        >
+          A growing edit of original works by Australian artists. Browse
+          the full library — by medium, style, or price — to find the
+          piece that finds you.
+        </p>
+        <Link href="/browse" className="editorial-link no-underline">
+          Browse all works →
+        </Link>
       </div>
     </section>
   );
