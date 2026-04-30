@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
-
-const VALID_CATEGORIES = ['original', 'print', 'digital'];
+import { validateArtworkBody } from '@/lib/validation/artworks';
 
 interface RouteContext {
   params: Promise<{ id: string }>;
@@ -88,37 +87,29 @@ export async function PUT(request: Request, context: RouteContext) {
       available_from,
     } = body;
 
-    // Determine new status
+    // Determine new status BEFORE running the validator so the validator's
+    // pending_review rules fire correctly when a rejected artwork auto-
+    // resubmits without an explicit status in the body.
     let newStatus = status ?? existing.status;
-    // If was rejected, saving auto-resubmits
     if (existing.status === 'rejected' && !status) {
       newStatus = 'pending_review';
     }
 
-    // Validate required fields for submission
-    if (newStatus === 'pending_review') {
-      if (!title?.trim()) {
-        return NextResponse.json({ error: 'Title is required' }, { status: 400 });
-      }
-      if (!description?.trim()) {
-        return NextResponse.json({ error: 'Description is required' }, { status: 400 });
-      }
-      if (!images || !Array.isArray(images) || images.length === 0) {
-        return NextResponse.json({ error: 'At least one image is required' }, { status: 400 });
-      }
-      if (!price_aud || price_aud < 1) {
-        return NextResponse.json({ error: 'Price must be at least $1' }, { status: 400 });
-      }
-    }
-
-    // Validate category
-    if (category && !VALID_CATEGORIES.includes(category)) {
-      return NextResponse.json({ error: 'Invalid category' }, { status: 400 });
-    }
-
-    // Validate price
-    if (price_aud !== undefined && price_aud !== null && price_aud < 0) {
-      return NextResponse.json({ error: 'Price must be positive' }, { status: 400 });
+    // ── Field-level validation ──
+    // Use the shared validator; pass the computed newStatus so the
+    // pending_review-only rules see the actual resulting status.
+    // Validation failures return 400 with both `errors` (field map for
+    // inline UI) and `error` (top-level summary) — matches the response
+    // shape from POST /api/artworks introduced in PR #16.
+    const errors = validateArtworkBody({ ...body, status: newStatus });
+    if (Object.keys(errors).length > 0) {
+      return NextResponse.json(
+        {
+          error: 'Please check the highlighted fields below.',
+          errors,
+        },
+        { status: 400 }
+      );
     }
 
     const updateData: Record<string, unknown> = {
@@ -167,7 +158,15 @@ export async function PUT(request: Request, context: RouteContext) {
       .single();
 
     if (updateError) {
-      return NextResponse.json({ error: updateError.message }, { status: 400 });
+      // Server-side failure (DB write error). Log the raw cause for
+      // debugging; return a friendly message and a 500 — matches the
+      // POST /api/artworks pattern in PR #16. This is a server fault,
+      // not a user input problem.
+      console.error('[Artworks PUT] Update error:', updateError);
+      return NextResponse.json(
+        { error: 'Failed to save your changes. Please try again.' },
+        { status: 500 }
+      );
     }
 
     return NextResponse.json({ data: artwork });

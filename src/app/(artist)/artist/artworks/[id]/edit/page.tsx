@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useParams } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -70,6 +70,49 @@ const STEP_META = [
   { num: '05', label: 'Review' },
 ];
 
+// Maps server-returned error field names → step where that field lives.
+// Mirrors the constant in new/page.tsx; the edit form has identical step
+// structure so the same map applies.
+const FIELD_TO_STEP: Record<string, number> = {
+  images: 1,
+  title: 2,
+  description: 2,
+  category: 2,
+  medium: 2,
+  style: 2,
+  price_aud: 4,
+};
+
+// Maps server-returned error field names → DOM id of the input to focus
+// after the step jump. Only fields with an actual focusable input are
+// listed; for category/images the step jump and inline error are enough.
+const FOCUSABLE_FIELDS: Record<string, string> = {
+  title: 'title',
+  description: 'description',
+  medium: 'medium',
+  style: 'style',
+  price_aud: 'price_aud',
+};
+
+function firstErrorStep(errors: Record<string, string>): number | null {
+  let earliest: number | null = null;
+  for (const field of Object.keys(errors)) {
+    const target = FIELD_TO_STEP[field];
+    if (target != null && (earliest == null || target < earliest)) {
+      earliest = target;
+    }
+  }
+  return earliest;
+}
+
+function firstFocusableField(errors: Record<string, string>): string | null {
+  for (const field of Object.keys(errors)) {
+    const id = FOCUSABLE_FIELDS[field];
+    if (id) return id;
+  }
+  return null;
+}
+
 const KICKER: React.CSSProperties = {
   fontSize: '0.62rem',
   letterSpacing: '0.22em',
@@ -105,6 +148,30 @@ interface FormState {
 }
 
 // ── Helpers ──
+
+// Inline-duplicated from new/page.tsx because the constraint for this PR
+// forbids touching new/page.tsx (which would be required to lift this
+// into a shared module — remove the inline def there, add an import).
+// A future PR can refactor both forms to import from a shared
+// @/components/ui/ location once the pattern stabilises across both.
+function FieldErrorMessage({ message }: { message?: string }) {
+  if (!message) return null;
+  return (
+    <p
+      className="font-serif"
+      role="alert"
+      style={{
+        marginTop: '0.4rem',
+        fontStyle: 'italic',
+        color: 'var(--color-terracotta)',
+        fontSize: '0.85rem',
+        lineHeight: 1.5,
+      }}
+    >
+      {message}
+    </p>
+  );
+}
 
 function FieldLabel({
   children,
@@ -170,6 +237,10 @@ export default function EditArtworkPage() {
   const [loadingArtwork, setLoadingArtwork] = useState(true);
   const [artwork, setArtwork] = useState<Artwork | null>(null);
   const [notFound, setNotFound] = useState(false);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+  // Focus target for the post-commit effect after a step jump. We track
+  // it in a ref so clearing it doesn't trigger another render.
+  const pendingFocusFieldRef = useRef<string | null>(null);
 
   const [form, setForm] = useState<FormState>({
     images: [],
@@ -266,7 +337,28 @@ export default function EditArtworkPage() {
 
   function updateForm<K extends keyof FormState>(key: K, value: FormState[K]) {
     setForm((prev) => ({ ...prev, [key]: value }));
+    // Clear the corresponding inline error as soon as the user touches
+    // the field. Mirrors the new-artwork form's pattern.
+    const fieldName = key as string;
+    if (fieldErrors[fieldName]) {
+      setFieldErrors((prev) => {
+        const next = { ...prev };
+        delete next[fieldName];
+        return next;
+      });
+    }
   }
+
+  // Focus the errored input after a step jump. Runs post-commit so the
+  // target step's DOM exists before we try to focus into it. Same-step
+  // focus is handled synchronously in applyValidationErrors.
+  useEffect(() => {
+    const target = pendingFocusFieldRef.current;
+    if (!target) return;
+    const el = document.getElementById(target);
+    if (el) el.focus();
+    pendingFocusFieldRef.current = null;
+  }, [step]);
 
   // Image upload
   const handleImageUpload = useCallback(
@@ -324,11 +416,82 @@ export default function EditArtworkPage() {
     5: true,
   };
 
+  // Pre-submit validation that mirrors the server's required-when-
+  // pending_review schema. Same shape as new/page.tsx so server and
+  // client agree on what "ready for review" means.
+  function clientValidatePendingReview(): Record<string, string> {
+    const errors: Record<string, string> = {};
+    if (form.images.length < 1) {
+      errors.images = 'At least one image is required.';
+    }
+    if (!form.title.trim()) {
+      errors.title = 'Title is required.';
+    }
+    if (!form.description.trim()) {
+      errors.description = 'Description is required.';
+    }
+    const m = form.medium === 'Other' ? form.customMedium : form.medium;
+    if (!m.trim()) {
+      errors.medium = 'Medium is required.';
+    }
+    if (!form.style.trim()) {
+      errors.style = 'Style is required.';
+    }
+    if (price < 1) {
+      errors.price_aud = 'Price must be at least $1.';
+    }
+    return errors;
+  }
+
+  function applyValidationErrors(errors: Record<string, string>) {
+    setFieldErrors(errors);
+    setError('Please check the highlighted fields below.');
+    const target = firstErrorStep(errors);
+    const focusId = firstFocusableField(errors);
+    const willJumpStep = target != null && target !== step;
+
+    if (willJumpStep) {
+      // The target step's DOM doesn't exist yet — stash the focus target
+      // and let the post-commit effect pick it up after setStep renders.
+      if (focusId) pendingFocusFieldRef.current = focusId;
+      setStep(target);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
+
+    // Same step: the input is already in the DOM, focus synchronously.
+    if (focusId) {
+      const el = document.getElementById(focusId);
+      if (el) el.focus();
+    }
+  }
+
+  // Mirror the server's status-resolution rule: if no explicit status
+  // is requested and the artwork is currently 'rejected', saving will
+  // auto-resubmit (server flips to pending_review). Used to decide
+  // whether the client should pre-validate against pending_review rules.
+  function computeResultingStatus(explicit?: ArtworkStatus): ArtworkStatus | undefined {
+    if (explicit) return explicit;
+    if (artwork?.status === 'rejected') return 'pending_review';
+    return artwork?.status;
+  }
+
   // Save
   async function handleSave(status?: ArtworkStatus) {
     if (!user || !artwork) return;
     setSaving(true);
     setError('');
+    setFieldErrors({});
+
+    const resultingStatus = computeResultingStatus(status);
+    if (resultingStatus === 'pending_review') {
+      const clientErrors = clientValidatePendingReview();
+      if (Object.keys(clientErrors).length > 0) {
+        applyValidationErrors(clientErrors);
+        setSaving(false);
+        return;
+      }
+    }
 
     try {
       const medium = form.medium === 'Other' ? form.customMedium : form.medium;
@@ -365,8 +528,26 @@ export default function EditArtworkPage() {
       });
 
       if (!res.ok) {
-        const { error: apiError } = await res.json();
-        throw new Error(apiError || 'Failed to update artwork');
+        const json = await res.json().catch(() => ({}));
+        if (
+          res.status === 400 &&
+          json.errors &&
+          typeof json.errors === 'object'
+        ) {
+          // Field-level validation failure: route errors to inputs and
+          // jump to the earliest errored step.
+          applyValidationErrors(json.errors);
+          setSaving(false);
+          return;
+        }
+        // Top-level failure (auth, server, network-as-non-OK): banner
+        // only, no field errors, no step jump.
+        setError(
+          (json && typeof json.error === 'string' && json.error) ||
+            'Failed to update artwork'
+        );
+        setSaving(false);
+        return;
       }
 
       window.location.href = '/artist/artworks';
@@ -727,6 +908,8 @@ export default function EditArtworkPage() {
               uploadFile={handleImageUpload}
             />
 
+            <FieldErrorMessage message={fieldErrors.images} />
+
             {form.images.length < 2 && (
               <p
                 className="font-serif"
@@ -781,7 +964,9 @@ export default function EditArtworkPage() {
                 onChange={(e) => updateForm('title', e.target.value.slice(0, 100))}
                 className="commission-field"
                 placeholder="e.g. Golden Hour Over Sydney Harbour"
+                aria-invalid={!!fieldErrors.title}
               />
+              <FieldErrorMessage message={fieldErrors.title} />
             </div>
 
             <div style={{ marginBottom: '1.8rem' }}>
@@ -794,7 +979,9 @@ export default function EditArtworkPage() {
                 className="commission-field"
                 style={{ resize: 'vertical', fontFamily: 'inherit' }}
                 placeholder="What inspired it, how you made it, what you want the viewer to feel…"
+                aria-invalid={!!fieldErrors.description}
               />
+              <FieldErrorMessage message={fieldErrors.description} />
             </div>
 
             <div style={{ marginBottom: '1.8rem' }}>
@@ -869,6 +1056,7 @@ export default function EditArtworkPage() {
                   );
                 })}
               </ul>
+              <FieldErrorMessage message={fieldErrors.category} />
             </div>
 
             <div
@@ -886,6 +1074,7 @@ export default function EditArtworkPage() {
                   value={form.medium}
                   onChange={(e) => updateForm('medium', e.target.value)}
                   className="commission-field"
+                  aria-invalid={!!fieldErrors.medium}
                 >
                   <option value="">Select medium</option>
                   {MEDIUMS.map((m) => (
@@ -900,8 +1089,10 @@ export default function EditArtworkPage() {
                     className="commission-field"
                     style={{ marginTop: '0.6rem' }}
                     placeholder="Describe your medium"
+                    aria-invalid={!!fieldErrors.medium}
                   />
                 )}
+                <FieldErrorMessage message={fieldErrors.medium} />
               </div>
               <div>
                 <FieldLabel required>Style</FieldLabel>
@@ -910,12 +1101,14 @@ export default function EditArtworkPage() {
                   value={form.style}
                   onChange={(e) => updateForm('style', e.target.value)}
                   className="commission-field"
+                  aria-invalid={!!fieldErrors.style}
                 >
                   <option value="">Select style</option>
                   {STYLES.map((s) => (
                     <option key={s} value={s}>{s}</option>
                   ))}
                 </select>
+                <FieldErrorMessage message={fieldErrors.style} />
               </div>
             </div>
 
@@ -1360,6 +1553,7 @@ export default function EditArtworkPage() {
                   $
                 </span>
                 <input
+                  id="price_aud"
                   type="number"
                   step="0.01"
                   min="1"
@@ -1372,8 +1566,10 @@ export default function EditArtworkPage() {
                     fontFamily: 'var(--font-serif, serif)',
                   }}
                   placeholder="0.00"
+                  aria-invalid={!!fieldErrors.price_aud}
                 />
               </div>
+              <FieldErrorMessage message={fieldErrors.price_aud} />
             </div>
 
             {price >= 1 && (
