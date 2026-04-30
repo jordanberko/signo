@@ -230,7 +230,10 @@ export async function POST(request: Request) {
             : '',
         },
         success_url: `${appOrigin}/checkout/success?session_id={CHECKOUT_SESSION_ID}`,
-        cancel_url: `${appOrigin}/artwork/${artwork.id}`,
+        // `?cancelled=1` lets the artwork detail page render a "your
+        // reservation is still held" banner instead of silently dropping
+        // the buyer back onto the page with no acknowledgement.
+        cancel_url: `${appOrigin}/artwork/${artwork.id}?cancelled=1`,
       });
     } catch (stripeError) {
       // Stripe session creation failed — revert artwork back to approved

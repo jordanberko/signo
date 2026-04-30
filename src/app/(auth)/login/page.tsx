@@ -19,6 +19,31 @@ function GoogleGlyph() {
 }
 
 /**
+ * Fetch the post-sign-in user's role from /api/auth/session. Retries
+ * once after a 1-second delay because the session row occasionally
+ * isn't readable for a beat right after sign-in. Returns the role
+ * string on success, or `undefined` if both attempts fail — callers
+ * should fall back to a role-agnostic landing page.
+ */
+async function attemptSessionRoleFetch(): Promise<string | undefined> {
+  async function tryOnce(): Promise<string | undefined> {
+    try {
+      const res = await fetch('/api/auth/session');
+      if (!res.ok) return undefined;
+      const data = await res.json();
+      return data?.user?.role;
+    } catch {
+      return undefined;
+    }
+  }
+
+  const first = await tryOnce();
+  if (first) return first;
+  await new Promise((resolve) => setTimeout(resolve, 1000));
+  return tryOnce();
+}
+
+/**
  * Validates a `?redirect=` param before honouring it. Only accepts internal
  * paths (starts with `/`, not `//` or `/http`) to block open-redirect abuse.
  */
@@ -106,14 +131,19 @@ function LoginForm() {
       if (target) {
         window.location.href = target;
       } else {
-        // Fetch session to determine role for redirect
-        try {
-          const sessionRes = await fetch('/api/auth/session');
-          const sessionData = sessionRes.ok ? await sessionRes.json() : null;
-          const role = sessionData?.user?.role;
-          window.location.href = role === 'artist' || role === 'admin' ? '/artist/dashboard' : '/browse';
-        } catch {
+        // Fetch session to determine role for redirect. Retry once
+        // after a brief delay if the first attempt fails — the session
+        // row is occasionally not readable for a beat right after sign-
+        // in. If both attempts fail, fall back to /dashboard rather
+        // than /browse: /browse is buyer-specific and would misroute
+        // an artist whose role lookup didn't return cleanly.
+        const role = await attemptSessionRoleFetch();
+        if (role === 'artist' || role === 'admin') {
+          window.location.href = '/artist/dashboard';
+        } else if (role === 'buyer') {
           window.location.href = '/browse';
+        } else {
+          window.location.href = '/dashboard';
         }
       }
     } catch (err) {

@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Image from 'next/image';
 import { formatPrice } from '@/lib/utils';
 import { useAuth } from '@/components/providers/AuthProvider';
@@ -103,6 +103,12 @@ export default function ArtworkDetailClient({
   const [notifyLoading, setNotifyLoading] = useState(false);
   const [notifySuccess, setNotifySuccess] = useState(false);
   const router = useRouter();
+  const searchParams = useSearchParams();
+  // `?cancelled=1` is set by the Stripe checkout cancel_url (see
+  // `src/app/api/checkout/create-session/route.ts`). We render a banner
+  // letting the buyer know their reservation is still held so they can
+  // try a different card without thinking the cancel was fatal.
+  const wasCancelled = searchParams.get('cancelled') === '1';
   const { user } = useAuth();
 
   const isOwnArtwork = user?.id === artwork.artist.id;
@@ -293,6 +299,43 @@ export default function ArtworkDetailClient({
           <span style={{ margin: '0 10px' }}>/</span>
           <span style={{ color: 'var(--color-stone-dark)' }}>{artwork.title}</span>
         </nav>
+
+        {/* ── Cancelled-checkout banner ── */}
+        {/* Rendered when the buyer returned from Stripe Checkout via the
+            cancel_url. Same terracotta-italic + role="alert" treatment
+            used by other in-page error banners (e.g. payouts page) for
+            visual consistency. The reservation timeout is enforced by
+            `release-reservations` cron, so we surface its 10-minute
+            window here so buyers know they have time to retry. */}
+        {wasCancelled && (
+          <div
+            className="px-6 sm:px-10"
+            style={{ paddingBottom: '0.6rem' }}
+          >
+            <div
+              role="alert"
+              style={{
+                padding: '1.2rem 0',
+                borderTop: '1px solid var(--color-terracotta, #c45d3e)',
+                borderBottom: '1px solid var(--color-terracotta, #c45d3e)',
+              }}
+            >
+              <p
+                className="font-serif"
+                style={{
+                  fontSize: '0.92rem',
+                  fontStyle: 'italic',
+                  color: 'var(--color-terracotta, #c45d3e)',
+                  margin: 0,
+                  lineHeight: 1.5,
+                }}
+              >
+                — Your reservation is held for 10 more minutes. Try a
+                different card or come back to complete the purchase.
+              </p>
+            </div>
+          </div>
+        )}
 
         {/* ── Hero: image + metadata ── */}
         <div className="px-6 sm:px-10" style={{ paddingBottom: '5rem' }}>
