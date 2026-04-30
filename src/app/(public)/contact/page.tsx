@@ -3,9 +3,39 @@
 import { useState } from 'react';
 import Link from 'next/link';
 
+// Mirrors the server regex in `src/app/api/contact/route.ts`. Defined
+// inline (no shared util) per the PR's scope-discipline rule. If you
+// touch this regex, update the server one too — drift means the
+// server will reject what the client allows or vice versa.
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[a-zA-Z]{2,}$/;
+
+// Inline-duplicated from the artwork forms (PR #16 / PR #18). A future
+// PR can lift this into a shared `@/components/ui/` location once the
+// pattern has stabilised across all forms; not done here to keep the
+// scope tight.
+function FieldErrorMessage({ message }: { message?: string }) {
+  if (!message) return null;
+  return (
+    <p
+      className="font-serif"
+      role="alert"
+      style={{
+        marginTop: '0.4rem',
+        fontStyle: 'italic',
+        color: 'var(--color-terracotta)',
+        fontSize: '0.85rem',
+        lineHeight: 1.5,
+      }}
+    >
+      {message}
+    </p>
+  );
+}
+
 export default function ContactPage() {
   const [formState, setFormState] = useState<'idle' | 'submitting' | 'success' | 'error'>('idle');
   const [errorMsg, setErrorMsg] = useState('');
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [form, setForm] = useState({
     name: '',
     email: '',
@@ -14,13 +44,50 @@ export default function ContactPage() {
   });
 
   function handleChange(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) {
-    setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
+    const fieldName = e.target.name;
+    setForm((prev) => ({ ...prev, [fieldName]: e.target.value }));
+    // Clear the corresponding inline error as soon as the user edits
+    // the field — same affordance as the artwork forms.
+    if (fieldErrors[fieldName]) {
+      setFieldErrors((prev) => {
+        const next = { ...prev };
+        delete next[fieldName];
+        return next;
+      });
+    }
+  }
+
+  // Pre-submit client validation that mirrors the server's field-level
+  // rules. Returns a field map; empty = valid.
+  function clientValidate(): Record<string, string> {
+    const errors: Record<string, string> = {};
+    if (!form.name.trim()) errors.name = 'Your name is required.';
+    if (!form.email.trim()) {
+      errors.email = 'Email is required.';
+    } else if (!EMAIL_REGEX.test(form.email.trim())) {
+      errors.email = 'Please enter a valid email address.';
+    }
+    if (!form.subject.trim()) errors.subject = 'Please choose a topic.';
+    if (!form.message.trim()) errors.message = 'Message is required.';
+    return errors;
   }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+
+    // Pre-validate locally so users get inline errors without a network
+    // round-trip on obvious mistakes.
+    const preErrors = clientValidate();
+    if (Object.keys(preErrors).length > 0) {
+      setFieldErrors(preErrors);
+      setErrorMsg('');
+      setFormState('idle');
+      return;
+    }
+
     setFormState('submitting');
     setErrorMsg('');
+    setFieldErrors({});
 
     try {
       const controller = new AbortController();
@@ -37,8 +104,15 @@ export default function ContactPage() {
       if (res.ok) {
         setFormState('success');
       } else {
-        const json = await res.json();
-        setErrorMsg(json.error || 'Something went wrong. Please try again.');
+        const json = await res.json().catch(() => ({}));
+        // 400 with `errors` map → route to fields. Other failures
+        // (rate limit, server error) → top-level banner.
+        if (res.status === 400 && json.errors && typeof json.errors === 'object') {
+          setFieldErrors(json.errors);
+          setErrorMsg(typeof json.error === 'string' ? json.error : '');
+        } else {
+          setErrorMsg((json && typeof json.error === 'string' && json.error) || 'Something went wrong. Please try again.');
+        }
         setFormState('error');
       }
     } catch {
@@ -286,7 +360,9 @@ export default function ContactPage() {
                       onChange={handleChange}
                       className="commission-field"
                       placeholder="Your name"
+                      aria-invalid={!!fieldErrors.name}
                     />
+                    <FieldErrorMessage message={fieldErrors.name} />
                   </div>
                   <div>
                     <label htmlFor="email" className="commission-label">
@@ -301,7 +377,9 @@ export default function ContactPage() {
                       onChange={handleChange}
                       className="commission-field"
                       placeholder="you@example.com"
+                      aria-invalid={!!fieldErrors.email}
                     />
+                    <FieldErrorMessage message={fieldErrors.email} />
                   </div>
                 </div>
 
@@ -316,6 +394,7 @@ export default function ContactPage() {
                     value={form.subject}
                     onChange={handleChange}
                     className="commission-field"
+                    aria-invalid={!!fieldErrors.subject}
                   >
                     <option value="" disabled>
                       Select a topic
@@ -326,6 +405,7 @@ export default function ContactPage() {
                     <option value="issue">Report an issue</option>
                     <option value="partnership">Partnership enquiry</option>
                   </select>
+                  <FieldErrorMessage message={fieldErrors.subject} />
                 </div>
 
                 <div style={{ marginTop: 'clamp(1.5rem, 3vw, 2.5rem)' }}>
@@ -341,7 +421,9 @@ export default function ContactPage() {
                     onChange={handleChange}
                     className="commission-field"
                     placeholder="Tell us what&apos;s on your mind…"
+                    aria-invalid={!!fieldErrors.message}
                   />
+                  <FieldErrorMessage message={fieldErrors.message} />
                 </div>
 
                 {formState === 'error' && errorMsg && (

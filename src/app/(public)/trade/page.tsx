@@ -2,9 +2,35 @@
 
 import { useState } from 'react';
 
+// Mirrors the server regex in `src/app/api/trade/route.ts`. Defined
+// inline (no shared util) per scope discipline; keep them in sync.
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[a-zA-Z]{2,}$/;
+
+// Inline-duplicated; see the same component in the contact page for
+// the rationale.
+function FieldErrorMessage({ message }: { message?: string }) {
+  if (!message) return null;
+  return (
+    <p
+      className="font-serif"
+      role="alert"
+      style={{
+        marginTop: '0.4rem',
+        fontStyle: 'italic',
+        color: 'var(--color-terracotta)',
+        fontSize: '0.85rem',
+        lineHeight: 1.5,
+      }}
+    >
+      {message}
+    </p>
+  );
+}
+
 export default function TradePage() {
   const [formState, setFormState] = useState<'idle' | 'submitting' | 'success' | 'error'>('idle');
   const [errorMsg, setErrorMsg] = useState('');
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [form, setForm] = useState({
     business_name: '',
     contact_name: '',
@@ -16,13 +42,46 @@ export default function TradePage() {
   });
 
   function handleChange(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) {
-    setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
+    const fieldName = e.target.name;
+    setForm((prev) => ({ ...prev, [fieldName]: e.target.value }));
+    if (fieldErrors[fieldName]) {
+      setFieldErrors((prev) => {
+        const next = { ...prev };
+        delete next[fieldName];
+        return next;
+      });
+    }
+  }
+
+  function clientValidate(): Record<string, string> {
+    const errors: Record<string, string> = {};
+    if (!form.business_name.trim()) errors.business_name = 'Business name is required.';
+    if (!form.contact_name.trim()) errors.contact_name = 'Contact name is required.';
+    if (!form.email.trim()) {
+      errors.email = 'Email is required.';
+    } else if (!EMAIL_REGEX.test(form.email.trim())) {
+      errors.email = 'Please enter a valid email address.';
+    }
+    if (!form.business_type.trim()) errors.business_type = 'Please select an industry.';
+    if (!form.description.trim()) errors.description = 'Brief description is required.';
+    if (!form.budget_range.trim()) errors.budget_range = 'Please select a budget range.';
+    return errors;
   }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+
+    const preErrors = clientValidate();
+    if (Object.keys(preErrors).length > 0) {
+      setFieldErrors(preErrors);
+      setErrorMsg('');
+      setFormState('idle');
+      return;
+    }
+
     setFormState('submitting');
     setErrorMsg('');
+    setFieldErrors({});
 
     try {
       const controller = new AbortController();
@@ -39,8 +98,13 @@ export default function TradePage() {
       if (res.ok) {
         setFormState('success');
       } else {
-        const json = await res.json();
-        setErrorMsg(json.error || 'Something went wrong. Please try again.');
+        const json = await res.json().catch(() => ({}));
+        if (res.status === 400 && json.errors && typeof json.errors === 'object') {
+          setFieldErrors(json.errors);
+          setErrorMsg(typeof json.error === 'string' ? json.error : '');
+        } else {
+          setErrorMsg((json && typeof json.error === 'string' && json.error) || 'Something went wrong. Please try again.');
+        }
         setFormState('error');
       }
     } catch {
@@ -238,7 +302,9 @@ export default function TradePage() {
                       onChange={handleChange}
                       className="commission-field"
                       placeholder="Business name"
+                      aria-invalid={!!fieldErrors.business_name}
                     />
+                    <FieldErrorMessage message={fieldErrors.business_name} />
                   </div>
                   <div>
                     <label htmlFor="contact_name" className="commission-label">
@@ -253,7 +319,9 @@ export default function TradePage() {
                       onChange={handleChange}
                       className="commission-field"
                       placeholder="Your name"
+                      aria-invalid={!!fieldErrors.contact_name}
                     />
+                    <FieldErrorMessage message={fieldErrors.contact_name} />
                   </div>
                 </div>
 
@@ -274,7 +342,9 @@ export default function TradePage() {
                       onChange={handleChange}
                       className="commission-field"
                       placeholder="you@business.com"
+                      aria-invalid={!!fieldErrors.email}
                     />
+                    <FieldErrorMessage message={fieldErrors.email} />
                   </div>
                   <div>
                     <label htmlFor="phone" className="commission-label">
@@ -303,6 +373,7 @@ export default function TradePage() {
                     value={form.business_type}
                     onChange={handleChange}
                     className="commission-field"
+                    aria-invalid={!!fieldErrors.business_type}
                   >
                     <option value="" disabled>
                       Select your industry
@@ -316,6 +387,7 @@ export default function TradePage() {
                     <option value="Retail">Retail</option>
                     <option value="Other">Other</option>
                   </select>
+                  <FieldErrorMessage message={fieldErrors.business_type} />
                 </div>
 
                 <div style={{ marginTop: 'clamp(1.5rem, 3vw, 2.5rem)' }}>
@@ -331,7 +403,9 @@ export default function TradePage() {
                     onChange={handleChange}
                     className="commission-field"
                     placeholder="Tell us about the space, the style, scale, quantity, timing…"
+                    aria-invalid={!!fieldErrors.description}
                   />
+                  <FieldErrorMessage message={fieldErrors.description} />
                 </div>
 
                 <div style={{ marginTop: 'clamp(1.5rem, 3vw, 2.5rem)' }}>
@@ -345,6 +419,7 @@ export default function TradePage() {
                     value={form.budget_range}
                     onChange={handleChange}
                     className="commission-field"
+                    aria-invalid={!!fieldErrors.budget_range}
                   >
                     <option value="" disabled>
                       Select a range
@@ -355,6 +430,7 @@ export default function TradePage() {
                     <option value="$20,000–$50,000">$20,000 – $50,000</option>
                     <option value="$50,000+">$50,000 +</option>
                   </select>
+                  <FieldErrorMessage message={fieldErrors.budget_range} />
                 </div>
 
                 {formState === 'error' && errorMsg && (

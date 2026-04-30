@@ -2,6 +2,11 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { rateLimit } from '@/lib/rate-limit';
 
+// See the same constant in `src/app/api/contact/route.ts` for rationale.
+// Defined inline (no shared util) per scope discipline; mirror this in
+// the NewsletterSignup component's client-side regex.
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[a-zA-Z]{2,}$/;
+
 /**
  * POST /api/newsletter
  *
@@ -21,9 +26,21 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { email } = body;
 
-    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    // Field-level validation. Returns 400 with both `error` (banner)
+    // and `errors` (field map) so the client can render an inline
+    // message under the email input.
+    const errors: Record<string, string> = {};
+    if (!email || (typeof email === 'string' && !email.trim())) {
+      errors.email = 'Email is required.';
+    } else if (typeof email === 'string' && !EMAIL_REGEX.test(email.trim())) {
+      errors.email = 'Please enter a valid email address.';
+    }
+    if (Object.keys(errors).length > 0) {
       return NextResponse.json(
-        { error: 'Valid email is required' },
+        {
+          error: 'Please check the highlighted field below.',
+          errors,
+        },
         { status: 400 },
       );
     }

@@ -3,6 +3,11 @@ import { createClient } from '@/lib/supabase/server';
 import { rateLimit } from '@/lib/rate-limit';
 import { sendTradeEnquiryNotification } from '@/lib/email';
 
+// See the same constant in `src/app/api/contact/route.ts` for rationale.
+// Defined inline (no shared util) per scope discipline; mirror this in
+// the trade page client-side regex.
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[a-zA-Z]{2,}$/;
+
 /**
  * POST /api/trade
  *
@@ -23,18 +28,37 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { business_name, contact_name, email, phone, business_type, description, budget_range } = body;
 
-    // Validate required fields
-    if (!business_name || !contact_name || !email || !business_type || !description || !budget_range) {
-      return NextResponse.json(
-        { error: 'Please fill in all required fields.' },
-        { status: 400 },
-      );
+    // Field-level validation. Returns 400 with both `error` (banner
+    // summary) and `errors` (field map for inline UI), matching the
+    // shape used by the artworks route.
+    const errors: Record<string, string> = {};
+    if (!business_name || (typeof business_name === 'string' && !business_name.trim())) {
+      errors.business_name = 'Business name is required.';
+    }
+    if (!contact_name || (typeof contact_name === 'string' && !contact_name.trim())) {
+      errors.contact_name = 'Contact name is required.';
+    }
+    if (!email || (typeof email === 'string' && !email.trim())) {
+      errors.email = 'Email is required.';
+    } else if (typeof email === 'string' && !EMAIL_REGEX.test(email.trim())) {
+      errors.email = 'Please enter a valid email address.';
+    }
+    if (!business_type || (typeof business_type === 'string' && !business_type.trim())) {
+      errors.business_type = 'Please select an industry.';
+    }
+    if (!description || (typeof description === 'string' && !description.trim())) {
+      errors.description = 'Brief description is required.';
+    }
+    if (!budget_range || (typeof budget_range === 'string' && !budget_range.trim())) {
+      errors.budget_range = 'Please select a budget range.';
     }
 
-    // Basic email format check
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    if (Object.keys(errors).length > 0) {
       return NextResponse.json(
-        { error: 'Invalid email address.' },
+        {
+          error: 'Please check the highlighted fields below.',
+          errors,
+        },
         { status: 400 },
       );
     }
