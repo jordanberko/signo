@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import ImageUpload from '@/components/ImageUpload';
@@ -93,6 +93,49 @@ const STEP_META = [
 
 const STORAGE_KEY = 'signo_artwork_draft';
 
+// Maps server-returned error field names → step where that field lives.
+// Used to jump the user back to the earliest step that has a field error
+// after an API rejection.
+const FIELD_TO_STEP: Record<string, number> = {
+  images: 1,
+  title: 2,
+  description: 2,
+  category: 2,
+  medium: 2,
+  style: 2,
+  price_aud: 4,
+};
+
+// Maps server-returned error field names → DOM id of the input to focus
+// after the step jump. Only fields with an actual focusable input are
+// listed; for category/images the step jump and inline error are enough.
+const FOCUSABLE_FIELDS: Record<string, string> = {
+  title: 'title',
+  description: 'description',
+  medium: 'medium',
+  style: 'style',
+  price_aud: 'price_aud',
+};
+
+function firstErrorStep(errors: Record<string, string>): number | null {
+  let earliest: number | null = null;
+  for (const field of Object.keys(errors)) {
+    const target = FIELD_TO_STEP[field];
+    if (target != null && (earliest == null || target < earliest)) {
+      earliest = target;
+    }
+  }
+  return earliest;
+}
+
+function firstFocusableField(errors: Record<string, string>): string | null {
+  for (const field of Object.keys(errors)) {
+    const id = FOCUSABLE_FIELDS[field];
+    if (id) return id;
+  }
+  return null;
+}
+
 const KICKER: React.CSSProperties = {
   fontSize: '0.62rem',
   letterSpacing: '0.22em',
@@ -158,6 +201,25 @@ function getDefaultForm(): FormState {
 
 // ── Helpers ──
 
+function FieldErrorMessage({ message }: { message?: string }) {
+  if (!message) return null;
+  return (
+    <p
+      className="font-serif"
+      role="alert"
+      style={{
+        marginTop: '0.4rem',
+        fontStyle: 'italic',
+        color: 'var(--color-terracotta)',
+        fontSize: '0.85rem',
+        lineHeight: 1.5,
+      }}
+    >
+      {message}
+    </p>
+  );
+}
+
 function FieldLabel({
   children,
   required,
@@ -218,6 +280,11 @@ export default function NewArtworkPage() {
   const [step, setStep] = useState(1);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+  // We track the focus target in a ref so clearing it after focus doesn't
+  // trigger another render. The step-change effect below reads the ref
+  // post-commit and consumes it. (state-in-effect is an eslint error.)
+  const pendingFocusFieldRef = useRef<string | null>(null);
 
   // Initialize form from localStorage or defaults
   const [form, setForm] = useState<FormState>(() => {
@@ -253,7 +320,31 @@ export default function NewArtworkPage() {
 
   function updateForm<K extends keyof FormState>(key: K, value: FormState[K]) {
     setForm((prev) => ({ ...prev, [key]: value }));
+    // Clear the corresponding inline error as soon as the user touches
+    // the field. The price_aud server field corresponds to the price_aud
+    // form state key (same name); other fields match directly.
+    const fieldName = key as string;
+    if (fieldErrors[fieldName]) {
+      setFieldErrors((prev) => {
+        const next = { ...prev };
+        delete next[fieldName];
+        return next;
+      });
+    }
   }
+
+  // Focus the errored input after a step jump. The new step's DOM only
+  // exists once React has committed the re-render, so we run this in
+  // useEffect (post-commit). Same-step focus is handled synchronously in
+  // applyValidationErrors and never sets the ref — so this only fires on
+  // step jumps.
+  useEffect(() => {
+    const target = pendingFocusFieldRef.current;
+    if (!target) return;
+    const el = document.getElementById(target);
+    if (el) el.focus();
+    pendingFocusFieldRef.current = null;
+  }, [step]);
 
   // Image upload handler — uses the artwork's pre-generated ID
   const handleImageUpload = useCallback(
@@ -311,11 +402,71 @@ export default function NewArtworkPage() {
     5: true,
   };
 
+  // Pre-submit validation that mirrors the server's required-when-
+  // pending_review schema. Stale localStorage drafts can otherwise
+  // reach the submit step with empty required fields.
+  function clientValidatePendingReview(): Record<string, string> {
+    const errors: Record<string, string> = {};
+    if (form.images.length < 1) {
+      errors.images = 'At least one image is required.';
+    }
+    if (!form.title.trim()) {
+      errors.title = 'Title is required.';
+    }
+    if (!form.description.trim()) {
+      errors.description = 'Description is required.';
+    }
+    const m = form.medium === 'Other' ? form.customMedium : form.medium;
+    if (!m.trim()) {
+      errors.medium = 'Medium is required.';
+    }
+    if (!form.style.trim()) {
+      errors.style = 'Style is required.';
+    }
+    if (price < 1) {
+      errors.price_aud = 'Price must be at least $1.';
+    }
+    return errors;
+  }
+
+  function applyValidationErrors(errors: Record<string, string>) {
+    setFieldErrors(errors);
+    setError('Please check the highlighted fields below.');
+    const target = firstErrorStep(errors);
+    const focusId = firstFocusableField(errors);
+    const willJumpStep = target != null && target !== step;
+
+    if (willJumpStep) {
+      // The target step's DOM doesn't exist yet — stash the focus target
+      // and let the post-commit effect pick it up after setStep renders.
+      if (focusId) pendingFocusFieldRef.current = focusId;
+      setStep(target);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
+
+    // Same step: the input is already in the DOM, focus synchronously.
+    if (focusId) {
+      const el = document.getElementById(focusId);
+      if (el) el.focus();
+    }
+  }
+
   // Submit
   async function handleSubmit(status: 'draft' | 'pending_review') {
     if (!user) return;
     setSaving(true);
     setError('');
+    setFieldErrors({});
+
+    if (status === 'pending_review') {
+      const clientErrors = clientValidatePendingReview();
+      if (Object.keys(clientErrors).length > 0) {
+        applyValidationErrors(clientErrors);
+        setSaving(false);
+        return;
+      }
+    }
 
     try {
       const medium = form.medium === 'Other' ? form.customMedium : form.medium;
@@ -358,8 +509,26 @@ export default function NewArtworkPage() {
       });
 
       if (!res.ok) {
-        const { error: apiError } = await res.json();
-        throw new Error(apiError || 'Failed to create artwork');
+        const json = await res.json().catch(() => ({}));
+        if (
+          res.status === 400 &&
+          json.errors &&
+          typeof json.errors === 'object'
+        ) {
+          // Field-level validation failure: route errors to inputs and
+          // jump to the earliest errored step.
+          applyValidationErrors(json.errors);
+          setSaving(false);
+          return;
+        }
+        // Top-level failure (auth, server, network-as-non-OK): banner
+        // only, no field errors, no step jump.
+        setError(
+          (json && typeof json.error === 'string' && json.error) ||
+            'Failed to create artwork'
+        );
+        setSaving(false);
+        return;
       }
 
       clearDraft();
@@ -697,6 +866,8 @@ export default function NewArtworkPage() {
               uploadFile={handleImageUpload}
             />
 
+            <FieldErrorMessage message={fieldErrors.images} />
+
             {form.images.length < 2 && (
               <p
                 className="font-serif"
@@ -755,7 +926,9 @@ export default function NewArtworkPage() {
                 onChange={(e) => updateForm('title', e.target.value.slice(0, 100))}
                 className="commission-field"
                 placeholder="e.g. Golden Hour Over Sydney Harbour"
+                aria-invalid={!!fieldErrors.title}
               />
+              <FieldErrorMessage message={fieldErrors.title} />
             </div>
 
             {/* Description */}
@@ -771,7 +944,9 @@ export default function NewArtworkPage() {
                 className="commission-field"
                 style={{ resize: 'vertical', fontFamily: 'inherit' }}
                 placeholder="What inspired it, how you made it, what you want the viewer to feel…"
+                aria-invalid={!!fieldErrors.description}
               />
+              <FieldErrorMessage message={fieldErrors.description} />
             </div>
 
             {/* Category */}
@@ -850,6 +1025,7 @@ export default function NewArtworkPage() {
                   );
                 })}
               </ul>
+              <FieldErrorMessage message={fieldErrors.category} />
             </div>
 
             {/* Medium & Style */}
@@ -868,6 +1044,7 @@ export default function NewArtworkPage() {
                   value={form.medium}
                   onChange={(e) => updateForm('medium', e.target.value)}
                   className="commission-field"
+                  aria-invalid={!!fieldErrors.medium}
                 >
                   <option value="">Select medium</option>
                   {MEDIUMS.map((m) => (
@@ -884,8 +1061,10 @@ export default function NewArtworkPage() {
                     className="commission-field"
                     style={{ marginTop: '0.6rem' }}
                     placeholder="Describe your medium"
+                    aria-invalid={!!fieldErrors.medium}
                   />
                 )}
+                <FieldErrorMessage message={fieldErrors.medium} />
               </div>
               <div>
                 <FieldLabel required>Style</FieldLabel>
@@ -894,6 +1073,7 @@ export default function NewArtworkPage() {
                   value={form.style}
                   onChange={(e) => updateForm('style', e.target.value)}
                   className="commission-field"
+                  aria-invalid={!!fieldErrors.style}
                 >
                   <option value="">Select style</option>
                   {STYLES.map((s) => (
@@ -902,6 +1082,7 @@ export default function NewArtworkPage() {
                     </option>
                   ))}
                 </select>
+                <FieldErrorMessage message={fieldErrors.style} />
               </div>
             </div>
 
@@ -1383,7 +1564,7 @@ export default function NewArtworkPage() {
                   $
                 </span>
                 <input
-                  id="price"
+                  id="price_aud"
                   type="number"
                   step="0.01"
                   min="1"
@@ -1396,8 +1577,10 @@ export default function NewArtworkPage() {
                     fontFamily: 'var(--font-serif, serif)',
                   }}
                   placeholder="0.00"
+                  aria-invalid={!!fieldErrors.price_aud}
                 />
               </div>
+              <FieldErrorMessage message={fieldErrors.price_aud} />
             </div>
 
             {/* Breakdown */}
