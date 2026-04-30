@@ -4,6 +4,7 @@ import { getStripe } from '@/lib/stripe/config';
 import { getAccountStatus } from '@/lib/stripe/connect';
 import { rateLimit } from '@/lib/rate-limit';
 import { appUrl } from '@/lib/urls';
+import { friendlyStripeError } from '@/lib/stripe/friendly-errors';
 
 /**
  * POST /api/checkout/create-session
@@ -274,22 +275,15 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ url: session.url });
   } catch (err) {
+    // Always log the full error object so structured fields like
+    // `.type`, `.rawType`, `.code`, `.requestId`, `.statusCode` reach
+    // Vercel's log explorer for debugging. The buyer-facing message
+    // below is mapped via friendlyStripeError so we never leak raw
+    // Stripe text (which is written for developers).
     console.error('[Checkout] Create session error:', err);
 
-    // Return more specific error info for debugging
-    let message = 'Failed to create checkout session';
-    if (err instanceof Error) {
-      // Stripe errors have a `type` property
-      const stripeErr = err as Error & { type?: string; code?: string };
-      if (stripeErr.type) {
-        message = `Stripe error: ${stripeErr.message}`;
-      } else {
-        message = err.message;
-      }
-    }
-
     return NextResponse.json(
-      { error: message },
+      { error: friendlyStripeError(err) },
       { status: 500 }
     );
   }

@@ -58,8 +58,13 @@ export async function GET(request: NextRequest) {
       .order('created_at', { ascending: true });
 
     if (error) {
-      console.error('[API /admin/artworks] Query error:', error.message);
-      return NextResponse.json({ error: error.message }, { status: 500 });
+      // Log full Postgrest error object for debugging; user-facing
+      // message is generic so schema details don't leak.
+      console.error('[API /admin/artworks] Query error:', error);
+      return NextResponse.json(
+        { error: 'Failed to load artworks. Please try again.' },
+        { status: 500 }
+      );
     }
 
     // Reshape to include artist field for frontend compatibility

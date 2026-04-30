@@ -95,8 +95,13 @@ export async function POST(request: Request) {
       .single();
 
     if (msgError) {
-      console.error('[API send] insert message failed:', msgError.message);
-      return NextResponse.json({ error: msgError.message }, { status: 500 });
+      // Log full error object for debugging; user-facing message is
+      // generic so schema constraint names don't leak.
+      console.error('[API send] insert message failed:', msgError);
+      return NextResponse.json(
+        { error: 'Failed to send your message. Please try again.' },
+        { status: 500 }
+      );
     }
 
     console.log('[API send] message created:', (message as Record<string, unknown>)?.id);

@@ -21,8 +21,14 @@ export async function GET() {
       .order('created_at', { ascending: false });
 
     if (error) {
-      console.error('[API orders]', error.message);
-      return NextResponse.json({ error: error.message }, { status: 500 });
+      // Log the full Postgrest error object so .code / .details / .hint
+      // reach the logs for debugging; user-facing message is generic so
+      // schema constraint names and column types don't leak.
+      console.error('[API orders] Query error:', error);
+      return NextResponse.json(
+        { error: 'Failed to load your orders. Please try again.' },
+        { status: 500 }
+      );
     }
 
     return NextResponse.json({ orders: data || [] });
