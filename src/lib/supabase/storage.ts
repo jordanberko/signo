@@ -6,8 +6,15 @@
  *
  * SETUP: Create these storage buckets in Supabase Dashboard → Storage:
  *
- * 1. "artwork-images" — Public: ON, File size limit: 50 MB, MIME: any
- * 2. "avatars" — Public: ON, File size limit: 5 MB, MIME: image/jpeg, image/png, image/webp
+ * 1. "artwork-images" — Public: ON, File size limit: 50 MB, MIME: any.
+ *    Path conventions: `{userId}/{artworkId}/{fileId}.jpg` for artwork
+ *    photos; `studio-posts/{userId}/{fileId}.jpg` for studio post photos.
+ * 2. "avatars" — Public: ON, File size limit: 5 MB, MIME: image/jpeg,
+ *    image/png, image/webp. Path: `{userId}/{fileId}.jpg`.
+ * 3. "dispute-evidence" — Public: ON, File size limit: 10 MB, MIME:
+ *    image/jpeg, image/png, image/webp, image/heic, image/heif. Path:
+ *    `{orderId}/{fileId}.jpg`. Public + UUID-keyed paths are unguessable;
+ *    admins access via direct URL in the dispute admin UI.
  */
 
 import { getAuthToken } from './getAuthToken';
@@ -311,6 +318,39 @@ export async function uploadStudioImage(
       throw new Error('Upload failed. Please try a smaller image or check your internet connection.');
     }
   }
+}
+
+/**
+ * Upload a piece of dispute evidence (buyer-side photo).
+ *
+ * Compressed to 2400px max, 90% quality — matches the artwork-image
+ * settings because admins need to zoom into damage. The 10MB input cap
+ * matches the bucket's provisioned limit; oversize files fail client-side
+ * before any network call.
+ */
+export async function uploadDisputeEvidence(
+  file: File,
+  orderId: string,
+  onProgress?: (progress: number) => void,
+): Promise<string> {
+  if (!ACCEPTED_TYPES.includes(file.type)) {
+    throw new Error(`"${file.name}" is not supported. Use JPG, PNG, WebP, or HEIC.`);
+  }
+  if (file.size > 10 * 1024 * 1024) {
+    throw new Error(
+      `"${file.name}" is too large (${(file.size / 1024 / 1024).toFixed(1)}MB). Max 10MB.`,
+    );
+  }
+
+  const fileId = crypto.randomUUID();
+  const path = `${orderId}/${fileId}.jpg`;
+
+  onProgress?.(5);
+  const compressed = await compressImage(file, 2400, 0.9);
+  onProgress?.(50);
+  const { url } = await uploadToStorage('dispute-evidence', path, compressed);
+  onProgress?.(100);
+  return url;
 }
 
 /**
