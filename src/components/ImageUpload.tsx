@@ -421,10 +421,9 @@ export default function ImageUpload({
         <div
           style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
             gap: '0.9rem',
           }}
-          className="image-upload-grid"
+          className="grid-cols-2 sm:grid-cols-3"
         >
           {images.map((img, index) => (
             <div
@@ -447,7 +446,7 @@ export default function ImageUpload({
                 transition: 'opacity var(--dur-fast) var(--ease-out), border-color var(--dur-fast) var(--ease-out)',
                 cursor: img.uploading ? 'default' : 'grab',
               }}
-              className="image-upload-tile"
+              className="group"
             >
               {/* Thumbnail */}
               <Image
@@ -573,13 +572,12 @@ export default function ImageUpload({
               {/* Hover controls — text-only */}
               {!img.uploading && !img.error && (
                 <div
-                  className="image-upload-controls"
+                  className="opacity-0 group-hover:opacity-100"
                   style={{
                     position: 'absolute',
                     inset: 0,
                     background:
                       'linear-gradient(to top, rgba(26,26,24,0.55) 0%, transparent 45%, transparent 55%, rgba(26,26,24,0.45) 100%)',
-                    opacity: 0,
                     transition: 'opacity var(--dur-fast) var(--ease-out)',
                     display: 'flex',
                     flexDirection: 'column',
@@ -671,7 +669,7 @@ export default function ImageUpload({
                 color: 'var(--color-stone-dark)',
                 transition: 'border-color var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out)',
               }}
-              className="image-upload-add-tile"
+              className="hover:!border-[var(--color-ink)] hover:!text-[var(--color-ink)]"
             >
               <span
                 style={{
@@ -700,22 +698,6 @@ export default function ImageUpload({
           — Drag to reorder. The first image becomes the primary.
         </p>
       )}
-
-      {/* Inline hover styles — Tailwind classes are avoided to keep this token-pure */}
-      <style jsx>{`
-        :global(.image-upload-tile:hover .image-upload-controls) {
-          opacity: 1;
-        }
-        :global(.image-upload-add-tile:hover) {
-          border-color: var(--color-ink) !important;
-          color: var(--color-ink) !important;
-        }
-        @media (min-width: 640px) {
-          :global(.image-upload-grid) {
-            grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
-          }
-        }
-      `}</style>
 
       {/* Image Editor modal */}
       {editingId && (() => {
