@@ -47,11 +47,21 @@ export async function POST(request: NextRequest) {
 
     const supabase = await createClient();
 
-    // Table created via SQL migration — not in generated types yet
-    // Upsert to prevent duplicate errors — if email exists, do nothing
-    const { error } = await (supabase as unknown as { from: (table: string) => { upsert: (row: Record<string, string>, opts: { onConflict: string }) => Promise<{ error: { message: string } | null }> } }).from('newsletter_subscribers').upsert({ email: email.toLowerCase() }, { onConflict: 'email' });
+    // Plain insert (not upsert). Migration 006 grants anon INSERT only,
+    // no UPDATE policy. Postgres rejects upsert with RLS error 42501
+    // because ON CONFLICT DO UPDATE requires an UPDATE policy even for
+    // non-conflicting rows. Plain insert + 23505 catch is the
+    // equivalent behaviour without widening the security surface.
+    // Table created via SQL migration, not in generated types yet.
+    const { error } = await (supabase as unknown as { from: (table: string) => { insert: (row: Record<string, string>) => Promise<{ error: { message: string; code: string } | null }> } }).from('newsletter_subscribers').insert({ email: email.toLowerCase() });
 
     if (error) {
+      // Postgres unique_violation: email already subscribed. Silently
+      // treat as success so the user sees the same confirmation as a
+      // fresh signup, matching the original upsert intent.
+      if (error.code === '23505') {
+        return NextResponse.json({ success: true });
+      }
       console.error('[API /newsletter] Insert error:', error.message);
       return NextResponse.json(
         { error: 'Failed to subscribe' },
