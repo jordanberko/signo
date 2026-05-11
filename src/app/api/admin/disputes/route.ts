@@ -47,7 +47,7 @@ export async function GET(request: NextRequest) {
     let query = serviceClient
       .from('disputes')
       .select(
-        '*, orders(id, total_amount_aud, artworks(title), buyer:profiles!orders_buyer_id_fkey(full_name, email), artist:profiles!orders_artist_id_fkey(full_name, email))',
+        '*, orders(id, total_amount_aud, artworks(title), buyer:profiles!orders_buyer_id_fkey(full_name, email), artist:profiles!orders_artist_id_fkey(full_name, email, street_address, city, postcode, country))',
       )
       .order('created_at', { ascending: false });
 
