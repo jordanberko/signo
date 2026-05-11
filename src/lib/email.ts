@@ -979,3 +979,43 @@ export async function sendReturnApprovedToSeller(data: ReturnApprovedSellerData)
     html,
   });
 }
+
+// ════════════════════════════════════════════════════════════════════
+// 16. RETURN TRACKING SUBMITTED (to seller)
+// ════════════════════════════════════════════════════════════════════
+
+export interface ReturnTrackingSellerData {
+  sellerEmail: string;
+  sellerName: string;
+  orderId: string;
+  artworkTitle: string;
+  trackingNumber: string;
+  carrier: string;
+}
+
+export async function sendReturnTrackingToSeller(data: ReturnTrackingSellerData) {
+  const html = emailWrapper(`
+    ${kicker('Return in transit')}
+    ${headline('A returned work is', 'on its way.')}
+    ${lede(`Hello ${escapeHtml(data.sellerName || 'there')}, the buyer has posted &ldquo;${escapeHtml(data.artworkTitle)}&rdquo; back to you.`)}
+
+    ${ledger([
+      ['Artwork', escapeHtml(data.artworkTitle), 'font-style:italic;'],
+      ['Carrier', escapeHtml(data.carrier)],
+      ['Tracking', `<span style="font-family:${SANS};font-size:12px;color:${INK};letter-spacing:0.06em;">${escapeHtml(data.trackingNumber)}</span>`],
+    ])}
+
+    ${divider()}
+
+    <p style="font-family:${SERIF};font-size:15px;color:${INK};margin:0 0 8px 0;font-style:italic;">&mdash; What to do next</p>
+    ${body('Once the work arrives, please confirm receipt on your order page. The refund to the buyer will only be processed after you confirm. Please confirm within seven days of arrival.')}
+
+    ${ctaButton('View the order', `${APP_URL}/artist/orders`)}
+  `);
+
+  return safeSend({
+    to: data.sellerEmail,
+    subject: `Return on its way — "${escapeHtml(data.artworkTitle)}"`,
+    html,
+  });
+}

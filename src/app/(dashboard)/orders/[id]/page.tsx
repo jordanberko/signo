@@ -56,6 +56,10 @@ function statusLabel(status: string): string {
       return 'Refunded';
     case 'cancelled':
       return 'Cancelled';
+    case 'return_pending':
+      return 'Return approved · Awaiting tracking';
+    case 'return_in_transit':
+      return 'Return in transit';
     default:
       return status;
   }
@@ -148,6 +152,12 @@ function OrderContent({ orderId }: { orderId: string }) {
   const [confirmingDelivery, setConfirmingDelivery] = useState(false);
   const [deliverError, setDeliverError] = useState('');
   const [countdown, setCountdown] = useState<{ hours: number; minutes: number } | null>(null);
+
+  // Return tracking state
+  const [returnTracking, setReturnTracking] = useState('');
+  const [returnCarrier, setReturnCarrier] = useState('');
+  const [submittingReturn, setSubmittingReturn] = useState(false);
+  const [returnError, setReturnError] = useState('');
 
   const fetchOrder = useCallback(async () => {
     if (!user) return;
@@ -259,6 +269,37 @@ function OrderContent({ orderId }: { orderId: string }) {
       setDeliverError(err instanceof Error ? err.message : 'Something went wrong');
     } finally {
       setDelivering(false);
+    }
+  }
+
+  async function handleReturnTracking() {
+    if (!order) return;
+    if (!returnTracking.trim() || !returnCarrier.trim()) {
+      setReturnError('Tracking number and carrier are both required.');
+      return;
+    }
+    setSubmittingReturn(true);
+    setReturnError('');
+    try {
+      const res = await fetch(`/api/orders/${order.id}/return-tracking`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          tracking_number: returnTracking,
+          carrier: returnCarrier,
+        }),
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.error || 'Failed to submit return tracking');
+      }
+      setReturnTracking('');
+      setReturnCarrier('');
+      await fetchOrder();
+    } catch (err) {
+      setReturnError(err instanceof Error ? err.message : 'Something went wrong');
+    } finally {
+      setSubmittingReturn(false);
     }
   }
 
@@ -1104,6 +1145,166 @@ function OrderContent({ orderId }: { orderId: string }) {
               </>
             )}
           </Section>
+        )}
+
+        {/* ── Return tracking submission ── */}
+        {order.status === 'return_pending' && (
+          <Section kicker="Return the work">
+            <p
+              className="font-serif"
+              style={{
+                fontSize: '1.2rem',
+                lineHeight: 1.4,
+                color: 'var(--color-ink)',
+                fontStyle: 'italic',
+                fontWeight: 400,
+                maxWidth: '46ch',
+                marginBottom: '0.6rem',
+              }}
+            >
+              Your return has been approved.
+            </p>
+            <p
+              style={{
+                fontSize: '0.9rem',
+                color: 'var(--color-stone-dark)',
+                fontWeight: 300,
+                lineHeight: 1.6,
+                maxWidth: '52ch',
+                marginBottom: '1.6rem',
+              }}
+            >
+              Package the work carefully and post it to the return address provided in your email.
+              Submit the tracking details below so the seller knows it is on its way.
+            </p>
+
+            {returnError && (
+              <div
+                style={{
+                  marginBottom: '1.4rem',
+                  paddingBlock: '1rem',
+                  borderTop: '1px solid var(--color-terracotta, #c45d3e)',
+                  borderBottom: '1px solid var(--color-terracotta, #c45d3e)',
+                }}
+              >
+                <p
+                  className="font-serif"
+                  style={{
+                    fontSize: '0.88rem',
+                    fontStyle: 'italic',
+                    color: 'var(--color-terracotta, #c45d3e)',
+                  }}
+                >
+                  {returnError}
+                </p>
+              </div>
+            )}
+
+            <div style={{ display: 'grid', gap: '1.2rem', maxWidth: '28rem' }}>
+              <div>
+                <label
+                  htmlFor="return-carrier"
+                  style={{
+                    display: 'block',
+                    fontSize: '0.62rem',
+                    letterSpacing: '0.2em',
+                    textTransform: 'uppercase',
+                    color: 'var(--color-stone)',
+                    marginBottom: '0.5rem',
+                  }}
+                >
+                  Carrier
+                </label>
+                <select
+                  id="return-carrier"
+                  value={returnCarrier}
+                  onChange={(e) => setReturnCarrier(e.target.value)}
+                  className="commission-field"
+                  style={{ width: '100%' }}
+                >
+                  <option value="">Select carrier...</option>
+                  <option value="Australia Post">Australia Post</option>
+                  <option value="StarTrack">StarTrack</option>
+                  <option value="Sendle">Sendle</option>
+                  <option value="TNT">TNT</option>
+                  <option value="Other">Other</option>
+                </select>
+              </div>
+              <div>
+                <label
+                  htmlFor="return-tracking"
+                  style={{
+                    display: 'block',
+                    fontSize: '0.62rem',
+                    letterSpacing: '0.2em',
+                    textTransform: 'uppercase',
+                    color: 'var(--color-stone)',
+                    marginBottom: '0.5rem',
+                  }}
+                >
+                  Tracking number
+                </label>
+                <input
+                  id="return-tracking"
+                  type="text"
+                  value={returnTracking}
+                  onChange={(e) => setReturnTracking(e.target.value)}
+                  className="commission-field"
+                  placeholder="Enter tracking number"
+                  style={{ width: '100%' }}
+                />
+              </div>
+              <button
+                onClick={handleReturnTracking}
+                disabled={submittingReturn}
+                className="artwork-primary-cta artwork-primary-cta--compact"
+                style={{
+                  minWidth: '16rem',
+                  opacity: submittingReturn ? 0.5 : 1,
+                  marginTop: '0.4rem',
+                }}
+              >
+                {submittingReturn ? 'Submitting...' : 'Submit return tracking'}
+              </button>
+            </div>
+          </Section>
+        )}
+
+        {/* ── Return in transit banner ── */}
+        {order.status === 'return_in_transit' && (
+          <div
+            style={{
+              marginBottom: '2.4rem',
+              paddingTop: '1.6rem',
+              paddingBottom: '1.6rem',
+              borderTop: '1px solid var(--color-border-strong)',
+              borderBottom: '1px solid var(--color-border-strong)',
+            }}
+          >
+            <p
+              style={{
+                fontSize: '0.6rem',
+                letterSpacing: '0.22em',
+                textTransform: 'uppercase',
+                color: 'var(--color-stone)',
+                marginBottom: '0.5rem',
+              }}
+            >
+              — Return in transit —
+            </p>
+            <p
+              className="font-serif"
+              style={{
+                fontSize: '1.05rem',
+                fontStyle: 'italic',
+                color: 'var(--color-ink)',
+                lineHeight: 1.5,
+                maxWidth: '52ch',
+              }}
+            >
+              Your return is on its way to the seller. Once they confirm receipt, your refund will be processed.
+            </p>
+          </div>
         )}
 
         {/* ── Dispute banner ── */}
