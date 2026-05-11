@@ -38,7 +38,9 @@ export type OrderStatus =
   | 'completed'
   | 'disputed'
   | 'refunded'
-  | 'cancelled';
+  | 'cancelled'
+  | 'return_pending'
+  | 'return_in_transit';
 
 export type DisputeType =
   | 'damaged'
@@ -51,7 +53,9 @@ export type DisputeStatus =
   | 'under_review'
   | 'resolved_refund'
   | 'resolved_no_refund'
-  | 'resolved_return';
+  | 'resolved_return'
+  | 'return_pending'
+  | 'return_in_transit';
 
 // ---- Full Database type for createClient<Database>() ----
 
@@ -329,6 +333,16 @@ export interface Database {
           resolution_notes: string | null;
           resolved_at: string | null;
           created_at: string;
+          return_address: string | null;
+          return_shipping_payer: 'buyer' | 'seller' | 'split' | null;
+          return_window_days: number;
+          return_approved_at: string | null;
+          return_tracking_number: string | null;
+          return_carrier: string | null;
+          return_tracking_submitted_at: string | null;
+          return_photo_url: string | null;
+          return_received_at: string | null;
+          return_received_condition_notes: string | null;
         };
         Insert: {
           id?: string;
@@ -342,6 +356,16 @@ export interface Database {
           resolution_notes?: string | null;
           resolved_at?: string | null;
           created_at?: string;
+          return_address?: string | null;
+          return_shipping_payer?: 'buyer' | 'seller' | 'split' | null;
+          return_window_days?: number;
+          return_approved_at?: string | null;
+          return_tracking_number?: string | null;
+          return_carrier?: string | null;
+          return_tracking_submitted_at?: string | null;
+          return_photo_url?: string | null;
+          return_received_at?: string | null;
+          return_received_condition_notes?: string | null;
         };
         Update: {
           id?: string;
@@ -355,6 +379,16 @@ export interface Database {
           resolution_notes?: string | null;
           resolved_at?: string | null;
           created_at?: string;
+          return_address?: string | null;
+          return_shipping_payer?: 'buyer' | 'seller' | 'split' | null;
+          return_window_days?: number;
+          return_approved_at?: string | null;
+          return_tracking_number?: string | null;
+          return_carrier?: string | null;
+          return_tracking_submitted_at?: string | null;
+          return_photo_url?: string | null;
+          return_received_at?: string | null;
+          return_received_condition_notes?: string | null;
         };
         Relationships: [
           {
