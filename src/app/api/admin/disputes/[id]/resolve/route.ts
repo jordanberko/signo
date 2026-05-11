@@ -1,9 +1,18 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { createClient as createServiceClient } from '@supabase/supabase-js';
 import { releaseFunds, refundBuyer } from '@/lib/stripe/escrow';
 import { sendOpsAlert } from '@/lib/ops-alert';
+import { sendReturnApprovedToBuyer, sendReturnApprovedToSeller } from '@/lib/email';
 
-const VALID_RESOLUTIONS = ['resolved_refund', 'resolved_no_refund', 'resolved_return'];
+function getServiceClient() {
+  return createServiceClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  );
+}
+
+const VALID_RESOLUTIONS = ['resolved_refund', 'resolved_no_refund', 'resolved_return', 'approve_return'];
 
 interface RouteContext {
   params: Promise<{ id: string }>;
@@ -48,7 +57,7 @@ export async function PUT(request: Request, context: RouteContext) {
     // Fetch dispute with order info
     const { data: dispute } = await supabase
       .from('disputes')
-      .select('id, order_id')
+      .select('id, order_id, status')
       .eq('id', id)
       .single();
 
@@ -56,9 +65,121 @@ export async function PUT(request: Request, context: RouteContext) {
       return NextResponse.json({ error: 'Dispute not found' }, { status: 404 });
     }
 
-    // Perform financial operation FIRST, before updating dispute status.
-    // We track the financial-op type so any post-finance inconsistency
-    // alert can name what was actually executed.
+    // ── Approve return (multi-step flow, no immediate refund) ──
+    if (resolution === 'approve_return') {
+      if (dispute.status !== 'open' && dispute.status !== 'under_review') {
+        return NextResponse.json(
+          { error: 'Dispute must be open or under review to approve a return' },
+          { status: 400 }
+        );
+      }
+
+      const { return_address, return_shipping_payer, return_window_days } = body;
+
+      if (!return_address?.trim()) {
+        return NextResponse.json({ error: 'Return address is required' }, { status: 400 });
+      }
+      if (!['buyer', 'seller', 'split'].includes(return_shipping_payer)) {
+        return NextResponse.json({ error: 'Return shipping payer must be buyer, seller, or split' }, { status: 400 });
+      }
+
+      const windowDays = return_window_days ?? 14;
+      const serviceClient = getServiceClient();
+
+      const { error: disputeUpdateError } = await serviceClient
+        .from('disputes')
+        .update({
+          status: 'return_pending',
+          resolution_notes: resolution_notes || null,
+          return_address: return_address.trim(),
+          return_shipping_payer,
+          return_window_days: windowDays,
+          return_approved_at: new Date().toISOString(),
+        })
+        .eq('id', id);
+
+      if (disputeUpdateError) {
+        console.error('[API admin/disputes/resolve] approve_return dispute update failed:', disputeUpdateError);
+        return NextResponse.json({ error: 'Failed to update dispute' }, { status: 500 });
+      }
+
+      const { error: orderUpdateError } = await serviceClient
+        .from('orders')
+        .update({ status: 'return_pending' })
+        .eq('id', dispute.order_id);
+
+      if (orderUpdateError) {
+        console.error('[API admin/disputes/resolve] approve_return order update failed:', orderUpdateError);
+        await sendOpsAlert({
+          title: `DB inconsistency: dispute ${id} return_pending but order not updated`,
+          description:
+            `Dispute ${id} moved to return_pending but the order status update for ` +
+            `${dispute.order_id} failed. Manual reconciliation needed.`,
+          context: { dispute_id: id, order_id: dispute.order_id, error: orderUpdateError.message },
+          level: 'error',
+        });
+        return NextResponse.json({ error: 'Dispute updated but order could not be updated. Ops have been alerted.' }, { status: 500 });
+      }
+
+      // Fetch order, then buyer/seller/artwork in parallel
+      const { data: order } = await serviceClient
+        .from('orders')
+        .select('buyer_id, artist_id, artwork_id')
+        .eq('id', dispute.order_id)
+        .single();
+
+      const [buyerResult, sellerResult, artworkResult] = order
+        ? await Promise.all([
+            serviceClient.from('profiles').select('email, full_name').eq('id', order.buyer_id).single(),
+            serviceClient.from('profiles').select('email, full_name').eq('id', order.artist_id).single(),
+            serviceClient.from('artworks').select('title').eq('id', order.artwork_id).single(),
+          ])
+        : [{ data: null }, { data: null }, { data: null }];
+
+      const shippingPayerLabel =
+        return_shipping_payer === 'buyer' ? 'you (the buyer)' :
+        return_shipping_payer === 'seller' ? 'the seller' : 'split between you and the seller';
+
+      // Fire emails (non-blocking)
+      const emailPromises: Promise<unknown>[] = [];
+
+      if (buyerResult.data?.email) {
+        emailPromises.push(
+          sendReturnApprovedToBuyer({
+            buyerEmail: buyerResult.data.email,
+            buyerName: buyerResult.data.full_name || '',
+            orderId: dispute.order_id,
+            artworkTitle: artworkResult.data?.title || 'Artwork',
+            returnAddress: return_address.trim(),
+            shippingPayer: shippingPayerLabel,
+            returnWindowDays: windowDays,
+          }).catch((err) => {
+            console.warn('[EMAIL_FAILED]', { type: 'return_approved_buyer', orderId: dispute.order_id, error: err instanceof Error ? err.message : String(err) });
+          })
+        );
+      }
+
+      if (sellerResult.data?.email) {
+        emailPromises.push(
+          sendReturnApprovedToSeller({
+            sellerEmail: sellerResult.data.email,
+            sellerName: sellerResult.data.full_name || '',
+            orderId: dispute.order_id,
+            artworkTitle: artworkResult.data?.title || 'Artwork',
+            buyerName: buyerResult.data?.full_name || 'The buyer',
+          }).catch((err) => {
+            console.warn('[EMAIL_FAILED]', { type: 'return_approved_seller', orderId: dispute.order_id, error: err instanceof Error ? err.message : String(err) });
+          })
+        );
+      }
+
+      await Promise.all(emailPromises);
+
+      return NextResponse.json({ success: true });
+    }
+
+    // ── Immediate resolutions (existing logic) ──
+
     let financialOpType: 'refund' | 'release' | null = null;
 
     if (resolution === 'resolved_refund' || resolution === 'resolved_return') {
@@ -68,10 +189,6 @@ export async function PUT(request: Request, context: RouteContext) {
         return NextResponse.json({ error: result.error }, { status: 500 });
       }
 
-      // refundBuyer's internal update (escrow.ts) already sets
-      // orders.status='refunded'. This redundant update is preserved per
-      // scope discipline; if it fails, alert because the inconsistency is
-      // worth surfacing even if the side-effect is benign.
       const { error: orderUpdateError } = await supabase
         .from('orders')
         .update({ status: 'refunded' })
@@ -110,11 +227,8 @@ export async function PUT(request: Request, context: RouteContext) {
       if (!result.success) {
         return NextResponse.json({ error: result.error }, { status: 500 });
       }
-      // releaseFunds sets orders.status='completed' internally; no
-      // redundant external update needed in this branch.
     }
 
-    // Only update dispute status after financial operation succeeds.
     const { error: updateError } = await supabase
       .from('disputes')
       .update({

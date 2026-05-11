@@ -17,7 +17,14 @@ interface DisputeRow {
     total_amount_aud: number;
     artworks: { title: string };
     buyer: { full_name: string; email: string };
-    artist: { full_name: string; email: string };
+    artist: {
+      full_name: string;
+      email: string;
+      street_address: string | null;
+      city: string | null;
+      postcode: string | null;
+      country: string | null;
+    };
   };
 }
 
@@ -30,21 +37,27 @@ const KICKER: React.CSSProperties = {
   margin: 0,
 };
 
-type Filter = 'open' | 'under_review' | 'all';
+type Filter = 'open' | 'under_review' | 'return_pending' | 'return_in_transit' | 'all';
 
 const FILTERS: Array<{ value: Filter; label: string }> = [
   { value: 'open', label: 'Open' },
   { value: 'under_review', label: 'Under review' },
+  { value: 'return_pending', label: 'Awaiting return' },
+  { value: 'return_in_transit', label: 'In transit' },
   { value: 'all', label: 'All' },
 ];
 
 type Resolution = 'resolved_refund' | 'resolved_no_refund' | 'resolved_return';
+type ShippingPayer = 'buyer' | 'seller' | 'split';
 
 function statusToPill(status: string): string {
   switch (status) {
     case 'open':
       return 'status-pill--error';
     case 'under_review':
+      return 'status-pill--attention';
+    case 'return_pending':
+    case 'return_in_transit':
       return 'status-pill--attention';
     case 'resolved_refund':
     case 'resolved_return':
@@ -56,6 +69,11 @@ function statusToPill(status: string): string {
   }
 }
 
+function buildSellerAddress(artist: DisputeRow['orders']['artist']): string {
+  const parts = [artist.street_address, artist.city, artist.postcode, artist.country].filter(Boolean);
+  return parts.join('\n');
+}
+
 export default function AdminDisputesPage() {
   const { loading: authLoading } = useRequireAuth('admin');
   const [disputes, setDisputes] = useState<DisputeRow[]>([]);
@@ -65,6 +83,12 @@ export default function AdminDisputesPage() {
   const [actionLoading, setActionLoading] = useState(false);
   const [filter, setFilter] = useState<Filter>('open');
   const [actionError, setActionError] = useState<string | null>(null);
+
+  // Return form state
+  const [showReturnForm, setShowReturnForm] = useState<string | null>(null);
+  const [returnAddress, setReturnAddress] = useState('');
+  const [returnShippingPayer, setReturnShippingPayer] = useState<ShippingPayer>('buyer');
+  const [returnWindowDays, setReturnWindowDays] = useState(14);
 
   useEffect(() => {
     if (authLoading) return;
@@ -124,8 +148,57 @@ export default function AdminDisputesPage() {
     fetchDisputes();
   }
 
+  async function approveReturn(disputeId: string) {
+    if (!returnAddress.trim()) {
+      setActionError('Return address is required.');
+      return;
+    }
+    setActionLoading(true);
+    setActionError(null);
+    try {
+      const res = await fetch(`/api/admin/disputes/${disputeId}/resolve`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          resolution: 'approve_return',
+          resolution_notes: resolutionNotes || null,
+          return_address: returnAddress,
+          return_shipping_payer: returnShippingPayer,
+          return_window_days: returnWindowDays,
+        }),
+      });
+      if (!res.ok) {
+        const json = await res.json().catch(() => ({}));
+        setActionError(json.error || `Failed to approve return (${res.status}).`);
+        setActionLoading(false);
+        return;
+      }
+    } catch (err) {
+      console.error('[AdminDisputes] Approve return exception:', err);
+      setActionError('Network error. Please check your connection and try again.');
+      setActionLoading(false);
+      return;
+    }
+    setSelectedId(null);
+    setShowReturnForm(null);
+    setResolutionNotes('');
+    setReturnAddress('');
+    setReturnShippingPayer('buyer');
+    setReturnWindowDays(14);
+    setActionLoading(false);
+    fetchDisputes();
+  }
+
+  function openReturnForm(dispute: DisputeRow) {
+    setShowReturnForm(dispute.id);
+    setReturnAddress(buildSellerAddress(dispute.orders.artist));
+    setReturnShippingPayer('buyer');
+    setReturnWindowDays(14);
+    setActionError(null);
+  }
+
   if (authLoading) {
-    return <EditorialSpinner label="Disputes" headline="One moment\u2026" />;
+    return <EditorialSpinner label="Disputes" headline="One moment…" />;
   }
 
   return (
@@ -140,7 +213,7 @@ export default function AdminDisputesPage() {
     >
       {/* ── Heading ── */}
       <div style={{ marginBottom: 'clamp(2.4rem, 4vw, 3.4rem)' }}>
-        <p style={KICKER}>— Disputes —</p>
+        <p style={KICKER}>&mdash; Disputes &mdash;</p>
         <h1
           className="font-serif"
           style={{
@@ -176,6 +249,7 @@ export default function AdminDisputesPage() {
               onClick={() => {
                 setFilter(f.value);
                 setSelectedId(null);
+                setShowReturnForm(null);
                 setActionError(null);
               }}
               style={{
@@ -204,7 +278,7 @@ export default function AdminDisputesPage() {
 
       {/* ── List ── */}
       {loading ? (
-        <EditorialSpinner label="Disputes" headline="Fetching cases\u2026" />
+        <EditorialSpinner label="Disputes" headline="Fetching cases…" />
       ) : disputes.length === 0 ? (
         <div
           style={{
@@ -240,6 +314,7 @@ export default function AdminDisputesPage() {
             const isOpen = selectedId === dispute.id;
             const canResolve =
               dispute.status === 'open' || dispute.status === 'under_review';
+            const isReturnFormOpen = showReturnForm === dispute.id;
             return (
               <li
                 key={dispute.id}
@@ -249,6 +324,7 @@ export default function AdminDisputesPage() {
                   type="button"
                   onClick={() => {
                     setSelectedId(isOpen ? null : dispute.id);
+                    setShowReturnForm(null);
                     setResolutionNotes(dispute.resolution_notes || '');
                     setActionError(null);
                   }}
@@ -341,7 +417,7 @@ export default function AdminDisputesPage() {
                   </div>
                 </button>
 
-                {isOpen && canResolve && (
+                {isOpen && canResolve && !isReturnFormOpen && (
                   <div
                     style={{
                       paddingBottom: '2.4rem',
@@ -362,7 +438,7 @@ export default function AdminDisputesPage() {
                         onChange={(e) => setResolutionNotes(e.target.value)}
                         rows={3}
                         className="commission-field"
-                        placeholder="Why this resolution was reached…"
+                        placeholder="Why this resolution was reached..."
                       />
                     </div>
                     {actionError && (
@@ -398,7 +474,7 @@ export default function AdminDisputesPage() {
                       </button>
                       <button
                         type="button"
-                        onClick={() => resolveDispute(dispute.id, 'resolved_return')}
+                        onClick={() => openReturnForm(dispute)}
                         disabled={actionLoading}
                         className="artwork-primary-cta artwork-primary-cta--compact"
                         style={{ width: '100%' }}
@@ -425,6 +501,158 @@ export default function AdminDisputesPage() {
                         }}
                       >
                         No refund
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* ── Return approval form ── */}
+                {isOpen && isReturnFormOpen && (
+                  <div
+                    style={{
+                      paddingBottom: '2.4rem',
+                      paddingTop: '0.2rem',
+                      display: 'grid',
+                      gap: '1.6rem',
+                    }}
+                  >
+                    <p
+                      className="font-serif"
+                      style={{
+                        fontSize: '1rem',
+                        fontStyle: 'italic',
+                        color: 'var(--color-ink)',
+                        margin: 0,
+                      }}
+                    >
+                      Approve return for &ldquo;{dispute.orders?.artworks?.title}&rdquo;
+                    </p>
+
+                    <div>
+                      <label htmlFor={`return-address-${dispute.id}`} className="commission-label">
+                        Return address
+                      </label>
+                      <textarea
+                        id={`return-address-${dispute.id}`}
+                        value={returnAddress}
+                        onChange={(e) => setReturnAddress(e.target.value)}
+                        rows={4}
+                        className="commission-field"
+                        placeholder="Seller's return address..."
+                      />
+                    </div>
+
+                    <div>
+                      <p className="commission-label" style={{ marginBottom: '0.6rem' }}>
+                        Return shipping paid by
+                      </p>
+                      <div style={{ display: 'flex', gap: '1.6rem', flexWrap: 'wrap' }}>
+                        {([
+                          ['buyer', 'Buyer pays'],
+                          ['seller', 'Seller pays'],
+                          ['split', 'Split 50/50'],
+                        ] as const).map(([value, label]) => (
+                          <label
+                            key={value}
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '0.4rem',
+                              cursor: 'pointer',
+                              fontSize: '0.82rem',
+                              color: 'var(--color-ink)',
+                            }}
+                          >
+                            <input
+                              type="radio"
+                              name={`shipping-payer-${dispute.id}`}
+                              value={value}
+                              checked={returnShippingPayer === value}
+                              onChange={() => setReturnShippingPayer(value)}
+                              style={{ accentColor: 'var(--color-ink)' }}
+                            />
+                            {label}
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div>
+                      <label htmlFor={`return-window-${dispute.id}`} className="commission-label">
+                        Return window (days)
+                      </label>
+                      <input
+                        id={`return-window-${dispute.id}`}
+                        type="number"
+                        min={1}
+                        max={90}
+                        value={returnWindowDays}
+                        onChange={(e) => setReturnWindowDays(Number(e.target.value) || 14)}
+                        className="commission-field"
+                        style={{ maxWidth: '8rem' }}
+                      />
+                    </div>
+
+                    <div>
+                      <label htmlFor={`return-notes-${dispute.id}`} className="commission-label">
+                        Resolution notes
+                      </label>
+                      <textarea
+                        id={`return-notes-${dispute.id}`}
+                        value={resolutionNotes}
+                        onChange={(e) => setResolutionNotes(e.target.value)}
+                        rows={3}
+                        className="commission-field"
+                        placeholder="Internal record of why this return was approved..."
+                      />
+                    </div>
+
+                    {actionError && (
+                      <p
+                        className="font-serif"
+                        role="alert"
+                        style={{
+                          fontStyle: 'italic',
+                          color: 'var(--color-terracotta)',
+                          fontSize: '0.88rem',
+                          margin: 0,
+                          lineHeight: 1.5,
+                        }}
+                      >
+                        {actionError}
+                      </p>
+                    )}
+
+                    <div style={{ display: 'flex', gap: '0.8rem', flexWrap: 'wrap' }}>
+                      <button
+                        type="button"
+                        onClick={() => approveReturn(dispute.id)}
+                        disabled={actionLoading}
+                        className="artwork-primary-cta artwork-primary-cta--compact"
+                      >
+                        {actionLoading ? 'Sending...' : 'Approve return and notify buyer'}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShowReturnForm(null);
+                          setActionError(null);
+                        }}
+                        disabled={actionLoading}
+                        style={{
+                          padding: '0.7rem 1.3rem',
+                          background: 'transparent',
+                          border: '1px solid var(--color-border-strong)',
+                          fontSize: '0.68rem',
+                          letterSpacing: '0.14em',
+                          textTransform: 'uppercase',
+                          color: 'var(--color-ink)',
+                          fontWeight: 400,
+                          cursor: actionLoading ? 'not-allowed' : 'pointer',
+                          opacity: actionLoading ? 0.55 : 1,
+                        }}
+                      >
+                        Cancel
                       </button>
                     </div>
                   </div>

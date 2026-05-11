@@ -887,3 +887,95 @@ export async function sendTradeEnquiryNotification(data: TradeEnquiryNotificatio
     html,
   });
 }
+
+// ════════════════════════════════════════════════════════════════════
+// 14. RETURN APPROVED (to buyer)
+// ════════════════════════════════════════════════════════════════════
+
+export interface ReturnApprovedBuyerData {
+  buyerEmail: string;
+  buyerName: string;
+  orderId: string;
+  artworkTitle: string;
+  returnAddress: string;
+  shippingPayer: string;
+  returnWindowDays: number;
+}
+
+export async function sendReturnApprovedToBuyer(data: ReturnApprovedBuyerData) {
+  const deadlineLabel = data.returnWindowDays === 1 ? '1 day' : `${data.returnWindowDays} days`;
+
+  const html = emailWrapper(`
+    ${kicker('Return approved')}
+    ${headline('Your refund has', 'been approved.')}
+    ${lede(`Hello ${escapeHtml(data.buyerName || 'there')}, we have reviewed your report about &ldquo;${escapeHtml(data.artworkTitle)}&rdquo; and approved a return. Please send the work back to the address below within ${deadlineLabel}.`)}
+
+    ${ledger([
+      ['Artwork', escapeHtml(data.artworkTitle), 'font-style:italic;'],
+      ['Order', `<span style="font-family:${SANS};font-size:11px;color:${STONE};letter-spacing:0.06em;">${escapeHtml(data.orderId.slice(0, 8))}</span>`],
+      ['Return shipping', escapeHtml(data.shippingPayer)],
+      ['Deadline', `${deadlineLabel} from today`],
+    ])}
+
+    ${divider()}
+
+    <p style="font-family:${SERIF};font-size:15px;color:${INK};margin:0 0 8px 0;font-style:italic;">&mdash; Return address</p>
+    <p style="font-family:${SANS};font-size:14px;color:${INK};margin:0 0 24px 0;line-height:1.7;white-space:pre-line;">${escapeHtml(data.returnAddress)}</p>
+
+    ${divider()}
+
+    <p style="font-family:${SERIF};font-size:15px;color:${INK};margin:0 0 8px 0;font-style:italic;">&mdash; What happens next</p>
+    ${numberedList([
+      'Package the work carefully and post it to the address above.',
+      'Submit the tracking number on your order page.',
+      'Once the seller confirms receipt, your refund will be processed within forty-eight hours.',
+      'Refunds typically appear within five to ten business days after processing.',
+    ])}
+
+    ${ctaButton('Submit return tracking', `${APP_URL}/orders/${data.orderId}`)}
+  `);
+
+  return safeSend({
+    to: data.buyerEmail,
+    subject: `Return approved — please return "${escapeHtml(data.artworkTitle)}"`,
+    html,
+  });
+}
+
+// ════════════════════════════════════════════════════════════════════
+// 15. RETURN APPROVED (to seller)
+// ════════════════════════════════════════════════════════════════════
+
+export interface ReturnApprovedSellerData {
+  sellerEmail: string;
+  sellerName: string;
+  orderId: string;
+  artworkTitle: string;
+  buyerName: string;
+}
+
+export async function sendReturnApprovedToSeller(data: ReturnApprovedSellerData) {
+  const html = emailWrapper(`
+    ${kicker('Return in progress')}
+    ${headline('A return has', 'been approved.')}
+    ${lede(`Hello ${escapeHtml(data.sellerName || 'there')}, a return has been approved for &ldquo;${escapeHtml(data.artworkTitle)}&rdquo;. ${escapeHtml(data.buyerName)} will be sending the work back to you.`)}
+
+    ${ledger([
+      ['Artwork', escapeHtml(data.artworkTitle), 'font-style:italic;'],
+      ['Order', `<span style="font-family:${SANS};font-size:11px;color:${STONE};letter-spacing:0.06em;">${escapeHtml(data.orderId.slice(0, 8))}</span>`],
+    ])}
+
+    ${divider()}
+
+    <p style="font-family:${SERIF};font-size:15px;color:${INK};margin:0 0 8px 0;font-style:italic;">&mdash; Your role</p>
+    ${body('Once the work arrives, please confirm receipt on your order page. The refund to the buyer will only be processed after you confirm. If the work arrives damaged or in poor condition, you can note this when confirming.')}
+
+    ${ctaButton('View the order', `${APP_URL}/artist/orders`)}
+  `);
+
+  return safeSend({
+    to: data.sellerEmail,
+    subject: `Return approved — "${escapeHtml(data.artworkTitle)}"`,
+    html,
+  });
+}
