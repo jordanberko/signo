@@ -3,7 +3,14 @@ import { createClient } from '@/lib/supabase/server';
 import { createClient as createServiceClient } from '@supabase/supabase-js';
 import { releaseFunds, refundBuyer } from '@/lib/stripe/escrow';
 import { sendOpsAlert } from '@/lib/ops-alert';
-import { sendReturnApprovedToBuyer, sendReturnApprovedToSeller } from '@/lib/email';
+import {
+  sendReturnApprovedToBuyer,
+  sendReturnApprovedToSeller,
+  sendDisputeRefundBuyer,
+  sendDisputeRefundSeller,
+  sendDisputeNoRefundBuyer,
+  sendDisputeNoRefundSeller,
+} from '@/lib/email';
 
 function getServiceClient() {
   return createServiceClient(
@@ -270,6 +277,81 @@ export async function PUT(request: Request, context: RouteContext) {
         },
         { status: 500 }
       );
+    }
+
+    // Send resolution emails to buyer and seller
+    const serviceClient = getServiceClient();
+    const { data: order } = await serviceClient
+      .from('orders')
+      .select('buyer_id, artist_id, artwork_id, total_amount_aud, artist_payout_aud')
+      .eq('id', dispute.order_id)
+      .single();
+
+    if (order) {
+      const [buyerResult, sellerResult, artworkResult] = await Promise.all([
+        serviceClient.from('profiles').select('email, full_name').eq('id', order.buyer_id).single(),
+        serviceClient.from('profiles').select('email, full_name').eq('id', order.artist_id).single(),
+        serviceClient.from('artworks').select('title').eq('id', order.artwork_id).single(),
+      ]);
+
+      const emailPromises: Promise<unknown>[] = [];
+      const artworkTitle = artworkResult.data?.title || 'Artwork';
+
+      if (resolution === 'resolved_refund' || resolution === 'resolved_return') {
+        if (buyerResult.data?.email) {
+          emailPromises.push(
+            sendDisputeRefundBuyer({
+              buyerEmail: buyerResult.data.email,
+              buyerName: buyerResult.data.full_name || '',
+              orderId: dispute.order_id,
+              artworkTitle,
+              refundAmount: order.total_amount_aud || 0,
+            }).catch((err) => {
+              console.warn('[EMAIL_FAILED]', { type: 'dispute_refund_buyer', orderId: dispute.order_id, error: err instanceof Error ? err.message : String(err) });
+            })
+          );
+        }
+        if (sellerResult.data?.email) {
+          emailPromises.push(
+            sendDisputeRefundSeller({
+              sellerEmail: sellerResult.data.email,
+              sellerName: sellerResult.data.full_name || '',
+              orderId: dispute.order_id,
+              artworkTitle,
+            }).catch((err) => {
+              console.warn('[EMAIL_FAILED]', { type: 'dispute_refund_seller', orderId: dispute.order_id, error: err instanceof Error ? err.message : String(err) });
+            })
+          );
+        }
+      } else if (resolution === 'resolved_no_refund') {
+        if (buyerResult.data?.email) {
+          emailPromises.push(
+            sendDisputeNoRefundBuyer({
+              buyerEmail: buyerResult.data.email,
+              buyerName: buyerResult.data.full_name || '',
+              orderId: dispute.order_id,
+              artworkTitle,
+            }).catch((err) => {
+              console.warn('[EMAIL_FAILED]', { type: 'dispute_no_refund_buyer', orderId: dispute.order_id, error: err instanceof Error ? err.message : String(err) });
+            })
+          );
+        }
+        if (sellerResult.data?.email) {
+          emailPromises.push(
+            sendDisputeNoRefundSeller({
+              sellerEmail: sellerResult.data.email,
+              sellerName: sellerResult.data.full_name || '',
+              orderId: dispute.order_id,
+              artworkTitle,
+              payoutAmount: order.artist_payout_aud || 0,
+            }).catch((err) => {
+              console.warn('[EMAIL_FAILED]', { type: 'dispute_no_refund_seller', orderId: dispute.order_id, error: err instanceof Error ? err.message : String(err) });
+            })
+          );
+        }
+      }
+
+      await Promise.all(emailPromises);
     }
 
     return NextResponse.json({ success: true });

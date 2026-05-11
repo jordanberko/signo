@@ -1166,3 +1166,153 @@ export async function sendReturnReceiptReminder(data: ReturnReceiptReminderData)
     html,
   });
 }
+
+// ════════════════════════════════════════════════════════════════════
+// 21. DISPUTE RESOLVED — REFUND (to buyer)
+// ════════════════════════════════════════════════════════════════════
+
+export interface DisputeRefundBuyerData {
+  buyerEmail: string;
+  buyerName: string;
+  orderId: string;
+  artworkTitle: string;
+  refundAmount: number;
+}
+
+export async function sendDisputeRefundBuyer(data: DisputeRefundBuyerData) {
+  const html = emailWrapper(`
+    ${kicker('Dispute resolved')}
+    ${headline('Your refund has', 'been processed.')}
+    ${lede(`Hello ${escapeHtml(data.buyerName || 'there')}, we have reviewed your dispute for &ldquo;${escapeHtml(data.artworkTitle)}&rdquo; and issued a full refund.`)}
+
+    ${ledger([
+      ['Artwork', escapeHtml(data.artworkTitle), 'font-style:italic;'],
+      ['Order', `<span style="font-family:${SANS};font-size:11px;color:${STONE};letter-spacing:0.06em;">${escapeHtml(data.orderId.slice(0, 8))}</span>`],
+      ['Refund', `A$${data.refundAmount.toFixed(2)}`],
+    ])}
+
+    ${divider()}
+
+    ${body('Refunds typically appear within five to ten business days, depending on your bank or card issuer. We apologise for the inconvenience and hope to see you again.')}
+
+    ${ctaButton('View your orders', `${APP_URL}/dashboard`)}
+  `);
+
+  return safeSend({
+    to: data.buyerEmail,
+    subject: `Dispute resolved — refund processed for "${escapeHtml(data.artworkTitle)}"`,
+    html,
+  });
+}
+
+// ════════════════════════════════════════════════════════════════════
+// 22. DISPUTE RESOLVED — REFUND (to seller)
+// ════════════════════════════════════════════════════════════════════
+
+export interface DisputeRefundSellerData {
+  sellerEmail: string;
+  sellerName: string;
+  orderId: string;
+  artworkTitle: string;
+}
+
+export async function sendDisputeRefundSeller(data: DisputeRefundSellerData) {
+  const html = emailWrapper(`
+    ${kicker('Dispute resolved')}
+    ${headline('A dispute has been', 'resolved.')}
+    ${lede(`Hello ${escapeHtml(data.sellerName || 'there')}, the dispute for &ldquo;${escapeHtml(data.artworkTitle)}&rdquo; has been resolved. After review, a refund has been issued to the buyer.`)}
+
+    ${ledger([
+      ['Artwork', escapeHtml(data.artworkTitle), 'font-style:italic;'],
+      ['Order', `<span style="font-family:${SANS};font-size:11px;color:${STONE};letter-spacing:0.06em;">${escapeHtml(data.orderId.slice(0, 8))}</span>`],
+      ['Outcome', 'Buyer refunded'],
+    ])}
+
+    ${divider()}
+
+    ${body('No payout will be issued for this order. If you have questions about this decision, please contact our support team.')}
+
+    ${ctaButton('Go to your studio', `${APP_URL}/artist/dashboard`)}
+  `);
+
+  return safeSend({
+    to: data.sellerEmail,
+    subject: `Dispute resolved — "${escapeHtml(data.artworkTitle)}"`,
+    html,
+  });
+}
+
+// ════════════════════════════════════════════════════════════════════
+// 23. DISPUTE RESOLVED — NO REFUND (to buyer)
+// ════════════════════════════════════════════════════════════════════
+
+export interface DisputeNoRefundBuyerData {
+  buyerEmail: string;
+  buyerName: string;
+  orderId: string;
+  artworkTitle: string;
+}
+
+export async function sendDisputeNoRefundBuyer(data: DisputeNoRefundBuyerData) {
+  const html = emailWrapper(`
+    ${kicker('Dispute resolved')}
+    ${headline('Your dispute has', 'been reviewed.')}
+    ${lede(`Hello ${escapeHtml(data.buyerName || 'there')}, we have reviewed your dispute for &ldquo;${escapeHtml(data.artworkTitle)}&rdquo;. After careful consideration, we have resolved this dispute without a refund.`)}
+
+    ${ledger([
+      ['Artwork', escapeHtml(data.artworkTitle), 'font-style:italic;'],
+      ['Order', `<span style="font-family:${SANS};font-size:11px;color:${STONE};letter-spacing:0.06em;">${escapeHtml(data.orderId.slice(0, 8))}</span>`],
+      ['Outcome', 'No refund'],
+    ])}
+
+    ${divider()}
+
+    ${body('Payment has been released to the artist. If you believe this decision was made in error, please contact our support team and we will be happy to review further.')}
+
+    ${ctaButton('View your orders', `${APP_URL}/dashboard`)}
+  `);
+
+  return safeSend({
+    to: data.buyerEmail,
+    subject: `Dispute resolved — "${escapeHtml(data.artworkTitle)}"`,
+    html,
+  });
+}
+
+// ════════════════════════════════════════════════════════════════════
+// 24. DISPUTE RESOLVED — NO REFUND (to seller)
+// ════════════════════════════════════════════════════════════════════
+
+export interface DisputeNoRefundSellerData {
+  sellerEmail: string;
+  sellerName: string;
+  orderId: string;
+  artworkTitle: string;
+  payoutAmount: number;
+}
+
+export async function sendDisputeNoRefundSeller(data: DisputeNoRefundSellerData) {
+  const html = emailWrapper(`
+    ${kicker('Dispute resolved')}
+    ${headline('The dispute is', 'resolved in your favour.')}
+    ${lede(`Hello ${escapeHtml(data.sellerName || 'there')}, the dispute for &ldquo;${escapeHtml(data.artworkTitle)}&rdquo; has been resolved. Your payout has been released.`)}
+
+    ${ledger([
+      ['Artwork', escapeHtml(data.artworkTitle), 'font-style:italic;'],
+      ['Order', `<span style="font-family:${SANS};font-size:11px;color:${STONE};letter-spacing:0.06em;">${escapeHtml(data.orderId.slice(0, 8))}</span>`],
+      ['Payout', `A$${data.payoutAmount.toFixed(2)}`],
+    ])}
+
+    ${divider()}
+
+    ${body('Payouts are transferred to your connected Stripe account. Thank you for your patience while we reviewed this matter.')}
+
+    ${ctaButton('Go to your studio', `${APP_URL}/artist/dashboard`)}
+  `);
+
+  return safeSend({
+    to: data.sellerEmail,
+    subject: `Dispute resolved in your favour — "${escapeHtml(data.artworkTitle)}"`,
+    html,
+  });
+}
