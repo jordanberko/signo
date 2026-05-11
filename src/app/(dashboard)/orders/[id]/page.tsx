@@ -144,6 +144,9 @@ function OrderContent({ orderId }: { orderId: string }) {
   const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState(false);
   const [completing, setCompleting] = useState(false);
+  const [delivering, setDelivering] = useState(false);
+  const [confirmingDelivery, setConfirmingDelivery] = useState(false);
+  const [deliverError, setDeliverError] = useState('');
   const [countdown, setCountdown] = useState<{ hours: number; minutes: number } | null>(null);
 
   const fetchOrder = useCallback(async () => {
@@ -237,6 +240,25 @@ function OrderContent({ orderId }: { orderId: string }) {
       }
     } finally {
       setCompleting(false);
+    }
+  }
+
+  async function handleDeliver() {
+    if (!order) return;
+    setDelivering(true);
+    setDeliverError('');
+    try {
+      const res = await fetch(`/api/orders/${order.id}/deliver`, { method: 'PUT' });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.error || 'Failed to confirm delivery');
+      }
+      setConfirmingDelivery(false);
+      await fetchOrder();
+    } catch (err) {
+      setDeliverError(err instanceof Error ? err.message : 'Something went wrong');
+    } finally {
+      setDelivering(false);
     }
   }
 
@@ -880,6 +902,125 @@ function OrderContent({ orderId }: { orderId: string }) {
             ))}
           </ol>
         </Section>
+
+        {/* ── Confirm delivery ── */}
+        {order.status === 'shipped' && (
+          <Section kicker="Confirm delivery">
+            <p
+              className="font-serif"
+              style={{
+                fontSize: '1.2rem',
+                lineHeight: 1.4,
+                color: 'var(--color-ink)',
+                fontStyle: 'italic',
+                fontWeight: 400,
+                maxWidth: '46ch',
+                marginBottom: '0.6rem',
+              }}
+            >
+              Has the work arrived?
+            </p>
+            <p
+              style={{
+                fontSize: '0.9rem',
+                color: 'var(--color-stone-dark)',
+                fontWeight: 300,
+                lineHeight: 1.6,
+                maxWidth: '52ch',
+                marginBottom: '1.6rem',
+              }}
+            >
+              Once you confirm, a 48-hour inspection window begins. If anything
+              is not as described, you can open a dispute for a full refund.
+            </p>
+
+            {deliverError && (
+              <div
+                style={{
+                  marginBottom: '1.4rem',
+                  paddingBlock: '1rem',
+                  borderTop: '1px solid var(--color-terracotta, #c45d3e)',
+                  borderBottom: '1px solid var(--color-terracotta, #c45d3e)',
+                }}
+              >
+                <p
+                  className="font-serif"
+                  style={{
+                    fontSize: '0.88rem',
+                    fontStyle: 'italic',
+                    color: 'var(--color-terracotta, #c45d3e)',
+                  }}
+                >
+                  {deliverError}
+                </p>
+              </div>
+            )}
+
+            {!confirmingDelivery ? (
+              <button
+                onClick={() => setConfirmingDelivery(true)}
+                className="artwork-primary-cta artwork-primary-cta--compact"
+                style={{ minWidth: '16rem' }}
+              >
+                I&apos;ve received this work
+              </button>
+            ) : (
+              <div>
+                <p
+                  className="font-serif"
+                  style={{
+                    fontSize: '0.92rem',
+                    fontStyle: 'italic',
+                    color: 'var(--color-ink)',
+                    lineHeight: 1.5,
+                    maxWidth: '52ch',
+                    marginBottom: '1.2rem',
+                  }}
+                >
+                  This will start your inspection window. You&apos;ll have 48
+                  hours to report any issues before payment is released to the
+                  artist.
+                </p>
+                <div
+                  style={{
+                    display: 'flex',
+                    gap: '1.4rem',
+                    flexWrap: 'wrap',
+                    alignItems: 'center',
+                  }}
+                >
+                  <button
+                    onClick={handleDeliver}
+                    disabled={delivering}
+                    className="artwork-primary-cta artwork-primary-cta--compact"
+                    style={{
+                      minWidth: '16rem',
+                      opacity: delivering ? 0.5 : 1,
+                    }}
+                  >
+                    {delivering ? 'Confirming...' : 'Yes, start inspection'}
+                  </button>
+                  <button
+                    onClick={() => {
+                      setConfirmingDelivery(false);
+                      setDeliverError('');
+                    }}
+                    disabled={delivering}
+                    className="editorial-link"
+                    style={{
+                      fontSize: '0.85rem',
+                      background: 'none',
+                      border: 'none',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            )}
+          </Section>
+        )}
 
         {/* ── Inspection window ── */}
         {order.status === 'delivered' && order.inspection_deadline && (
