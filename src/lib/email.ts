@@ -1094,3 +1094,75 @@ export async function sendReturnCompleteSeller(data: ReturnCompleteSellerData) {
     html,
   });
 }
+
+// ════════════════════════════════════════════════════════════════════
+// 19. RETURN TRACKING REMINDER (to buyer, day 10)
+// ════════════════════════════════════════════════════════════════════
+
+export interface ReturnTrackingReminderData {
+  buyerEmail: string;
+  buyerName: string;
+  orderId: string;
+  artworkTitle: string;
+}
+
+export async function sendReturnTrackingReminder(data: ReturnTrackingReminderData) {
+  const html = emailWrapper(`
+    ${kicker('Reminder')}
+    ${headline('Your return tracking is', 'still needed.')}
+    ${lede(`Hello ${escapeHtml(data.buyerName || 'there')}, a return was approved for &ldquo;${escapeHtml(data.artworkTitle)}&rdquo; but we have not yet received your tracking details. Please submit them soon so your refund can be processed.`)}
+
+    ${ledger([
+      ['Artwork', escapeHtml(data.artworkTitle), 'font-style:italic;'],
+      ['Order', `<span style="font-family:${SANS};font-size:11px;color:${STONE};letter-spacing:0.06em;">${escapeHtml(data.orderId.slice(0, 8))}</span>`],
+    ])}
+
+    ${divider()}
+
+    ${body('If you have already posted the work, please submit the tracking number on your order page. If you no longer wish to return the work, no action is needed and the return window will close automatically.')}
+
+    ${ctaButton('Submit return tracking', `${APP_URL}/orders/${data.orderId}`)}
+  `);
+
+  return safeSend({
+    to: data.buyerEmail,
+    subject: `Reminder: return tracking needed — "${escapeHtml(data.artworkTitle)}"`,
+    html,
+  });
+}
+
+// ════════════════════════════════════════════════════════════════════
+// 20. RETURN RECEIPT REMINDER (to seller, day 7 after tracking)
+// ════════════════════════════════════════════════════════════════════
+
+export interface ReturnReceiptReminderData {
+  sellerEmail: string;
+  sellerName: string;
+  orderId: string;
+  artworkTitle: string;
+}
+
+export async function sendReturnReceiptReminder(data: ReturnReceiptReminderData) {
+  const html = emailWrapper(`
+    ${kicker('Reminder')}
+    ${headline('Please confirm', 'return receipt.')}
+    ${lede(`Hello ${escapeHtml(data.sellerName || 'there')}, the buyer returned &ldquo;${escapeHtml(data.artworkTitle)}&rdquo; over a week ago but we have not received your confirmation. Please confirm receipt so the refund can be processed.`)}
+
+    ${ledger([
+      ['Artwork', escapeHtml(data.artworkTitle), 'font-style:italic;'],
+      ['Order', `<span style="font-family:${SANS};font-size:11px;color:${STONE};letter-spacing:0.06em;">${escapeHtml(data.orderId.slice(0, 8))}</span>`],
+    ])}
+
+    ${divider()}
+
+    ${body('If you have received the work, please confirm on your order page. If you have not received it, please contact our support team so we can investigate.')}
+
+    ${ctaButton('Confirm receipt', `${APP_URL}/artist/orders/${data.orderId}`)}
+  `);
+
+  return safeSend({
+    to: data.sellerEmail,
+    subject: `Reminder: please confirm return receipt — "${escapeHtml(data.artworkTitle)}"`,
+    html,
+  });
+}
