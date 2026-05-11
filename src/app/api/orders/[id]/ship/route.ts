@@ -1,6 +1,14 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { createClient as createServiceClient } from '@supabase/supabase-js';
 import { sendShippingConfirmation } from '@/lib/email';
+
+function getServiceClient() {
+  return createServiceClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  );
+}
 
 interface RouteContext {
   params: Promise<{ id: string }>;
@@ -48,8 +56,10 @@ export async function PUT(request: Request, context: RouteContext) {
       return NextResponse.json({ error: 'Carrier is required' }, { status: 400 });
     }
 
-    // Update order
-    const { data: updated, error: updateError } = await supabase
+    // Update order (service role bypasses RLS -- orders table has no
+    // UPDATE policy for authenticated users, only for service role)
+    const serviceClient = getServiceClient();
+    const { data: updated, error: updateError } = await serviceClient
       .from('orders')
       .update({
         status: 'shipped',
@@ -62,13 +72,14 @@ export async function PUT(request: Request, context: RouteContext) {
       .single();
 
     if (updateError) {
-      return NextResponse.json({ error: updateError.message }, { status: 400 });
+      console.error('[SHIP_ORDER_FAILED]', { orderId: id, error: updateError.message });
+      return NextResponse.json({ error: 'Failed to update order' }, { status: 400 });
     }
 
     // ── Send shipping confirmation to buyer (fire-and-forget) ──
     const [buyerResult, artworkResult] = await Promise.all([
-      supabase.from('profiles').select('email, full_name').eq('id', updated.buyer_id).single(),
-      supabase.from('artworks').select('title').eq('id', updated.artwork_id).single(),
+      serviceClient.from('profiles').select('email, full_name').eq('id', updated.buyer_id).single(),
+      serviceClient.from('artworks').select('title').eq('id', updated.artwork_id).single(),
     ]);
 
     if (buyerResult.data?.email) {
