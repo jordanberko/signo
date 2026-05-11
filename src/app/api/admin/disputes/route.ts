@@ -1,6 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { createClient as createServiceClient } from '@supabase/supabase-js';
 import type { DisputeStatus } from '@/lib/types/database';
+
+function getServiceClient() {
+  return createServiceClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  );
+}
 
 /**
  * GET /api/admin/disputes?status=open
@@ -35,7 +43,8 @@ export async function GET(request: NextRequest) {
 
     const statusFilter = request.nextUrl.searchParams.get('status') || 'open';
 
-    let query = supabase
+    const serviceClient = getServiceClient();
+    let query = serviceClient
       .from('disputes')
       .select(
         '*, orders(id, total_amount_aud, artworks(title), profiles!orders_buyer_id_fkey(full_name, email), profiles!orders_artist_id_fkey(full_name, email))',
