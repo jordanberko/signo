@@ -47,6 +47,8 @@ const STATUS_LABEL: Record<string, string> = {
   disputed: 'Disputed',
   refunded: 'Refunded',
   cancelled: 'Cancelled',
+  return_pending: 'Return approved',
+  return_in_transit: 'Return in transit',
 };
 
 const CARRIERS = ['Australia Post', 'Sendle', 'StarTrack', 'Aramex', 'Other'];
@@ -110,6 +112,11 @@ function OrderContent({ orderId }: { orderId: string }) {
   const [carrier, setCarrier] = useState('');
   const [, setPackagingPhoto] = useState<File | null>(null);
 
+  // Return receipt state
+  const [confirmingReceipt, setConfirmingReceipt] = useState(false);
+  const [conditionNotes, setConditionNotes] = useState('');
+  const [submittingReceipt, setSubmittingReceipt] = useState(false);
+
   async function fetchOrder() {
     if (!user) return;
     try {
@@ -167,6 +174,34 @@ function OrderContent({ orderId }: { orderId: string }) {
       setErrorMessage(err instanceof Error ? err.message : 'Something went wrong');
     } finally {
       setSubmitting(false);
+    }
+  }
+
+  async function handleConfirmReceipt() {
+    setSubmittingReceipt(true);
+    setErrorMessage('');
+    setSuccessMessage('');
+    try {
+      const res = await fetch(`/api/orders/${orderId}/return-received`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          condition_notes: conditionNotes || undefined,
+        }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || 'Failed to confirm receipt');
+      }
+      setSuccessMessage('Return confirmed and refund processed.');
+      setConfirmingReceipt(false);
+      setConditionNotes('');
+      setLoading(true);
+      await fetchOrder();
+    } catch (err) {
+      setErrorMessage(err instanceof Error ? err.message : 'Something went wrong');
+    } finally {
+      setSubmittingReceipt(false);
     }
   }
 
@@ -715,6 +750,146 @@ function OrderContent({ orderId }: { orderId: string }) {
               The buyer has raised a dispute. Our team will be in touch
               shortly.
             </p>
+          )}
+        </section>
+      )}
+
+      {/* Return pending banner */}
+      {order.status === 'return_pending' && (
+        <section
+          style={{
+            marginBottom: 'clamp(2.4rem, 4vw, 3.4rem)',
+            padding: '1.6rem 0',
+            borderTop: '1px solid var(--color-border-strong)',
+            borderBottom: '1px solid var(--color-border-strong)',
+          }}
+        >
+          <p style={{ ...KICKER, marginBottom: '0.9rem' }}>
+            — Return approved —
+          </p>
+          <p
+            className="font-serif"
+            style={{
+              fontSize: '1.1rem',
+              fontStyle: 'italic',
+              color: 'var(--color-ink)',
+              lineHeight: 1.5,
+              maxWidth: '52ch',
+            }}
+          >
+            A return has been approved for this order. The buyer will ship the work back to you. You will be notified when tracking is submitted.
+          </p>
+        </section>
+      )}
+
+      {/* Confirm return receipt */}
+      {order.status === 'return_in_transit' && (
+        <section style={{ marginBottom: 'clamp(2.4rem, 4vw, 3.4rem)' }}>
+          <p style={{ ...KICKER, marginBottom: '1rem' }}>— Confirm return receipt —</p>
+          <h2
+            className="font-serif"
+            style={{
+              fontSize: 'clamp(1.4rem, 2.6vw, 1.9rem)',
+              lineHeight: 1.2,
+              color: 'var(--color-ink)',
+              fontWeight: 400,
+              marginBottom: '0.7rem',
+            }}
+          >
+            Has the work <em style={{ fontStyle: 'italic' }}>arrived back?</em>
+          </h2>
+          <p
+            style={{
+              fontSize: '0.9rem',
+              fontWeight: 300,
+              color: 'var(--color-stone-dark)',
+              lineHeight: 1.6,
+              marginBottom: '2rem',
+              maxWidth: '52ch',
+            }}
+          >
+            Once you confirm receipt, the buyer will be refunded. If the work arrived damaged or in poor condition, note it below before confirming.
+          </p>
+
+          {!confirmingReceipt ? (
+            <button
+              onClick={() => setConfirmingReceipt(true)}
+              className="artwork-primary-cta artwork-primary-cta--compact"
+              style={{ minWidth: '16rem' }}
+            >
+              I&apos;ve received the returned work
+            </button>
+          ) : (
+            <div style={{ maxWidth: '40rem' }}>
+              <p
+                className="font-serif"
+                style={{
+                  fontSize: '0.92rem',
+                  fontStyle: 'italic',
+                  color: 'var(--color-ink)',
+                  lineHeight: 1.5,
+                  maxWidth: '52ch',
+                  marginBottom: '1.4rem',
+                }}
+              >
+                This will process a full refund to the buyer. This action cannot be undone.
+              </p>
+
+              <div style={{ marginBottom: '1.4rem' }}>
+                <label
+                  htmlFor="condition_notes"
+                  style={{ ...KICKER, display: 'block', marginBottom: '0.6rem' }}
+                >
+                  Condition notes (optional)
+                </label>
+                <textarea
+                  id="condition_notes"
+                  value={conditionNotes}
+                  onChange={(e) => setConditionNotes(e.target.value)}
+                  placeholder="Note any damage or issues with the returned work..."
+                  className="commission-field"
+                  rows={3}
+                  style={{ width: '100%', resize: 'vertical' }}
+                />
+              </div>
+
+              <div
+                style={{
+                  display: 'flex',
+                  gap: '1.4rem',
+                  flexWrap: 'wrap',
+                  alignItems: 'center',
+                }}
+              >
+                <button
+                  onClick={handleConfirmReceipt}
+                  disabled={submittingReceipt}
+                  className="artwork-primary-cta artwork-primary-cta--compact"
+                  style={{
+                    minWidth: '16rem',
+                    opacity: submittingReceipt ? 0.5 : 1,
+                  }}
+                >
+                  {submittingReceipt ? 'Processing refund...' : 'Confirm receipt and refund buyer'}
+                </button>
+                <button
+                  onClick={() => {
+                    setConfirmingReceipt(false);
+                    setConditionNotes('');
+                  }}
+                  disabled={submittingReceipt}
+                  className="editorial-link"
+                  style={{
+                    fontSize: '0.85rem',
+                    background: 'none',
+                    border: 'none',
+                    cursor: 'pointer',
+                  }}
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
           )}
         </section>
       )}

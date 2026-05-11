@@ -1019,3 +1019,78 @@ export async function sendReturnTrackingToSeller(data: ReturnTrackingSellerData)
     html,
   });
 }
+
+// ════════════════════════════════════════════════════════════════════
+// 17. RETURN COMPLETE (to buyer)
+// ════════════════════════════════════════════════════════════════════
+
+export interface ReturnCompleteBuyerData {
+  buyerEmail: string;
+  buyerName: string;
+  orderId: string;
+  artworkTitle: string;
+  refundAmount: number;
+}
+
+export async function sendReturnCompleteBuyer(data: ReturnCompleteBuyerData) {
+  const html = emailWrapper(`
+    ${kicker('Return complete')}
+    ${headline('Your refund is', 'on its way.')}
+    ${lede(`Hello ${escapeHtml(data.buyerName || 'there')}, the seller has confirmed receipt of &ldquo;${escapeHtml(data.artworkTitle)}&rdquo;. Your refund has been processed.`)}
+
+    ${ledger([
+      ['Artwork', escapeHtml(data.artworkTitle), 'font-style:italic;'],
+      ['Order', `<span style="font-family:${SANS};font-size:11px;color:${STONE};letter-spacing:0.06em;">${escapeHtml(data.orderId.slice(0, 8))}</span>`],
+      ['Refund', `A$${data.refundAmount.toFixed(2)}`],
+    ])}
+
+    ${divider()}
+
+    ${body('Refunds typically appear within five to ten business days, depending on your bank or card issuer. If you have not received it after ten business days, please contact us.')}
+
+    ${ctaButton('View your orders', `${APP_URL}/dashboard`)}
+  `);
+
+  return safeSend({
+    to: data.buyerEmail,
+    subject: `Refund processed — "${escapeHtml(data.artworkTitle)}"`,
+    html,
+  });
+}
+
+// ════════════════════════════════════════════════════════════════════
+// 18. RETURN COMPLETE (to seller)
+// ════════════════════════════════════════════════════════════════════
+
+export interface ReturnCompleteSellerData {
+  sellerEmail: string;
+  sellerName: string;
+  orderId: string;
+  artworkTitle: string;
+}
+
+export async function sendReturnCompleteSeller(data: ReturnCompleteSellerData) {
+  const html = emailWrapper(`
+    ${kicker('Return complete')}
+    ${headline('The return is', 'finalised.')}
+    ${lede(`Hello ${escapeHtml(data.sellerName || 'there')}, thank you for confirming receipt of &ldquo;${escapeHtml(data.artworkTitle)}&rdquo;. The buyer has been refunded and this order is now closed.`)}
+
+    ${ledger([
+      ['Artwork', escapeHtml(data.artworkTitle), 'font-style:italic;'],
+      ['Order', `<span style="font-family:${SANS};font-size:11px;color:${STONE};letter-spacing:0.06em;">${escapeHtml(data.orderId.slice(0, 8))}</span>`],
+      ['Status', 'Resolved'],
+    ])}
+
+    ${divider()}
+
+    ${body('Your artwork has been returned to you and is available to relist. If you have any questions about this return, please contact our support team.')}
+
+    ${ctaButton('Go to your studio', `${APP_URL}/artist/dashboard`)}
+  `);
+
+  return safeSend({
+    to: data.sellerEmail,
+    subject: `Return finalised — "${escapeHtml(data.artworkTitle)}"`,
+    html,
+  });
+}
