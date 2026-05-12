@@ -351,25 +351,27 @@ export async function uploadStudioImage(
   }
 }
 
+const ACCEPTED_PHOTO_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/heic', 'image/heif'];
+const ACCEPTED_VIDEO_TYPES = ['video/mp4', 'video/quicktime'];
+const MAX_EVIDENCE_FILE_SIZE = 50 * 1024 * 1024; // 50MB
+
 /**
  * Upload a piece of dispute evidence (buyer-side photo).
  *
  * Compressed to 2400px max, 90% quality — matches the artwork-image
- * settings because admins need to zoom into damage. The 10MB input cap
- * matches the bucket's provisioned limit; oversize files fail client-side
- * before any network call.
+ * settings because admins need to zoom into damage.
  */
 export async function uploadDisputeEvidence(
   file: File,
   orderId: string,
   onProgress?: (progress: number) => void,
 ): Promise<string> {
-  if (!ACCEPTED_TYPES.includes(file.type)) {
+  if (!ACCEPTED_PHOTO_TYPES.includes(file.type)) {
     throw new Error(`"${file.name}" is not supported. Use JPG, PNG, WebP, or HEIC.`);
   }
-  if (file.size > 10 * 1024 * 1024) {
+  if (file.size > MAX_EVIDENCE_FILE_SIZE) {
     throw new Error(
-      `"${file.name}" is too large (${(file.size / 1024 / 1024).toFixed(1)}MB). Max 10MB.`,
+      `"${file.name}" is too large (${(file.size / 1024 / 1024).toFixed(1)}MB). Max 50MB.`,
     );
   }
 
@@ -380,6 +382,34 @@ export async function uploadDisputeEvidence(
   const compressed = await compressImage(file, 2400, 0.9);
   onProgress?.(50);
   const { url } = await uploadToStorage('dispute-evidence', path, compressed);
+  onProgress?.(100);
+  return url;
+}
+
+/**
+ * Upload dispute evidence video (buyer-side, mp4/mov).
+ * No compression — uploaded raw. 50MB client-side cap.
+ */
+export async function uploadDisputeVideo(
+  file: File,
+  orderId: string,
+  onProgress?: (progress: number) => void,
+): Promise<string> {
+  if (!ACCEPTED_VIDEO_TYPES.includes(file.type)) {
+    throw new Error(`"${file.name}" is not a supported video format. Use MP4 or MOV.`);
+  }
+  if (file.size > MAX_EVIDENCE_FILE_SIZE) {
+    throw new Error(
+      `"${file.name}" is too large (${(file.size / 1024 / 1024).toFixed(1)}MB). Max 50MB.`,
+    );
+  }
+
+  const ext = file.type === 'video/quicktime' ? 'mov' : 'mp4';
+  const fileId = crypto.randomUUID();
+  const path = `${orderId}/${fileId}.${ext}`;
+
+  onProgress?.(10);
+  const { url } = await uploadToStorage('dispute-evidence', path, file);
   onProgress?.(100);
   return url;
 }

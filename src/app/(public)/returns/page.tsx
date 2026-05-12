@@ -144,55 +144,30 @@ export default function ReturnsPage() {
       <PolicySection number="03" kicker="Scenario" title="Damaged or not as described" headline="This is what escrow is for.">
         <p>
           If your artwork arrives damaged, or is materially different from the listing photos and description,
-          raise a dispute within 48 hours of confirming delivery. Upload clear photographs showing the issue.
+          raise a dispute within 48 hours of confirming delivery.
+        </p>
+        <p style={{ marginTop: '1rem' }}>You will be asked to upload:</p>
+        <SubList
+          title=""
+          items={[
+            'Clear photographs of the damage or discrepancy from multiple angles',
+            'Photographs of the packaging as it arrived',
+            'For higher-value works, a short video walkthrough of the work and packaging',
+          ]}
+        />
+        <p style={{ marginTop: '1.4rem' }}>
+          We will review your dispute within 1&ndash;2 business days, considering your evidence alongside the
+          artist&apos;s pre-shipping documentation. If your dispute is upheld, we will work with you and the artist
+          to reach a fair outcome, which may include a return and refund, or a refund without return depending on
+          the circumstances.
         </p>
         <p style={{ marginTop: '1rem' }}>
-          <strong style={{ fontWeight: 400, color: 'var(--color-ink)' }}>Common grounds:</strong> visible damage
-          from transit, dimensions different from the listing, materials or medium materially different from the
-          description, work appears to be a different piece than what was photographed.
-        </p>
-        <p style={{ marginTop: '1rem' }}>
-          We will review your dispute within 1&ndash;2 business days. If your dispute is upheld, you have two options:
-        </p>
-        <div className="grid grid-cols-1 md:grid-cols-2" style={{ gap: 'clamp(1.5rem, 4vw, 3.5rem)', marginTop: '1.6rem' }}>
-          <div style={{ borderTop: '1px solid var(--color-border)', paddingTop: '1.2rem' }}>
-            <p
-              style={{
-                fontSize: '0.62rem',
-                letterSpacing: '0.2em',
-                textTransform: 'uppercase',
-                color: 'var(--color-stone)',
-                marginBottom: '0.6rem',
-              }}
-            >
-              Refund only
-            </p>
-            <p style={{ fontSize: '0.94rem', lineHeight: 1.65, color: 'var(--color-stone-dark)', fontWeight: 300 }}>
-              We refund your purchase in full. You keep the work, or dispose of it as you wish. Return shipping
-              is not required. This option is typically used for lower-value work or significant damage.
-            </p>
-          </div>
-          <div style={{ borderTop: '1px solid var(--color-border)', paddingTop: '1.2rem' }}>
-            <p
-              style={{
-                fontSize: '0.62rem',
-                letterSpacing: '0.2em',
-                textTransform: 'uppercase',
-                color: 'var(--color-stone)',
-                marginBottom: '0.6rem',
-              }}
-            >
-              Return and refund
-            </p>
-            <p style={{ fontSize: '0.94rem', lineHeight: 1.65, color: 'var(--color-stone-dark)', fontWeight: 300 }}>
-              We arrange a return, the artist covers return shipping, and your refund is processed once the work
-              has been received back. This option is typically used for higher-value work where return is straightforward.
-            </p>
-          </div>
-        </div>
-        <p style={{ marginTop: '1.6rem' }}>
           Damaged or misrepresented work is the artist&apos;s responsibility. You will not be asked to cover
           return shipping in these cases.
+        </p>
+        <p style={{ marginTop: '1rem', fontStyle: 'italic' }}>
+          Signo reserves the right to investigate disputes thoroughly and to refuse service to accounts showing a
+          pattern of unsubstantiated claims.
         </p>
       </PolicySection>
 
