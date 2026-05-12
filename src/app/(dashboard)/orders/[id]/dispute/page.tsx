@@ -363,6 +363,51 @@ function DisputeContent({ orderId }: { orderId: string }) {
         )}
       </p>
 
+      {/* ── Change-of-mind notice ── */}
+      <div
+        style={{
+          background: 'var(--color-cream)',
+          border: '1px solid var(--color-border)',
+          padding: 'clamp(1.2rem, 2vw, 1.6rem)',
+          marginBottom: '2.4rem',
+        }}
+      >
+        <p
+          style={{
+            fontSize: '0.62rem',
+            letterSpacing: '0.22em',
+            textTransform: 'uppercase',
+            color: 'var(--color-stone)',
+            marginBottom: '0.7rem',
+          }}
+        >
+          Before you raise a dispute
+        </p>
+        <p
+          style={{
+            fontSize: '0.9rem',
+            fontWeight: 300,
+            color: 'var(--color-stone-dark)',
+            lineHeight: 1.6,
+            marginBottom: '0.6rem',
+          }}
+        >
+          Change-of-mind returns are not accepted after shipping. If you simply no longer want the work,
+          please contact the artist directly to discuss options.
+        </p>
+        <p
+          style={{
+            fontSize: '0.9rem',
+            fontWeight: 300,
+            color: 'var(--color-stone-dark)',
+            lineHeight: 1.6,
+          }}
+        >
+          This dispute flow is for artworks that arrived damaged, were not as described, or did not arrive
+          at all. Please select the relevant reason below.
+        </p>
+      </div>
+
       <form onSubmit={handleSubmit}>
         {/* Dispute type */}
         <div style={{ marginBottom: '2.2rem' }}>
