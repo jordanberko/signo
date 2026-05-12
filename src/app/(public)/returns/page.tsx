@@ -2,9 +2,9 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 
 export const metadata: Metadata = {
-  title: 'Returns & Refunds — Signo',
+  title: 'Returns & Refunds | Signo',
   description:
-    'Signo returns and refunds policy — escrow protection, inspection windows, and how disputes are resolved.',
+    'Signo returns and refunds policy. Escrow protection, inspection windows, and how disputes are resolved.',
 };
 
 export default function ReturnsPage() {
@@ -53,13 +53,13 @@ export default function ReturnsPage() {
           }}
         >
           Every purchase on Signo is held in escrow until you confirm delivery. If anything goes wrong on
-          arrival, here is exactly what happens — in plain language.
+          arrival, here is exactly what happens. In plain language.
         </p>
       </header>
 
       <div style={{ borderTop: '1px solid var(--color-border)' }} />
 
-      {/* ── Escrow explainer — editorial pullquote ── */}
+      {/* ── Escrow explainer ── */}
       <section
         className="px-6 sm:px-10"
         style={{
@@ -93,7 +93,7 @@ export default function ReturnsPage() {
             }}
           >
             &ldquo;Your payment is held securely by Stripe. The artist only receives the funds when you
-            confirm delivery — or after the 48-hour inspection window passes without a dispute.&rdquo;
+            confirm delivery, or after the 48-hour inspection window passes without a dispute.&rdquo;
           </p>
         </div>
       </section>
@@ -103,27 +103,27 @@ export default function ReturnsPage() {
       {/* ── Scenarios ── */}
       <PolicySection number="01" kicker="Scenario" title="Damaged in transit" headline="A full refund, no return required.">
         <p>
-          If your artwork arrives damaged, we issue a full refund. You do not need to post anything back — we know
+          If your artwork arrives damaged, we issue a full refund. You do not need to post anything back. We know
           that&apos;s impractical with a damaged piece.
         </p>
         <SubList
           title="What to do"
           items={[
-            'Photograph the damage — the artwork and the packaging.',
+            'Photograph the damage: the artwork and the packaging.',
             'Open a dispute on your order page within 48 hours of delivery.',
             'Upload the photographs as evidence.',
             'We review and process your refund within 1–2 business days.',
           ]}
         />
         <p style={{ marginTop: '1.4rem' }}>
-          The artist may claim shipping insurance separately — this does not affect your refund.
+          The artist may claim shipping insurance separately. This does not affect your refund.
         </p>
       </PolicySection>
 
       <PolicySection number="02" kicker="Scenario" title="Not as described" headline="A full refund on return.">
         <p>
-          If the artwork differs materially from the listing — wrong size, different colours, different medium, or
-          significantly different from the photos — you can return it for a full refund.
+          If the artwork differs materially from the listing (wrong size, different colours, different medium, or
+          significantly different from the photos) you can return it for a full refund.
         </p>
         <SubList
           title="What to do"
@@ -141,7 +141,62 @@ export default function ReturnsPage() {
         </p>
       </PolicySection>
 
-      <PolicySection number="03" kicker="Scenario" title="Changed your mind" headline="Before shipping, yes. After, the sale is final.">
+      <PolicySection number="03" kicker="Scenario" title="Damaged or not as described" headline="This is what escrow is for.">
+        <p>
+          If your artwork arrives damaged, or is materially different from the listing photos and description,
+          raise a dispute within 48 hours of confirming delivery. Upload clear photographs showing the issue.
+        </p>
+        <p style={{ marginTop: '1rem' }}>
+          <strong style={{ fontWeight: 400, color: 'var(--color-ink)' }}>Common grounds:</strong> visible damage
+          from transit, dimensions different from the listing, materials or medium materially different from the
+          description, work appears to be a different piece than what was photographed.
+        </p>
+        <p style={{ marginTop: '1rem' }}>
+          We will review your dispute within 1&ndash;2 business days. If your dispute is upheld, you have two options:
+        </p>
+        <div className="grid grid-cols-1 md:grid-cols-2" style={{ gap: 'clamp(1.5rem, 4vw, 3.5rem)', marginTop: '1.6rem' }}>
+          <div style={{ borderTop: '1px solid var(--color-border)', paddingTop: '1.2rem' }}>
+            <p
+              style={{
+                fontSize: '0.62rem',
+                letterSpacing: '0.2em',
+                textTransform: 'uppercase',
+                color: 'var(--color-stone)',
+                marginBottom: '0.6rem',
+              }}
+            >
+              Refund only
+            </p>
+            <p style={{ fontSize: '0.94rem', lineHeight: 1.65, color: 'var(--color-stone-dark)', fontWeight: 300 }}>
+              We refund your purchase in full. You keep the work, or dispose of it as you wish. Return shipping
+              is not required. This option is typically used for lower-value work or significant damage.
+            </p>
+          </div>
+          <div style={{ borderTop: '1px solid var(--color-border)', paddingTop: '1.2rem' }}>
+            <p
+              style={{
+                fontSize: '0.62rem',
+                letterSpacing: '0.2em',
+                textTransform: 'uppercase',
+                color: 'var(--color-stone)',
+                marginBottom: '0.6rem',
+              }}
+            >
+              Return and refund
+            </p>
+            <p style={{ fontSize: '0.94rem', lineHeight: 1.65, color: 'var(--color-stone-dark)', fontWeight: 300 }}>
+              We arrange a return, the artist covers return shipping, and your refund is processed once the work
+              has been received back. This option is typically used for higher-value work where return is straightforward.
+            </p>
+          </div>
+        </div>
+        <p style={{ marginTop: '1.6rem' }}>
+          Damaged or misrepresented work is the artist&apos;s responsibility. You will not be asked to cover
+          return shipping in these cases.
+        </p>
+      </PolicySection>
+
+      <PolicySection number="04" kicker="Scenario" title="Changed your mind" headline="Before shipping, yes. After, the sale is final.">
         <div className="grid grid-cols-1 md:grid-cols-2" style={{ gap: 'clamp(1.5rem, 4vw, 3.5rem)', marginTop: '1.2rem' }}>
           <div style={{ borderTop: '1px solid var(--color-border)', paddingTop: '1.2rem' }}>
             <p
@@ -172,7 +227,8 @@ export default function ReturnsPage() {
               After shipping
             </p>
             <p style={{ fontSize: '0.94rem', lineHeight: 1.65, color: 'var(--color-stone-dark)', fontWeight: 300 }}>
-              Once the work has been shipped, the sale is final. The artist has already packed and posted the piece.
+              Once the work has been shipped, the sale is final. We do not accept change-of-mind returns.
+              The artist has already packed and posted the piece.
             </p>
           </div>
         </div>
@@ -180,14 +236,18 @@ export default function ReturnsPage() {
           Please review the listing photos, dimensions and description carefully before purchasing. If you have
           questions about a piece, message the artist directly first.
         </p>
+        <p style={{ marginTop: '1rem', fontStyle: 'italic' }}>
+          This policy does not affect your rights under Australian Consumer Law. If your artwork arrives damaged
+          or is materially different from the listing, see Scenario 03 above.
+        </p>
       </PolicySection>
 
-      <PolicySection number="04" kicker="Scenario" title="Digital downloads" headline="All digital sales are final.">
+      <PolicySection number="05" kicker="Scenario" title="Digital downloads" headline="All digital sales are final.">
         <p>
           Due to the nature of digital files, we cannot offer refunds once the download link has been accessed.
         </p>
         <p style={{ marginTop: '1rem' }}>
-          The exception is corrupted or inaccessible files — if you receive a file that will not open, contact
+          The exception is corrupted or inaccessible files. If you receive a file that will not open, contact
           us and we will either provide a working file or issue a refund.
         </p>
       </PolicySection>
@@ -232,7 +292,7 @@ export default function ReturnsPage() {
           <ol className="list-none p-0 m-0 lg:col-span-8">
             {[
               'Go to your order page (My Orders → select the order).',
-              'Click "Raise a Dispute" — this must happen within 48 hours of delivery.',
+              'Click "Raise a Dispute". This must happen within 48 hours of delivery.',
               'Select the reason, describe the issue, upload supporting photographs.',
               'Our team reviews the dispute and responds within 1–2 business days.',
             ].map((step, i) => (
