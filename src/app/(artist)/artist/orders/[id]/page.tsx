@@ -111,6 +111,7 @@ function OrderContent({ orderId }: { orderId: string }) {
   const [trackingNumber, setTrackingNumber] = useState('');
   const [carrier, setCarrier] = useState('');
   const [, setPackagingPhoto] = useState<File | null>(null);
+  const [insuranceAcknowledged, setInsuranceAcknowledged] = useState(false);
 
   // Return receipt state
   const [confirmingReceipt, setConfirmingReceipt] = useState(false);
@@ -1010,9 +1011,77 @@ function OrderContent({ orderId }: { orderId: string }) {
               </p>
             </div>
 
+            {/* Insurance recommendation */}
+            {salePrice > 500 && (
+              <div
+                style={{
+                  background: 'var(--color-cream)',
+                  border: '1px solid var(--color-border)',
+                  padding: 'clamp(1.2rem, 2vw, 1.6rem)',
+                }}
+              >
+                <p
+                  style={{
+                    ...KICKER,
+                    marginBottom: '0.7rem',
+                  }}
+                >
+                  Shipping insurance
+                </p>
+                <p
+                  style={{
+                    fontSize: '0.88rem',
+                    fontWeight: 300,
+                    color: 'var(--color-stone-dark)',
+                    lineHeight: 1.6,
+                    marginBottom: '0.6rem',
+                  }}
+                >
+                  For artworks valued over $500, we strongly recommend sending with AusPost Extra Cover or comparable carrier insurance. If the work is damaged in transit, insurance covers the refund.
+                </p>
+                <p
+                  style={{
+                    fontSize: '0.88rem',
+                    fontWeight: 300,
+                    color: 'var(--color-stone-dark)',
+                    lineHeight: 1.6,
+                  }}
+                >
+                  Signo does not cover transit damage from uninsured shipments. The cost of insurance is small and protects you against significant loss.
+                </p>
+              </div>
+            )}
+
+            {/* Insurance acknowledgment */}
+            <label
+              style={{
+                display: 'flex',
+                alignItems: 'flex-start',
+                gap: '0.7rem',
+                cursor: 'pointer',
+              }}
+            >
+              <input
+                type="checkbox"
+                checked={insuranceAcknowledged}
+                onChange={(e) => setInsuranceAcknowledged(e.target.checked)}
+                style={{ marginTop: '0.2rem', flexShrink: 0 }}
+              />
+              <span
+                style={{
+                  fontSize: '0.85rem',
+                  fontWeight: 300,
+                  color: 'var(--color-stone-dark)',
+                  lineHeight: 1.5,
+                }}
+              >
+                I understand transit damage on uninsured shipments is my responsibility
+              </span>
+            </label>
+
             <button
               type="submit"
-              disabled={submitting || !trackingNumber.trim() || !carrier}
+              disabled={submitting || !trackingNumber.trim() || !carrier || !insuranceAcknowledged}
               className="artwork-primary-cta"
               style={{ alignSelf: 'flex-start' }}
             >

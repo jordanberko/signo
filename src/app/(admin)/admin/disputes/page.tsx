@@ -456,6 +456,21 @@ export default function AdminDisputesPage() {
                         {actionError}
                       </p>
                     )}
+                    {dispute.orders.total_amount_aud > 500 && (
+                      <div
+                        style={{
+                          background: 'var(--color-cream)',
+                          border: '1px solid var(--color-border)',
+                          padding: '1rem 1.2rem',
+                          fontSize: '0.82rem',
+                          fontWeight: 300,
+                          color: 'var(--color-stone-dark)',
+                          lineHeight: 1.6,
+                        }}
+                      >
+                        For this order value ({formatPrice(dispute.orders.total_amount_aud)}), return and refund is the recommended default. Refund-only should be used only for catastrophic damage with strong evidence.
+                      </div>
+                    )}
                     <div
                       style={{
                         display: 'grid',
