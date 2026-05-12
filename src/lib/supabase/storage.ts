@@ -415,6 +415,37 @@ export async function uploadDisputeVideo(
 }
 
 /**
+ * Upload an artist dispatch evidence photo.
+ * Compressed to 2400px max, 90% quality. 50MB client-side cap.
+ * Stored in dispatch-evidence bucket under {orderId}/{photoType}/{uuid}.jpg.
+ */
+export async function uploadDispatchEvidence(
+  file: File,
+  orderId: string,
+  photoType: string,
+  onProgress?: (progress: number) => void,
+): Promise<string> {
+  if (!ACCEPTED_PHOTO_TYPES.includes(file.type)) {
+    throw new Error(`"${file.name}" is not supported. Use JPG, PNG, WebP, or HEIC.`);
+  }
+  if (file.size > MAX_EVIDENCE_FILE_SIZE) {
+    throw new Error(
+      `"${file.name}" is too large (${(file.size / 1024 / 1024).toFixed(1)}MB). Max 50MB.`,
+    );
+  }
+
+  const fileId = crypto.randomUUID();
+  const path = `${orderId}/${photoType}/${fileId}.jpg`;
+
+  onProgress?.(5);
+  const compressed = await compressImage(file, 2400, 0.9);
+  onProgress?.(50);
+  const { url } = await uploadToStorage('dispatch-evidence', path, compressed);
+  onProgress?.(100);
+  return url;
+}
+
+/**
  * Get the public URL for a stored file.
  */
 export function getPublicUrl(path: string, bucket: string): string {

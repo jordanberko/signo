@@ -12,9 +12,12 @@ interface DisputeRow {
   status: string;
   resolution_notes: string | null;
   created_at: string;
+  evidence_images: string[] | null;
+  evidence_video: string | null;
   orders: {
     id: string;
     total_amount_aud: number;
+    dispatch_photo_urls: Array<{ type: string; url: string; uploaded_at: string }> | null;
     artworks: { title: string };
     buyer: { full_name: string; email: string };
     artist: {
@@ -27,6 +30,12 @@ interface DisputeRow {
     };
   };
 }
+
+const DISPATCH_PHOTO_LABELS: Record<string, string> = {
+  work_before_packing: 'Before packing',
+  work_during_packing: 'During packing',
+  sealed_package: 'Sealed package',
+};
 
 const KICKER: React.CSSProperties = {
   fontSize: '0.62rem',
@@ -416,6 +425,94 @@ export default function AdminDisputesPage() {
                     </p>
                   </div>
                 </button>
+
+                {/* Evidence comparison */}
+                {isOpen && (dispute.evidence_images?.length || dispute.orders.dispatch_photo_urls?.length) && (
+                  <div
+                    style={{
+                      display: 'grid',
+                      gridTemplateColumns: '1fr 1fr',
+                      gap: '2rem',
+                      paddingBottom: '2rem',
+                    }}
+                  >
+                    {/* Buyer evidence */}
+                    <div>
+                      <p style={{ ...KICKER, marginBottom: '0.8rem' }}>Buyer evidence</p>
+                      {dispute.evidence_images && dispute.evidence_images.length > 0 ? (
+                        <div style={{ display: 'grid', gap: '0.6rem' }}>
+                          {dispute.evidence_images.map((url, i) => (
+                            <a key={i} href={url} target="_blank" rel="noopener noreferrer">
+                              <img
+                                src={url}
+                                alt={`Buyer evidence ${i + 1}`}
+                                style={{
+                                  width: '100%',
+                                  maxHeight: '200px',
+                                  objectFit: 'cover',
+                                  border: '1px solid var(--color-border)',
+                                }}
+                              />
+                            </a>
+                          ))}
+                          {dispute.evidence_video && (
+                            <a
+                              href={dispute.evidence_video}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              style={{
+                                display: 'block',
+                                padding: '0.8rem',
+                                border: '1px solid var(--color-border)',
+                                fontSize: '0.82rem',
+                                color: 'var(--color-ink)',
+                                textDecoration: 'none',
+                              }}
+                            >
+                              Video evidence →
+                            </a>
+                          )}
+                        </div>
+                      ) : (
+                        <p className="font-serif" style={{ fontStyle: 'italic', fontSize: '0.82rem', color: 'var(--color-stone)' }}>
+                          No buyer photos submitted.
+                        </p>
+                      )}
+                    </div>
+
+                    {/* Artist dispatch evidence */}
+                    <div>
+                      <p style={{ ...KICKER, marginBottom: '0.8rem' }}>Artist dispatch evidence</p>
+                      {dispute.orders.dispatch_photo_urls && dispute.orders.dispatch_photo_urls.length > 0 ? (
+                        <div style={{ display: 'grid', gap: '0.6rem' }}>
+                          {dispute.orders.dispatch_photo_urls.map((photo, i) => (
+                            <div key={i}>
+                              <a href={photo.url} target="_blank" rel="noopener noreferrer">
+                                <img
+                                  src={photo.url}
+                                  alt={DISPATCH_PHOTO_LABELS[photo.type] || photo.type}
+                                  style={{
+                                    width: '100%',
+                                    maxHeight: '200px',
+                                    objectFit: 'cover',
+                                    border: '1px solid var(--color-border)',
+                                  }}
+                                />
+                              </a>
+                              <p style={{ fontSize: '0.72rem', color: 'var(--color-stone)', marginTop: '0.3rem' }}>
+                                {DISPATCH_PHOTO_LABELS[photo.type] || photo.type}
+                              </p>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="font-serif" style={{ fontStyle: 'italic', fontSize: '0.82rem', color: 'var(--color-stone)' }}>
+                          No dispatch photos on file.
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                )}
 
                 {isOpen && canResolve && !isReturnFormOpen && (
                   <div

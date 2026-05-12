@@ -20,7 +20,7 @@ export async function GET(_request: Request, context: RouteContext) {
     const { data: order, error } = await supabase
       .from('orders')
       .select(
-        'id, total_amount_aud, artist_payout_aud, status, created_at, shipped_at, delivered_at, payout_released_at, shipping_tracking_number, shipping_carrier, shipping_address, artworks(id, title, images, category, medium), profiles!orders_buyer_id_fkey(full_name, email)'
+        '*, artworks(id, title, images, category, medium), profiles!orders_buyer_id_fkey(full_name, email)'
       )
       .eq('id', id)
       .eq('artist_id', user.id)
