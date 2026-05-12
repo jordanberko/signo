@@ -5,21 +5,50 @@ import Link from 'next/link';
 import { useAuth } from '@/components/providers/AuthProvider';
 import EditorialSpinner from '@/components/ui/EditorialSpinner';
 import { useRequireAuth } from '@/lib/hooks/useRequireAuth';
-import { uploadDisputeEvidence } from '@/lib/supabase/storage';
-
-const MAX_EVIDENCE_FILES = 5;
+import { uploadDisputeEvidence, uploadDisputeVideo } from '@/lib/supabase/storage';
 
 // ── Types ──
 
 type DisputeType = 'damaged' | 'not_as_described' | 'not_received' | 'other';
 
+const ACCEPTED_PHOTO_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/heic', 'image/heif'];
+const ACCEPTED_VIDEO_TYPES = ['video/mp4', 'video/quicktime'];
+const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
+const HIGH_VALUE_THRESHOLD_AUD = 500;
+const MAX_EXTRA_FILES = 5;
+
 interface OrderBasic {
   id: string;
   status: string;
   inspection_deadline: string | null;
+  total_amount_aud: number | null;
   artwork: {
     title: string;
   } | null;
+}
+
+interface EvidenceSlot {
+  label: string;
+  helpText: string;
+  file: File | null;
+  required: boolean;
+}
+
+function validateFile(file: File, kind: 'photo' | 'video'): string | null {
+  if (file.size > MAX_FILE_SIZE) {
+    return `"${file.name}" is too large (${(file.size / 1024 / 1024).toFixed(1)}MB). Max 50MB.`;
+  }
+  if (kind === 'photo' && !ACCEPTED_PHOTO_TYPES.includes(file.type)) {
+    return `"${file.name}" is not a supported photo format. Use JPG, PNG, or HEIC.`;
+  }
+  if (kind === 'video' && !ACCEPTED_VIDEO_TYPES.includes(file.type)) {
+    return `"${file.name}" is not a supported video format. Use MP4 or MOV.`;
+  }
+  return null;
+}
+
+function requiresStructuredEvidence(type: DisputeType | null): boolean {
+  return type === 'damaged' || type === 'not_as_described';
 }
 
 const disputeTypes: { value: DisputeType; label: string; description: string }[] = [
@@ -56,14 +85,26 @@ function DisputeContent({ orderId }: { orderId: string }) {
   // Form state
   const [disputeType, setDisputeType] = useState<DisputeType | null>(null);
   const [description, setDescription] = useState('');
-  const [files, setFiles] = useState<FileList | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  // Tracks "Uploading X of Y" feedback during evidence upload. Null
-  // outside the upload phase so the button label can fall back to the
-  // ordinary "Submitting…" text once uploads finish.
   const [uploadProgress, setUploadProgress] = useState<{ current: number; total: number } | null>(null);
+
+  // Structured evidence for damage/not_as_described
+  const [evidenceSlots, setEvidenceSlots] = useState<EvidenceSlot[]>([
+    { label: 'Close-up of damage or discrepancy', helpText: 'A clear, close-up photograph showing the issue.', file: null, required: true },
+    { label: 'Full view of the work', helpText: 'A photograph of the entire piece so we can see the overall condition.', file: null, required: true },
+    { label: 'Packaging as it arrived', helpText: 'How the packaging looked when you opened it.', file: null, required: true },
+  ]);
+  const [videoFile, setVideoFile] = useState<File | null>(null);
+  const [extraFiles, setExtraFiles] = useState<File[]>([]);
+  const [fileError, setFileError] = useState<string | null>(null);
+
+  // For non-structured types (not_received, other) — simple multi-file input
+  const [genericFiles, setGenericFiles] = useState<FileList | null>(null);
+
+  const isHighValue = (order?.total_amount_aud ?? 0) > HIGH_VALUE_THRESHOLD_AUD;
+  const structured = requiresStructuredEvidence(disputeType);
 
   useEffect(() => {
     if (!user) return;
@@ -89,6 +130,7 @@ function DisputeContent({ orderId }: { orderId: string }) {
           id: orderData.id as string,
           status: orderData.status as string,
           inspection_deadline: orderData.inspection_deadline as string | null,
+          total_amount_aud: typeof orderData.total_amount_aud === 'number' ? orderData.total_amount_aud : null,
           artwork: artwork ? { title: artwork.title || 'Artwork' } : null,
         };
         setOrder(ord);
@@ -119,33 +161,53 @@ function DisputeContent({ orderId }: { orderId: string }) {
     load();
   }, [user, orderId]);
 
+  function canSubmit(): boolean {
+    if (!disputeType || description.length < 20 || submitting) return false;
+    if (structured) {
+      const requiredFilled = evidenceSlots.every((s) => !s.required || s.file);
+      if (!requiredFilled) return false;
+      if (isHighValue && !videoFile) return false;
+    }
+    return true;
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!disputeType || description.length < 20 || !order) return;
+    if (!canSubmit() || !order) return;
 
     setSubmitting(true);
     setError(null);
+    setFileError(null);
     setUploadProgress(null);
 
     try {
-      // Cap before any uploads start. Five files is plenty for a dispute;
-      // beyond that, ask the user to contact support so the conversation
-      // doesn't degenerate into an upload race.
-      const fileArray = files ? Array.from(files) : [];
-      if (fileArray.length > MAX_EVIDENCE_FILES) {
-        throw new Error(
-          `Please select up to ${MAX_EVIDENCE_FILES} photos. If you need to share more, contact support.`,
-        );
-      }
-
-      // Sequential upload — stop on first failure. The user retries by
-      // clicking submit again; previously-uploaded files re-upload, which
-      // we accept as a trade-off for a simple progress UX.
       const evidenceUrls: string[] = [];
-      for (let i = 0; i < fileArray.length; i++) {
-        setUploadProgress({ current: i + 1, total: fileArray.length });
-        const url = await uploadDisputeEvidence(fileArray[i], order.id);
-        evidenceUrls.push(url);
+      let videoUrl: string | undefined;
+
+      if (structured) {
+        const photoFiles = [
+          ...evidenceSlots.filter((s) => s.file).map((s) => s.file!),
+          ...extraFiles,
+        ];
+        const totalUploads = photoFiles.length + (videoFile ? 1 : 0);
+
+        for (let i = 0; i < photoFiles.length; i++) {
+          setUploadProgress({ current: i + 1, total: totalUploads });
+          const url = await uploadDisputeEvidence(photoFiles[i], order.id);
+          evidenceUrls.push(url);
+        }
+
+        if (videoFile) {
+          setUploadProgress({ current: totalUploads, total: totalUploads });
+          videoUrl = await uploadDisputeVideo(videoFile, order.id);
+        }
+      } else {
+        const fileArray = genericFiles ? Array.from(genericFiles) : [];
+        for (let i = 0; i < fileArray.length; i++) {
+          setUploadProgress({ current: i + 1, total: fileArray.length });
+          const url = await uploadDisputeEvidence(fileArray[i], order.id);
+          evidenceUrls.push(url);
+        }
       }
       setUploadProgress(null);
 
@@ -156,6 +218,7 @@ function DisputeContent({ orderId }: { orderId: string }) {
           type: disputeType,
           description,
           evidence_images: evidenceUrls,
+          ...(videoUrl ? { evidence_video: videoUrl } : {}),
         }),
       });
 
@@ -515,59 +578,171 @@ function DisputeContent({ orderId }: { orderId: string }) {
           </p>
         </div>
 
-        {/* Photo evidence */}
+        {/* Evidence uploads */}
         <div style={{ marginBottom: '2.2rem' }}>
-          <label className="commission-label">Photo evidence</label>
-          <div
-            style={{
-              borderTop: '1px solid var(--color-border)',
-              borderBottom: '1px solid var(--color-border)',
-              padding: '1.4rem 0',
-            }}
-          >
-            <input
-              type="file"
-              accept="image/*"
-              multiple
-              onChange={(e) => setFiles(e.target.files)}
-              style={{
-                display: 'block',
-                width: '100%',
-                fontSize: '0.82rem',
-                color: 'var(--color-stone-dark)',
-                fontWeight: 300,
-              }}
-            />
-            {files && files.length > 0 && (
-              <p
-                className="font-serif"
+          <label className="commission-label">
+            {structured ? 'Required evidence' : 'Photo evidence'}
+          </label>
+
+          {structured ? (
+            <>
+              {/* Structured photo slots */}
+              {evidenceSlots.map((slot, idx) => (
+                <div
+                  key={idx}
+                  style={{
+                    borderTop: idx === 0 ? '1px solid var(--color-border-strong)' : '1px solid var(--color-border)',
+                    padding: '1.2rem 0',
+                  }}
+                >
+                  <p style={{ fontSize: '0.88rem', color: 'var(--color-ink)', fontWeight: 400, marginBottom: '0.3rem' }}>
+                    {slot.label}
+                    {slot.required && <span style={{ color: 'var(--color-terracotta, #c45d3e)', marginLeft: '0.3rem' }}>*</span>}
+                  </p>
+                  <p style={{ fontSize: '0.76rem', color: 'var(--color-stone)', fontWeight: 300, marginBottom: '0.7rem' }}>
+                    {slot.helpText}
+                  </p>
+                  <input
+                    type="file"
+                    accept=".jpg,.jpeg,.png,.heic,.heif"
+                    onChange={(e) => {
+                      const f = e.target.files?.[0] ?? null;
+                      if (f) {
+                        const err = validateFile(f, 'photo');
+                        if (err) { setFileError(err); return; }
+                        setFileError(null);
+                      }
+                      setEvidenceSlots((prev) => prev.map((s, i) => i === idx ? { ...s, file: f } : s));
+                    }}
+                    style={{ display: 'block', width: '100%', fontSize: '0.82rem', color: 'var(--color-stone-dark)', fontWeight: 300 }}
+                  />
+                  {slot.file && (
+                    <p className="font-serif" style={{ marginTop: '0.4rem', fontStyle: 'italic', fontSize: '0.76rem', color: 'var(--color-stone)' }}>
+                      {slot.file.name} ({(slot.file.size / 1024 / 1024).toFixed(1)}MB)
+                    </p>
+                  )}
+                </div>
+              ))}
+
+              {/* Video upload */}
+              <div
                 style={{
-                  marginTop: '0.6rem',
-                  fontStyle: 'italic',
-                  fontSize: '0.78rem',
-                  color: 'var(--color-stone)',
+                  borderTop: '1px solid var(--color-border)',
+                  borderBottom: '1px solid var(--color-border)',
+                  padding: '1.2rem 0',
                 }}
               >
-                {files.length} file{files.length !== 1 ? 's' : ''} selected
+                <p style={{ fontSize: '0.88rem', color: 'var(--color-ink)', fontWeight: 400, marginBottom: '0.3rem' }}>
+                  Video walkthrough
+                  {isHighValue && <span style={{ color: 'var(--color-terracotta, #c45d3e)', marginLeft: '0.3rem' }}>*</span>}
+                </p>
+                <p style={{ fontSize: '0.76rem', color: 'var(--color-stone)', fontWeight: 300, marginBottom: '0.7rem' }}>
+                  {isHighValue
+                    ? 'Required for orders over $500. A continuous 15–60 second video showing the work and packaging.'
+                    : 'Optional. A short video showing the damage or discrepancy helps us resolve your dispute faster.'}
+                </p>
+                <input
+                  type="file"
+                  accept=".mp4,.mov"
+                  onChange={(e) => {
+                    const f = e.target.files?.[0] ?? null;
+                    if (f) {
+                      const err = validateFile(f, 'video');
+                      if (err) { setFileError(err); return; }
+                      setFileError(null);
+                    }
+                    setVideoFile(f);
+                  }}
+                  style={{ display: 'block', width: '100%', fontSize: '0.82rem', color: 'var(--color-stone-dark)', fontWeight: 300 }}
+                />
+                {videoFile && (
+                  <p className="font-serif" style={{ marginTop: '0.4rem', fontStyle: 'italic', fontSize: '0.76rem', color: 'var(--color-stone)' }}>
+                    {videoFile.name} ({(videoFile.size / 1024 / 1024).toFixed(1)}MB)
+                  </p>
+                )}
+              </div>
+
+              {/* Additional photos */}
+              <div style={{ padding: '1.2rem 0' }}>
+                <p style={{ fontSize: '0.88rem', color: 'var(--color-ink)', fontWeight: 400, marginBottom: '0.3rem' }}>
+                  Additional photos
+                </p>
+                <p style={{ fontSize: '0.76rem', color: 'var(--color-stone)', fontWeight: 300, marginBottom: '0.7rem' }}>
+                  Up to {MAX_EXTRA_FILES} more photos from other angles, if helpful.
+                </p>
+                <input
+                  type="file"
+                  accept=".jpg,.jpeg,.png,.heic,.heif"
+                  multiple
+                  onChange={(e) => {
+                    const selected = e.target.files ? Array.from(e.target.files) : [];
+                    if (selected.length > MAX_EXTRA_FILES) {
+                      setFileError(`Please select up to ${MAX_EXTRA_FILES} additional photos.`);
+                      return;
+                    }
+                    for (const f of selected) {
+                      const err = validateFile(f, 'photo');
+                      if (err) { setFileError(err); return; }
+                    }
+                    setFileError(null);
+                    setExtraFiles(selected);
+                  }}
+                  style={{ display: 'block', width: '100%', fontSize: '0.82rem', color: 'var(--color-stone-dark)', fontWeight: 300 }}
+                />
+                {extraFiles.length > 0 && (
+                  <p className="font-serif" style={{ marginTop: '0.4rem', fontStyle: 'italic', fontSize: '0.76rem', color: 'var(--color-stone)' }}>
+                    {extraFiles.length} additional file{extraFiles.length !== 1 ? 's' : ''} selected
+                  </p>
+                )}
+              </div>
+            </>
+          ) : (
+            /* Generic file input for not_received / other */
+            <div
+              style={{
+                borderTop: '1px solid var(--color-border)',
+                borderBottom: '1px solid var(--color-border)',
+                padding: '1.4rem 0',
+              }}
+            >
+              <input
+                type="file"
+                accept=".jpg,.jpeg,.png,.heic,.heif"
+                multiple
+                onChange={(e) => setGenericFiles(e.target.files)}
+                style={{ display: 'block', width: '100%', fontSize: '0.82rem', color: 'var(--color-stone-dark)', fontWeight: 300 }}
+              />
+              {genericFiles && genericFiles.length > 0 && (
+                <p className="font-serif" style={{ marginTop: '0.6rem', fontStyle: 'italic', fontSize: '0.78rem', color: 'var(--color-stone)' }}>
+                  {genericFiles.length} file{genericFiles.length !== 1 ? 's' : ''} selected
+                </p>
+              )}
+              <p className="font-serif" style={{ marginTop: '0.5rem', fontSize: '0.72rem', color: 'var(--color-stone)', fontWeight: 300, fontStyle: 'italic' }}>
+                Recommended to support your claim.
               </p>
-            )}
-          </div>
-          <p
-            style={{
-              marginTop: '0.5rem',
-              fontSize: '0.72rem',
-              color: 'var(--color-stone)',
-              fontWeight: 300,
-              fontStyle: 'italic',
-            }}
-            className="font-serif"
-          >
-            {disputeType === 'damaged'
-              ? 'Required for damage claims.'
-              : 'Recommended to support your claim.'}
-          </p>
+            </div>
+          )}
         </div>
 
+        {/* File validation error */}
+        {fileError && (
+          <p
+            className="font-serif"
+            style={{
+              marginBottom: '1.2rem',
+              fontSize: '0.85rem',
+              color: 'var(--color-terracotta, #c45d3e)',
+              fontStyle: 'italic',
+              fontWeight: 400,
+              lineHeight: 1.5,
+              maxWidth: '52ch',
+            }}
+          >
+            {fileError}
+          </p>
+        )}
+
+        {/* Submission error */}
         {error && (
           <p
             className="font-serif"
@@ -585,13 +760,37 @@ function DisputeContent({ orderId }: { orderId: string }) {
           </p>
         )}
 
+        {/* Missing evidence hint */}
+        {structured && disputeType && !canSubmit() && !submitting && (
+          <p
+            className="font-serif"
+            style={{
+              marginBottom: '1.2rem',
+              fontSize: '0.82rem',
+              color: 'var(--color-stone)',
+              fontStyle: 'italic',
+              fontWeight: 300,
+              lineHeight: 1.5,
+            }}
+          >
+            {(() => {
+              const missing: string[] = [];
+              evidenceSlots.forEach((s) => { if (s.required && !s.file) missing.push(s.label.toLowerCase()); });
+              if (isHighValue && !videoFile) missing.push('video walkthrough');
+              if (missing.length > 0) return `Still needed: ${missing.join(', ')}.`;
+              if (description.length < 20) return 'Please describe the issue in at least 20 characters.';
+              return '';
+            })()}
+          </p>
+        )}
+
         <button
           type="submit"
-          disabled={!disputeType || description.length < 20 || submitting}
+          disabled={!canSubmit()}
           className="artwork-primary-cta artwork-primary-cta--compact"
           style={{
             minWidth: '18rem',
-            opacity: !disputeType || description.length < 20 || submitting ? 0.5 : 1,
+            opacity: canSubmit() ? 1 : 0.5,
           }}
         >
           {submitting
