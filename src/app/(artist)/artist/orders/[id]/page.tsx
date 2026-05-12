@@ -7,8 +7,17 @@ import { useAuth } from '@/components/providers/AuthProvider';
 import EditorialSpinner from '@/components/ui/EditorialSpinner';
 import { useRequireAuth } from '@/lib/hooks/useRequireAuth';
 import { formatPrice } from '@/lib/utils';
+import { uploadDispatchEvidence } from '@/lib/supabase/storage';
 
 // ── Types ──
+
+const DISPATCH_EVIDENCE_REQUIRED_FROM = '2026-05-12';
+
+interface DispatchPhoto {
+  type: string;
+  url: string;
+  uploaded_at: string;
+}
 
 interface OrderDetail {
   id: string;
@@ -22,6 +31,7 @@ interface OrderDetail {
   shipping_tracking_number: string | null;
   shipping_carrier: string | null;
   shipping_address: Record<string, string> | null;
+  dispatch_photo_urls: DispatchPhoto[] | null;
   artworks: {
     id: string;
     title: string;
@@ -113,6 +123,17 @@ function OrderContent({ orderId }: { orderId: string }) {
   const [, setPackagingPhoto] = useState<File | null>(null);
   const [insuranceAcknowledged, setInsuranceAcknowledged] = useState(false);
 
+  // Dispatch evidence state
+  const dispatchSlots: { type: string; label: string; helpText: string }[] = [
+    { type: 'work_before_packing', label: 'The work, before packing', helpText: 'Full view with clear lighting.' },
+    { type: 'work_during_packing', label: 'The work being packed', helpText: 'Showing packaging materials and protection.' },
+    { type: 'sealed_package', label: 'The sealed package', helpText: 'Ready to post, label visible if possible.' },
+  ];
+  const [dispatchPhotos, setDispatchPhotos] = useState<Record<string, { file: File; url: string | null }>>({});
+  const [dispatchUploading, setDispatchUploading] = useState<string | null>(null);
+  const [dispatchError, setDispatchError] = useState<string | null>(null);
+  const [dispatchSaved, setDispatchSaved] = useState(false);
+
   // Return receipt state
   const [confirmingReceipt, setConfirmingReceipt] = useState(false);
   const [conditionNotes, setConditionNotes] = useState('');
@@ -150,12 +171,18 @@ function OrderContent({ orderId }: { orderId: string }) {
     setSuccessMessage('');
 
     try {
+      const dispatchPhotoEntries = Object.entries(dispatchPhotos)
+        .filter(([, v]) => v.url)
+        .map(([type, v]) => ({ type, url: v.url!, uploaded_at: new Date().toISOString() }));
+
       const res = await fetch(`/api/orders/${orderId}/ship`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           tracking_number: trackingNumber.trim(),
           carrier,
+          ...(dispatchPhotoEntries.length > 0 ? { dispatch_photo_urls: dispatchPhotoEntries } : {}),
+          insurance_acknowledged: insuranceAcknowledged,
         }),
       });
 
@@ -896,7 +923,12 @@ function OrderContent({ orderId }: { orderId: string }) {
       )}
 
       {/* Ship form */}
-      {order.status === 'paid' && (
+      {order.status === 'paid' && (() => {
+        const requiresEvidence = order.created_at >= DISPATCH_EVIDENCE_REQUIRED_FROM;
+        const allPhotosUploaded = dispatchSlots.every((s) => dispatchPhotos[s.type]?.url);
+        const evidenceMet = !requiresEvidence || allPhotosUploaded;
+
+        return (
         <section style={{ marginBottom: 'clamp(2.4rem, 4vw, 3.4rem)' }}>
           <p style={{ ...KICKER, marginBottom: '1rem' }}>— Dispatch —</p>
           <h2
@@ -924,6 +956,90 @@ function OrderContent({ orderId }: { orderId: string }) {
             Enter tracking details below — the buyer is notified, and your
             payout is released when the work is confirmed delivered.
           </p>
+
+          {/* Dispatch evidence */}
+          {requiresEvidence && (
+            <div style={{ marginBottom: '2.4rem', maxWidth: '40rem' }}>
+              <p style={{ ...KICKER, marginBottom: '0.7rem' }}>Dispatch evidence</p>
+              <p
+                style={{
+                  fontSize: '0.88rem',
+                  fontWeight: 300,
+                  color: 'var(--color-stone-dark)',
+                  lineHeight: 1.6,
+                  marginBottom: '1.6rem',
+                  maxWidth: '52ch',
+                }}
+              >
+                Before confirming dispatch, please upload three photographs. These photos protect both you and the buyer in the event of a dispute. They take less than a minute and are required.
+              </p>
+
+              {dispatchSlots.map((slot, idx) => {
+                const photo = dispatchPhotos[slot.type];
+                const isUploading = dispatchUploading === slot.type;
+                return (
+                  <div
+                    key={slot.type}
+                    style={{
+                      borderTop: idx === 0 ? '1px solid var(--color-border-strong)' : '1px solid var(--color-border)',
+                      padding: '1.2rem 0',
+                    }}
+                  >
+                    <p style={{ fontSize: '0.88rem', color: 'var(--color-ink)', fontWeight: 400, marginBottom: '0.3rem' }}>
+                      {idx + 1}. {slot.label}
+                      <span style={{ color: 'var(--color-terracotta, #c45d3e)', marginLeft: '0.3rem' }}>*</span>
+                    </p>
+                    <p style={{ fontSize: '0.76rem', color: 'var(--color-stone)', fontWeight: 300, marginBottom: '0.7rem' }}>
+                      {slot.helpText}
+                    </p>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      capture="environment"
+                      disabled={isUploading}
+                      onChange={async (e) => {
+                        const f = e.target.files?.[0];
+                        if (!f) return;
+                        setDispatchError(null);
+                        setDispatchUploading(slot.type);
+                        try {
+                          const url = await uploadDispatchEvidence(f, order.id, slot.type);
+                          setDispatchPhotos((prev) => ({ ...prev, [slot.type]: { file: f, url } }));
+                        } catch (err) {
+                          setDispatchError(err instanceof Error ? err.message : 'Upload failed');
+                        } finally {
+                          setDispatchUploading(null);
+                        }
+                      }}
+                      style={{ display: 'block', width: '100%', fontSize: '0.82rem', color: 'var(--color-stone-dark)', fontWeight: 300 }}
+                    />
+                    {isUploading && (
+                      <p className="font-serif" style={{ marginTop: '0.4rem', fontStyle: 'italic', fontSize: '0.76rem', color: 'var(--color-stone)' }}>
+                        Uploading...
+                      </p>
+                    )}
+                    {photo?.url && (
+                      <p className="font-serif" style={{ marginTop: '0.4rem', fontStyle: 'italic', fontSize: '0.76rem', color: 'var(--color-stone)' }}>
+                        Uploaded: {photo.file.name}
+                      </p>
+                    )}
+                  </div>
+                );
+              })}
+
+              {dispatchError && (
+                <p className="font-serif" style={{ fontSize: '0.85rem', fontStyle: 'italic', color: 'var(--color-terracotta, #c45d3e)', marginTop: '0.6rem' }}>
+                  {dispatchError}
+                </p>
+              )}
+
+              {allPhotosUploaded && !dispatchSaved && (
+                <p className="font-serif" style={{ fontSize: '0.85rem', fontStyle: 'italic', color: 'var(--color-ink)', marginTop: '1rem' }}>
+                  Dispatch evidence saved. This will be reviewed only if a dispute is raised.
+                </p>
+              )}
+            </div>
+          )}
 
           <form
             onSubmit={handleShipOrder}
@@ -1081,7 +1197,7 @@ function OrderContent({ orderId }: { orderId: string }) {
 
             <button
               type="submit"
-              disabled={submitting || !trackingNumber.trim() || !carrier || !insuranceAcknowledged}
+              disabled={submitting || !trackingNumber.trim() || !carrier || !insuranceAcknowledged || !evidenceMet}
               className="artwork-primary-cta"
               style={{ alignSelf: 'flex-start' }}
             >
@@ -1089,7 +1205,8 @@ function OrderContent({ orderId }: { orderId: string }) {
             </button>
           </form>
         </section>
-      )}
+        );
+      })()}
     </PageShell>
   );
 }

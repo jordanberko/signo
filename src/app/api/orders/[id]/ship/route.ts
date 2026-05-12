@@ -46,7 +46,7 @@ export async function PUT(request: Request, context: RouteContext) {
     }
 
     const body = await request.json();
-    const { tracking_number, carrier, packaging_photo_url } = body;
+    const { tracking_number, carrier, packaging_photo_url, dispatch_photo_urls, insurance_acknowledged } = body;
 
     // Validate required fields
     if (!tracking_number?.trim()) {
@@ -66,6 +66,8 @@ export async function PUT(request: Request, context: RouteContext) {
         shipping_tracking_number: tracking_number.trim(),
         shipping_carrier: carrier.trim(),
         shipped_at: new Date().toISOString(),
+        ...(Array.isArray(dispatch_photo_urls) ? { dispatch_photo_urls } : {}),
+        ...(typeof insurance_acknowledged === 'boolean' ? { insurance_acknowledged } : {}),
       })
       .eq('id', id)
       .select()
