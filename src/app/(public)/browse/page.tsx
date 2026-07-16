@@ -351,6 +351,18 @@ function BrowseContent() {
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [recentSearches, setRecentSearches] = useState<string[]>([]);
   const searchWrapperRef = useRef<HTMLDivElement>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
+
+  // Header "Search" action lands on /browse?focus=search — put the cursor
+  // straight into the search field so it behaves like a search page.
+  const focusSearch = searchParams.get('focus') === 'search';
+  useEffect(() => {
+    if (!focusSearch) return;
+    searchInputRef.current?.focus();
+    const url = new URL(window.location.href);
+    url.searchParams.delete('focus');
+    router.replace(url.pathname + (url.search || ''), { scroll: false });
+  }, [focusSearch, router]);
   const fetchIdRef = useRef(0);
   // Scroll restoration — only run once after the hydration fetch completes
   const hasRestoredScroll = useRef(false);
@@ -853,6 +865,7 @@ function BrowseContent() {
               Search
             </label>
             <input
+              ref={searchInputRef}
               type="text"
               placeholder="Title, artist, medium, style"
               value={searchInput}
@@ -1119,7 +1132,7 @@ function BrowseContent() {
             <div className="fixed inset-0 z-50 lg:hidden">
               <div
                 className="absolute inset-0"
-                style={{ background: 'rgba(26,26,24,0.35)' }}
+                style={{ background: 'rgba(22,22,22,0.35)' }}
                 onClick={() => setMobileFiltersOpen(false)}
               />
               <div

@@ -44,7 +44,7 @@ const KICKER: React.CSSProperties = {
   color: 'var(--color-stone)',
 };
 
-const CHART_INK = '#1a1a18';
+const CHART_INK = '#161616';
 
 export default function AnalyticsPage() {
   const { loading: authLoading } = useRequireAuth('artist');

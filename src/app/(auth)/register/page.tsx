@@ -610,7 +610,7 @@ function RegisterForm() {
               className="commission-field"
               placeholder="Re-enter your password"
               autoComplete="new-password"
-              style={!passwordsMatch ? { borderBottomColor: 'var(--color-terracotta, #c45d3e)' } : undefined}
+              style={!passwordsMatch ? { borderBottomColor: 'var(--color-terracotta, #bc5636)' } : undefined}
             />
             {!passwordsMatch && (
               <p
@@ -618,7 +618,7 @@ function RegisterForm() {
                 style={{
                   marginTop: '0.6rem',
                   fontSize: '0.82rem',
-                  color: 'var(--color-terracotta, #c45d3e)',
+                  color: 'var(--color-terracotta, #bc5636)',
                   fontStyle: 'italic',
                 }}
               >
@@ -724,7 +724,7 @@ function RegisterForm() {
               style={{
                 marginTop: '1.6rem',
                 fontSize: '0.92rem',
-                color: 'var(--color-terracotta, #c45d3e)',
+                color: 'var(--color-terracotta, #bc5636)',
                 fontStyle: 'italic',
                 fontWeight: 400,
                 lineHeight: 1.5,

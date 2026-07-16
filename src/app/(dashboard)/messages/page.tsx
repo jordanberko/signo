@@ -173,7 +173,7 @@ export default function MessagesPage() {
             className="font-serif"
             style={{
               fontSize: '0.92rem',
-              color: 'var(--color-terracotta, #c45d3e)',
+              color: 'var(--color-terracotta, #bc5636)',
               fontStyle: 'italic',
               marginBottom: '1.4rem',
             }}
@@ -287,7 +287,7 @@ export default function MessagesPage() {
                         width: 8,
                         height: 8,
                         borderRadius: '50%',
-                        background: 'var(--color-terracotta, #c45d3e)',
+                        background: 'var(--color-terracotta, #bc5636)',
                         border: '1.5px solid var(--color-warm-white)',
                       }}
                     />

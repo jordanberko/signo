@@ -34,13 +34,13 @@ export default function AnalyticsChart({
   return (
     <ResponsiveContainer width="100%" height={height}>
       <LineChart data={data} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
-        <CartesianGrid strokeDasharray="2 4" stroke="rgba(26,26,24,0.06)" vertical={false} />
+        <CartesianGrid strokeDasharray="2 4" stroke="rgba(22,22,22,0.06)" vertical={false} />
         <XAxis
           dataKey="date"
           tickFormatter={formatDateLabel}
           interval={tickInterval}
           tick={{ fontSize: 10, fill: '#9a9488', fontFamily: 'var(--font-sans)' }}
-          axisLine={{ stroke: 'rgba(26,26,24,0.06)' }}
+          axisLine={{ stroke: 'rgba(22,22,22,0.06)' }}
           tickLine={false}
         />
         <YAxis
@@ -58,15 +58,15 @@ export default function AnalyticsChart({
             '',
           ]}
           contentStyle={{
-            backgroundColor: '#fcfbf8',
-            border: '1px solid rgba(26,26,24,0.1)',
+            backgroundColor: '#ffffff',
+            border: '1px solid rgba(22,22,22,0.1)',
             borderRadius: '2px',
             fontSize: '12px',
             padding: '8px 12px',
             fontFamily: 'var(--font-sans)',
-            color: '#1a1a18',
+            color: '#161616',
           }}
-          labelStyle={{ fontWeight: 500, marginBottom: 2, color: '#1a1a18' }}
+          labelStyle={{ fontWeight: 500, marginBottom: 2, color: '#161616' }}
         />
         <Line
           type="monotone"

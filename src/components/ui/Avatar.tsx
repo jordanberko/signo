@@ -70,7 +70,7 @@ export default function Avatar({
           <span
             className="leading-none"
             style={{
-              fontFamily: 'var(--font-serif), Georgia, serif',
+              fontFamily: "var(--font-sans), system-ui, sans-serif",
               fontSize: fontSize(size),
               fontWeight: 400,
               color: 'var(--color-ink)',

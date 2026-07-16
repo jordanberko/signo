@@ -343,8 +343,8 @@ export default function ArtistDashboardPage() {
   };
   const subToneAccent: Record<SubBanner['tone'], string> = {
     ink: 'var(--color-warm-white)',
-    amber: 'var(--color-terracotta, #c45d3e)',
-    terracotta: 'var(--color-terracotta, #c45d3e)',
+    amber: 'var(--color-terracotta, #bc5636)',
+    terracotta: 'var(--color-terracotta, #bc5636)',
     stone: 'var(--color-stone)',
   };
 
@@ -1275,7 +1275,7 @@ export default function ArtistDashboardPage() {
                   style={{
                     fontSize: '0.88rem',
                     fontStyle: 'italic',
-                    color: 'var(--color-terracotta, #c45d3e)',
+                    color: 'var(--color-terracotta, #bc5636)',
                   }}
                 >
                   — {studioError}

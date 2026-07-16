@@ -26,17 +26,19 @@ const APP_URL = appUrl();
 
 // ── Editorial palette (mirrors --color-* tokens in src/app/globals.css) ──
 
-const INK = '#1a1a18';
-const STONE = '#b8b2a4';
-const STONE_DARK = '#8a8478';
-const WARM_WHITE = '#fcfbf8';
-const CREAM = '#f7f5f0';
-const BORDER = '#e8e6e1'; // visual stand-in for rgba(26,26,24,0.08); email clients prefer solid hex
-const TERRACOTTA = '#c45d3e';
+const INK = '#161616';
+const STONE = '#b4b2ad';
+const STONE_DARK = '#78766f';
+const WARM_WHITE = '#ffffff';
+const CREAM = '#f4f4f2';
+const BORDER = '#e8e6e1'; // visual stand-in for rgba(22,22,22,0.08); email clients prefer solid hex
+const TERRACOTTA = '#bc5636';
 
 // Email-safe font stacks
-const SERIF = "Georgia, 'Times New Roman', 'Didot', serif";
+// Sans-first redesign: emails share the site's single sans voice.
+// (SERIF retained as an alias so every template keeps working.)
 const SANS = "'Helvetica Neue', Helvetica, Arial, sans-serif";
+const SERIF = SANS;
 
 // ── HTML Escaping ──
 
@@ -55,7 +57,7 @@ function escapeHtml(str: string): string {
 /**
  * Editorial email wrapper.
  * — Warm-white ground, no rounded card.
- * — Serif wordmark "Signo." with italic full-stop.
+ * — Tracked uppercase sans wordmark "SIGNO".
  * — Hairline footer with tag-line and preferences link.
  */
 function emailWrapper(content: string): string {
@@ -76,7 +78,7 @@ function emailWrapper(content: string): string {
           <tr>
             <td align="center" style="padding-bottom:44px;">
               <a href="${APP_URL}" style="text-decoration:none;display:inline-block;">
-                <span style="font-family:${SERIF};font-size:30px;font-weight:400;color:${INK};letter-spacing:0.04em;">Signo</span><span style="font-family:${SERIF};font-size:30px;font-weight:400;color:${INK};font-style:italic;">.</span>
+                <span style="font-family:${SANS};font-size:20px;font-weight:700;color:${INK};letter-spacing:0.22em;text-transform:uppercase;">Signo</span>
               </a>
             </td>
           </tr>
@@ -92,7 +94,7 @@ function emailWrapper(content: string): string {
           <tr>
             <td style="padding:48px 4px 0 4px;">
               <div style="border-top:1px solid ${BORDER};padding-top:24px;">
-                <p style="font-family:${SERIF};font-size:13px;font-style:italic;color:${STONE};margin:0 0 10px 0;line-height:1.7;text-align:center;">
+                <p style="font-family:${SERIF};font-size:13px;color:${STONE};margin:0 0 10px 0;line-height:1.7;text-align:center;">
                   Signo &mdash; a curated room for Australian artists.
                 </p>
                 <p style="font-family:${SANS};font-size:10px;color:${STONE};margin:0;text-align:center;letter-spacing:0.18em;text-transform:uppercase;">
@@ -119,14 +121,14 @@ function formatCurrency(amount: number): string {
 }
 
 /**
- * Editorial CTA — ink-bordered rectangle with serif italic label and arrow.
+ * Editorial CTA — ink-bordered rectangle with tracked label and arrow.
  * Replaces the legacy sage-pill button.
  */
 function ctaButton(text: string, url: string): string {
   return `<table role="presentation" cellpadding="0" cellspacing="0" style="margin:32px 0 8px 0;">
     <tr>
       <td style="border:1px solid ${INK};padding:16px 28px;">
-        <a href="${url}" style="font-family:${SERIF};font-size:15px;font-style:italic;color:${INK};text-decoration:none;display:inline-block;letter-spacing:0.01em;">${text}&nbsp;&rarr;</a>
+        <a href="${url}" style="font-family:${SERIF};font-size:15px;color:${INK};text-decoration:none;display:inline-block;letter-spacing:0.01em;">${text}&nbsp;&rarr;</a>
       </td>
     </tr>
   </table>`;
@@ -134,7 +136,7 @@ function ctaButton(text: string, url: string): string {
 
 /** A secondary, text-only link in the editorial style. */
 function textLink(text: string, url: string): string {
-  return `<a href="${url}" style="font-family:${SERIF};font-size:14px;font-style:italic;color:${INK};text-decoration:underline;text-decoration-thickness:1px;text-underline-offset:3px;">${text}</a>`;
+  return `<a href="${url}" style="font-family:${SERIF};font-size:14px;color:${INK};text-decoration:underline;text-decoration-thickness:1px;text-underline-offset:3px;">${text}</a>`;
 }
 
 function divider(): string {
@@ -146,9 +148,11 @@ function kicker(text: string): string {
   return `<p style="font-family:${SANS};font-size:10px;font-weight:400;color:${STONE};margin:0 0 20px 0;letter-spacing:0.22em;text-transform:uppercase;">${text}</p>`;
 }
 
-/** Large serif headline, optional italic accent portion. */
+/** Large display headline; the optional tail renders in the accent colour. */
 function headline(text: string, italicTail?: string): string {
-  const tail = italicTail ? ` <em style="font-style:italic;">${italicTail}</em>` : '';
+  const tail = italicTail
+    ? ` <span style="color:${TERRACOTTA};">${italicTail}</span>`
+    : '';
   return `<h1 style="font-family:${SERIF};font-size:34px;font-weight:400;color:${INK};margin:0 0 22px 0;line-height:1.15;letter-spacing:-0.01em;">${text}${tail}</h1>`;
 }
 
@@ -182,13 +186,13 @@ function ledger(rows: Array<[string, string, string?]>): string {
   </table>`;
 }
 
-/** Numbered list with serif italic index in its own left column. */
+/** Numbered list with a muted index in its own left column. */
 function numberedList(items: string[]): string {
   const rows = items
     .map((item, i) => {
       const n = String(i + 1).padStart(2, '0');
       return `<tr>
-        <td style="padding:12px 0;border-top:1px solid ${BORDER};width:44px;font-family:${SERIF};font-size:14px;font-style:italic;color:${STONE};vertical-align:top;">${n}</td>
+        <td style="padding:12px 0;border-top:1px solid ${BORDER};width:44px;font-family:${SERIF};font-size:14px;color:${STONE};vertical-align:top;">${n}</td>
         <td style="padding:12px 0;border-top:1px solid ${BORDER};font-family:${SERIF};font-size:15px;color:${INK};line-height:1.6;vertical-align:top;">${item}</td>
       </tr>`;
     })
@@ -268,7 +272,7 @@ export async function sendOrderConfirmation(data: OrderConfirmationData) {
     ${imageBlock}
 
     ${ledger([
-      ['Artwork', escapeHtml(data.artworkTitle), 'font-style:italic;'],
+      ['Artwork', escapeHtml(data.artworkTitle), ''],
       ['Artist', escapeHtml(data.artistName)],
       ['Total paid', formatCurrency(data.totalAmount)],
       ['Order', `<span style="font-family:${SANS};font-size:11px;color:${STONE};letter-spacing:0.08em;">${escapeHtml(data.orderId)}</span>`],
@@ -304,7 +308,7 @@ export interface NewSaleData {
 export async function sendNewSaleNotification(data: NewSaleData) {
   const location = [data.buyerCity, data.buyerState].filter((s): s is string => Boolean(s)).join(', ');
   const rows: Array<[string, string, string?]> = [
-    ['Artwork', escapeHtml(data.artworkTitle), 'font-style:italic;'],
+    ['Artwork', escapeHtml(data.artworkTitle), ''],
     ['Sale price', formatCurrency(data.salePrice)],
     ['Your payout', formatCurrency(data.artistPayout), 'font-weight:500;'],
   ];
@@ -319,7 +323,7 @@ export async function sendNewSaleNotification(data: NewSaleData) {
 
     ${divider()}
 
-    <p style="font-family:${SERIF};font-size:15px;color:${INK};margin:0 0 8px 0;font-style:italic;">&mdash; What to do next</p>
+    <p style="font-family:${SERIF};font-size:15px;color:${INK};margin:0 0 8px 0;">&mdash; What to do next</p>
     ${body('Package the work with care and dispatch within seven days. Once it ships, add the tracking number to the order so the buyer can follow along.')}
 
     ${ctaButton('Open the order', `${APP_URL}/artist/orders`)}
@@ -374,7 +378,7 @@ export async function sendArtworkRejected(data: ArtworkRejectedData) {
   const notesBlock = data.reviewNotes
     ? `<div style="border-top:1px solid ${TERRACOTTA};border-bottom:1px solid ${TERRACOTTA};padding:20px 0;margin:24px 0;">
         <p style="font-family:${SANS};font-size:10px;color:${TERRACOTTA};margin:0 0 10px 0;letter-spacing:0.22em;text-transform:uppercase;">&mdash; Editor&rsquo;s note</p>
-        <p style="font-family:${SERIF};font-size:16px;font-style:italic;color:${INK};margin:0;line-height:1.6;">&ldquo;${escapeHtml(data.reviewNotes)}&rdquo;</p>
+        <p style="font-family:${SERIF};font-size:16px;color:${INK};margin:0;line-height:1.6;">&ldquo;${escapeHtml(data.reviewNotes)}&rdquo;</p>
       </div>`
     : '';
 
@@ -412,7 +416,7 @@ export interface ShippingConfirmationData {
 
 export async function sendShippingConfirmation(data: ShippingConfirmationData) {
   const rows: Array<[string, string, string?]> = [
-    ['Artwork', escapeHtml(data.artworkTitle), 'font-style:italic;'],
+    ['Artwork', escapeHtml(data.artworkTitle), ''],
   ];
   if (data.carrier) rows.push(['Carrier', escapeHtml(data.carrier)]);
   if (data.trackingNumber) rows.push(['Tracking', `<span style="font-family:${SANS};font-size:12px;color:${INK};letter-spacing:0.06em;">${escapeHtml(data.trackingNumber)}</span>`]);
@@ -459,7 +463,7 @@ export async function sendPayoutReleased(data: PayoutReleasedData) {
     <div style="border-top:1px solid ${INK};border-bottom:1px solid ${INK};padding:28px 0;margin:28px 0;text-align:center;">
       <p style="font-family:${SANS};font-size:10px;color:${STONE};margin:0 0 10px 0;letter-spacing:0.22em;text-transform:uppercase;">Payout</p>
       <p style="font-family:${SERIF};font-size:42px;font-weight:400;color:${INK};margin:0;letter-spacing:-0.01em;">${formatCurrency(data.payoutAmount)}</p>
-      <p style="font-family:${SERIF};font-size:14px;font-style:italic;color:${STONE};margin:10px 0 0 0;">&mdash; transferred to your Stripe account.</p>
+      <p style="font-family:${SERIF};font-size:14px;color:${STONE};margin:10px 0 0 0;">&mdash; transferred to your Stripe account.</p>
     </div>
 
     ${ctaButton('View earnings', `${APP_URL}/artist/earnings`)}
@@ -586,7 +590,7 @@ export async function sendFirstSaleActivation(data: FirstSaleActivationData) {
       ['Your payout', formatCurrency(data.payoutAmount), 'font-weight:500;'],
     ])}
 
-    <p style="font-family:${SERIF};font-size:15px;color:${INK};margin:0 0 8px 0;font-style:italic;">&mdash; And one practical note</p>
+    <p style="font-family:${SERIF};font-size:15px;color:${INK};margin:0 0 8px 0;">&mdash; And one practical note</p>
     ${body('Until now, your listings have been free. From here, your $30&thinsp;/&thinsp;month subscription begins. Add a payment method within fourteen days to keep your work visible. If you don&rsquo;t, your listings will quietly pause &mdash; nothing is deleted, and you can reactivate at any time.')}
 
     ${ctaButton('Add payment method', `${APP_URL}/artist/subscribe`)}
@@ -600,7 +604,7 @@ export async function sendFirstSaleActivation(data: FirstSaleActivationData) {
 
     ${divider()}
 
-    <p style="font-family:${SERIF};font-size:15px;font-style:italic;color:${STONE};margin:0;line-height:1.7;text-align:center;">
+    <p style="font-family:${SERIF};font-size:15px;color:${STONE};margin:0;line-height:1.7;text-align:center;">
       Thank you for being part of Signo. We&rsquo;re eager to see what comes next.
     </p>
   `);
@@ -645,7 +649,7 @@ export async function sendDeliveryConfirmationEmail(data: DeliveryConfirmationDa
 
     ${divider()}
 
-    <p style="font-family:${SERIF};font-size:15px;font-style:italic;color:${STONE};margin:0;line-height:1.7;">
+    <p style="font-family:${SERIF};font-size:15px;color:${STONE};margin:0;line-height:1.7;">
       If all is well, no action is needed. Enjoy living with the work.
     </p>
   `);
@@ -679,12 +683,12 @@ export async function sendDisputeAcknowledgementEmail(data: DisputeAcknowledgeme
 
     ${ledger([
       ['Order', `<span style="font-family:${SANS};font-size:11px;color:${STONE};letter-spacing:0.06em;">${escapeHtml(data.orderId)}</span>`],
-      ['Report', escapeHtml(data.disputeReason), 'font-style:italic;'],
+      ['Report', escapeHtml(data.disputeReason), ''],
     ])}
 
     ${divider()}
 
-    <p style="font-family:${SERIF};font-size:15px;color:${INK};margin:0 0 8px 0;font-style:italic;">&mdash; What happens next</p>
+    <p style="font-family:${SERIF};font-size:15px;color:${INK};margin:0 0 8px 0;">&mdash; What happens next</p>
     ${body('We&rsquo;ll contact both you and the artist to understand the situation fully. Our aim is a fair resolution for everyone.')}
 
     ${body(`If you need to add information, reply to this email or write to ${textLink('hello@signoart.com.au', 'mailto:hello@signoart.com.au')}.`)}
@@ -785,7 +789,7 @@ export async function sendNewArtworkFollowNotification(data: NewArtworkFollowNot
     ${imageBlock}
 
     ${ledger([
-      ['Work', escapeHtml(data.artworkTitle), 'font-style:italic;'],
+      ['Work', escapeHtml(data.artworkTitle), ''],
       ['Artist', `<a href="${APP_URL}/artists/${data.artistId}" style="color:${INK};text-decoration:underline;text-decoration-thickness:1px;text-underline-offset:3px;">${escapeHtml(data.artistName)}</a>`],
     ])}
 
@@ -860,7 +864,7 @@ export interface TradeEnquiryNotificationData {
 
 export async function sendTradeEnquiryNotification(data: TradeEnquiryNotificationData) {
   const rows: Array<[string, string, string?]> = [
-    ['Business', escapeHtml(data.businessName), 'font-style:italic;'],
+    ['Business', escapeHtml(data.businessName), ''],
     ['Contact', escapeHtml(data.contactName)],
     ['Email', `<a href="mailto:${escapeHtml(data.email)}" style="color:${INK};text-decoration:underline;">${escapeHtml(data.email)}</a>`],
   ];
@@ -878,7 +882,7 @@ export async function sendTradeEnquiryNotification(data: TradeEnquiryNotificatio
     ${divider()}
 
     <p style="font-family:${SANS};font-size:10px;color:${STONE};margin:0 0 12px 0;letter-spacing:0.22em;text-transform:uppercase;">Description</p>
-    <p style="font-family:${SERIF};font-size:16px;color:${INK};margin:0;line-height:1.7;font-style:italic;">&ldquo;${escapeHtml(data.description)}&rdquo;</p>
+    <p style="font-family:${SERIF};font-size:16px;color:${INK};margin:0;line-height:1.7;">&ldquo;${escapeHtml(data.description)}&rdquo;</p>
   `);
 
   return safeSend({
@@ -911,7 +915,7 @@ export async function sendReturnApprovedToBuyer(data: ReturnApprovedBuyerData) {
     ${lede(`Hello ${escapeHtml(data.buyerName || 'there')}, we have reviewed your report about &ldquo;${escapeHtml(data.artworkTitle)}&rdquo; and approved a return. Please send the work back to the address below within ${deadlineLabel}.`)}
 
     ${ledger([
-      ['Artwork', escapeHtml(data.artworkTitle), 'font-style:italic;'],
+      ['Artwork', escapeHtml(data.artworkTitle), ''],
       ['Order', `<span style="font-family:${SANS};font-size:11px;color:${STONE};letter-spacing:0.06em;">${escapeHtml(data.orderId.slice(0, 8))}</span>`],
       ['Return shipping', escapeHtml(data.shippingPayer)],
       ['Deadline', `${deadlineLabel} from today`],
@@ -919,12 +923,12 @@ export async function sendReturnApprovedToBuyer(data: ReturnApprovedBuyerData) {
 
     ${divider()}
 
-    <p style="font-family:${SERIF};font-size:15px;color:${INK};margin:0 0 8px 0;font-style:italic;">&mdash; Return address</p>
+    <p style="font-family:${SERIF};font-size:15px;color:${INK};margin:0 0 8px 0;">&mdash; Return address</p>
     <p style="font-family:${SANS};font-size:14px;color:${INK};margin:0 0 24px 0;line-height:1.7;white-space:pre-line;">${escapeHtml(data.returnAddress)}</p>
 
     ${divider()}
 
-    <p style="font-family:${SERIF};font-size:15px;color:${INK};margin:0 0 8px 0;font-style:italic;">&mdash; What happens next</p>
+    <p style="font-family:${SERIF};font-size:15px;color:${INK};margin:0 0 8px 0;">&mdash; What happens next</p>
     ${numberedList([
       'Package the work carefully and post it to the address above.',
       'Submit the tracking number on your order page.',
@@ -961,13 +965,13 @@ export async function sendReturnApprovedToSeller(data: ReturnApprovedSellerData)
     ${lede(`Hello ${escapeHtml(data.sellerName || 'there')}, a return has been approved for &ldquo;${escapeHtml(data.artworkTitle)}&rdquo;. ${escapeHtml(data.buyerName)} will be sending the work back to you.`)}
 
     ${ledger([
-      ['Artwork', escapeHtml(data.artworkTitle), 'font-style:italic;'],
+      ['Artwork', escapeHtml(data.artworkTitle), ''],
       ['Order', `<span style="font-family:${SANS};font-size:11px;color:${STONE};letter-spacing:0.06em;">${escapeHtml(data.orderId.slice(0, 8))}</span>`],
     ])}
 
     ${divider()}
 
-    <p style="font-family:${SERIF};font-size:15px;color:${INK};margin:0 0 8px 0;font-style:italic;">&mdash; Your role</p>
+    <p style="font-family:${SERIF};font-size:15px;color:${INK};margin:0 0 8px 0;">&mdash; Your role</p>
     ${body('Once the work arrives, please confirm receipt on your order page. The refund to the buyer will only be processed after you confirm. If the work arrives damaged or in poor condition, you can note this when confirming.')}
 
     ${ctaButton('View the order', `${APP_URL}/artist/orders`)}
@@ -1000,14 +1004,14 @@ export async function sendReturnTrackingToSeller(data: ReturnTrackingSellerData)
     ${lede(`Hello ${escapeHtml(data.sellerName || 'there')}, the buyer has posted &ldquo;${escapeHtml(data.artworkTitle)}&rdquo; back to you.`)}
 
     ${ledger([
-      ['Artwork', escapeHtml(data.artworkTitle), 'font-style:italic;'],
+      ['Artwork', escapeHtml(data.artworkTitle), ''],
       ['Carrier', escapeHtml(data.carrier)],
       ['Tracking', `<span style="font-family:${SANS};font-size:12px;color:${INK};letter-spacing:0.06em;">${escapeHtml(data.trackingNumber)}</span>`],
     ])}
 
     ${divider()}
 
-    <p style="font-family:${SERIF};font-size:15px;color:${INK};margin:0 0 8px 0;font-style:italic;">&mdash; What to do next</p>
+    <p style="font-family:${SERIF};font-size:15px;color:${INK};margin:0 0 8px 0;">&mdash; What to do next</p>
     ${body('Once the work arrives, please confirm receipt on your order page. The refund to the buyer will only be processed after you confirm. Please confirm within seven days of arrival.')}
 
     ${ctaButton('View the order', `${APP_URL}/artist/orders`)}
@@ -1039,7 +1043,7 @@ export async function sendReturnCompleteBuyer(data: ReturnCompleteBuyerData) {
     ${lede(`Hello ${escapeHtml(data.buyerName || 'there')}, the seller has confirmed receipt of &ldquo;${escapeHtml(data.artworkTitle)}&rdquo;. Your refund has been processed.`)}
 
     ${ledger([
-      ['Artwork', escapeHtml(data.artworkTitle), 'font-style:italic;'],
+      ['Artwork', escapeHtml(data.artworkTitle), ''],
       ['Order', `<span style="font-family:${SANS};font-size:11px;color:${STONE};letter-spacing:0.06em;">${escapeHtml(data.orderId.slice(0, 8))}</span>`],
       ['Refund', `A$${data.refundAmount.toFixed(2)}`],
     ])}
@@ -1076,7 +1080,7 @@ export async function sendReturnCompleteSeller(data: ReturnCompleteSellerData) {
     ${lede(`Hello ${escapeHtml(data.sellerName || 'there')}, thank you for confirming receipt of &ldquo;${escapeHtml(data.artworkTitle)}&rdquo;. The buyer has been refunded and this order is now closed.`)}
 
     ${ledger([
-      ['Artwork', escapeHtml(data.artworkTitle), 'font-style:italic;'],
+      ['Artwork', escapeHtml(data.artworkTitle), ''],
       ['Order', `<span style="font-family:${SANS};font-size:11px;color:${STONE};letter-spacing:0.06em;">${escapeHtml(data.orderId.slice(0, 8))}</span>`],
       ['Status', 'Resolved'],
     ])}
@@ -1113,7 +1117,7 @@ export async function sendReturnTrackingReminder(data: ReturnTrackingReminderDat
     ${lede(`Hello ${escapeHtml(data.buyerName || 'there')}, a return was approved for &ldquo;${escapeHtml(data.artworkTitle)}&rdquo; but we have not yet received your tracking details. Please submit them soon so your refund can be processed.`)}
 
     ${ledger([
-      ['Artwork', escapeHtml(data.artworkTitle), 'font-style:italic;'],
+      ['Artwork', escapeHtml(data.artworkTitle), ''],
       ['Order', `<span style="font-family:${SANS};font-size:11px;color:${STONE};letter-spacing:0.06em;">${escapeHtml(data.orderId.slice(0, 8))}</span>`],
     ])}
 
@@ -1149,7 +1153,7 @@ export async function sendReturnReceiptReminder(data: ReturnReceiptReminderData)
     ${lede(`Hello ${escapeHtml(data.sellerName || 'there')}, the buyer returned &ldquo;${escapeHtml(data.artworkTitle)}&rdquo; over a week ago but we have not received your confirmation. Please confirm receipt so the refund can be processed.`)}
 
     ${ledger([
-      ['Artwork', escapeHtml(data.artworkTitle), 'font-style:italic;'],
+      ['Artwork', escapeHtml(data.artworkTitle), ''],
       ['Order', `<span style="font-family:${SANS};font-size:11px;color:${STONE};letter-spacing:0.06em;">${escapeHtml(data.orderId.slice(0, 8))}</span>`],
     ])}
 
@@ -1186,7 +1190,7 @@ export async function sendDisputeRefundBuyer(data: DisputeRefundBuyerData) {
     ${lede(`Hello ${escapeHtml(data.buyerName || 'there')}, we have reviewed your dispute for &ldquo;${escapeHtml(data.artworkTitle)}&rdquo; and issued a full refund.`)}
 
     ${ledger([
-      ['Artwork', escapeHtml(data.artworkTitle), 'font-style:italic;'],
+      ['Artwork', escapeHtml(data.artworkTitle), ''],
       ['Order', `<span style="font-family:${SANS};font-size:11px;color:${STONE};letter-spacing:0.06em;">${escapeHtml(data.orderId.slice(0, 8))}</span>`],
       ['Refund', `A$${data.refundAmount.toFixed(2)}`],
     ])}
@@ -1223,7 +1227,7 @@ export async function sendDisputeRefundSeller(data: DisputeRefundSellerData) {
     ${lede(`Hello ${escapeHtml(data.sellerName || 'there')}, the dispute for &ldquo;${escapeHtml(data.artworkTitle)}&rdquo; has been resolved. After review, a refund has been issued to the buyer.`)}
 
     ${ledger([
-      ['Artwork', escapeHtml(data.artworkTitle), 'font-style:italic;'],
+      ['Artwork', escapeHtml(data.artworkTitle), ''],
       ['Order', `<span style="font-family:${SANS};font-size:11px;color:${STONE};letter-spacing:0.06em;">${escapeHtml(data.orderId.slice(0, 8))}</span>`],
       ['Outcome', 'Buyer refunded'],
     ])}
@@ -1260,7 +1264,7 @@ export async function sendDisputeNoRefundBuyer(data: DisputeNoRefundBuyerData) {
     ${lede(`Hello ${escapeHtml(data.buyerName || 'there')}, we have reviewed your dispute for &ldquo;${escapeHtml(data.artworkTitle)}&rdquo;. After careful consideration, we have resolved this dispute without a refund.`)}
 
     ${ledger([
-      ['Artwork', escapeHtml(data.artworkTitle), 'font-style:italic;'],
+      ['Artwork', escapeHtml(data.artworkTitle), ''],
       ['Order', `<span style="font-family:${SANS};font-size:11px;color:${STONE};letter-spacing:0.06em;">${escapeHtml(data.orderId.slice(0, 8))}</span>`],
       ['Outcome', 'No refund'],
     ])}
@@ -1298,7 +1302,7 @@ export async function sendDisputeNoRefundSeller(data: DisputeNoRefundSellerData)
     ${lede(`Hello ${escapeHtml(data.sellerName || 'there')}, the dispute for &ldquo;${escapeHtml(data.artworkTitle)}&rdquo; has been resolved. Your payout has been released.`)}
 
     ${ledger([
-      ['Artwork', escapeHtml(data.artworkTitle), 'font-style:italic;'],
+      ['Artwork', escapeHtml(data.artworkTitle), ''],
       ['Order', `<span style="font-family:${SANS};font-size:11px;color:${STONE};letter-spacing:0.06em;">${escapeHtml(data.orderId.slice(0, 8))}</span>`],
       ['Payout', `A$${data.payoutAmount.toFixed(2)}`],
     ])}

@@ -729,7 +729,7 @@ export default function ConversationPage({
                     fontSize: '0.65rem',
                     color:
                       charCount > 1950
-                        ? 'var(--color-terracotta, #c45d3e)'
+                        ? 'var(--color-terracotta, #bc5636)'
                         : 'var(--color-stone)',
                     fontStyle: 'italic',
                   }}

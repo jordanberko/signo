@@ -7,14 +7,15 @@ import { useEffect } from 'react';
 // guaranteed to be available. Hex colors and system-font fallbacks
 // keep the gallery aesthetic alive even when everything else is gone.
 
-const SERIF = '"Instrument Serif", Georgia, "Times New Roman", serif';
 const SANS = '"Outfit", system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif';
+// Sans-first redesign: the display face is the same sans family.
+const SERIF = SANS;
 
-const INK = '#1a1a18';
-const TERRACOTTA = '#c45d3e';
-const STONE = '#b8b2a4';
-const STONE_DARK = '#8a8478';
-const WARM_WHITE = '#fcfbf8';
+const INK = '#161616';
+const TERRACOTTA = '#bc5636';
+const STONE = '#b4b2ad';
+const STONE_DARK = '#78766f';
+const WARM_WHITE = '#ffffff';
 
 export default function GlobalError({
   error,
@@ -80,7 +81,7 @@ export default function GlobalError({
             }}
           >
             The room has<br />
-            <em style={{ color: TERRACOTTA, fontStyle: 'italic' }}>
+            <em style={{ color: TERRACOTTA, fontStyle: 'normal' }}>
               gone dark.
             </em>
           </h1>
@@ -103,7 +104,7 @@ export default function GlobalError({
               onClick={() => unstable_retry()}
               style={{
                 fontFamily: SERIF,
-                fontStyle: 'italic',
+                fontStyle: 'normal',
                 fontSize: '1rem',
                 color: INK,
                 background: 'transparent',
@@ -127,7 +128,7 @@ export default function GlobalError({
               href="/"
               style={{
                 fontFamily: SERIF,
-                fontStyle: 'italic',
+                fontStyle: 'normal',
                 fontSize: '1rem',
                 color: INK,
                 textDecoration: 'none',

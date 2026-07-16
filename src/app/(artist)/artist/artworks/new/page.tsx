@@ -246,7 +246,7 @@ function FieldLabel({
           <span
             style={{
               marginLeft: '0.4rem',
-              color: 'var(--color-terracotta, #c45d3e)',
+              color: 'var(--color-terracotta, #bc5636)',
             }}
           >
             *
@@ -847,7 +847,7 @@ export default function NewArtworkPage() {
                         color: uploaded
                           ? 'var(--color-ink)'
                           : slot.required
-                          ? 'var(--color-terracotta, #c45d3e)'
+                          ? 'var(--color-terracotta, #bc5636)'
                           : 'var(--color-stone)',
                       }}
                     >
@@ -1786,8 +1786,8 @@ export default function NewArtworkPage() {
                 style={{
                   marginBottom: '2rem',
                   padding: '1.2rem 0',
-                  borderTop: '1px solid var(--color-terracotta, #c45d3e)',
-                  borderBottom: '1px solid var(--color-terracotta, #c45d3e)',
+                  borderTop: '1px solid var(--color-terracotta, #bc5636)',
+                  borderBottom: '1px solid var(--color-terracotta, #bc5636)',
                 }}
               >
                 <p
@@ -1795,7 +1795,7 @@ export default function NewArtworkPage() {
                   style={{
                     fontSize: '0.92rem',
                     fontStyle: 'italic',
-                    color: 'var(--color-terracotta, #c45d3e)',
+                    color: 'var(--color-terracotta, #bc5636)',
                   }}
                 >
                   — {error}

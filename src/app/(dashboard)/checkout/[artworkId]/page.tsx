@@ -322,7 +322,7 @@ export default function CheckoutPage({
               borderBottom: '1px solid var(--color-border)',
               fontSize: '0.92rem',
               fontStyle: 'italic',
-              color: 'var(--color-terracotta, #c45d3e)',
+              color: 'var(--color-terracotta, #bc5636)',
             }}
           >
             — {error}
@@ -926,9 +926,9 @@ export default function CheckoutPage({
                   className="font-serif"
                   style={{
                     padding: '1rem 1.2rem',
-                    borderTop: '1px solid var(--color-terracotta, #c45d3e)',
+                    borderTop: '1px solid var(--color-terracotta, #bc5636)',
                     borderBottom:
-                      '1px solid var(--color-terracotta, #c45d3e)',
+                      '1px solid var(--color-terracotta, #bc5636)',
                     fontSize: '0.9rem',
                     fontStyle: 'italic',
                     color: 'var(--color-ink)',

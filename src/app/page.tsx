@@ -1,25 +1,23 @@
 'use client';
 
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import EntryAnimation from '@/components/EntryAnimation';
 import ScrollReveal from '@/components/ui/ScrollReveal';
-import { formatPrice } from '@/lib/utils';
+import ArtworkCard from '@/components/ui/ArtworkCard';
 
 /**
- * Signo homepage — five-section editorial structure.
+ * Signo homepage — clean, image-first, gallery-shop structure.
  *
- *   1. Hero          — gallery installation photographs (100vh, click indices)
- *   2. Proposition   — zero commission value prop, dramatic "0%" anchor
- *   3. RecentlyListed — typographic list with cursor-follow image preview
- *   4. BrowseBreak   — editorial invitation to /browse
- *   5. SellCTA       — full-bleed artist call-to-action
+ *   1. Hero          — full-bleed installation photography, headline + CTAs
+ *   2. NewArrivals   — responsive grid of the latest works (the artwork
+ *                      leads; the interface stays quiet)
+ *   3. ShopByStyle   — one-click routes into the browse catalogue
+ *   4. ZeroCommission— the platform's differentiator, stated plainly
+ *   5. SellCTA       — "the ledger": animated 0%-commission maths for artists
  *
- * Typography is designed, not typeset — deliberate scale contrast between
- * the 0% display numeral (~9rem), serif headings (~2-5rem), and body (~0.88rem).
- * Upright ↔ italic shifts within headlines create internal tension.
- * Padding is tight: content flows like a single editorial spread, not islands.
+ * White ground, near-black ink, generous whitespace. No entry animation,
+ * no hidden content — everything reachable within one click.
  */
 
 // Gallery installation photographs for the hero.
@@ -28,6 +26,19 @@ const HERO_SLIDES = [
   '/hero/hero_5_botanical_still_life.webp',
   '/hero/hero_4_oak_concrete_salon.webp',
   '/hero/hero_3_coral_salon_hang.webp',
+];
+
+// Styles mirrored from the browse page's filter vocabulary — each chip
+// deep-links into /browse?style=…
+const FEATURED_STYLES = [
+  'Abstract',
+  'Landscape',
+  'Minimalist',
+  'Botanical',
+  'Portrait',
+  'Still Life',
+  'Contemporary',
+  'Geometric',
 ];
 
 interface FeaturedArtwork {
@@ -44,12 +55,9 @@ interface FeaturedArtwork {
   availability?: string;
 }
 
-// Tracks whether the homepage's featured-artworks fetch succeeded,
-// is still in flight, or failed outright. We need to distinguish
-// `failed` from `loaded-with-empty-array` so a transient API failure
-// renders a graceful fallback section rather than silently collapsing
-// the recently-listed strip — the "marketing surface" concern in the
-// error-states audit (P1-12).
+// Distinguish `failed` from `loaded-with-empty-array` so a transient API
+// failure renders a graceful fallback section rather than silently
+// collapsing the new-arrivals grid (error-states audit P1-12).
 type FeaturedLoadStatus = 'loading' | 'loaded' | 'failed';
 
 export default function HomePage() {
@@ -85,34 +93,27 @@ export default function HomePage() {
     return () => clearTimeout(timeout);
   }, []);
 
-  const featuredList = featured.slice(0, 8);
-
   return (
     <div>
-      <EntryAnimation />
       <Hero />
-      <ScrollReveal>
-        <Proposition />
-      </ScrollReveal>
-      {/* Failed fetch → graceful editorial fallback that points to /browse;
-          truly empty (loaded with <3 works) keeps the existing skip
-          behaviour because that's an intentional marketplace state. */}
       {loadStatus === 'failed' ? (
         <FeaturedFallback />
       ) : (
-        <RecentlyListed artworks={featuredList} />
+        <NewArrivals artworks={featured.slice(0, 8)} loading={loadStatus === 'loading'} />
       )}
-      <BrowseBreak />
+      <ShopByStyle />
+      <ScrollReveal>
+        <ZeroCommission />
+      </ScrollReveal>
       <SellCTA />
     </div>
   );
 }
 
 /* ══════════════════════════════════════════════════════════════════
-   HERO — gallery installation photographs, slow crossfade
-   Typography: kicker (0.62rem caps) + split-treatment tagline.
-   "Where art" upright serif, "finds its people." italic serif —
-   the style shift creates internal tension in one statement.
+   HERO — installation photography, slow crossfade.
+   Headline states what the site is; two CTAs route the two audiences
+   (buy / sell) without scrolling.
    ══════════════════════════════════════════════════════════════════ */
 
 function Hero() {
@@ -141,7 +142,7 @@ function Hero() {
   return (
     <section
       className="relative overflow-hidden"
-      style={{ height: '100vh' }}
+      style={{ height: 'min(88svh, 860px)' }}
       aria-label="Gallery installation"
     >
       {slides.map((src, i) => (
@@ -161,15 +162,12 @@ function Hero() {
             priority={i === 0}
             sizes="100vw"
             className="object-cover"
-            style={{
-              animation: i === index ? 'ken-burns 20s var(--ease-out) forwards' : undefined,
-            }}
           />
           <div
             className="absolute inset-0 pointer-events-none"
             style={{
               background:
-                'linear-gradient(to bottom, transparent 50%, rgba(26,26,24,0.6) 100%)',
+                'linear-gradient(to bottom, transparent 45%, rgba(16,16,16,0.55) 100%)',
             }}
           />
         </div>
@@ -177,46 +175,54 @@ function Hero() {
 
       {/* Text overlay — bottom-left */}
       <div
-        className="absolute z-10 hero-overlay-text"
+        className="absolute z-10"
         style={{
           left: 'clamp(1.5rem, 4vw, 3rem)',
           right: 'clamp(1.5rem, 4vw, 3rem)',
           bottom: 'clamp(2.5rem, 6vw, 4rem)',
-          maxWidth: 720,
+          maxWidth: 760,
         }}
       >
         <div
           className="mb-5"
           style={{
-            fontSize: '0.62rem',
+            fontSize: '0.68rem',
             letterSpacing: '0.22em',
             textTransform: 'uppercase',
-            fontWeight: 400,
-            color: 'rgba(252, 251, 248, 0.72)',
+            fontWeight: 500,
+            color: 'rgba(255, 255, 255, 0.8)',
           }}
         >
-          Australian artists · est. 2026
+          Australian art marketplace · Zero commission
         </div>
         <h1
-          className="font-serif"
           style={{
-            fontSize: 'clamp(3rem, 7vw, 5.5rem)',
-            fontWeight: 400,
-            lineHeight: 1.0,
+            fontSize: 'clamp(2.4rem, 5.5vw, 4.4rem)',
+            fontWeight: 500,
+            lineHeight: 1.04,
             letterSpacing: '-0.025em',
-            color: 'var(--color-warm-white)',
+            color: '#fff',
             margin: 0,
           }}
         >
-          Where art<br />
-          <em style={{ fontStyle: 'italic' }}>finds its people.</em>
+          Original art, direct
+          <br />
+          from the artist.
         </h1>
+        <div className="mt-8 flex flex-wrap gap-3">
+          <Link href="/browse" className="btn-primary btn-primary--inverse no-underline">
+            Browse artwork
+          </Link>
+          <Link href="/register?role=artist" className="btn-outline btn-outline--inverse no-underline">
+            Start selling
+          </Link>
+        </div>
       </div>
 
       {/* Numbered indices — bottom-right */}
       {count > 1 && (
         <div
-          className="absolute z-10 flex items-baseline hero-slide-indices"
+          className="absolute z-10 hidden sm:flex items-baseline"
           style={{
             right: 'clamp(1.5rem, 4vw, 3rem)',
             bottom: 'clamp(2.5rem, 6vw, 4rem)',
@@ -238,29 +244,15 @@ function Hero() {
                   border: 'none',
                   padding: '0.35rem 0',
                   cursor: 'pointer',
-                  fontSize: '0.62rem',
+                  fontSize: '0.68rem',
                   letterSpacing: '0.22em',
-                  textTransform: 'uppercase',
-                  fontWeight: 400,
-                  color: active
-                    ? 'rgba(252, 251, 248, 0.95)'
-                    : 'rgba(252, 251, 248, 0.5)',
+                  fontWeight: 500,
+                  color: active ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.5)',
                   borderBottom: active
-                    ? '1px solid rgba(252, 251, 248, 0.95)'
+                    ? '1px solid rgba(255,255,255,0.95)'
                     : '1px solid transparent',
-                  transition: 'color var(--dur-base) var(--ease-out), border-color var(--dur-base) var(--ease-out)',
-                }}
-                onMouseEnter={(e) => {
-                  if (!active) {
-                    (e.currentTarget as HTMLButtonElement).style.color =
-                      'rgba(252, 251, 248, 0.85)';
-                  }
-                }}
-                onMouseLeave={(e) => {
-                  if (!active) {
-                    (e.currentTarget as HTMLButtonElement).style.color =
-                      'rgba(252, 251, 248, 0.5)';
-                  }
+                  transition:
+                    'color var(--dur-base) var(--ease-out), border-color var(--dur-base) var(--ease-out)',
                 }}
               >
                 {String(i + 1).padStart(2, '0')}
@@ -274,83 +266,91 @@ function Hero() {
 }
 
 /* ══════════════════════════════════════════════════════════════════
-   PROPOSITION — the single value-prop beat, right after the hero
-   Dramatic scale contrast: "0%" at ~9rem display, "commission."
-   continuation at ~2.4rem italic, body at 0.88rem.
-   Three typographic scales in one section = designed, not typeset.
+   SECTION HEADER — shared shop-style row: title left, action right.
    ══════════════════════════════════════════════════════════════════ */
 
-function Proposition() {
+function SectionHeader({
+  title,
+  action,
+}: {
+  title: string;
+  action?: { href: string; label: string };
+}) {
   return (
-    <section
-      className="pt-14 md:pt-20 pb-8 md:pb-10"
-      style={{ borderTop: '1px solid var(--color-border)' }}
-    >
+    <div className="flex items-baseline justify-between mb-8">
+      <h2
+        style={{
+          fontSize: 'clamp(1.3rem, 2.4vw, 1.7rem)',
+          fontWeight: 500,
+          letterSpacing: '-0.02em',
+          color: 'var(--color-ink)',
+          margin: 0,
+        }}
+      >
+        {title}
+      </h2>
+      {action && (
+        <Link href={action.href} className="editorial-link no-underline shrink-0">
+          {action.label}
+        </Link>
+      )}
+    </div>
+  );
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   NEW ARRIVALS — the artwork leads. Responsive card grid with
+   skeletons while loading; hidden entirely only when the marketplace
+   is genuinely near-empty.
+   ══════════════════════════════════════════════════════════════════ */
+
+function NewArrivals({
+  artworks,
+  loading,
+}: {
+  artworks: FeaturedArtwork[];
+  loading: boolean;
+}) {
+  if (!loading && artworks.length < 3) return null;
+
+  return (
+    <section className="py-14 md:py-20">
       <div className="px-6 sm:px-10">
-        <div style={{ maxWidth: 800 }}>
-          {/* Massive display numeral — the visual anchor */}
-          <div
-            className="font-serif"
-            style={{
-              fontSize: 'clamp(5rem, 11vw, 9rem)',
-              lineHeight: 0.85,
-              letterSpacing: '-0.04em',
-              color: 'var(--color-ink)',
-              fontWeight: 400,
-            }}
-          >
-            0
-            <span
-              style={{
-                fontSize: '0.35em',
-                verticalAlign: 'super',
-                color: 'var(--color-terracotta)',
-                letterSpacing: 0,
-                fontStyle: 'italic',
-              }}
-            >
-              %
-            </span>
-          </div>
-
-          {/* Italic serif continuation — reads as one thought with the numeral */}
-          <h2
-            className="font-serif"
-            style={{
-              fontSize: 'clamp(1.5rem, 2.8vw, 2.4rem)',
-              fontWeight: 400,
-              fontStyle: 'italic',
-              lineHeight: 1.15,
-              letterSpacing: '-0.015em',
-              color: 'var(--color-ink)',
-              margin: 0,
-              marginTop: 'clamp(0.8rem, 1.5vw, 1.2rem)',
-            }}
-          >
-            commission. Artists keep<br />
-            everything they earn.
-          </h2>
-
-          {/* Supporting detail */}
-          <p
-            style={{
-              fontSize: '0.88rem',
-              fontWeight: 300,
-              color: 'var(--color-text-muted)',
-              maxWidth: 400,
-              lineHeight: 1.7,
-              marginTop: '1.5rem',
-            }}
-          >
-            $30/month after your first sale.
-            Stripe processing is the only deduction.
-          </p>
-
-          <div className="mt-6">
-            <Link href="/pricing" className="editorial-link no-underline">
-              Read the full ledger
-            </Link>
-          </div>
+        <SectionHeader
+          title="New arrivals"
+          action={{ href: '/browse', label: 'View all' }}
+        />
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-x-5 gap-y-12 sm:gap-x-8">
+          {loading
+            ? Array.from({ length: 8 }).map((_, i) => (
+                <div key={i} aria-hidden>
+                  <div className="skeleton aspect-[4/5] w-full" />
+                  <div className="skeleton mt-4 h-4 w-3/4" />
+                  <div className="skeleton mt-2 h-3 w-1/2" />
+                </div>
+              ))
+            : artworks.map((art) => (
+                <ArtworkCard
+                  key={art.id}
+                  id={art.id}
+                  title={art.title}
+                  artistName={art.artistName}
+                  artistId={art.artistId}
+                  price={art.price}
+                  imageUrl={art.imageUrl}
+                  medium={art.medium}
+                  category={art.category}
+                  widthCm={art.widthCm}
+                  heightCm={art.heightCm}
+                  availability={
+                    art.availability as
+                      | 'available'
+                      | 'coming_soon'
+                      | 'enquire_only'
+                      | undefined
+                  }
+                />
+              ))}
         </div>
       </div>
     </section>
@@ -358,257 +358,30 @@ function Proposition() {
 }
 
 /* ══════════════════════════════════════════════════════════════════
-   RECENTLY LISTED — typographic rows with cursor-follow preview
-   Header uses italic serif for warmth. Rows have 3-scale hierarchy:
-   title (serif 1.5rem) → artist (sans 0.82rem) → price (serif 1rem).
-   ══════════════════════════════════════════════════════════════════ */
-
-function RecentlyListed({ artworks }: { artworks: FeaturedArtwork[] }) {
-  const [hoverIdx, setHoverIdx] = useState<number | null>(null);
-  const [mouse, setMouse] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
-  const previewRef = useRef<HTMLDivElement>(null);
-
-  const handleMove = useCallback((e: React.MouseEvent) => {
-    setMouse({ x: e.clientX, y: e.clientY });
-  }, []);
-
-  if (artworks.length < 3) return null;
-
-  return (
-    <section
-      className="py-6 md:py-10"
-      style={{ borderTop: '1px solid var(--color-border)' }}
-    >
-      <div className="px-6 sm:px-10">
-        {/* Header */}
-        <div
-            className="flex items-baseline justify-between mb-8 pb-3"
-            style={{ borderBottom: '1px solid var(--color-border)' }}
-          >
-            <h2
-              className="font-serif"
-              style={{
-                fontSize: '1.35rem',
-                fontWeight: 400,
-                fontStyle: 'italic',
-                color: 'var(--color-ink)',
-                letterSpacing: '-0.01em',
-                margin: 0,
-              }}
-            >
-              Recently listed
-            </h2>
-            <span
-              style={{
-                fontSize: '0.62rem',
-                fontWeight: 400,
-                color: 'var(--color-stone)',
-                letterSpacing: '0.22em',
-                textTransform: 'uppercase',
-              }}
-            >
-              {artworks.length} works
-            </span>
-          </div>
-
-        {/* List */}
-        <ul className="list-none p-0 m-0" onMouseMove={handleMove}>
-          {artworks.map((art, i) => (
-            <li
-              key={art.id}
-              style={{
-                opacity: 0,
-                animation: `fade-up 400ms var(--ease-out) ${i * 40}ms forwards`,
-              }}
-            >
-              <Link
-                href={`/artwork/${art.id}`}
-                className="no-underline block"
-                onMouseEnter={() => setHoverIdx(i)}
-                onMouseLeave={() => setHoverIdx(null)}
-                style={{
-                  display: 'grid',
-                  gridTemplateColumns: 'minmax(0,1fr) auto auto',
-                  gap: 'clamp(1rem, 3vw, 3rem)',
-                  alignItems: 'center',
-                  padding: '1.15rem 0',
-                  borderBottom: '1px solid var(--color-border)',
-                  color: 'var(--color-ink)',
-                  transition: 'color var(--dur-base) var(--ease-out)',
-                }}
-                onMouseOver={(e) => {
-                  const el = e.currentTarget as HTMLAnchorElement;
-                  const name = el.querySelector('.fl-name') as HTMLElement | null;
-                  if (name) name.style.color = 'var(--color-terracotta)';
-                }}
-                onMouseOut={(e) => {
-                  const el = e.currentTarget as HTMLAnchorElement;
-                  const name = el.querySelector('.fl-name') as HTMLElement | null;
-                  if (name) name.style.color = 'var(--color-ink)';
-                }}
-              >
-                <div className="flex items-center gap-3">
-                  {/* Mobile-only inline thumbnail */}
-                  {art.imageUrl && (
-                    <div
-                      className="block md:hidden shrink-0 overflow-hidden"
-                      style={{
-                        width: 64,
-                        height: 80,
-                        border: '1px solid var(--color-ink)',
-                        background: 'var(--color-cream)',
-                        position: 'relative',
-                      }}
-                    >
-                      <Image
-                        src={art.imageUrl}
-                        alt=""
-                        fill
-                        sizes="64px"
-                        className="object-cover"
-                      />
-                    </div>
-                  )}
-                  <div
-                    className="fl-name font-serif"
-                    style={{
-                      fontSize: 'clamp(1.2rem, 2.2vw, 1.5rem)',
-                      letterSpacing: '-0.01em',
-                      fontWeight: 400,
-                      transition: 'color var(--dur-base) var(--ease-out)',
-                      lineHeight: 1.2,
-                      minWidth: 0,
-                    }}
-                  >
-                    {art.title}
-                    <span
-                      style={{
-                        fontWeight: 300,
-                        color: 'var(--color-text-muted)',
-                        fontSize: '0.8rem',
-                        fontFamily: 'var(--font-sans)',
-                        marginLeft: '0.8rem',
-                      }}
-                    >
-                      {art.artistName}
-                    </span>
-                  </div>
-                </div>
-                <div
-                  className="hidden md:block"
-                  style={{
-                    fontSize: '0.76rem',
-                    fontWeight: 300,
-                    color: 'var(--color-text-muted)',
-                    letterSpacing: '0.04em',
-                    whiteSpace: 'nowrap',
-                  }}
-                >
-                  {art.medium}
-                </div>
-                <div
-                  className="font-serif"
-                  style={{
-                    fontSize: '1rem',
-                    fontWeight: 400,
-                    minWidth: 80,
-                    textAlign: 'right',
-                    color: 'var(--color-ink)',
-                  }}
-                >
-                  {formatPrice(art.price)}
-                </div>
-              </Link>
-            </li>
-          ))}
-        </ul>
-      </div>
-
-      {/* Floating cursor preview.
-          Uses translate3d rather than left/top so mousemove updates are
-          composited instead of triggering layout every frame. */}
-      <div
-        ref={previewRef}
-        className="hidden md:block"
-        style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          width: 260,
-          height: 320,
-          pointerEvents: 'none',
-          zIndex: 'var(--z-cursor)',
-          overflow: 'hidden',
-          opacity: hoverIdx !== null ? 1 : 0,
-          transition: 'opacity var(--dur-base) var(--ease-out)',
-          border: '1px solid var(--color-ink)',
-          transform: `translate3d(${mouse.x + 24}px, ${mouse.y - 160}px, 0)`,
-          willChange: 'transform',
-          background: 'var(--color-cream)',
-        }}
-        aria-hidden
-      >
-        {hoverIdx !== null && artworks[hoverIdx]?.imageUrl && (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={artworks[hoverIdx].imageUrl}
-            alt=""
-            style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
-          />
-        )}
-      </div>
-    </section>
-  );
-}
-
-/* ══════════════════════════════════════════════════════════════════
-   FEATURED FALLBACK — graceful degradation when the featured-artworks
-   fetch fails. Visually mimics RecentlyListed's section header so the
-   homepage doesn't look broken or empty; copy is a neutral editorial
-   pitch for /browse (no error language — degradation, not surfacing).
+   FEATURED FALLBACK — graceful degradation when the featured fetch
+   fails: neutral pitch for /browse, no error language.
    ══════════════════════════════════════════════════════════════════ */
 
 function FeaturedFallback() {
   return (
-    <section
-      className="py-6 md:py-10"
-      style={{ borderTop: '1px solid var(--color-border)' }}
-    >
+    <section className="py-14 md:py-20">
       <div className="px-6 sm:px-10">
-        <div
-          className="flex items-baseline justify-between mb-8 pb-3"
-          style={{ borderBottom: '1px solid var(--color-border)' }}
-        >
-          <h2
-            className="font-serif"
-            style={{
-              fontSize: '1.35rem',
-              fontWeight: 400,
-              fontStyle: 'italic',
-              color: 'var(--color-ink)',
-              letterSpacing: '-0.01em',
-              margin: 0,
-            }}
-          >
-            The collection
-          </h2>
-        </div>
+        <SectionHeader title="The collection" />
         <p
           style={{
             fontSize: '1rem',
-            fontWeight: 300,
             color: 'var(--color-stone-dark)',
             lineHeight: 1.7,
             maxWidth: 520,
             marginBottom: '1.5rem',
           }}
         >
-          A growing edit of original works by Australian artists. Browse
-          the full library — by medium, style, or price — to find the
-          piece that finds you.
+          A growing edit of original works by Australian artists. Browse the
+          full catalogue — by medium, style, or price — to find the piece
+          that finds you.
         </p>
-        <Link href="/browse" className="editorial-link no-underline">
-          Browse all works →
+        <Link href="/browse" className="btn-outline no-underline">
+          Browse all works
         </Link>
       </div>
     </section>
@@ -616,36 +389,98 @@ function FeaturedFallback() {
 }
 
 /* ══════════════════════════════════════════════════════════════════
-   BROWSE BREAK — editorial invitation after the list
-   One italic serif sentence + editorial link. Tight, minimal.
+   SHOP BY STYLE — one-click routes into the catalogue. Mirrors the
+   browse page's style filters so each chip lands on a filtered grid.
    ══════════════════════════════════════════════════════════════════ */
 
-function BrowseBreak() {
+function ShopByStyle() {
   return (
     <section
-      className="py-6 md:py-10"
+      className="py-14 md:py-20"
       style={{ borderTop: '1px solid var(--color-border)' }}
     >
       <div className="px-6 sm:px-10">
-        <p
-          className="font-serif"
-          style={{
-            fontSize: 'clamp(1.4rem, 2.6vw, 2rem)',
-            fontWeight: 400,
-            fontStyle: 'italic',
-            lineHeight: 1.3,
-            letterSpacing: '-0.01em',
-            color: 'var(--color-ink)',
-            margin: 0,
-            maxWidth: 520,
-          }}
-        >
-          These are just the latest arrivals.
-        </p>
-        <div className="mt-6">
-          <Link href="/browse" className="editorial-link no-underline">
-            Browse the full collection
-          </Link>
+        <SectionHeader
+          title="Shop by style"
+          action={{ href: '/collections', label: 'Curated collections' }}
+        />
+        <div className="flex flex-wrap gap-3">
+          {FEATURED_STYLES.map((style) => (
+            <Link
+              key={style}
+              href={`/browse?style=${encodeURIComponent(style)}`}
+              className="style-chip"
+            >
+              {style}
+            </Link>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   ZERO COMMISSION — the differentiator, stated plainly on a quiet
+   grey band. Big numeral anchor, short copy, one link.
+   ══════════════════════════════════════════════════════════════════ */
+
+function ZeroCommission() {
+  return (
+    <section className="py-16 md:py-24" style={{ background: 'var(--color-cream)' }}>
+      <div className="px-6 sm:px-10">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-10 md:gap-16 items-center">
+          <div
+            style={{
+              fontSize: 'clamp(5rem, 11vw, 8.5rem)',
+              lineHeight: 0.9,
+              letterSpacing: '-0.04em',
+              color: 'var(--color-ink)',
+              fontWeight: 500,
+            }}
+          >
+            0
+            <span
+              style={{
+                fontSize: '0.4em',
+                verticalAlign: 'super',
+                color: 'var(--color-terracotta)',
+              }}
+            >
+              %
+            </span>
+          </div>
+          <div>
+            <h2
+              style={{
+                fontSize: 'clamp(1.4rem, 2.6vw, 2rem)',
+                fontWeight: 500,
+                lineHeight: 1.2,
+                letterSpacing: '-0.02em',
+                color: 'var(--color-ink)',
+                margin: 0,
+              }}
+            >
+              Commission-free. Artists keep everything they earn.
+            </h2>
+            <p
+              style={{
+                fontSize: '0.92rem',
+                color: 'var(--color-text-muted)',
+                maxWidth: 440,
+                lineHeight: 1.7,
+                marginTop: '1rem',
+              }}
+            >
+              $30/month after your first sale. Stripe processing is the only
+              deduction — no listing fees, no hidden cuts.
+            </p>
+            <div className="mt-6">
+              <Link href="/pricing" className="editorial-link no-underline">
+                See full pricing
+              </Link>
+            </div>
+          </div>
         </div>
       </div>
     </section>
@@ -654,12 +489,9 @@ function BrowseBreak() {
 
 /* ══════════════════════════════════════════════════════════════════
    SELL CTA — The Ledger
-   Radical-transparency typographic spread structured as a financial
-   ledger. No imagery, no overlay — the argument IS the structure.
-   Top rule draws; numerals count up in sequence; the 0% snap-lands
-   between sale price and Stripe fee; a double-rule precedes the
-   "You receive" total (accounting convention made live).
-   Motion communicates the message: the count-up is the proof.
+   Radical-transparency spread structured as a financial ledger.
+   Numerals count up in sequence; the 0% snap-lands between sale price
+   and Stripe fee; a double-rule precedes the "You receive" total.
    ══════════════════════════════════════════════════════════════════ */
 
 function useCountUp({
@@ -749,8 +581,8 @@ function LedgerRow({
     >
       <span
         style={{
-          fontSize: '0.78rem',
-          fontWeight: 300,
+          fontSize: '0.8rem',
+          fontWeight: 400,
           letterSpacing: '0.02em',
           color: 'var(--color-stone-dark)',
           flexShrink: 0,
@@ -776,7 +608,6 @@ function LedgerRow({
         {'.'.repeat(200)}
       </span>
       <span
-        className="font-serif"
         style={{
           fontSize: isTotal
             ? 'clamp(1.55rem, 3.2vw, 2.3rem)'
@@ -784,7 +615,7 @@ function LedgerRow({
           letterSpacing: '-0.02em',
           color: 'var(--color-ink)',
           fontVariantNumeric: 'tabular-nums',
-          fontWeight: 400,
+          fontWeight: 500,
           lineHeight: 1,
           flexShrink: 0,
         }}
@@ -871,24 +702,17 @@ function SellCTA() {
   const EASE = 'var(--ease-out)';
 
   return (
-    <section
-      ref={sectionRef}
-      className="pt-14 md:pt-20 pb-20 md:pb-28"
-      style={{
-        background: 'var(--color-warm-white)',
-        borderTop: '1px solid var(--color-border)',
-      }}
-    >
+    <section ref={sectionRef} className="pt-16 md:pt-24 pb-20 md:pb-28">
       <div className="px-6 sm:px-10">
         <div style={{ maxWidth: 760 }}>
           {/* Kicker */}
           <div
             style={{
-              fontSize: '0.62rem',
+              fontSize: '0.68rem',
               letterSpacing: '0.22em',
               textTransform: 'uppercase',
               color: 'var(--color-stone)',
-              fontWeight: 400,
+              fontWeight: 500,
               marginBottom: '1.2rem',
             }}
           >
@@ -897,19 +721,17 @@ function SellCTA() {
 
           {/* Headline — establishes the scenario */}
           <h2
-            className="font-serif"
             style={{
-              fontSize: 'clamp(2rem, 4vw, 3rem)',
-              lineHeight: 1.08,
-              letterSpacing: '-0.02em',
+              fontSize: 'clamp(1.8rem, 3.6vw, 2.7rem)',
+              lineHeight: 1.1,
+              letterSpacing: '-0.025em',
               color: 'var(--color-ink)',
-              fontWeight: 400,
+              fontWeight: 500,
               margin: 0,
               marginBottom: '2.8rem',
             }}
           >
-            The maths of a{' '}
-            <em style={{ fontStyle: 'italic' }}>$5,000 sale.</em>
+            The maths of a $5,000 sale.
           </h2>
 
           {/* Top rule — draws in on entry */}
@@ -937,7 +759,6 @@ function SellCTA() {
                   opacity: zeroLanded ? 1 : 0,
                   transition: `transform var(--dur-base) ${EASE}, opacity var(--dur-base) ${EASE}`,
                   color: 'var(--color-terracotta)',
-                  fontStyle: 'italic',
                   transformOrigin: 'right center',
                 }}
               >
@@ -996,7 +817,6 @@ function SellCTA() {
           <p
             style={{
               fontSize: '0.9rem',
-              fontWeight: 300,
               color: 'var(--color-stone-dark)',
               lineHeight: 1.75,
               marginTop: '2.4rem',
@@ -1009,7 +829,7 @@ function SellCTA() {
 
           {/* CTA */}
           <div className="mt-8">
-            <Link href="/register" className="editorial-link no-underline">
+            <Link href="/register?role=artist" className="btn-primary no-underline">
               List your first work
             </Link>
           </div>

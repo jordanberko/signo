@@ -980,8 +980,8 @@ function OrderContent({ orderId }: { orderId: string }) {
                 style={{
                   marginBottom: '1.4rem',
                   paddingBlock: '1rem',
-                  borderTop: '1px solid var(--color-terracotta, #c45d3e)',
-                  borderBottom: '1px solid var(--color-terracotta, #c45d3e)',
+                  borderTop: '1px solid var(--color-terracotta, #bc5636)',
+                  borderBottom: '1px solid var(--color-terracotta, #bc5636)',
                 }}
               >
                 <p
@@ -989,7 +989,7 @@ function OrderContent({ orderId }: { orderId: string }) {
                   style={{
                     fontSize: '0.88rem',
                     fontStyle: 'italic',
-                    color: 'var(--color-terracotta, #c45d3e)',
+                    color: 'var(--color-terracotta, #bc5636)',
                   }}
                 >
                   {deliverError}
@@ -1183,8 +1183,8 @@ function OrderContent({ orderId }: { orderId: string }) {
                 style={{
                   marginBottom: '1.4rem',
                   paddingBlock: '1rem',
-                  borderTop: '1px solid var(--color-terracotta, #c45d3e)',
-                  borderBottom: '1px solid var(--color-terracotta, #c45d3e)',
+                  borderTop: '1px solid var(--color-terracotta, #bc5636)',
+                  borderBottom: '1px solid var(--color-terracotta, #bc5636)',
                 }}
               >
                 <p
@@ -1192,7 +1192,7 @@ function OrderContent({ orderId }: { orderId: string }) {
                   style={{
                     fontSize: '0.88rem',
                     fontStyle: 'italic',
-                    color: 'var(--color-terracotta, #c45d3e)',
+                    color: 'var(--color-terracotta, #bc5636)',
                   }}
                 >
                   {returnError}

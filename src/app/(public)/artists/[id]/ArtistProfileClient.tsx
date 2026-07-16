@@ -360,7 +360,7 @@ export default function ArtistProfileClient({
                     className="absolute inset-0"
                     style={{
                       background:
-                        'linear-gradient(to top, rgba(26,26,24,0.55) 0%, rgba(26,26,24,0.05) 40%, transparent 75%)',
+                        'linear-gradient(to top, rgba(22,22,22,0.55) 0%, rgba(22,22,22,0.05) 40%, transparent 75%)',
                     }}
                   />
                   <div
@@ -867,7 +867,7 @@ export default function ArtistProfileClient({
       {lightboxImage && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center p-4"
-          style={{ background: 'rgba(26,26,24,0.94)' }}
+          style={{ background: 'rgba(22,22,22,0.94)' }}
           onClick={() => setLightboxImage(null)}
         >
           <button
@@ -906,7 +906,7 @@ export default function ArtistProfileClient({
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div
             className="absolute inset-0"
-            style={{ background: 'rgba(26,26,24,0.45)' }}
+            style={{ background: 'rgba(22,22,22,0.45)' }}
             onClick={() => {
               if (!commissionSending) {
                 setShowCommissionModal(false);

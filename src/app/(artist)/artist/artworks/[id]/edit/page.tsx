@@ -199,7 +199,7 @@ function FieldLabel({
           <span
             style={{
               marginLeft: '0.4rem',
-              color: 'var(--color-terracotta, #c45d3e)',
+              color: 'var(--color-terracotta, #bc5636)',
             }}
           >
             *
@@ -688,14 +688,14 @@ export default function EditArtworkPage() {
             style={{
               marginBottom: '2rem',
               padding: '1.4rem 0',
-              borderTop: '1px solid var(--color-terracotta, #c45d3e)',
-              borderBottom: '1px solid var(--color-terracotta, #c45d3e)',
+              borderTop: '1px solid var(--color-terracotta, #bc5636)',
+              borderBottom: '1px solid var(--color-terracotta, #bc5636)',
             }}
           >
             <p
               style={{
                 ...KICKER,
-                color: 'var(--color-terracotta, #c45d3e)',
+                color: 'var(--color-terracotta, #bc5636)',
                 marginBottom: '0.6rem',
               }}
             >
@@ -889,7 +889,7 @@ export default function EditArtworkPage() {
                         color: uploaded
                           ? 'var(--color-ink)'
                           : slot.required
-                          ? 'var(--color-terracotta, #c45d3e)'
+                          ? 'var(--color-terracotta, #bc5636)'
                           : 'var(--color-stone)',
                       }}
                     >
@@ -1732,8 +1732,8 @@ export default function EditArtworkPage() {
                 style={{
                   marginBottom: '2rem',
                   padding: '1.2rem 0',
-                  borderTop: '1px solid var(--color-terracotta, #c45d3e)',
-                  borderBottom: '1px solid var(--color-terracotta, #c45d3e)',
+                  borderTop: '1px solid var(--color-terracotta, #bc5636)',
+                  borderBottom: '1px solid var(--color-terracotta, #bc5636)',
                 }}
               >
                 <p
@@ -1741,7 +1741,7 @@ export default function EditArtworkPage() {
                   style={{
                     fontSize: '0.92rem',
                     fontStyle: 'italic',
-                    color: 'var(--color-terracotta, #c45d3e)',
+                    color: 'var(--color-terracotta, #bc5636)',
                   }}
                 >
                   — {error}

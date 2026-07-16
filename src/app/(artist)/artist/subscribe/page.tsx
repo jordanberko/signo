@@ -277,11 +277,11 @@ function SubscribeContent() {
               padding: '1.6rem 0',
               borderTop:
                 copy.notice.kind === 'error'
-                  ? '1px solid var(--color-terracotta, #c45d3e)'
+                  ? '1px solid var(--color-terracotta, #bc5636)'
                   : '1px solid var(--color-border-strong)',
               borderBottom:
                 copy.notice.kind === 'error'
-                  ? '1px solid var(--color-terracotta, #c45d3e)'
+                  ? '1px solid var(--color-terracotta, #bc5636)'
                   : '1px solid var(--color-border-strong)',
             }}
           >
@@ -415,7 +415,7 @@ function SubscribeContent() {
                 style={{
                   fontSize: '0.9rem',
                   fontStyle: 'italic',
-                  color: 'var(--color-terracotta, #c45d3e)',
+                  color: 'var(--color-terracotta, #bc5636)',
                   marginBottom: '1rem',
                 }}
               >
