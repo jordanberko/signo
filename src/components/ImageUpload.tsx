@@ -51,7 +51,7 @@ const KICKER: CSSProperties = {
 };
 
 const SERIF_ITALIC: CSSProperties = {
-  fontFamily: 'var(--font-serif), Georgia, serif',
+  fontFamily: "var(--font-sans), system-ui, sans-serif",
   fontStyle: 'italic',
   fontWeight: 400,
 };
