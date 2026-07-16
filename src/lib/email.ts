@@ -26,13 +26,13 @@ const APP_URL = appUrl();
 
 // ── Editorial palette (mirrors --color-* tokens in src/app/globals.css) ──
 
-const INK = '#1a1a18';
-const STONE = '#b8b2a4';
-const STONE_DARK = '#8a8478';
-const WARM_WHITE = '#fcfbf8';
-const CREAM = '#f7f5f0';
-const BORDER = '#e8e6e1'; // visual stand-in for rgba(26,26,24,0.08); email clients prefer solid hex
-const TERRACOTTA = '#c45d3e';
+const INK = '#161616';
+const STONE = '#b4b2ad';
+const STONE_DARK = '#78766f';
+const WARM_WHITE = '#ffffff';
+const CREAM = '#f4f4f2';
+const BORDER = '#e8e6e1'; // visual stand-in for rgba(22,22,22,0.08); email clients prefer solid hex
+const TERRACOTTA = '#bc5636';
 
 // Email-safe font stacks
 const SERIF = "Georgia, 'Times New Roman', 'Didot', serif";

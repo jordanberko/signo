@@ -29,11 +29,12 @@ export default function Footer() {
           {/* Brand column */}
           <div className="col-span-2 sm:col-span-3 lg:col-span-1" style={{ maxWidth: 320 }}>
             <div
-              className="font-serif"
               style={{
-                fontSize: '1.6rem',
+                fontSize: '1.05rem',
+                fontWeight: 600,
+                letterSpacing: '0.22em',
+                textTransform: 'uppercase',
                 color: 'var(--color-ink)',
-                letterSpacing: '-0.01em',
                 marginBottom: '0.9rem',
               }}
             >

@@ -148,7 +148,7 @@ export default function AvatarUpload({
             style={{
               position: 'absolute',
               inset: 0,
-              background: 'rgba(26, 26, 24, 0.55)',
+              background: 'rgba(22, 22, 22, 0.55)',
               display: 'flex',
               flexDirection: 'column',
               alignItems: 'center',
@@ -171,7 +171,7 @@ export default function AvatarUpload({
               style={{
                 width: '70%',
                 height: 1,
-                background: 'rgba(252, 251, 248, 0.25)',
+                background: 'rgba(255, 255, 255, 0.25)',
                 overflow: 'hidden',
               }}
             >
@@ -264,7 +264,7 @@ export default function AvatarUpload({
           style={{
             ...SERIF_ITALIC,
             fontSize: '0.88rem',
-            color: 'var(--color-terracotta, #c45d3e)',
+            color: 'var(--color-terracotta, #bc5636)',
             textAlign: 'center',
             maxWidth: 240,
             margin: 0,

@@ -10,11 +10,11 @@ import { useEffect } from 'react';
 const SERIF = '"Instrument Serif", Georgia, "Times New Roman", serif';
 const SANS = '"Outfit", system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif';
 
-const INK = '#1a1a18';
-const TERRACOTTA = '#c45d3e';
-const STONE = '#b8b2a4';
-const STONE_DARK = '#8a8478';
-const WARM_WHITE = '#fcfbf8';
+const INK = '#161616';
+const TERRACOTTA = '#bc5636';
+const STONE = '#b4b2ad';
+const STONE_DARK = '#78766f';
+const WARM_WHITE = '#ffffff';
 
 export default function GlobalError({
   error,

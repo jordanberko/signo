@@ -7,26 +7,8 @@ import { AuthProvider } from "@/components/providers/AuthProvider";
 import { appUrl } from "@/lib/urls";
 import "./globals.css";
 
-// ── Display / editorial serif ──
-const bespokeSerif = localFont({
-  src: [
-    {
-      path: "../../public/fonts/BespokeSerif-Variable.woff2",
-      style: "normal",
-      weight: "300 800",
-    },
-    {
-      path: "../../public/fonts/BespokeSerif-VariableItalic.woff2",
-      style: "italic",
-      weight: "300 800",
-    },
-  ],
-  variable: "--font-serif",
-  display: "swap",
-  fallback: ["Georgia", "Times New Roman", "serif"],
-});
-
-// ── Body / UI sans ──
+// ── Single sans family sitewide — clean, gallery-neutral.
+// (The legacy --font-serif token resolves to this family in globals.css.) ──
 const outfit = localFont({
   src: [
     {
@@ -74,7 +56,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#fcfbf8",
+  themeColor: "#ffffff",
 };
 
 export default function RootLayout({
@@ -115,7 +97,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${bespokeSerif.variable} ${outfit.variable} h-full antialiased`}
+      className={`${outfit.variable} h-full antialiased`}
     >
       <head>
         <script

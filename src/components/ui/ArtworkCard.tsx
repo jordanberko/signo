@@ -119,11 +119,10 @@ export default function ArtworkCard({
           <img
             src={imageUrl}
             alt={title}
-            className="block w-full h-full object-cover transition-[transform,filter] group-hover:scale-[1.03] group-hover:grayscale-0"
+            className="block w-full h-full object-cover transition-transform group-hover:scale-[1.03]"
             style={{
-              transitionDuration: 'var(--dur-cinematic), var(--dur-base)',
+              transitionDuration: 'var(--dur-slow)',
               transitionTimingFunction: 'var(--ease-out)',
-              filter: 'grayscale(8%)',
             }}
             loading="lazy"
           />
@@ -151,16 +150,17 @@ export default function ArtworkCard({
           Saved state always visible; unsaved fades in on group hover. No icons. */}
       <button
         onClick={handleFavourite}
-        className={`font-serif absolute top-3 right-3 bg-transparent border-0 cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity duration-300${isFavourited ? ' !opacity-100' : ''}`}
+        className={`absolute top-3 right-3 bg-transparent border-0 cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity duration-300${isFavourited ? ' !opacity-100' : ''}`}
         aria-label={isFavourited ? 'Remove from favourites' : 'Add to favourites'}
         style={{
-          padding: '0.3rem 0.55rem',
-          fontSize: '0.7rem',
-          letterSpacing: '0.14em',
+          padding: '0.35rem 0.7rem',
+          fontSize: '0.66rem',
+          fontWeight: 500,
+          letterSpacing: '0.12em',
           textTransform: 'uppercase',
-          fontStyle: 'italic',
-          color: isFavourited ? 'var(--color-terracotta)' : 'var(--color-warm-white)',
-          background: isFavourited ? 'rgba(252, 251, 248, 0.92)' : 'rgba(26, 26, 24, 0.38)',
+          borderRadius: 999,
+          color: isFavourited ? 'var(--color-terracotta)' : 'var(--color-ink)',
+          background: 'rgba(255, 255, 255, 0.92)',
           backdropFilter: 'blur(4px)',
           WebkitBackdropFilter: 'blur(4px)',
         }}
@@ -194,11 +194,11 @@ export default function ArtworkCard({
         {/* Title — serif */}
         <Link href={`/artwork/${id}`} className="block no-underline">
           <h3
-            className="font-serif truncate transition-colors group-hover:text-[color:var(--color-terracotta)]"
+            className="truncate transition-colors group-hover:text-[color:var(--color-terracotta)]"
             style={{
-              fontSize: '1.2rem',
-              fontWeight: 400,
-              lineHeight: 1.2,
+              fontSize: '0.95rem',
+              fontWeight: 500,
+              lineHeight: 1.3,
               letterSpacing: '-0.01em',
               color: 'var(--color-ink)',
               margin: 0,
@@ -216,7 +216,7 @@ export default function ArtworkCard({
           className="block no-underline mt-1"
           style={{
             fontSize: '0.82rem',
-            fontWeight: 300,
+            fontWeight: 400,
             color: 'var(--color-stone-dark)',
             transition: 'color var(--dur-base) var(--ease-out)',
           }}
@@ -243,12 +243,12 @@ export default function ArtworkCard({
           </div>
         )}
 
-        {/* Price — serif, right-leaning weight */}
+        {/* Price */}
         <p
-          className="font-serif mt-2"
+          className="mt-2"
           style={{
-            fontSize: '1rem',
-            fontWeight: 400,
+            fontSize: '0.9rem',
+            fontWeight: 500,
             color: 'var(--color-ink)',
             margin: '0.5rem 0 0',
           }}

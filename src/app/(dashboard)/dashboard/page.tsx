@@ -245,7 +245,7 @@ function DashboardContent() {
             style={{
               marginBottom: '2rem',
               fontSize: '0.92rem',
-              color: 'var(--color-terracotta, #c45d3e)',
+              color: 'var(--color-terracotta, #bc5636)',
               fontStyle: 'italic',
               fontWeight: 400,
               lineHeight: 1.5,
@@ -760,7 +760,7 @@ function DashboardContent() {
                   fontSize: '0.6rem',
                   letterSpacing: '0.22em',
                   textTransform: 'uppercase',
-                  color: 'rgba(252, 251, 248, 0.55)',
+                  color: 'rgba(255, 255, 255, 0.55)',
                   marginBottom: '0.9rem',
                 }}
               >
@@ -789,7 +789,7 @@ function DashboardContent() {
                 style={{
                   fontSize: '0.82rem',
                   fontWeight: 300,
-                  color: 'rgba(252, 251, 248, 0.72)',
+                  color: 'rgba(255, 255, 255, 0.72)',
                   marginTop: '0.8rem',
                   lineHeight: 1.6,
                   maxWidth: '32ch',

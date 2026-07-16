@@ -128,7 +128,7 @@ function FieldLabel({
       <span>
         {children}
         {required && (
-          <span style={{ marginLeft: '0.4rem', color: 'var(--color-terracotta, #c45d3e)' }}>
+          <span style={{ marginLeft: '0.4rem', color: 'var(--color-terracotta, #bc5636)' }}>
             *
           </span>
         )}
@@ -1336,8 +1336,8 @@ export default function ArtistOnboardingPage() {
               <div
                 style={{
                   padding: '1.2rem 0',
-                  borderTop: '1px solid var(--color-terracotta, #c45d3e)',
-                  borderBottom: '1px solid var(--color-terracotta, #c45d3e)',
+                  borderTop: '1px solid var(--color-terracotta, #bc5636)',
+                  borderBottom: '1px solid var(--color-terracotta, #bc5636)',
                   marginBottom: '1.6rem',
                 }}
               >
@@ -1346,7 +1346,7 @@ export default function ArtistOnboardingPage() {
                   style={{
                     fontSize: '0.92rem',
                     fontStyle: 'italic',
-                    color: 'var(--color-terracotta, #c45d3e)',
+                    color: 'var(--color-terracotta, #bc5636)',
                   }}
                 >
                   — {error}
@@ -1595,8 +1595,8 @@ export default function ArtistOnboardingPage() {
             style={{
               marginTop: '1.4rem',
               padding: '1.2rem 0',
-              borderTop: '1px solid var(--color-terracotta, #c45d3e)',
-              borderBottom: '1px solid var(--color-terracotta, #c45d3e)',
+              borderTop: '1px solid var(--color-terracotta, #bc5636)',
+              borderBottom: '1px solid var(--color-terracotta, #bc5636)',
             }}
           >
             <p
@@ -1604,7 +1604,7 @@ export default function ArtistOnboardingPage() {
               style={{
                 fontSize: '0.92rem',
                 fontStyle: 'italic',
-                color: 'var(--color-terracotta, #c45d3e)',
+                color: 'var(--color-terracotta, #bc5636)',
               }}
             >
               — {error}

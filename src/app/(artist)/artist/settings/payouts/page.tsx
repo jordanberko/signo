@@ -217,8 +217,8 @@ function PayoutsContent() {
             style={{
               marginBottom: '2rem',
               padding: '1.2rem 0',
-              borderTop: '1px solid var(--color-terracotta, #c45d3e)',
-              borderBottom: '1px solid var(--color-terracotta, #c45d3e)',
+              borderTop: '1px solid var(--color-terracotta, #bc5636)',
+              borderBottom: '1px solid var(--color-terracotta, #bc5636)',
             }}
           >
             <p
@@ -226,7 +226,7 @@ function PayoutsContent() {
               style={{
                 fontSize: '0.92rem',
                 fontStyle: 'italic',
-                color: 'var(--color-terracotta, #c45d3e)',
+                color: 'var(--color-terracotta, #bc5636)',
               }}
             >
               — {error}
@@ -339,7 +339,7 @@ function PayoutsContent() {
             <p
               style={{
                 ...KICKER,
-                color: 'var(--color-terracotta, #c45d3e)',
+                color: 'var(--color-terracotta, #bc5636)',
                 marginBottom: '1rem',
               }}
             >

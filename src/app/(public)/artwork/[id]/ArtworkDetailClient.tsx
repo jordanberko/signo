@@ -316,8 +316,8 @@ export default function ArtworkDetailClient({
               role="alert"
               style={{
                 padding: '1.2rem 0',
-                borderTop: '1px solid var(--color-terracotta, #c45d3e)',
-                borderBottom: '1px solid var(--color-terracotta, #c45d3e)',
+                borderTop: '1px solid var(--color-terracotta, #bc5636)',
+                borderBottom: '1px solid var(--color-terracotta, #bc5636)',
               }}
             >
               <p
@@ -325,7 +325,7 @@ export default function ArtworkDetailClient({
                 style={{
                   fontSize: '0.92rem',
                   fontStyle: 'italic',
-                  color: 'var(--color-terracotta, #c45d3e)',
+                  color: 'var(--color-terracotta, #bc5636)',
                   margin: 0,
                   lineHeight: 1.5,
                 }}

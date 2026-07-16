@@ -395,8 +395,8 @@ function OrderContent({ orderId }: { orderId: string }) {
           style={{
             marginBottom: '2rem',
             paddingBlock: '1.2rem',
-            borderTop: '1px solid var(--color-terracotta, #c45d3e)',
-            borderBottom: '1px solid var(--color-terracotta, #c45d3e)',
+            borderTop: '1px solid var(--color-terracotta, #bc5636)',
+            borderBottom: '1px solid var(--color-terracotta, #bc5636)',
           }}
         >
           <p
@@ -404,7 +404,7 @@ function OrderContent({ orderId }: { orderId: string }) {
             style={{
               fontSize: '0.92rem',
               fontStyle: 'italic',
-              color: 'var(--color-terracotta, #c45d3e)',
+              color: 'var(--color-terracotta, #bc5636)',
             }}
           >
             — {errorMessage}
@@ -712,14 +712,14 @@ function OrderContent({ orderId }: { orderId: string }) {
           style={{
             marginBottom: 'clamp(2.4rem, 4vw, 3.4rem)',
             padding: '1.6rem 0',
-            borderTop: '1px solid var(--color-terracotta, #c45d3e)',
-            borderBottom: '1px solid var(--color-terracotta, #c45d3e)',
+            borderTop: '1px solid var(--color-terracotta, #bc5636)',
+            borderBottom: '1px solid var(--color-terracotta, #bc5636)',
           }}
         >
           <p
             style={{
               ...KICKER,
-              color: 'var(--color-terracotta, #c45d3e)',
+              color: 'var(--color-terracotta, #bc5636)',
               marginBottom: '0.9rem',
             }}
           >
@@ -987,7 +987,7 @@ function OrderContent({ orderId }: { orderId: string }) {
                   >
                     <p style={{ fontSize: '0.88rem', color: 'var(--color-ink)', fontWeight: 400, marginBottom: '0.3rem' }}>
                       {idx + 1}. {slot.label}
-                      <span style={{ color: 'var(--color-terracotta, #c45d3e)', marginLeft: '0.3rem' }}>*</span>
+                      <span style={{ color: 'var(--color-terracotta, #bc5636)', marginLeft: '0.3rem' }}>*</span>
                     </p>
                     <p style={{ fontSize: '0.76rem', color: 'var(--color-stone)', fontWeight: 300, marginBottom: '0.7rem' }}>
                       {slot.helpText}
@@ -1028,7 +1028,7 @@ function OrderContent({ orderId }: { orderId: string }) {
               })}
 
               {dispatchError && (
-                <p className="font-serif" style={{ fontSize: '0.85rem', fontStyle: 'italic', color: 'var(--color-terracotta, #c45d3e)', marginTop: '0.6rem' }}>
+                <p className="font-serif" style={{ fontSize: '0.85rem', fontStyle: 'italic', color: 'var(--color-terracotta, #bc5636)', marginTop: '0.6rem' }}>
                   {dispatchError}
                 </p>
               )}

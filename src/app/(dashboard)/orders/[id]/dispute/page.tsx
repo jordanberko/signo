@@ -597,7 +597,7 @@ function DisputeContent({ orderId }: { orderId: string }) {
                 >
                   <p style={{ fontSize: '0.88rem', color: 'var(--color-ink)', fontWeight: 400, marginBottom: '0.3rem' }}>
                     {slot.label}
-                    {slot.required && <span style={{ color: 'var(--color-terracotta, #c45d3e)', marginLeft: '0.3rem' }}>*</span>}
+                    {slot.required && <span style={{ color: 'var(--color-terracotta, #bc5636)', marginLeft: '0.3rem' }}>*</span>}
                   </p>
                   <p style={{ fontSize: '0.76rem', color: 'var(--color-stone)', fontWeight: 300, marginBottom: '0.7rem' }}>
                     {slot.helpText}
@@ -634,7 +634,7 @@ function DisputeContent({ orderId }: { orderId: string }) {
               >
                 <p style={{ fontSize: '0.88rem', color: 'var(--color-ink)', fontWeight: 400, marginBottom: '0.3rem' }}>
                   Video walkthrough
-                  {isHighValue && <span style={{ color: 'var(--color-terracotta, #c45d3e)', marginLeft: '0.3rem' }}>*</span>}
+                  {isHighValue && <span style={{ color: 'var(--color-terracotta, #bc5636)', marginLeft: '0.3rem' }}>*</span>}
                 </p>
                 <p style={{ fontSize: '0.76rem', color: 'var(--color-stone)', fontWeight: 300, marginBottom: '0.7rem' }}>
                   {isHighValue
@@ -731,7 +731,7 @@ function DisputeContent({ orderId }: { orderId: string }) {
             style={{
               marginBottom: '1.2rem',
               fontSize: '0.85rem',
-              color: 'var(--color-terracotta, #c45d3e)',
+              color: 'var(--color-terracotta, #bc5636)',
               fontStyle: 'italic',
               fontWeight: 400,
               lineHeight: 1.5,
@@ -749,7 +749,7 @@ function DisputeContent({ orderId }: { orderId: string }) {
             style={{
               marginBottom: '1.6rem',
               fontSize: '0.92rem',
-              color: 'var(--color-terracotta, #c45d3e)',
+              color: 'var(--color-terracotta, #bc5636)',
               fontStyle: 'italic',
               fontWeight: 400,
               lineHeight: 1.5,

@@ -125,14 +125,14 @@ function DeleteModal({
           maxWidth: '32rem',
           width: '100%',
           padding: 'clamp(2rem, 4vw, 2.8rem)',
-          borderTop: '1px solid var(--color-terracotta, #c45d3e)',
-          borderBottom: '1px solid var(--color-terracotta, #c45d3e)',
+          borderTop: '1px solid var(--color-terracotta, #bc5636)',
+          borderBottom: '1px solid var(--color-terracotta, #bc5636)',
         }}
       >
         <p
           style={{
             ...KICKER,
-            color: 'var(--color-terracotta, #c45d3e)',
+            color: 'var(--color-terracotta, #bc5636)',
             marginBottom: '0.9rem',
           }}
         >
@@ -168,7 +168,7 @@ function DeleteModal({
             onClick={onConfirm}
             className="font-serif"
             style={{
-              background: 'var(--color-terracotta, #c45d3e)',
+              background: 'var(--color-terracotta, #bc5636)',
               color: 'var(--color-warm-white)',
               border: 'none',
               padding: '0.9rem 1.6rem',
@@ -339,7 +339,7 @@ function ArtworkActions({
                   padding: '0.85rem 1.1rem',
                   fontSize: '0.92rem',
                   fontStyle: 'italic',
-                  color: 'var(--color-terracotta, #c45d3e)',
+                  color: 'var(--color-terracotta, #bc5636)',
                   background: 'none',
                   border: 'none',
                   cursor: 'pointer',
@@ -500,8 +500,8 @@ export default function ArtistArtworksPage() {
             style={{
               marginBottom: '2rem',
               padding: '1.2rem 0',
-              borderTop: '1px solid var(--color-terracotta, #c45d3e)',
-              borderBottom: '1px solid var(--color-terracotta, #c45d3e)',
+              borderTop: '1px solid var(--color-terracotta, #bc5636)',
+              borderBottom: '1px solid var(--color-terracotta, #bc5636)',
               display: 'flex',
               justifyContent: 'space-between',
               alignItems: 'center',
@@ -513,7 +513,7 @@ export default function ArtistArtworksPage() {
               style={{
                 fontSize: '0.92rem',
                 fontStyle: 'italic',
-                color: 'var(--color-terracotta, #c45d3e)',
+                color: 'var(--color-terracotta, #bc5636)',
               }}
             >
               — {actionError}
@@ -837,14 +837,14 @@ export default function ArtistArtworksPage() {
                       style={{
                         marginTop: '0.9rem',
                         padding: '0.9rem 0',
-                        borderTop: '1px solid var(--color-terracotta, #c45d3e)',
-                        borderBottom: '1px solid var(--color-terracotta, #c45d3e)',
+                        borderTop: '1px solid var(--color-terracotta, #bc5636)',
+                        borderBottom: '1px solid var(--color-terracotta, #bc5636)',
                       }}
                     >
                       <p
                         style={{
                           ...KICKER,
-                          color: 'var(--color-terracotta, #c45d3e)',
+                          color: 'var(--color-terracotta, #bc5636)',
                           marginBottom: '0.4rem',
                         }}
                       >

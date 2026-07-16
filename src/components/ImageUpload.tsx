@@ -58,7 +58,7 @@ const SERIF_ITALIC: CSSProperties = {
 
 const HAIRLINE_BORDER = '1px solid var(--color-border-strong)';
 const INK_BORDER = '1px solid var(--color-ink)';
-const ERROR_BORDER = '1px solid var(--color-terracotta, #c45d3e)';
+const ERROR_BORDER = '1px solid var(--color-terracotta, #bc5636)';
 
 export default function ImageUpload({
   maxFiles = 6,
@@ -382,7 +382,7 @@ export default function ImageUpload({
           <p
             style={{
               ...KICKER,
-              color: 'var(--color-terracotta, #c45d3e)',
+              color: 'var(--color-terracotta, #bc5636)',
               marginBottom: '0.4rem',
             }}
           >
@@ -463,7 +463,7 @@ export default function ImageUpload({
                   style={{
                     position: 'absolute',
                     inset: 0,
-                    background: 'rgba(26, 26, 24, 0.55)',
+                    background: 'rgba(22, 22, 22, 0.55)',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
@@ -492,7 +492,7 @@ export default function ImageUpload({
                     style={{
                       width: '70%',
                       height: 1,
-                      background: 'rgba(252, 251, 248, 0.25)',
+                      background: 'rgba(255, 255, 255, 0.25)',
                       overflow: 'hidden',
                     }}
                   >
@@ -519,7 +519,7 @@ export default function ImageUpload({
                   style={{
                     position: 'absolute',
                     inset: 0,
-                    background: 'rgba(196, 93, 62, 0.85)',
+                    background: 'rgba(188, 86, 54, 0.85)',
                     border: 'none',
                     color: 'var(--color-warm-white)',
                     cursor: 'pointer',
@@ -577,7 +577,7 @@ export default function ImageUpload({
                     position: 'absolute',
                     inset: 0,
                     background:
-                      'linear-gradient(to top, rgba(26,26,24,0.55) 0%, transparent 45%, transparent 55%, rgba(26,26,24,0.45) 100%)',
+                      'linear-gradient(to top, rgba(22,22,22,0.55) 0%, transparent 45%, transparent 55%, rgba(22,22,22,0.45) 100%)',
                     transition: 'opacity var(--dur-fast) var(--ease-out)',
                     display: 'flex',
                     flexDirection: 'column',

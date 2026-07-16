@@ -102,7 +102,7 @@ function StatusLine({
         color:
           status.type === 'success'
             ? 'var(--color-ink)'
-            : 'var(--color-terracotta, #c45d3e)',
+            : 'var(--color-terracotta, #bc5636)',
       }}
     >
       {status.type === 'success' ? '✓ ' : '— '}
@@ -936,7 +936,7 @@ export default function SettingsPage() {
                             marginTop: '0.5rem',
                             fontSize: '0.75rem',
                             fontStyle: 'italic',
-                            color: 'var(--color-terracotta, #c45d3e)',
+                            color: 'var(--color-terracotta, #bc5636)',
                           }}
                         >
                           Passwords don&apos;t match.
@@ -1920,9 +1920,9 @@ export default function SettingsPage() {
                     letterSpacing: '0.2em',
                     textTransform: 'uppercase',
                     fontStyle: 'italic',
-                    color: 'var(--color-terracotta, #c45d3e)',
+                    color: 'var(--color-terracotta, #bc5636)',
                     background: 'none',
-                    border: '1px solid var(--color-terracotta, #c45d3e)',
+                    border: '1px solid var(--color-terracotta, #bc5636)',
                     padding: '0.9rem 1.8rem',
                     cursor: 'pointer',
                   }}
@@ -1971,7 +1971,7 @@ export default function SettingsPage() {
                           fontSize: '0.62rem',
                           letterSpacing: '0.22em',
                           textTransform: 'uppercase',
-                          color: 'var(--color-terracotta, #c45d3e)',
+                          color: 'var(--color-terracotta, #bc5636)',
                           marginBottom: '1rem',
                         }}
                       >
@@ -2012,9 +2012,9 @@ export default function SettingsPage() {
                             style={{
                               padding: '1rem 1.2rem',
                               borderTop:
-                                '1px solid var(--color-terracotta, #c45d3e)',
+                                '1px solid var(--color-terracotta, #bc5636)',
                               borderBottom:
-                                '1px solid var(--color-terracotta, #c45d3e)',
+                                '1px solid var(--color-terracotta, #bc5636)',
                               fontSize: '0.85rem',
                               fontStyle: 'italic',
                               color: 'var(--color-ink)',
@@ -2040,7 +2040,7 @@ export default function SettingsPage() {
                         <p
                           className="commission-label"
                           style={{
-                            color: 'var(--color-terracotta, #c45d3e)',
+                            color: 'var(--color-terracotta, #bc5636)',
                           }}
                         >
                           Type DELETE to confirm
@@ -2063,7 +2063,7 @@ export default function SettingsPage() {
                           style={{
                             fontSize: '0.85rem',
                             fontStyle: 'italic',
-                            color: 'var(--color-terracotta, #c45d3e)',
+                            color: 'var(--color-terracotta, #bc5636)',
                             marginBottom: '1.2rem',
                           }}
                         >
@@ -2116,7 +2116,7 @@ export default function SettingsPage() {
                             fontStyle: 'italic',
                             color: 'var(--color-warm-white)',
                             background:
-                              'var(--color-terracotta, #c45d3e)',
+                              'var(--color-terracotta, #bc5636)',
                             border: 'none',
                             padding: '0.9rem 1.8rem',
                             cursor: 'pointer',

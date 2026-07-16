@@ -3,23 +3,29 @@
 import Link from 'next/link';
 import { useState, useEffect, useCallback } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
+import { Search } from 'lucide-react';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { createClient } from '@/lib/supabase/client';
 import Avatar from '@/components/ui/Avatar';
 
 /**
- * Huxley-style nav:
- * - Fixed top, mix-blend-mode: difference over media-led pages.
- * - Collapses to solid warm-white background after scroll threshold.
- * - Wordmark + "Menu" + ("Sell" | Avatar).
- * - Menu opens a full-screen ink overlay with editorial serif list.
- *
- * Pages that want the transparent/mix-blend treatment at the very top
- * should render a full-bleed hero as the first section. The header
- * starts transparent on every page and snaps to solid on scroll — any
- * page where that's wrong should add `data-signo-nav="solid"` to the
- * <body> via its layout.
+ * Shop-style nav, gallery-minimal:
+ * - Fixed top. Solid white on standard pages; transparent with
+ *   mix-blend-mode: difference over media-led heroes, snapping solid
+ *   on scroll.
+ * - Primary destinations (Browse / Artists / Collections) are ALWAYS
+ *   visible on desktop — no hidden hamburger-only navigation.
+ * - Search is one click away from every page.
+ * - "Menu" opens the full-screen overlay: account links, secondary
+ *   pages, and the complete list on mobile.
  */
+
+const NAV_LINKS = [
+  { href: '/browse', label: 'Browse' },
+  { href: '/artists', label: 'Artists' },
+  { href: '/collections', label: 'Collections' },
+  { href: '/just-sold', label: 'Just sold' },
+];
 
 function clearSupabaseCookies() {
   try {
@@ -35,7 +41,9 @@ function clearSupabaseCookies() {
 }
 
 // Pages that lead with a full-bleed media hero — nav starts in overlay mode.
-const HERO_LED_ROUTES = ['/', '/artwork/', '/artists/', '/collections/'];
+// The homepage deliberately is NOT listed: its light installation imagery
+// left the blended nav illegible, and a solid white bar reads cleaner.
+const HERO_LED_ROUTES = ['/artwork/', '/artists/', '/collections/'];
 
 function isHeroLed(pathname: string | null): boolean {
   if (!pathname) return false;
@@ -166,35 +174,74 @@ export default function Header() {
           ...(transparent ? {} : { mixBlendMode: 'normal' }),
         }}
       >
-        <Link
-          href="/"
-          className="no-underline"
-          aria-label="Signo — home"
-        >
-          <span
-            data-nav-wordmark
-            className="font-serif"
+        <div className="flex items-center gap-8 lg:gap-12 min-w-0">
+          <Link
+            href="/"
+            className="no-underline shrink-0"
+            aria-label="Signo — home"
+          >
+            <span
+              style={{
+                fontSize: '1.05rem',
+                lineHeight: 1,
+                fontWeight: 600,
+                letterSpacing: '0.22em',
+                textTransform: 'uppercase',
+                color: transparent ? '#fff' : 'var(--color-ink)',
+                transition: 'color var(--dur-base) var(--ease-out)',
+              }}
+            >
+              Signo
+            </span>
+          </Link>
+
+          {/* Primary destinations — always visible on desktop */}
+          <div className="hidden md:flex items-center gap-7 lg:gap-9">
+            {NAV_LINKS.map((l) => {
+              const active =
+                pathname === l.href || pathname?.startsWith(`${l.href}/`);
+              return (
+                <Link
+                  key={l.href}
+                  href={l.href}
+                  className="header-nav-link nav-label"
+                  aria-current={active ? 'page' : undefined}
+                  style={{
+                    color: transparent ? '#fff' : 'var(--color-ink)',
+                  }}
+                >
+                  {l.label}
+                </Link>
+              );
+            })}
+          </div>
+        </div>
+
+        <div className="flex items-center gap-6 sm:gap-8">
+          <Link
+            href="/browse?focus=search"
+            aria-label="Search artwork"
+            className="nav-label no-underline flex items-center gap-2"
             style={{
-              fontSize: '1.6rem',
-              lineHeight: 1,
-              letterSpacing: '-0.01em',
+              fontSize: '0.78rem',
+              fontWeight: 400,
+              letterSpacing: '0.1em',
+              textTransform: 'uppercase',
               color: transparent ? '#fff' : 'var(--color-ink)',
-              transition: 'color var(--dur-base) var(--ease-out)',
             }}
           >
-            Signo
-          </span>
-        </Link>
+            <Search size={15} strokeWidth={1.75} aria-hidden />
+            <span className="hidden sm:inline">Search</span>
+          </Link>
 
-        <div data-nav-actions className="flex items-center gap-8 sm:gap-10">
           <button
             type="button"
             onClick={() => setMenuOpen(true)}
             className="nav-label bg-transparent border-none cursor-pointer p-0"
             style={{
               fontSize: '0.78rem',
-              fontWeight: 300,
-              letterSpacing: '0.14em',
+              fontWeight: 400,
+              letterSpacing: '0.1em',
               textTransform: 'uppercase',
               color: transparent ? '#fff' : 'var(--color-ink)',
             }}
@@ -269,11 +316,12 @@ export default function Header() {
         {/* Top bar */}
         <div className="flex items-center justify-between px-6 sm:px-10 py-5 sm:py-6">
           <span
-            className="font-serif"
             style={{
-              fontSize: '1.6rem',
+              fontSize: '1.05rem',
               lineHeight: 1,
-              letterSpacing: '-0.01em',
+              fontWeight: 600,
+              letterSpacing: '0.22em',
+              textTransform: 'uppercase',
               color: '#fff',
             }}
           >
