@@ -107,7 +107,11 @@ export default function ArtworkCard({
 
   return (
     <article className="group relative block">
-      {/* Image — 3:4 poster aspect (WoA-scale), full-bleed, no border/shadow */}
+      {/* Image — uniform 3:4 tile on a shared neutral ground. The artwork
+          is CONTAINED at its natural proportions rather than cropped to
+          fill: artist-supplied photos vary wildly (rooms, angles, odd
+          aspects), and containing them on one consistent background is
+          what keeps the grid reading calm and gallery-neat. */}
       <Link
         href={`/artwork/${id}`}
         className="block overflow-hidden aspect-[3/4] relative no-underline"
@@ -117,8 +121,9 @@ export default function ArtworkCard({
           <img
             src={imageUrl}
             alt={title}
-            className="block w-full h-full object-cover transition-transform group-hover:scale-[1.03]"
+            className="block w-full h-full object-contain transition-transform group-hover:scale-[1.02]"
             style={{
+              padding: '7%',
               transitionDuration: 'var(--dur-slow)',
               transitionTimingFunction: 'var(--ease-out)',
             }}
