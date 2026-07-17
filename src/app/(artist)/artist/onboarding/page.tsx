@@ -463,7 +463,7 @@ export default function ArtistOnboardingPage() {
             <p
               style={{
                 fontSize: '1rem',
-                fontWeight: 300,
+                fontWeight: 400,
                 color: 'var(--color-stone-dark)',
                 lineHeight: 1.65,
                 maxWidth: '52ch',
@@ -605,7 +605,7 @@ export default function ArtistOnboardingPage() {
             <p
               style={{
                 fontSize: '0.92rem',
-                fontWeight: 300,
+                fontWeight: 400,
                 color: 'var(--color-stone-dark)',
                 lineHeight: 1.6,
                 marginBottom: '2.4rem',
@@ -793,7 +793,7 @@ export default function ArtistOnboardingPage() {
             <p
               style={{
                 fontSize: '0.92rem',
-                fontWeight: 300,
+                fontWeight: 400,
                 color: 'var(--color-stone-dark)',
                 lineHeight: 1.6,
                 marginBottom: '2.4rem',
@@ -914,7 +914,7 @@ export default function ArtistOnboardingPage() {
               <p
                 style={{
                   fontSize: '0.88rem',
-                  fontWeight: 300,
+                  fontWeight: 400,
                   color: 'var(--color-stone-dark)',
                   lineHeight: 1.65,
                 }}
@@ -946,7 +946,7 @@ export default function ArtistOnboardingPage() {
             <p
               style={{
                 fontSize: '0.92rem',
-                fontWeight: 300,
+                fontWeight: 400,
                 color: 'var(--color-stone-dark)',
                 lineHeight: 1.6,
                 marginBottom: '2.4rem',
@@ -1220,7 +1220,7 @@ export default function ArtistOnboardingPage() {
             <p
               style={{
                 fontSize: '0.92rem',
-                fontWeight: 300,
+                fontWeight: 400,
                 color: 'var(--color-stone-dark)',
                 lineHeight: 1.6,
                 marginBottom: '2.4rem',
@@ -1377,7 +1377,7 @@ export default function ArtistOnboardingPage() {
               <p
                 style={{
                   fontSize: '1rem',
-                  fontWeight: 300,
+                  fontWeight: 400,
                   color: 'var(--color-stone-dark)',
                   lineHeight: 1.65,
                   maxWidth: '52ch',
@@ -1392,7 +1392,7 @@ export default function ArtistOnboardingPage() {
               <p
                 style={{
                   fontSize: '1rem',
-                  fontWeight: 300,
+                  fontWeight: 400,
                   color: 'var(--color-stone-dark)',
                   lineHeight: 1.65,
                   maxWidth: '52ch',
@@ -1452,7 +1452,7 @@ export default function ArtistOnboardingPage() {
                 <p
                   style={{
                     fontSize: '0.92rem',
-                    fontWeight: 300,
+                    fontWeight: 400,
                     color: 'var(--color-stone-dark)',
                     lineHeight: 1.65,
                     maxWidth: '58ch',

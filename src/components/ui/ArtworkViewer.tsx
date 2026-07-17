@@ -338,7 +338,7 @@ export default function ArtworkViewer({
         <span
           style={{
             fontSize: '0.82rem',
-            fontWeight: 300,
+            fontWeight: 400,
             color: 'var(--color-stone-dark)',
           }}
         >

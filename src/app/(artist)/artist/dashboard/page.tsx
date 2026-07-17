@@ -469,7 +469,7 @@ export default function ArtistDashboardPage() {
             <p
               style={{
                 fontSize: '0.92rem',
-                fontWeight: 300,
+                fontWeight: 400,
                 color: 'var(--color-stone-dark)',
                 lineHeight: 1.6,
                 maxWidth: '48ch',
@@ -525,7 +525,7 @@ export default function ArtistDashboardPage() {
             <p
               style={{
                 fontSize: '0.9rem',
-                fontWeight: 300,
+                fontWeight: 400,
                 lineHeight: 1.6,
                 opacity: 0.82,
                 maxWidth: '52ch',
@@ -654,7 +654,7 @@ export default function ArtistDashboardPage() {
             <p
               style={{
                 fontSize: '0.92rem',
-                fontWeight: 300,
+                fontWeight: 400,
                 lineHeight: 1.6,
                 opacity: 0.84,
                 margin: 0,
@@ -739,7 +739,7 @@ export default function ArtistDashboardPage() {
                       style={{
                         marginTop: '0.3rem',
                         fontSize: '0.85rem',
-                        fontWeight: 300,
+                        fontWeight: 400,
                         color: 'var(--color-stone-dark)',
                         lineHeight: 1.5,
                       }}
@@ -847,7 +847,7 @@ export default function ArtistDashboardPage() {
                   marginTop: '0.9rem',
                   fontSize: '0.9rem',
                   color: 'var(--color-stone-dark)',
-                  fontWeight: 300,
+                  fontWeight: 400,
                   lineHeight: 1.6,
                 }}
               >
@@ -914,7 +914,7 @@ export default function ArtistDashboardPage() {
                           padding: '1.2rem 0.8rem',
                           fontSize: '0.88rem',
                           color: 'var(--color-stone-dark)',
-                          fontWeight: 300,
+                          fontWeight: 400,
                         }}
                       >
                         {order.buyer}
@@ -937,7 +937,7 @@ export default function ArtistDashboardPage() {
                           color: 'var(--color-stone)',
                           fontStyle: 'italic',
                           textAlign: 'right',
-                          fontWeight: 300,
+                          fontWeight: 400,
                         }}
                       >
                         −{formatPrice(order.stripeFee)}
@@ -1035,7 +1035,7 @@ export default function ArtistDashboardPage() {
                       style={{
                         fontSize: '0.82rem',
                         color: 'var(--color-stone-dark)',
-                        fontWeight: 300,
+                        fontWeight: 400,
                         margin: 0,
                         marginBottom: '0.5rem',
                       }}
@@ -1054,7 +1054,7 @@ export default function ArtistDashboardPage() {
                           fontSize: '0.78rem',
                           fontStyle: 'italic',
                           color: 'var(--color-stone)',
-                          fontWeight: 300,
+                          fontWeight: 400,
                         }}
                       >
                         {formatPrice(order.salePrice)} − {formatPrice(order.stripeFee)} fee
@@ -1137,7 +1137,7 @@ export default function ArtistDashboardPage() {
           <p
             style={{
               fontSize: '0.9rem',
-              fontWeight: 300,
+              fontWeight: 400,
               color: 'var(--color-stone-dark)',
               lineHeight: 1.6,
               marginBottom: '1.8rem',
@@ -1362,7 +1362,7 @@ export default function ArtistDashboardPage() {
                   marginTop: '0.9rem',
                   fontSize: '0.9rem',
                   color: 'var(--color-stone-dark)',
-                  fontWeight: 300,
+                  fontWeight: 400,
                   lineHeight: 1.6,
                 }}
               >
@@ -1418,7 +1418,7 @@ export default function ArtistDashboardPage() {
                           style={{
                             fontSize: '0.88rem',
                             color: 'var(--color-ink)',
-                            fontWeight: 300,
+                            fontWeight: 400,
                             lineHeight: 1.5,
                             margin: 0,
                             overflow: 'hidden',

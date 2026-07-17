@@ -48,7 +48,7 @@ export default function AboutPage() {
           style={{
             marginTop: '1.8rem',
             fontSize: '1rem',
-            fontWeight: 300,
+            fontWeight: 400,
             lineHeight: 1.7,
             color: 'var(--color-stone-dark)',
             maxWidth: '52ch',
@@ -102,7 +102,7 @@ export default function AboutPage() {
                 fontSize: '1rem',
                 lineHeight: 1.75,
                 color: 'var(--color-stone-dark)',
-                fontWeight: 300,
+                fontWeight: 400,
                 maxWidth: '58ch',
                 marginBottom: '1.4rem',
               }}
@@ -116,7 +116,7 @@ export default function AboutPage() {
                 fontSize: '1rem',
                 lineHeight: 1.75,
                 color: 'var(--color-stone-dark)',
-                fontWeight: 300,
+                fontWeight: 400,
                 maxWidth: '58ch',
                 marginBottom: '1.4rem',
               }}
@@ -130,7 +130,7 @@ export default function AboutPage() {
                 fontSize: '1rem',
                 lineHeight: 1.75,
                 color: 'var(--color-stone-dark)',
-                fontWeight: 300,
+                fontWeight: 400,
                 maxWidth: '58ch',
               }}
             >
@@ -316,7 +316,7 @@ export default function AboutPage() {
                 fontSize: '0.78rem',
                 letterSpacing: '0.12em',
                 textTransform: 'uppercase',
-                fontWeight: 300,
+                fontWeight: 400,
                 color: 'var(--color-warm-white)',
                 textDecoration: 'none',
               }}
@@ -357,7 +357,7 @@ function ComparisonRow({
           style={{
             fontSize: highlight ? '1rem' : '0.95rem',
             color: 'var(--color-ink)',
-            fontWeight: highlight ? 400 : 300,
+            fontWeight: highlight ? 500 : 400,
             marginBottom: '0.35rem',
             letterSpacing: highlight ? '0.01em' : 0,
           }}
@@ -370,7 +370,7 @@ function ComparisonRow({
             letterSpacing: '0.1em',
             textTransform: 'uppercase',
             color: 'var(--color-stone)',
-            fontWeight: 300,
+            fontWeight: 400,
           }}
         >
           {note}
@@ -420,7 +420,7 @@ function ProtectionList({ title, items }: { title: string; items: string[] }) {
               fontSize: '0.92rem',
               lineHeight: 1.55,
               color: 'var(--color-stone-dark)',
-              fontWeight: 300,
+              fontWeight: 400,
             }}
           >
             {item}

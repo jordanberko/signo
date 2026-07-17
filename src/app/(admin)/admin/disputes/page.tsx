@@ -388,7 +388,7 @@ export default function AdminDisputesPage() {
                         marginTop: '0.5rem',
                         fontSize: '0.88rem',
                         color: 'var(--color-stone-dark)',
-                        fontWeight: 300,
+                        fontWeight: 400,
                         lineHeight: 1.55,
                         maxWidth: '60ch',
                       }}
@@ -560,7 +560,7 @@ export default function AdminDisputesPage() {
                           border: '1px solid var(--color-border)',
                           padding: '1rem 1.2rem',
                           fontSize: '0.82rem',
-                          fontWeight: 300,
+                          fontWeight: 400,
                           color: 'var(--color-stone-dark)',
                           lineHeight: 1.6,
                         }}

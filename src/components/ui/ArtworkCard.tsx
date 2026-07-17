@@ -26,14 +26,12 @@ interface ArtworkCardProps {
 }
 
 /**
- * ArtworkCard — editorial, Huxley-aligned.
+ * ArtworkCard — clean shop card, gallery-minimal.
  *
- * No container chrome, no drop shadow, no category badges, no hover-scale.
- * Image dominates. Typography carries hierarchy: serif title, sans artist,
- * muted medium/dimensions caption, serif price.
- *
- * Availability and category are expressed as small uppercase captions
- * above or inside the metadata block — never as coloured pills.
+ * No container chrome, no drop shadow, no coloured badges. Image
+ * dominates with a subtle hover zoom. Typography carries hierarchy:
+ * medium-weight title, muted artist, tiny medium/dimensions caption,
+ * medium-weight price.
  */
 export default function ArtworkCard({
   id,
@@ -232,7 +230,7 @@ export default function ArtworkCard({
             className="mt-2"
             style={{
               fontSize: '0.72rem',
-              fontWeight: 300,
+              fontWeight: 400,
               color: 'var(--color-stone)',
               letterSpacing: '0.02em',
             }}

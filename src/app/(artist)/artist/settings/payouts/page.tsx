@@ -175,7 +175,7 @@ function PayoutsContent() {
           <p
             style={{
               fontSize: '0.92rem',
-              fontWeight: 300,
+              fontWeight: 400,
               color: 'var(--color-stone-dark)',
               lineHeight: 1.6,
               maxWidth: '52ch',
@@ -311,7 +311,7 @@ function PayoutsContent() {
               <p
                 style={{
                   fontSize: '0.9rem',
-                  fontWeight: 300,
+                  fontWeight: 400,
                   color: 'var(--color-stone-dark)',
                   lineHeight: 1.6,
                   marginBottom: '1.4rem',
@@ -360,7 +360,7 @@ function PayoutsContent() {
             <p
               style={{
                 fontSize: '0.9rem',
-                fontWeight: 300,
+                fontWeight: 400,
                 color: 'var(--color-stone-dark)',
                 lineHeight: 1.6,
                 marginBottom: '2rem',
@@ -402,7 +402,7 @@ function PayoutsContent() {
               <p
                 style={{
                   fontSize: '0.9rem',
-                  fontWeight: 300,
+                  fontWeight: 400,
                   color: 'var(--color-stone-dark)',
                   lineHeight: 1.6,
                   marginBottom: '2rem',
@@ -489,7 +489,7 @@ function PayoutsContent() {
                         style={{
                           marginTop: '0.3rem',
                           fontSize: '0.88rem',
-                          fontWeight: 300,
+                          fontWeight: 400,
                           color: 'var(--color-stone-dark)',
                           lineHeight: 1.6,
                         }}
@@ -529,7 +529,7 @@ function PayoutsContent() {
           <p
             style={{
               fontSize: '0.88rem',
-              fontWeight: 300,
+              fontWeight: 400,
               color: 'var(--color-stone-dark)',
               lineHeight: 1.7,
               maxWidth: '54ch',

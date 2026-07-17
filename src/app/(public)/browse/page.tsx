@@ -245,7 +245,7 @@ function FilterRow({
         textAlign: 'left',
         padding: '0.28rem 0',
         fontSize: '0.82rem',
-        fontWeight: active ? 400 : 300,
+        fontWeight: active ? 500 : 400,
         color: active ? 'var(--color-ink)' : 'var(--color-stone-dark)',
         background: 'none',
         border: 'none',
@@ -832,7 +832,7 @@ function BrowseContent() {
           style={{
             marginTop: '1.6rem',
             fontSize: '0.92rem',
-            fontWeight: 300,
+            fontWeight: 400,
             lineHeight: 1.6,
             color: 'var(--color-stone-dark)',
             maxWidth: '42ch',
@@ -957,7 +957,7 @@ function BrowseContent() {
                             style={{
                               fontSize: '0.88rem',
                               color: 'var(--color-ink)',
-                              fontWeight: 300,
+                              fontWeight: 400,
                               background: 'none',
                               border: 'none',
                               cursor: 'pointer',
@@ -1005,7 +1005,7 @@ function BrowseContent() {
                           onClick={() => handleSuggestionClick(term)}
                           style={{
                             fontSize: '0.88rem',
-                            fontWeight: 300,
+                            fontWeight: 400,
                             color: 'var(--color-stone-dark)',
                             background: 'none',
                             border: 'none',
@@ -1047,7 +1047,7 @@ function BrowseContent() {
                       onClick={() => updateFilter('sort', opt.value)}
                       style={{
                         fontSize: '0.82rem',
-                        fontWeight: active ? 400 : 300,
+                        fontWeight: active ? 500 : 400,
                         color: active ? 'var(--color-ink)' : 'var(--color-stone-dark)',
                         background: 'none',
                         border: 'none',
@@ -1092,7 +1092,7 @@ function BrowseContent() {
           style={{
             fontSize: '0.78rem',
             color: 'var(--color-stone-dark)',
-            fontWeight: 300,
+            fontWeight: 400,
           }}
         >
           <Link href="/collections" className="editorial-link" style={{ fontSize: '0.78rem' }}>
@@ -1211,7 +1211,7 @@ function BrowseContent() {
                   borderBottom: '1px solid var(--color-error)',
                   fontSize: '0.82rem',
                   color: 'var(--color-error)',
-                  fontWeight: 300,
+                  fontWeight: 400,
                   display: 'flex',
                   justifyContent: 'space-between',
                   alignItems: 'center',
@@ -1298,7 +1298,7 @@ function BrowseContent() {
                         marginTop: '1.1rem',
                         fontSize: '0.88rem',
                         color: 'var(--color-stone-dark)',
-                        fontWeight: 300,
+                        fontWeight: 400,
                         lineHeight: 1.6,
                       }}
                     >
@@ -1315,7 +1315,7 @@ function BrowseContent() {
                               background: 'none',
                               border: 'none',
                               cursor: 'pointer',
-                              fontWeight: 300,
+                              fontWeight: 400,
                               padding: 0,
                             }}
                           >
@@ -1369,7 +1369,7 @@ function BrowseContent() {
                         marginTop: '1.1rem',
                         fontSize: '0.88rem',
                         color: 'var(--color-stone-dark)',
-                        fontWeight: 300,
+                        fontWeight: 400,
                         lineHeight: 1.6,
                       }}
                     >

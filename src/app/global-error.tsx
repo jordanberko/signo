@@ -88,7 +88,7 @@ export default function GlobalError({
           <p
             style={{
               fontSize: '0.9rem',
-              fontWeight: 300,
+              fontWeight: 400,
               lineHeight: 1.7,
               color: STONE_DARK,
               maxWidth: 420,

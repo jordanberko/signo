@@ -91,7 +91,7 @@ export default function MeetOurArtists({ artists }: { artists: SpotlightArtist[]
               <div
                 style={{
                   fontSize: '0.72rem',
-                  fontWeight: 300,
+                  fontWeight: 400,
                   color: 'var(--color-stone)',
                   marginTop: '0.3rem',
                   letterSpacing: '0.02em',
@@ -125,7 +125,7 @@ function ArtistName({ fullName }: { fullName: string }) {
       }}
     >
       {first && (
-        <span style={{ fontWeight: 300, color: 'var(--color-stone-dark)' }}>{first} </span>
+        <span style={{ fontWeight: 400, color: 'var(--color-stone-dark)' }}>{first} </span>
       )}
       <span style={{ fontWeight: 500 }}>{last}</span>
     </div>

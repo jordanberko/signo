@@ -97,7 +97,7 @@ export default function ArtistOrdersPage() {
           <p
             style={{
               fontSize: '0.92rem',
-              fontWeight: 300,
+              fontWeight: 400,
               color: 'var(--color-stone-dark)',
               lineHeight: 1.6,
               maxWidth: '48ch',
@@ -135,7 +135,7 @@ export default function ArtistOrdersPage() {
                 marginTop: '1rem',
                 fontSize: '0.9rem',
                 color: 'var(--color-stone-dark)',
-                fontWeight: 300,
+                fontWeight: 400,
                 lineHeight: 1.6,
               }}
             >
@@ -247,7 +247,7 @@ export default function ArtistOrdersPage() {
                           padding: '1.2rem 0.8rem',
                           fontSize: '0.88rem',
                           color: 'var(--color-stone-dark)',
-                          fontWeight: 300,
+                          fontWeight: 400,
                         }}
                       >
                         {order.profiles?.full_name ?? 'Unknown'}
@@ -270,7 +270,7 @@ export default function ArtistOrdersPage() {
                           fontStyle: 'italic',
                           color: 'var(--color-stone)',
                           textAlign: 'right',
-                          fontWeight: 300,
+                          fontWeight: 400,
                         }}
                       >
                         −{formatPrice(stripeFee)}
@@ -426,7 +426,7 @@ export default function ArtistOrdersPage() {
                           style={{
                             marginTop: '0.3rem',
                             fontSize: '0.8rem',
-                            fontWeight: 300,
+                            fontWeight: 400,
                             color: 'var(--color-stone-dark)',
                           }}
                         >
@@ -449,7 +449,7 @@ export default function ArtistOrdersPage() {
                               fontSize: '0.78rem',
                               fontStyle: 'italic',
                               color: 'var(--color-stone)',
-                              fontWeight: 300,
+                              fontWeight: 400,
                             }}
                           >
                             {formatPrice(salePrice)} −{' '}

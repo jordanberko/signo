@@ -222,7 +222,7 @@ export default function CheckoutPage({
             style={{
               fontSize: '0.95rem',
               color: 'var(--color-stone-dark)',
-              fontWeight: 300,
+              fontWeight: 400,
               lineHeight: 1.6,
               marginBottom: '2rem',
               maxWidth: '52ch',
@@ -302,7 +302,7 @@ export default function CheckoutPage({
           <p
             style={{
               fontSize: '0.92rem',
-              fontWeight: 300,
+              fontWeight: 400,
               color: 'var(--color-stone-dark)',
               lineHeight: 1.6,
               maxWidth: '56ch',
@@ -387,7 +387,7 @@ export default function CheckoutPage({
                     marginTop: '0.2rem',
                     fontSize: '0.78rem',
                     color: 'var(--color-stone-dark)',
-                    fontWeight: 300,
+                    fontWeight: 400,
                     fontStyle: 'italic',
                   }}
                 >
@@ -438,7 +438,7 @@ export default function CheckoutPage({
                     fontStyle: 'italic',
                     fontSize: '0.85rem',
                     color: 'var(--color-stone-dark)',
-                    fontWeight: 300,
+                    fontWeight: 400,
                     marginBottom: '0.8rem',
                   }}
                 >
@@ -448,7 +448,7 @@ export default function CheckoutPage({
                   style={{
                     fontSize: '0.88rem',
                     color: 'var(--color-stone-dark)',
-                    fontWeight: 300,
+                    fontWeight: 400,
                     marginBottom: '2rem',
                   }}
                 >
@@ -618,7 +618,7 @@ export default function CheckoutPage({
                   style={{
                     fontSize: '0.9rem',
                     color: 'var(--color-stone-dark)',
-                    fontWeight: 300,
+                    fontWeight: 400,
                     lineHeight: 1.6,
                     maxWidth: '52ch',
                   }}
@@ -699,7 +699,7 @@ export default function CheckoutPage({
                       style={{
                         fontSize: '0.82rem',
                         color: 'var(--color-stone-dark)',
-                        fontWeight: 300,
+                        fontWeight: 400,
                         lineHeight: 1.5,
                       }}
                     >
@@ -794,7 +794,7 @@ export default function CheckoutPage({
                         marginTop: '0.2rem',
                         fontSize: '0.76rem',
                         color: 'var(--color-stone)',
-                        fontWeight: 300,
+                        fontWeight: 400,
                       }}
                     >
                       {artwork.medium}
@@ -839,7 +839,7 @@ export default function CheckoutPage({
                     style={{
                       fontSize: '0.82rem',
                       color: 'var(--color-stone-dark)',
-                      fontWeight: 300,
+                      fontWeight: 400,
                     }}
                   >
                     Work
@@ -869,7 +869,7 @@ export default function CheckoutPage({
                       style={{
                         fontSize: '0.82rem',
                         color: 'var(--color-stone-dark)',
-                        fontWeight: 300,
+                        fontWeight: 400,
                       }}
                     >
                       Shipping
@@ -976,7 +976,7 @@ export default function CheckoutPage({
                     letterSpacing: '0.08em',
                     color: 'var(--color-stone)',
                     textAlign: 'center',
-                    fontWeight: 300,
+                    fontWeight: 400,
                     lineHeight: 1.5,
                   }}
                 >

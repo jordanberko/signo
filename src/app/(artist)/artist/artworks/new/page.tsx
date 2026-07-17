@@ -601,7 +601,7 @@ export default function NewArtworkPage() {
           <p
             style={{
               fontSize: '0.92rem',
-              fontWeight: 300,
+              fontWeight: 400,
               color: 'var(--color-stone-dark)',
               lineHeight: 1.6,
               maxWidth: '52ch',
@@ -671,7 +671,7 @@ export default function NewArtworkPage() {
           <p
             style={{
               fontSize: '0.92rem',
-              fontWeight: 300,
+              fontWeight: 400,
               color: 'var(--color-stone-dark)',
               lineHeight: 1.6,
               maxWidth: '52ch',
@@ -774,7 +774,7 @@ export default function NewArtworkPage() {
             <p
               style={{
                 fontSize: '0.9rem',
-                fontWeight: 300,
+                fontWeight: 400,
                 color: 'var(--color-stone-dark)',
                 lineHeight: 1.6,
                 marginBottom: '2rem',
@@ -833,7 +833,7 @@ export default function NewArtworkPage() {
                         style={{
                           marginTop: '0.25rem',
                           fontSize: '0.84rem',
-                          fontWeight: 300,
+                          fontWeight: 400,
                           color: 'var(--color-stone-dark)',
                           lineHeight: 1.5,
                         }}
@@ -903,7 +903,7 @@ export default function NewArtworkPage() {
             <p
               style={{
                 fontSize: '0.9rem',
-                fontWeight: 300,
+                fontWeight: 400,
                 color: 'var(--color-stone-dark)',
                 lineHeight: 1.6,
                 marginBottom: '2.2rem',
@@ -1002,7 +1002,7 @@ export default function NewArtworkPage() {
                           <p
                             style={{
                               fontSize: '0.85rem',
-                              fontWeight: 300,
+                              fontWeight: 400,
                               color: 'var(--color-stone-dark)',
                               marginTop: '0.2rem',
                             }}
@@ -1226,7 +1226,7 @@ export default function NewArtworkPage() {
             <p
               style={{
                 fontSize: '0.9rem',
-                fontWeight: 300,
+                fontWeight: 400,
                 color: 'var(--color-stone-dark)',
                 lineHeight: 1.6,
                 marginBottom: '2.2rem',
@@ -1356,7 +1356,7 @@ export default function NewArtworkPage() {
                         <p
                           style={{
                             fontSize: '0.85rem',
-                            fontWeight: 300,
+                            fontWeight: 400,
                             color: 'var(--color-stone-dark)',
                             marginTop: '0.2rem',
                           }}
@@ -1449,7 +1449,7 @@ export default function NewArtworkPage() {
             <p
               style={{
                 fontSize: '0.9rem',
-                fontWeight: 300,
+                fontWeight: 400,
                 color: 'var(--color-stone-dark)',
                 lineHeight: 1.6,
                 marginBottom: '2.2rem',
@@ -1509,7 +1509,7 @@ export default function NewArtworkPage() {
                           <p
                             style={{
                               fontSize: '0.85rem',
-                              fontWeight: 300,
+                              fontWeight: 400,
                               color: 'var(--color-stone-dark)',
                               marginTop: '0.2rem',
                             }}
@@ -1684,7 +1684,7 @@ export default function NewArtworkPage() {
                     <p
                       style={{
                         fontSize: '0.85rem',
-                        fontWeight: 300,
+                        fontWeight: 400,
                         color: 'var(--color-stone-dark)',
                         marginTop: '0.2rem',
                       }}
@@ -1770,7 +1770,7 @@ export default function NewArtworkPage() {
             <p
               style={{
                 fontSize: '0.9rem',
-                fontWeight: 300,
+                fontWeight: 400,
                 color: 'var(--color-stone-dark)',
                 lineHeight: 1.6,
                 marginBottom: '2.2rem',
@@ -1902,7 +1902,7 @@ export default function NewArtworkPage() {
                 <p
                   style={{
                     fontSize: '0.92rem',
-                    fontWeight: 300,
+                    fontWeight: 400,
                     color: 'var(--color-stone-dark)',
                     lineHeight: 1.7,
                     marginBottom: '1.4rem',

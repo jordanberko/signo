@@ -158,7 +158,7 @@ export default function AnalyticsPage() {
             <p
               style={{
                 fontSize: '0.92rem',
-                fontWeight: 300,
+                fontWeight: 400,
                 color: 'var(--color-stone-dark)',
                 lineHeight: 1.6,
                 maxWidth: '48ch',

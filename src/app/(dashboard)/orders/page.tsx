@@ -107,7 +107,7 @@ export default function OrdersPage() {
           <p
             style={{
               fontSize: '0.92rem',
-              fontWeight: 300,
+              fontWeight: 400,
               color: 'var(--color-stone-dark)',
               lineHeight: 1.6,
             }}
@@ -162,7 +162,7 @@ export default function OrdersPage() {
                 marginTop: '1rem',
                 fontSize: '0.9rem',
                 color: 'var(--color-stone-dark)',
-                fontWeight: 300,
+                fontWeight: 400,
                 lineHeight: 1.6,
               }}
             >
@@ -246,7 +246,7 @@ export default function OrdersPage() {
                           fontSize: '0.82rem',
                           color: 'var(--color-stone-dark)',
                           marginTop: '0.25rem',
-                          fontWeight: 300,
+                          fontWeight: 400,
                         }}
                       >
                         {artist?.full_name || 'Unknown artist'} ·{' '}

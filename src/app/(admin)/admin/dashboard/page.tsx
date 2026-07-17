@@ -178,7 +178,7 @@ export default function AdminDashboardPage() {
                   marginTop: '0.8rem',
                   fontSize: '0.78rem',
                   color: 'var(--color-stone-dark)',
-                  fontWeight: 300,
+                  fontWeight: 400,
                 }}
               >
                 {m.note}
@@ -249,7 +249,7 @@ export default function AdminDashboardPage() {
                       marginTop: '0.4rem',
                       fontSize: '0.85rem',
                       color: 'var(--color-stone-dark)',
-                      fontWeight: 300,
+                      fontWeight: 400,
                     }}
                   >
                     {q.detail}

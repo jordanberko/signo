@@ -477,7 +477,7 @@ export default function AdminCollectionsPage() {
                             marginTop: '0.3rem',
                             fontSize: '0.76rem',
                             color: 'var(--color-stone-dark)',
-                            fontWeight: 300,
+                            fontWeight: 400,
                           }}
                         >
                           /{c.slug} · {c.artwork_count} work
@@ -868,7 +868,7 @@ export default function AdminCollectionsPage() {
                                 marginTop: '0.2rem',
                                 fontSize: '0.72rem',
                                 color: 'var(--color-stone-dark)',
-                                fontWeight: 300,
+                                fontWeight: 400,
                               }}
                             >
                               {ca.artwork?.profiles?.full_name || ''}
@@ -1027,7 +1027,7 @@ export default function AdminCollectionsPage() {
                                 marginTop: '0.2rem',
                                 fontSize: '0.72rem',
                                 color: 'var(--color-stone-dark)',
-                                fontWeight: 300,
+                                fontWeight: 400,
                               }}
                             >
                               {r.artist_name}

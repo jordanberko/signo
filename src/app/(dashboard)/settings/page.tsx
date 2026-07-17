@@ -72,7 +72,7 @@ function SectionIntro({ children }: { children: React.ReactNode }) {
     <p
       style={{
         fontSize: '0.92rem',
-        fontWeight: 300,
+        fontWeight: 400,
         color: 'var(--color-stone-dark)',
         lineHeight: 1.6,
         maxWidth: '56ch',
@@ -531,7 +531,7 @@ export default function SettingsPage() {
           <p
             style={{
               fontSize: '0.92rem',
-              fontWeight: 300,
+              fontWeight: 400,
               color: 'var(--color-stone-dark)',
               lineHeight: 1.6,
               maxWidth: '52ch',
@@ -1041,7 +1041,7 @@ export default function SettingsPage() {
                             marginTop: '0.3rem',
                             fontSize: '0.82rem',
                             color: 'var(--color-stone)',
-                            fontWeight: 300,
+                            fontWeight: 400,
                             lineHeight: 1.5,
                           }}
                         >
@@ -1264,7 +1264,7 @@ export default function SettingsPage() {
                       marginBottom: '1.4rem',
                       fontSize: '0.82rem',
                       color: 'var(--color-stone)',
-                      fontWeight: 300,
+                      fontWeight: 400,
                       fontStyle: 'italic',
                     }}
                     className="font-serif"
@@ -1342,7 +1342,7 @@ export default function SettingsPage() {
                                 marginTop: '0.2rem',
                                 fontSize: '0.78rem',
                                 color: 'var(--color-stone)',
-                                fontWeight: 300,
+                                fontWeight: 400,
                               }}
                             >
                               {formatPrice(artwork.price_aud)}
@@ -1666,7 +1666,7 @@ export default function SettingsPage() {
                         marginTop: '0.3rem',
                         fontSize: '0.82rem',
                         color: 'var(--color-stone)',
-                        fontWeight: 300,
+                        fontWeight: 400,
                         maxWidth: '52ch',
                       }}
                     >
@@ -1994,7 +1994,7 @@ export default function SettingsPage() {
                         style={{
                           fontSize: '0.9rem',
                           color: 'var(--color-stone-dark)',
-                          fontWeight: 300,
+                          fontWeight: 400,
                           lineHeight: 1.6,
                           marginBottom: '1.6rem',
                         }}

@@ -348,7 +348,7 @@ export default function ImageUpload({
             style={{
               fontSize: '0.78rem',
               color: 'var(--color-stone-dark)',
-              fontWeight: 300,
+              fontWeight: 400,
               marginTop: '0.6rem',
               lineHeight: 1.5,
             }}

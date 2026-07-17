@@ -117,7 +117,7 @@ function DetailRow({
         style={{
           fontSize: '0.78rem',
           color: 'var(--color-stone)',
-          fontWeight: 300,
+          fontWeight: 400,
           letterSpacing: '0.01em',
         }}
       >
@@ -357,7 +357,7 @@ function OrderContent({ orderId }: { orderId: string }) {
                 style={{
                   fontSize: '0.95rem',
                   color: 'var(--color-stone-dark)',
-                  fontWeight: 300,
+                  fontWeight: 400,
                   lineHeight: 1.6,
                   marginBottom: '1.8rem',
                   maxWidth: '52ch',
@@ -410,7 +410,7 @@ function OrderContent({ orderId }: { orderId: string }) {
                 style={{
                   fontSize: '0.95rem',
                   color: 'var(--color-stone-dark)',
-                  fontWeight: 300,
+                  fontWeight: 400,
                   lineHeight: 1.6,
                   marginBottom: '1.8rem',
                   maxWidth: '52ch',
@@ -551,7 +551,7 @@ function OrderContent({ orderId }: { orderId: string }) {
                 marginTop: '0.8rem',
                 fontSize: '0.88rem',
                 color: 'var(--color-stone-dark)',
-                fontWeight: 300,
+                fontWeight: 400,
                 lineHeight: 1.6,
                 maxWidth: '54ch',
               }}
@@ -676,7 +676,7 @@ function OrderContent({ orderId }: { orderId: string }) {
                 style={{
                   marginTop: '0.5rem',
                   fontSize: '0.9rem',
-                  fontWeight: 300,
+                  fontWeight: 400,
                   color: 'var(--color-stone-dark)',
                 }}
               >
@@ -695,7 +695,7 @@ function OrderContent({ orderId }: { orderId: string }) {
                     marginTop: '0.3rem',
                     fontSize: '0.78rem',
                     color: 'var(--color-stone)',
-                    fontWeight: 300,
+                    fontWeight: 400,
                   }}
                 >
                   {order.artwork.medium}
@@ -773,7 +773,7 @@ function OrderContent({ orderId }: { orderId: string }) {
               marginTop: '0.8rem',
               fontSize: '0.78rem',
               color: 'var(--color-stone)',
-              fontWeight: 300,
+              fontWeight: 400,
               fontStyle: 'italic',
             }}
             className="font-serif"
@@ -919,7 +919,7 @@ function OrderContent({ orderId }: { orderId: string }) {
                         color: step.done
                           ? 'var(--color-stone-dark)'
                           : 'var(--color-stone)',
-                        fontWeight: 300,
+                        fontWeight: 400,
                         marginTop: '0.2rem',
                       }}
                     >
@@ -965,7 +965,7 @@ function OrderContent({ orderId }: { orderId: string }) {
               style={{
                 fontSize: '0.9rem',
                 color: 'var(--color-stone-dark)',
-                fontWeight: 300,
+                fontWeight: 400,
                 lineHeight: 1.6,
                 maxWidth: '52ch',
                 marginBottom: '1.6rem',
@@ -1168,7 +1168,7 @@ function OrderContent({ orderId }: { orderId: string }) {
               style={{
                 fontSize: '0.9rem',
                 color: 'var(--color-stone-dark)',
-                fontWeight: 300,
+                fontWeight: 400,
                 lineHeight: 1.6,
                 maxWidth: '52ch',
                 marginBottom: '1.6rem',

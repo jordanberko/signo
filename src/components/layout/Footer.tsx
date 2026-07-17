@@ -5,10 +5,10 @@ import { usePathname } from 'next/navigation';
 import NewsletterSignup from '@/components/ui/NewsletterSignup';
 
 /**
- * Huxley-style informational footer.
+ * Informational footer, gallery-minimal.
  *
- * Intentionally quiet: serif wordmark, hairline divider, four link columns
- * in small uppercase labels, stone-dark link colour, terracotta hover.
+ * Intentionally quiet: tracked uppercase wordmark, hairline divider, four
+ * link columns in small labels, stone-dark link colour, ink hover.
  * No cards, no badges, no gradients, no illustrations.
  */
 export default function Footer() {
@@ -43,7 +43,7 @@ export default function Footer() {
             <p
               style={{
                 fontSize: '0.82rem',
-                fontWeight: 300,
+                fontWeight: 400,
                 lineHeight: 1.6,
                 color: 'var(--color-stone-dark)',
                 marginBottom: '1.4rem',
@@ -133,7 +133,7 @@ export default function Footer() {
           className="mt-10 flex flex-col sm:flex-row justify-between gap-3"
           style={{
             fontSize: '0.7rem',
-            fontWeight: 300,
+            fontWeight: 400,
             letterSpacing: '0.04em',
             color: 'var(--color-stone)',
           }}
@@ -143,16 +143,16 @@ export default function Footer() {
           <a
             href="#top"
             onClick={(e) => { e.preventDefault(); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
-            className="font-serif"
+            className="footer-link"
             style={{
-              fontSize: '0.78rem',
-              fontStyle: 'italic',
-              color: 'var(--color-stone-dark)',
+              fontSize: '0.7rem',
+              letterSpacing: '0.1em',
+              textTransform: 'uppercase',
               textDecoration: 'none',
               cursor: 'pointer',
             }}
           >
-            Back to top
+            Back to top ↑
           </a>
         </div>
       </div>
@@ -321,7 +321,7 @@ function FooterColumn({
               className="no-underline footer-link"
               style={{
                 fontSize: '0.82rem',
-                fontWeight: 300,
+                fontWeight: 400,
                 display: 'inline-block',
               }}
             >

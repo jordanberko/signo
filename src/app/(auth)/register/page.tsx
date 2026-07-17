@@ -198,7 +198,7 @@ function RegisterForm() {
                 fontSize: '1rem',
                 lineHeight: 1.7,
                 color: 'var(--color-stone-dark)',
-                fontWeight: 300,
+                fontWeight: 400,
                 maxWidth: '44ch',
               }}
             >
@@ -216,7 +216,7 @@ function RegisterForm() {
                 marginTop: '1.6rem',
                 fontSize: '0.88rem',
                 color: 'var(--color-stone)',
-                fontWeight: 300,
+                fontWeight: 400,
                 lineHeight: 1.6,
               }}
             >
@@ -314,7 +314,7 @@ function RegisterForm() {
           style={{
             marginTop: '1.8rem',
             fontSize: '1rem',
-            fontWeight: 300,
+            fontWeight: 400,
             lineHeight: 1.7,
             color: 'var(--color-stone-dark)',
             maxWidth: '48ch',
@@ -464,7 +464,7 @@ function RegisterForm() {
                     style={{
                       fontSize: '0.78rem',
                       color: 'var(--color-stone)',
-                      fontWeight: 300,
+                      fontWeight: 400,
                     }}
                   >
                     {opt.note}
@@ -575,7 +575,7 @@ function RegisterForm() {
                     letterSpacing: '0.12em',
                     textTransform: 'uppercase',
                     color: 'var(--color-stone)',
-                    fontWeight: 300,
+                    fontWeight: 400,
                   }}
                 >
                   Strength ·{' '}
@@ -685,7 +685,7 @@ function RegisterForm() {
               style={{
                 fontSize: '0.88rem',
                 color: 'var(--color-stone-dark)',
-                fontWeight: 300,
+                fontWeight: 400,
                 lineHeight: 1.55,
               }}
             >
@@ -751,7 +751,7 @@ function RegisterForm() {
               marginTop: 'clamp(2rem, 3vw, 2.4rem)',
               fontSize: '0.85rem',
               color: 'var(--color-stone)',
-              fontWeight: 300,
+              fontWeight: 400,
             }}
           >
             Already have an account?{' '}

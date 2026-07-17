@@ -46,7 +46,7 @@ export default function Error({
         <p
           style={{
             fontSize: '0.9rem',
-            fontWeight: 300,
+            fontWeight: 400,
             lineHeight: 1.7,
             color: 'var(--color-stone-dark)',
             maxWidth: 420,

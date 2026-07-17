@@ -235,7 +235,7 @@ function SubscribeContent() {
           <p
             style={{
               fontSize: '0.95rem',
-              fontWeight: 300,
+              fontWeight: 400,
               color: 'var(--color-stone-dark)',
               lineHeight: 1.6,
               maxWidth: '56ch',
@@ -299,7 +299,7 @@ function SubscribeContent() {
             <p
               style={{
                 fontSize: '0.9rem',
-                fontWeight: 300,
+                fontWeight: 400,
                 color: 'var(--color-stone-dark)',
                 lineHeight: 1.7,
               }}

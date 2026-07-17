@@ -58,7 +58,7 @@ export default function PrivacyPage() {
           style={{
             marginTop: '1.4rem',
             fontSize: '1rem',
-            fontWeight: 300,
+            fontWeight: 400,
             lineHeight: 1.7,
             color: 'var(--color-stone-dark)',
             maxWidth: '52ch',
@@ -316,7 +316,7 @@ export default function PrivacyPage() {
             style={{
               marginTop: '1.6rem',
               fontSize: '1rem',
-              fontWeight: 300,
+              fontWeight: 400,
               lineHeight: 1.7,
               color: 'var(--color-stone)',
               maxWidth: '46ch',
@@ -356,7 +356,7 @@ export default function PrivacyPage() {
                 fontSize: '0.78rem',
                 letterSpacing: '0.12em',
                 textTransform: 'uppercase',
-                fontWeight: 300,
+                fontWeight: 400,
                 color: 'var(--color-warm-white)',
                 textDecoration: 'none',
               }}
@@ -374,7 +374,7 @@ const policyProseStyle: React.CSSProperties = {
   fontSize: '1rem',
   lineHeight: 1.75,
   color: 'var(--color-stone-dark)',
-  fontWeight: 300,
+  fontWeight: 400,
   maxWidth: '58ch',
 };
 
@@ -499,7 +499,7 @@ function CollectList({
               fontSize: '0.92rem',
               lineHeight: 1.6,
               color: 'var(--color-stone-dark)',
-              fontWeight: 300,
+              fontWeight: 400,
               margin: 0,
             }}
           >

@@ -225,7 +225,7 @@ function LoginForm() {
             style={{
               marginTop: '1.8rem',
               fontSize: '1rem',
-              fontWeight: 300,
+              fontWeight: 400,
               lineHeight: 1.7,
               color: 'var(--color-stone-dark)',
               maxWidth: '38ch',
@@ -391,7 +391,7 @@ function LoginForm() {
                 marginTop: 'clamp(2rem, 3vw, 2.4rem)',
                 fontSize: '0.85rem',
                 color: 'var(--color-stone)',
-                fontWeight: 300,
+                fontWeight: 400,
               }}
             >
               Don&apos;t have an account?{' '}
