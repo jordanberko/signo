@@ -1263,7 +1263,7 @@ function BrowseContent() {
                   {Array.from({ length: 6 }).map((_, i) => (
                     <div key={i}>
                       <div
-                        className="aspect-[4/5]"
+                        className="aspect-[3/4]"
                         style={{ background: 'var(--color-cream)' }}
                       />
                       <div
