@@ -42,6 +42,23 @@ const HERO_BLOCKS = [
   },
 ];
 
+// Second image banner near the foot of the page — same WoA format,
+// using the remaining two installation photographs.
+const FOOTER_BLOCKS = [
+  {
+    src: '/hero/hero_5_botanical_still_life.webp',
+    href: '/collections',
+    caption: 'Explore curated collections',
+    alt: 'Botanical still-life painting propped in a sunlit interior',
+  },
+  {
+    src: '/hero/hero_3_coral_salon_hang.webp',
+    href: '/just-sold',
+    caption: 'Recently acquired',
+    alt: 'Coral-toned salon hang of original paintings',
+  },
+];
+
 // Styles mirrored from the browse page's filter vocabulary — each chip
 // deep-links into /browse?style=…
 const FEATURED_STYLES = [
@@ -116,6 +133,7 @@ export default function HomePage() {
         <NewArrivals artworks={featured.slice(0, 8)} loading={loadStatus === 'loading'} />
       )}
       <ShopByStyle />
+      <FooterBanner />
     </div>
   );
 }
@@ -126,6 +144,47 @@ export default function HomePage() {
    below the solid nav. Small caption links under each image; the page
    headline is present for SEO/screen readers only.
    ══════════════════════════════════════════════════════════════════ */
+
+function ImagePair({
+  blocks,
+  priority = false,
+}: {
+  blocks: typeof HERO_BLOCKS;
+  priority?: boolean;
+}) {
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-2" style={{ gap: GUTTER }}>
+      {blocks.map((block, i) => (
+        <div key={block.src}>
+          <Link
+            href={block.href}
+            className="block relative overflow-hidden no-underline"
+            style={{ aspectRatio: '4 / 5', background: 'var(--color-cream)' }}
+          >
+            <Image
+              src={block.src}
+              alt={block.alt}
+              fill
+              priority={priority && i === 0}
+              sizes="(min-width: 768px) 50vw, 100vw"
+              className="object-cover"
+            />
+          </Link>
+          {/* Caption link below the image — WoA image-block text row */}
+          <div className="mt-3 md:mt-4">
+            <Link
+              href={block.href}
+              className="footer-link no-underline"
+              style={{ fontSize: '0.82rem', fontWeight: 400 }}
+            >
+              {block.caption} →
+            </Link>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
 
 function Hero() {
   return (
@@ -141,37 +200,24 @@ function Hero() {
       <h1 className="sr-only">
         Original art, direct from Australian artists — zero commission.
       </h1>
+      <ImagePair blocks={HERO_BLOCKS} priority />
+    </section>
+  );
+}
 
-      <div className="grid grid-cols-1 md:grid-cols-2" style={{ gap: GUTTER }}>
-        {HERO_BLOCKS.map((block, i) => (
-          <div key={block.src}>
-            <Link
-              href={block.href}
-              className="block relative overflow-hidden no-underline"
-              style={{ aspectRatio: '4 / 5', background: 'var(--color-cream)' }}
-            >
-              <Image
-                src={block.src}
-                alt={block.alt}
-                fill
-                priority={i === 0}
-                sizes="(min-width: 768px) 50vw, 100vw"
-                className="object-cover"
-              />
-            </Link>
-            {/* Caption link below the image — WoA image-block text row */}
-            <div className="mt-3 md:mt-4">
-              <Link
-                href={block.href}
-                className="footer-link no-underline"
-                style={{ fontSize: '0.82rem', fontWeight: 400 }}
-              >
-                {block.caption} →
-              </Link>
-            </div>
-          </div>
-        ))}
-      </div>
+/* ══════════════════════════════════════════════════════════════════
+   FOOTER BANNER — second WoA-style image pair near the foot of the
+   page, beneath Shop by style.
+   ══════════════════════════════════════════════════════════════════ */
+
+function FooterBanner() {
+  return (
+    <section
+      className="pb-10 md:pb-14"
+      style={{ paddingLeft: GUTTER, paddingRight: GUTTER }}
+      aria-label="Collections and recent acquisitions"
+    >
+      <ImagePair blocks={FOOTER_BLOCKS} />
     </section>
   );
 }
