@@ -23,7 +23,7 @@ const ACCEPTED_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/heic', '
 
 // ── HEIC conversion ──
 
-function isHeic(file: File): boolean {
+export function isHeic(file: File): boolean {
   return (
     ['image/heic', 'image/heif'].includes(file.type.toLowerCase()) ||
     /\.hei[cf]$/i.test(file.name)
@@ -38,11 +38,11 @@ function isHeic(file: File): boolean {
  * fetched when a HEIC file is actually selected). If conversion fails,
  * throw a friendly error — never upload bytes the web can't display.
  */
-async function ensureBrowserDecodable(file: File): Promise<File> {
+export async function ensureBrowserDecodable(file: File): Promise<File> {
   if (!isHeic(file)) return file;
   try {
     const heic2any = (await import('heic2any')).default;
-    const out = await heic2any({ blob: file, toType: 'image/jpeg', quality: 0.9 });
+    const out = await heic2any({ blob: file, toType: 'image/jpeg', quality: 0.85 });
     const blob = Array.isArray(out) ? out[0] : out;
     console.log(
       `[Upload] Converted HEIC → JPEG: ${(file.size / 1024 / 1024).toFixed(1)}MB → ${(blob.size / 1024 / 1024).toFixed(1)}MB`,
