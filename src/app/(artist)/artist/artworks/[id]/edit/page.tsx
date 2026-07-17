@@ -56,7 +56,12 @@ const AVAILABILITY_OPTIONS = [
 ];
 
 const IMAGE_SLOT_LABELS = [
-  { label: 'Primary photo', helper: 'The main image buyers will see first.', required: true },
+  {
+    label: 'Primary photo',
+    helper:
+      'The artwork only — straight-on, filling the frame, plain background. No room scenes here (that\'s "In context"). This is what appears in the browse grid.',
+    required: true,
+  },
   { label: 'Detail or texture', helper: 'A close reading of the surface.', required: true },
   { label: 'Side or back view', helper: 'Depth, edges, hanging hardware.', required: false },
   { label: 'In context', helper: 'The work on a wall, in a room.', required: false },

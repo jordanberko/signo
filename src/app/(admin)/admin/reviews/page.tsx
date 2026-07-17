@@ -11,6 +11,27 @@ import type { Artwork, User } from '@/types/database';
 type ReviewArtwork = Artwork & { artist: User };
 type Filter = 'pending_review' | 'approved' | 'rejected';
 
+// One-click rejection reasons for the most common photo-standard issues.
+// Keeping the primary image "artwork only" is what keeps the public
+// browse grid consistent, so enforcement should cost the reviewer nothing.
+const CANNED_REVIEW_NOTES = [
+  {
+    label: 'Primary photo: artwork only',
+    text:
+      'Please make your first photo the artwork only — straight-on, filling the frame, on a plain background. Room and styled shots are great as the later "In context" images. See the Seller Guide for examples.',
+  },
+  {
+    label: 'Photos too dark / colour off',
+    text:
+      'The photos read darker / colour-shifted compared to typical screen viewing. Please reshoot near a large window in indirect daylight, without flash or filters, so buyers see accurate colours.',
+  },
+  {
+    label: 'Low resolution',
+    text:
+      'The images are too low-resolution for buyers to inspect details. Please upload the highest-quality photos your camera produces — Signo supports zoom on the artwork page.',
+  },
+];
+
 const KICKER: React.CSSProperties = {
   fontSize: '0.62rem',
   letterSpacing: '0.22em',
@@ -722,6 +743,31 @@ export default function AdminReviewsPage() {
                   Review notes
                   {filter === 'pending_review' && ' (visible to artist if rejected)'}
                 </label>
+                {/* Canned reasons — one-click enforcement of the photo
+                    standards that keep the browse grid consistent. */}
+                {filter === 'pending_review' && (
+                  <div className="flex flex-wrap gap-2" style={{ margin: '0.5rem 0 0.75rem' }}>
+                    {CANNED_REVIEW_NOTES.map((note) => (
+                      <button
+                        key={note.label}
+                        type="button"
+                        onClick={() => setReviewNotes(note.text)}
+                        style={{
+                          padding: '0.35rem 0.7rem',
+                          fontSize: '0.7rem',
+                          letterSpacing: '0.04em',
+                          color: 'var(--color-stone-dark)',
+                          border: '1px solid var(--color-border-strong)',
+                          borderRadius: 999,
+                          background: 'transparent',
+                          cursor: 'pointer',
+                        }}
+                      >
+                        {note.label}
+                      </button>
+                    ))}
+                  </div>
+                )}
                 <textarea
                   id="review-notes"
                   value={reviewNotes}
