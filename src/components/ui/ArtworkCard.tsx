@@ -107,15 +107,13 @@ export default function ArtworkCard({
 
   return (
     <article className="group relative block">
-      {/* Image — uniform 3:4 tile on a shared neutral ground. The artwork
-          is CONTAINED at its natural proportions rather than cropped to
-          fill: artist-supplied photos vary wildly (rooms, angles, odd
-          aspects), and containing them on one consistent background is
-          what keeps the grid reading calm and gallery-neat. */}
+      {/* Image — uniform 3:4 tile, artwork CONTAINED at its natural
+          proportions (never cropped). The tile ground is transparent so
+          the photo sits directly on the page — a visible tile colour
+          read as a second background behind each photo's own. */}
       <Link
         href={`/artwork/${id}`}
         className="block overflow-hidden aspect-[3/4] relative no-underline"
-        style={{ background: 'var(--color-cream)' }}
       >
         {imageUrl ? (
           <img
@@ -123,7 +121,6 @@ export default function ArtworkCard({
             alt={title}
             className="block w-full h-full object-contain transition-transform group-hover:scale-[1.02]"
             style={{
-              padding: '7%',
               transitionDuration: 'var(--dur-slow)',
               transitionTimingFunction: 'var(--ease-out)',
             }}
