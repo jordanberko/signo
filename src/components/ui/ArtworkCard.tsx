@@ -107,10 +107,10 @@ export default function ArtworkCard({
 
   return (
     <article className="group relative block">
-      {/* Image — 4:5 aspect, full-bleed, no border/shadow */}
+      {/* Image — 3:4 poster aspect (WoA-scale), full-bleed, no border/shadow */}
       <Link
         href={`/artwork/${id}`}
-        className="block overflow-hidden aspect-[4/5] relative no-underline"
+        className="block overflow-hidden aspect-[3/4] relative no-underline"
         style={{ background: 'var(--color-cream)' }}
       >
         {imageUrl ? (
@@ -169,7 +169,7 @@ export default function ArtworkCard({
       </button>
 
       {/* Metadata — typography only, no containers */}
-      <div className="pt-4">
+      <div className="pt-3">
         {/* Tiny uppercase caption row */}
         {(!hideBadge && (categoryLabel || availabilityLabel)) && (
           <div
@@ -189,12 +189,12 @@ export default function ArtworkCard({
           </div>
         )}
 
-        {/* Title — serif */}
+        {/* Title */}
         <Link href={`/artwork/${id}`} className="block no-underline">
           <h3
             className="truncate transition-colors group-hover:text-[color:var(--color-terracotta)]"
             style={{
-              fontSize: '0.95rem',
+              fontSize: '0.85rem',
               fontWeight: 500,
               lineHeight: 1.3,
               letterSpacing: '-0.01em',
@@ -213,7 +213,7 @@ export default function ArtworkCard({
           href={`/artists/${artistId}`}
           className="block no-underline mt-1"
           style={{
-            fontSize: '0.82rem',
+            fontSize: '0.78rem',
             fontWeight: 400,
             color: 'var(--color-stone-dark)',
             transition: 'color var(--dur-base) var(--ease-out)',
@@ -245,10 +245,10 @@ export default function ArtworkCard({
         <p
           className="mt-2"
           style={{
-            fontSize: '0.9rem',
+            fontSize: '0.85rem',
             fontWeight: 500,
             color: 'var(--color-ink)',
-            margin: '0.5rem 0 0',
+            margin: '0.4rem 0 0',
           }}
         >
           {formatPrice(price)}

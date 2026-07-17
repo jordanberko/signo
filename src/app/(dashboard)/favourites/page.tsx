@@ -293,7 +293,7 @@ export default function FavouritesPage() {
               {Array.from({ length: 8 }).map((_, i) => (
                 <div key={i}>
                   <div
-                    className="aspect-[4/5]"
+                    className="aspect-[3/4]"
                     style={{ background: 'var(--color-cream)' }}
                   />
                   <div

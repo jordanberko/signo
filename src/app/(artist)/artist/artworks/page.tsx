@@ -735,7 +735,7 @@ export default function ArtistArtworksPage() {
                     }}
                   >
                     <div
-                      className="aspect-[4/5]"
+                      className="aspect-[3/4]"
                       style={{
                         position: 'relative',
                         background: 'var(--color-cream)',
