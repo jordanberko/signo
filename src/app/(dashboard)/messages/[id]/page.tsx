@@ -326,7 +326,7 @@ export default function ConversationPage({
           style={{
             fontSize: '0.95rem',
             color: 'var(--color-stone-dark)',
-            fontWeight: 300,
+            fontWeight: 400,
             lineHeight: 1.6,
             marginBottom: '2rem',
             maxWidth: '52ch',
@@ -389,7 +389,7 @@ export default function ConversationPage({
           style={{
             fontSize: '0.95rem',
             color: 'var(--color-stone-dark)',
-            fontWeight: 300,
+            fontWeight: 400,
             lineHeight: 1.6,
             marginBottom: '2rem',
             maxWidth: '52ch',
@@ -674,7 +674,7 @@ export default function ConversationPage({
                           margin: 0,
                           whiteSpace: 'pre-wrap',
                           wordBreak: 'break-word',
-                          fontWeight: 300,
+                          fontWeight: 400,
                         }}
                       >
                         {msg.content}

@@ -51,7 +51,7 @@ function Stars({ rating }: { rating: number }) {
         letterSpacing: '0.12em',
         fontSize: '0.82rem',
         color: 'var(--color-ink)',
-        fontWeight: 300,
+        fontWeight: 400,
       }}
     >
       {'★'.repeat(rounded)}
@@ -395,7 +395,7 @@ export default function ArtistProfileClient({
                       style={{
                         color: 'rgba(255,255,255,0.85)',
                         fontSize: '0.9rem',
-                        fontWeight: 300,
+                        fontWeight: 400,
                         marginTop: '0.4rem',
                       }}
                     >
@@ -494,7 +494,14 @@ export default function ArtistProfileClient({
       {/* ── Artist header: editorial split ── */}
       <header
         className="px-6 sm:px-10"
-        style={{ paddingTop: 'clamp(3.5rem, 7vw, 6rem)', paddingBottom: 'clamp(2.5rem, 5vw, 4rem)' }}
+        style={{
+          // Without a featured carousel this section is the first thing on
+          // the page, so it must clear the fixed solid nav (~4.2rem).
+          paddingTop: hasFeatured
+            ? 'clamp(3.5rem, 7vw, 6rem)'
+            : 'clamp(6rem, 8vw, 7rem)',
+          paddingBottom: 'clamp(2.5rem, 5vw, 4rem)',
+        }}
       >
         <div className="grid grid-cols-1 lg:grid-cols-12" style={{ gap: 'clamp(2rem, 5vw, 5rem)' }}>
           {/* Left: portrait + name block */}
@@ -557,7 +564,7 @@ export default function ArtistProfileClient({
                 style={{
                   fontSize: '1rem',
                   lineHeight: 1.75,
-                  fontWeight: 300,
+                  fontWeight: 400,
                   color: 'var(--color-stone-dark)',
                   maxWidth: '60ch',
                   whiteSpace: 'pre-line',
@@ -637,7 +644,7 @@ export default function ArtistProfileClient({
                 style={{
                   marginTop: '2rem',
                   fontSize: '0.82rem',
-                  fontWeight: 300,
+                  fontWeight: 400,
                   color: 'var(--color-stone-dark)',
                 }}
               >
@@ -715,7 +722,7 @@ export default function ArtistProfileClient({
                       fontSize: '0.72rem',
                       letterSpacing: '0.15em',
                       textTransform: 'uppercase',
-                      fontWeight: active ? 400 : 300,
+                      fontWeight: active ? 500 : 400,
                       color: active ? 'var(--color-ink)' : 'var(--color-stone-dark)',
                       background: 'none',
                       border: 'none',
@@ -751,7 +758,7 @@ export default function ArtistProfileClient({
                 marginTop: '1rem',
                 fontSize: '0.88rem',
                 color: 'var(--color-stone-dark)',
-                fontWeight: 300,
+                fontWeight: 400,
               }}
             >
               Follow the artist to be notified when new work is listed.
@@ -839,7 +846,7 @@ export default function ArtistProfileClient({
                         color: 'var(--color-stone-dark)',
                         marginTop: '0.9rem',
                         lineHeight: 1.55,
-                        fontWeight: 300,
+                        fontWeight: 400,
                       }}
                     >
                       {post.caption}
@@ -1006,7 +1013,7 @@ export default function ArtistProfileClient({
                     fontSize: '0.82rem',
                     color: 'var(--color-stone-dark)',
                     marginTop: '0.5rem',
-                    fontWeight: 300,
+                    fontWeight: 400,
                   }}
                 >
                   Check your messages for the artist&apos;s reply.
@@ -1082,7 +1089,7 @@ export default function ArtistProfileClient({
                       fontSize: '0.82rem',
                       color: 'var(--color-error)',
                       marginBottom: '1rem',
-                      fontWeight: 300,
+                      fontWeight: 400,
                     }}
                   >
                     {commissionError}
@@ -1192,7 +1199,7 @@ export default function ArtistProfileClient({
               <p
                 style={{
                   fontSize: '0.95rem',
-                  fontWeight: 300,
+                  fontWeight: 400,
                   color: 'var(--color-stone-dark)',
                   maxWidth: '50ch',
                   lineHeight: 1.7,
@@ -1284,7 +1291,7 @@ export default function ArtistProfileClient({
                           <p
                             style={{
                               fontSize: '0.92rem',
-                              fontWeight: 300,
+                              fontWeight: 400,
                               lineHeight: 1.65,
                               color: 'var(--color-stone-dark)',
                             }}

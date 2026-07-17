@@ -46,7 +46,7 @@ export default function SellerGuidePage() {
           style={{
             marginTop: '1.8rem',
             fontSize: '1rem',
-            fontWeight: 300,
+            fontWeight: 400,
             lineHeight: 1.7,
             color: 'var(--color-stone-dark)',
             maxWidth: '56ch',
@@ -302,7 +302,7 @@ export default function SellerGuidePage() {
                     fontSize: '0.9rem',
                     lineHeight: 1.6,
                     color: 'var(--color-stone-dark)',
-                    fontWeight: 300,
+                    fontWeight: 400,
                   }}
                 >
                   {step.detail}
@@ -441,7 +441,7 @@ export default function SellerGuidePage() {
                     fontSize: '0.92rem',
                     lineHeight: 1.65,
                     color: 'var(--color-stone-dark)',
-                    fontWeight: 300,
+                    fontWeight: 400,
                     margin: 0,
                     maxWidth: '58ch',
                   }}
@@ -492,7 +492,7 @@ export default function SellerGuidePage() {
             style={{
               marginTop: '1.6rem',
               fontSize: '1rem',
-              fontWeight: 300,
+              fontWeight: 400,
               lineHeight: 1.7,
               color: 'var(--color-stone)',
               maxWidth: '46ch',
@@ -535,7 +535,7 @@ export default function SellerGuidePage() {
                 fontSize: '0.78rem',
                 letterSpacing: '0.12em',
                 textTransform: 'uppercase',
-                fontWeight: 300,
+                fontWeight: 400,
                 color: 'var(--color-warm-white)',
                 textDecoration: 'none',
               }}
@@ -633,7 +633,7 @@ function ChapterSection({
                   fontSize: '1rem',
                   lineHeight: 1.75,
                   color: 'var(--color-stone-dark)',
-                  fontWeight: 300,
+                  fontWeight: 400,
                   maxWidth: '58ch',
                   marginBottom: '0.5rem',
                 }}
@@ -682,7 +682,7 @@ function TipList({ items }: { items: Array<{ label: string; detail: string }> })
               fontSize: '0.92rem',
               lineHeight: 1.6,
               color: 'var(--color-stone-dark)',
-              fontWeight: 300,
+              fontWeight: 400,
               margin: 0,
             }}
           >

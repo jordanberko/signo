@@ -151,7 +151,7 @@ export default function TradePage() {
           style={{
             marginTop: '1.8rem',
             fontSize: '1rem',
-            fontWeight: 300,
+            fontWeight: 400,
             lineHeight: 1.7,
             color: 'var(--color-stone-dark)',
             maxWidth: '52ch',
@@ -217,7 +217,7 @@ export default function TradePage() {
                     style={{
                       fontSize: '0.92rem',
                       color: 'var(--color-ink)',
-                      fontWeight: 300,
+                      fontWeight: 400,
                       lineHeight: 1.55,
                     }}
                     dangerouslySetInnerHTML={{ __html: step }}
@@ -258,7 +258,7 @@ export default function TradePage() {
                     marginTop: '1rem',
                     fontSize: '0.94rem',
                     color: 'var(--color-stone-dark)',
-                    fontWeight: 300,
+                    fontWeight: 400,
                     lineHeight: 1.65,
                     maxWidth: '46ch',
                     marginBottom: '2rem',
@@ -440,7 +440,7 @@ export default function TradePage() {
                       fontSize: '0.82rem',
                       color: 'var(--color-error, #b4452b)',
                       fontStyle: 'italic',
-                      fontWeight: 300,
+                      fontWeight: 400,
                     }}
                   >
                     {errorMsg}

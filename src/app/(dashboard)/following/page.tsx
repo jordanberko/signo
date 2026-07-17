@@ -153,7 +153,7 @@ export default function FollowingPage() {
           <p
             style={{
               fontSize: '0.92rem',
-              fontWeight: 300,
+              fontWeight: 400,
               color: 'var(--color-stone-dark)',
               lineHeight: 1.6,
             }}
@@ -231,7 +231,7 @@ export default function FollowingPage() {
                 marginTop: '1rem',
                 fontSize: '0.9rem',
                 color: 'var(--color-stone-dark)',
-                fontWeight: 300,
+                fontWeight: 400,
                 lineHeight: 1.6,
               }}
             >
@@ -309,7 +309,7 @@ export default function FollowingPage() {
                         marginTop: '0.3rem',
                         fontSize: '0.82rem',
                         color: 'var(--color-stone-dark)',
-                        fontWeight: 300,
+                        fontWeight: 400,
                       }}
                     >
                       {artist.location && (

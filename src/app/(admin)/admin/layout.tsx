@@ -71,7 +71,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               fontSize: '1rem',
               lineHeight: 1.7,
               color: 'var(--color-stone-dark)',
-              fontWeight: 300,
+              fontWeight: 400,
               maxWidth: '42ch',
             }}
           >

@@ -137,7 +137,7 @@ export default async function ArtistsIndexPage() {
           style={{
             marginTop: '1.6rem',
             fontSize: '0.92rem',
-            fontWeight: 300,
+            fontWeight: 400,
             lineHeight: 1.6,
             color: 'var(--color-stone-dark)',
             maxWidth: '46ch',
@@ -172,7 +172,7 @@ export default async function ArtistsIndexPage() {
               marginTop: '1rem',
               fontSize: '0.88rem',
               color: 'var(--color-stone-dark)',
-              fontWeight: 300,
+              fontWeight: 400,
               lineHeight: 1.6,
             }}
           >

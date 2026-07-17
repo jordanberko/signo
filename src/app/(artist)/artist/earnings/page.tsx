@@ -136,7 +136,7 @@ export default function EarningsPage() {
           <p
             style={{
               fontSize: '0.92rem',
-              fontWeight: 300,
+              fontWeight: 400,
               color: 'var(--color-stone-dark)',
               lineHeight: 1.6,
               maxWidth: '48ch',
@@ -221,7 +221,7 @@ export default function EarningsPage() {
           <p
             style={{
               fontSize: '0.92rem',
-              fontWeight: 300,
+              fontWeight: 400,
               color: 'var(--color-stone-dark)',
               lineHeight: 1.7,
               maxWidth: '58ch',
@@ -235,7 +235,7 @@ export default function EarningsPage() {
           <p
             style={{
               fontSize: '0.92rem',
-              fontWeight: 300,
+              fontWeight: 400,
               color: 'var(--color-stone-dark)',
               lineHeight: 1.7,
               maxWidth: '58ch',
@@ -281,7 +281,7 @@ export default function EarningsPage() {
                 marginTop: '1rem',
                 fontSize: '0.9rem',
                 color: 'var(--color-stone-dark)',
-                fontWeight: 300,
+                fontWeight: 400,
                 lineHeight: 1.6,
               }}
             >
@@ -421,7 +421,7 @@ export default function EarningsPage() {
                           fontStyle: 'italic',
                           color: 'var(--color-stone)',
                           textAlign: 'right',
-                          fontWeight: 300,
+                          fontWeight: 400,
                         }}
                       >
                         −{formatPrice(sale - payout)}
@@ -568,7 +568,7 @@ export default function EarningsPage() {
                             fontSize: '0.78rem',
                             fontStyle: 'italic',
                             color: 'var(--color-stone)',
-                            fontWeight: 300,
+                            fontWeight: 400,
                           }}
                         >
                           {formatPrice(sale)} − {formatPrice(sale - payout)} fee

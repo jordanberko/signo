@@ -39,7 +39,7 @@ export default function NotFound() {
         <p
           style={{
             fontSize: '0.9rem',
-            fontWeight: 300,
+            fontWeight: 400,
             lineHeight: 1.7,
             color: 'var(--color-stone-dark)',
             maxWidth: 420,

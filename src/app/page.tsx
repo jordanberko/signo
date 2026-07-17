@@ -20,12 +20,19 @@ import ArtworkCard from '@/components/ui/ArtworkCard';
  * no hidden content — everything reachable within one click.
  */
 
-// Gallery installation photographs for the hero.
-const HERO_SLIDES = [
-  '/hero/hero_2_large_red_abstract.webp',
-  '/hero/hero_5_botanical_still_life.webp',
-  '/hero/hero_4_oak_concrete_salon.webp',
-  '/hero/hero_3_coral_salon_hang.webp',
+// Gallery installation photographs for the hero — shown as side-by-side
+// pairs (Wall of Art-style split hero). Each image spans ~50vw, so the
+// sources render close to native resolution instead of stretching to
+// full viewport width.
+const HERO_PAIRS: [string, string][] = [
+  [
+    '/hero/hero_2_large_red_abstract.webp',
+    '/hero/hero_5_botanical_still_life.webp',
+  ],
+  [
+    '/hero/hero_4_oak_concrete_salon.webp',
+    '/hero/hero_3_coral_salon_hang.webp',
+  ],
 ];
 
 // Styles mirrored from the browse page's filter vocabulary — each chip
@@ -111,16 +118,19 @@ export default function HomePage() {
 }
 
 /* ══════════════════════════════════════════════════════════════════
-   HERO — installation photography, slow crossfade.
-   Headline states what the site is; two CTAs route the two audiences
-   (buy / sell) without scrolling.
+   HERO — Wall of Art-style split hero: two installation photographs
+   side by side with a thin uniform gap, sitting BELOW the solid nav
+   (matching outer margins, nothing hidden behind the bar). Pairs
+   crossfade slowly; headline + CTAs overlay the bottom-left.
    ══════════════════════════════════════════════════════════════════ */
+
+const HERO_GUTTER = 'clamp(0.75rem, 1.2vw, 1rem)'; // ≈12–16px, WoA-style
 
 function Hero() {
   const [index, setIndex] = useState(0);
   const [tick, setTick] = useState(0);
-  const slides = HERO_SLIDES;
-  const count = slides.length;
+  const pairs = HERO_PAIRS;
+  const count = pairs.length;
 
   useEffect(() => {
     if (count < 2) return;
@@ -130,7 +140,7 @@ function Hero() {
     ) {
       return;
     }
-    const id = setInterval(() => setIndex((i) => (i + 1) % count), 7000);
+    const id = setInterval(() => setIndex((i) => (i + 1) % count), 8000);
     return () => clearInterval(id);
   }, [count, tick]);
 
@@ -141,126 +151,147 @@ function Hero() {
 
   return (
     <section
-      className="relative overflow-hidden"
-      style={{ height: 'min(88svh, 860px)' }}
+      className="relative"
+      style={{
+        // Clear the fixed nav (~4.05rem) plus one gutter of breathing room,
+        // so the imagery starts below the bar with WoA-style spacing.
+        paddingTop: `calc(clamp(3.6rem, 3vw + 2.6rem, 4.2rem) + ${HERO_GUTTER})`,
+        paddingLeft: HERO_GUTTER,
+        paddingRight: HERO_GUTTER,
+      }}
       aria-label="Gallery installation"
     >
-      {slides.map((src, i) => (
-        <div
-          key={src}
-          className="absolute inset-0"
-          style={{
-            opacity: i === index ? 1 : 0,
-            transition: 'opacity var(--dur-cinematic) var(--ease-out)',
-          }}
-          aria-hidden={i !== index}
-        >
-          <Image
-            src={src}
-            alt=""
-            fill
-            priority={i === 0}
-            sizes="100vw"
-            className="object-cover"
-          />
-          <div
-            className="absolute inset-0 pointer-events-none"
-            style={{
-              background:
-                'linear-gradient(to bottom, transparent 45%, rgba(16,16,16,0.55) 100%)',
-            }}
-          />
-        </div>
-      ))}
-
-      {/* Text overlay — bottom-left */}
+      {/* Split image field — two columns on md+, single image on mobile */}
       <div
-        className="absolute z-10"
-        style={{
-          left: 'clamp(1.5rem, 4vw, 3rem)',
-          right: 'clamp(1.5rem, 4vw, 3rem)',
-          bottom: 'clamp(2.5rem, 6vw, 4rem)',
-          maxWidth: 760,
-        }}
+        className="relative overflow-hidden"
+        style={{ height: 'min(76svh, 780px)' }}
       >
-        <div
-          className="mb-5"
-          style={{
-            fontSize: '0.68rem',
-            letterSpacing: '0.22em',
-            textTransform: 'uppercase',
-            fontWeight: 500,
-            color: 'rgba(255, 255, 255, 0.8)',
-          }}
-        >
-          Australian art marketplace · Zero commission
-        </div>
-        <h1
-          style={{
-            fontSize: 'clamp(2.4rem, 5.5vw, 4.4rem)',
-            fontWeight: 500,
-            lineHeight: 1.04,
-            letterSpacing: '-0.025em',
-            color: '#fff',
-            margin: 0,
-          }}
-        >
-          Original art, direct
-          <br />
-          from the artist.
-        </h1>
-        <div className="mt-8 flex flex-wrap gap-3">
-          <Link href="/browse" className="btn-primary btn-primary--inverse no-underline">
-            Browse artwork
-          </Link>
-          <Link href="/register?role=artist" className="btn-outline btn-outline--inverse no-underline">
-            Start selling
-          </Link>
-        </div>
-      </div>
-
-      {/* Numbered indices — bottom-right */}
-      {count > 1 && (
-        <div
-          className="absolute z-10 hidden sm:flex items-baseline"
-          style={{
-            right: 'clamp(1.5rem, 4vw, 3rem)',
-            bottom: 'clamp(2.5rem, 6vw, 4rem)',
-            gap: '1.25rem',
-          }}
-          aria-label="Hero slide selector"
-        >
-          {slides.map((_, i) => {
-            const active = i === index;
-            return (
-              <button
-                key={i}
-                type="button"
-                onClick={() => goTo(i)}
-                aria-label={`Show slide ${i + 1}`}
-                aria-current={active ? 'true' : undefined}
-                style={{
-                  background: 'transparent',
-                  border: 'none',
-                  padding: '0.35rem 0',
-                  cursor: 'pointer',
-                  fontSize: '0.68rem',
-                  letterSpacing: '0.22em',
-                  fontWeight: 500,
-                  color: active ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.5)',
-                  borderBottom: active
-                    ? '1px solid rgba(255,255,255,0.95)'
-                    : '1px solid transparent',
-                  transition:
-                    'color var(--dur-base) var(--ease-out), border-color var(--dur-base) var(--ease-out)',
-                }}
+        {pairs.map((pair, i) => (
+          <div
+            key={pair[0]}
+            className="absolute inset-0 grid grid-cols-1 md:grid-cols-2"
+            style={{
+              gap: HERO_GUTTER,
+              opacity: i === index ? 1 : 0,
+              transition: 'opacity var(--dur-cinematic) var(--ease-out)',
+            }}
+            aria-hidden={i !== index}
+          >
+            {pair.map((src, col) => (
+              <div
+                key={src}
+                className={`relative overflow-hidden ${col === 1 ? 'hidden md:block' : ''}`}
               >
-                {String(i + 1).padStart(2, '0')}
-              </button>
-            );
-          })}
+                <Image
+                  src={src}
+                  alt=""
+                  fill
+                  priority={i === 0}
+                  sizes={col === 1 ? '50vw' : '(min-width: 768px) 50vw, 100vw'}
+                  className="object-cover"
+                />
+                {/* Bottom gradient for overlay legibility */}
+                <div
+                  className="absolute inset-0 pointer-events-none"
+                  style={{
+                    background:
+                      'linear-gradient(to bottom, transparent 42%, rgba(16,16,16,0.55) 100%)',
+                  }}
+                />
+              </div>
+            ))}
+          </div>
+        ))}
+
+        {/* Text overlay — bottom-left */}
+        <div
+          className="absolute z-10"
+          style={{
+            left: 'clamp(1.5rem, 3vw, 2.5rem)',
+            right: 'clamp(1.5rem, 3vw, 2.5rem)',
+            bottom: 'clamp(2rem, 4vw, 3rem)',
+            maxWidth: 720,
+          }}
+        >
+          <div
+            className="mb-5"
+            style={{
+              fontSize: '0.68rem',
+              letterSpacing: '0.22em',
+              textTransform: 'uppercase',
+              fontWeight: 500,
+              color: 'rgba(255, 255, 255, 0.8)',
+            }}
+          >
+            Australian art marketplace · Zero commission
+          </div>
+          <h1
+            style={{
+              fontSize: 'clamp(2.2rem, 5vw, 4rem)',
+              fontWeight: 500,
+              lineHeight: 1.04,
+              letterSpacing: '-0.025em',
+              color: '#fff',
+              margin: 0,
+            }}
+          >
+            Original art, direct
+            <br />
+            from the artist.
+          </h1>
+          <div className="mt-8 flex flex-wrap gap-3">
+            <Link href="/browse" className="btn-primary btn-primary--inverse no-underline">
+              Browse artwork
+            </Link>
+            <Link href="/register?role=artist" className="btn-outline btn-outline--inverse no-underline">
+              Start selling
+            </Link>
+          </div>
         </div>
-      )}
+
+        {/* Numbered indices — bottom-right */}
+        {count > 1 && (
+          <div
+            className="absolute z-10 hidden sm:flex items-baseline"
+            style={{
+              right: 'clamp(1.5rem, 3vw, 2.5rem)',
+              bottom: 'clamp(2rem, 4vw, 3rem)',
+              gap: '1.25rem',
+            }}
+            aria-label="Hero slide selector"
+          >
+            {pairs.map((_, i) => {
+              const active = i === index;
+              return (
+                <button
+                  key={i}
+                  type="button"
+                  onClick={() => goTo(i)}
+                  aria-label={`Show slide ${i + 1}`}
+                  aria-current={active ? 'true' : undefined}
+                  style={{
+                    background: 'transparent',
+                    border: 'none',
+                    padding: '0.35rem 0',
+                    cursor: 'pointer',
+                    fontSize: '0.68rem',
+                    letterSpacing: '0.22em',
+                    fontWeight: 500,
+                    color: active ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.5)',
+                    borderBottom: active
+                      ? '1px solid rgba(255,255,255,0.95)'
+                      : '1px solid transparent',
+                    transition:
+                      'color var(--dur-base) var(--ease-out), border-color var(--dur-base) var(--ease-out)',
+                  }}
+                >
+                  {String(i + 1).padStart(2, '0')}
+                </button>
+              );
+            })}
+          </div>
+        )}
+      </div>
     </section>
   );
 }

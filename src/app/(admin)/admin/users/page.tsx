@@ -304,7 +304,7 @@ export default function AdminUsersPage() {
                             marginTop: '0.2rem',
                             fontSize: '0.78rem',
                             color: 'var(--color-stone-dark)',
-                            fontWeight: 300,
+                            fontWeight: 400,
                           }}
                         >
                           {u.email}
@@ -323,7 +323,7 @@ export default function AdminUsersPage() {
                       verticalAlign: 'middle',
                       fontSize: '0.85rem',
                       color: 'var(--color-stone-dark)',
-                      fontWeight: 300,
+                      fontWeight: 400,
                     }}
                   >
                     {u.location || '—'}
@@ -334,7 +334,7 @@ export default function AdminUsersPage() {
                       verticalAlign: 'middle',
                       fontSize: '0.85rem',
                       color: 'var(--color-stone-dark)',
-                      fontWeight: 300,
+                      fontWeight: 400,
                       fontStyle: 'italic',
                     }}
                     className="font-serif"

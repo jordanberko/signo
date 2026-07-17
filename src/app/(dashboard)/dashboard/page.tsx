@@ -76,7 +76,7 @@ function QuickLink({
         style={{
           fontSize: '0.78rem',
           color: 'var(--color-stone)',
-          fontWeight: 300,
+          fontWeight: 400,
           marginTop: '0.2rem',
         }}
       >
@@ -279,7 +279,7 @@ function DashboardContent() {
           <p
             style={{
               fontSize: '0.95rem',
-              fontWeight: 300,
+              fontWeight: 400,
               lineHeight: 1.6,
               color: 'var(--color-stone-dark)',
               maxWidth: '46ch',
@@ -390,7 +390,7 @@ function DashboardContent() {
                       marginTop: '0.8rem',
                       fontSize: '0.88rem',
                       color: 'var(--color-stone-dark)',
-                      fontWeight: 300,
+                      fontWeight: 400,
                       lineHeight: 1.6,
                     }}
                   >
@@ -486,7 +486,7 @@ function DashboardContent() {
                               style={{
                                 padding: '1rem 1rem 1rem 0',
                                 color: 'var(--color-stone-dark)',
-                                fontWeight: 300,
+                                fontWeight: 400,
                               }}
                             >
                               {order.artistName}
@@ -504,7 +504,7 @@ function DashboardContent() {
                               style={{
                                 padding: '1rem 1rem 1rem 0',
                                 color: 'var(--color-stone)',
-                                fontWeight: 300,
+                                fontWeight: 400,
                                 fontSize: '0.82rem',
                               }}
                             >
@@ -594,7 +594,7 @@ function DashboardContent() {
                                 fontSize: '0.76rem',
                                 color: 'var(--color-stone)',
                                 marginTop: '0.15rem',
-                                fontWeight: 300,
+                                fontWeight: 400,
                               }}
                             >
                               {order.artistName} · {order.date}
@@ -681,7 +681,7 @@ function DashboardContent() {
                       marginTop: '0.8rem',
                       fontSize: '0.84rem',
                       color: 'var(--color-stone-dark)',
-                      fontWeight: 300,
+                      fontWeight: 400,
                       lineHeight: 1.6,
                     }}
                   >
@@ -788,7 +788,7 @@ function DashboardContent() {
               <p
                 style={{
                   fontSize: '0.82rem',
-                  fontWeight: 300,
+                  fontWeight: 400,
                   color: 'rgba(255, 255, 255, 0.72)',
                   marginTop: '0.8rem',
                   lineHeight: 1.6,

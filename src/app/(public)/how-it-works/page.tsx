@@ -159,7 +159,7 @@ function StepList({ kicker, heading, steps }: { kicker: string; heading: string;
                     fontSize: '0.96rem',
                     lineHeight: 1.65,
                     color: 'var(--color-stone-dark)',
-                    fontWeight: 300,
+                    fontWeight: 400,
                     maxWidth: '48ch',
                   }}
                 >
@@ -215,7 +215,7 @@ export default function HowItWorksPage() {
           style={{
             marginTop: '1.8rem',
             fontSize: '1rem',
-            fontWeight: 300,
+            fontWeight: 400,
             lineHeight: 1.7,
             color: 'var(--color-stone-dark)',
             maxWidth: '52ch',
@@ -321,7 +321,7 @@ export default function HowItWorksPage() {
                 fontSize: '0.82rem',
                 color: 'var(--color-stone-dark)',
                 fontStyle: 'italic',
-                fontWeight: 300,
+                fontWeight: 400,
                 lineHeight: 1.6,
                 maxWidth: '52ch',
               }}
@@ -405,7 +405,7 @@ export default function HowItWorksPage() {
                     fontSize: '0.94rem',
                     lineHeight: 1.65,
                     color: 'var(--color-stone-dark)',
-                    fontWeight: 300,
+                    fontWeight: 400,
                     maxWidth: '52ch',
                   }}
                 >
@@ -488,7 +488,7 @@ export default function HowItWorksPage() {
                 fontSize: '0.78rem',
                 letterSpacing: '0.12em',
                 textTransform: 'uppercase',
-                fontWeight: 300,
+                fontWeight: 400,
                 color: 'var(--color-warm-white)',
                 textDecoration: 'none',
               }}
@@ -518,7 +518,7 @@ function LedgerRow({ label, value, muted }: { label: string; value: string; mute
         style={{
           fontSize: '0.86rem',
           color: muted ? 'var(--color-stone)' : 'var(--color-ink)',
-          fontWeight: 300,
+          fontWeight: 400,
           fontStyle: muted ? 'italic' : 'normal',
         }}
       >

@@ -105,7 +105,7 @@ export default function JustSoldPage() {
           style={{
             marginTop: '1.6rem',
             fontSize: '0.92rem',
-            fontWeight: 300,
+            fontWeight: 400,
             lineHeight: 1.6,
             color: 'var(--color-stone-dark)',
             maxWidth: '46ch',
@@ -131,7 +131,7 @@ export default function JustSoldPage() {
               fontSize: '1.1rem',
               fontStyle: 'italic',
               color: 'var(--color-stone)',
-              fontWeight: 300,
+              fontWeight: 400,
             }}
           >
             Loading the ledger…
@@ -154,7 +154,7 @@ export default function JustSoldPage() {
                 marginBottom: '2rem',
                 fontSize: '0.88rem',
                 color: 'var(--color-stone-dark)',
-                fontWeight: 300,
+                fontWeight: 400,
                 lineHeight: 1.6,
               }}
             >
@@ -264,7 +264,7 @@ function SoldRow({ item, isFirst }: { item: SoldArtwork; isFirst: boolean }) {
               color: 'var(--color-stone-dark)',
               fontStyle: 'italic',
               marginTop: '0.25rem',
-              fontWeight: 300,
+              fontWeight: 400,
             }}
           >
             {item.artistName}
@@ -275,7 +275,7 @@ function SoldRow({ item, isFirst }: { item: SoldArtwork; isFirst: boolean }) {
                 marginTop: '0.35rem',
                 fontSize: '0.72rem',
                 color: 'var(--color-stone)',
-                fontWeight: 300,
+                fontWeight: 400,
                 letterSpacing: '0.02em',
               }}
             >

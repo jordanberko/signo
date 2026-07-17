@@ -10,14 +10,17 @@ import Avatar from '@/components/ui/Avatar';
 
 /**
  * Shop-style nav, gallery-minimal:
- * - Fixed top. Solid white on standard pages; transparent with
- *   mix-blend-mode: difference over media-led heroes, snapping solid
- *   on scroll.
+ * - Fixed top, solid white on EVERY page — one constant header
+ *   sitewide (the old transparent/mix-blend hero mode is retired).
  * - Primary destinations (Browse / Artists / Collections) are ALWAYS
  *   visible on desktop — no hidden hamburger-only navigation.
  * - Search is one click away from every page.
  * - "Menu" opens the full-screen overlay: account links, secondary
  *   pages, and the complete list on mobile.
+ *
+ * Pages must clear the fixed bar with ~4.2rem+ of top padding unless
+ * they lead with tall full-bleed media (where cropping the top of the
+ * image behind the bar is fine).
  */
 
 const NAV_LINKS = [
@@ -40,38 +43,13 @@ function clearSupabaseCookies() {
   }
 }
 
-// Pages that lead with a full-bleed media hero — nav starts in overlay mode.
-// The homepage deliberately is NOT listed: its light installation imagery
-// left the blended nav illegible, and a solid white bar reads cleaner.
-const HERO_LED_ROUTES = ['/artwork/', '/artists/', '/collections/'];
-
-function isHeroLed(pathname: string | null): boolean {
-  if (!pathname) return false;
-  return HERO_LED_ROUTES.some((r) =>
-    r === '/' ? pathname === '/' : pathname.startsWith(r)
-  );
-}
-
 export default function Header() {
   const pathname = usePathname();
   const router = useRouter();
   const { user, loading: authLoading } = useAuth();
 
-  const heroLed = isHeroLed(pathname);
-
   const [menuOpen, setMenuOpen] = useState(false);
-  const [scrolled, setScrolled] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
-
-  // Scroll state: once we've scrolled past ~70% of viewport, nav goes solid.
-  useEffect(() => {
-    function handleScroll() {
-      setScrolled(window.scrollY > window.innerHeight * 0.7 - 80);
-    }
-    handleScroll();
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, [pathname]);
 
   // Unread message count (signed-in)
   useEffect(() => {
@@ -151,28 +129,12 @@ export default function Header() {
   const isArtist = user?.role === 'artist' || user?.role === 'admin';
   const isAdmin = user?.role === 'admin';
 
-  // Nav mode
-  // - heroLed + not scrolled → transparent with mix-blend
-  // - otherwise → solid
-  const transparent = heroLed && !scrolled && !menuOpen;
-
   return (
     <>
       <nav
         aria-label="Primary"
-        className={[
-          'fixed top-0 inset-x-0',
-          'flex items-center justify-between',
-          'px-6 sm:px-10 py-5 sm:py-6',
-          'transition-[background-color,border-color] duration-500 ease-out',
-          transparent
-            ? 'mix-blend-difference'
-            : 'bg-[color:var(--color-warm-white)] border-b border-[color:var(--color-border)]',
-        ].join(' ')}
-        style={{
-          zIndex: 'var(--z-nav)',
-          ...(transparent ? {} : { mixBlendMode: 'normal' }),
-        }}
+        className="fixed top-0 inset-x-0 flex items-center justify-between px-6 sm:px-10 py-5 sm:py-6 bg-[color:var(--color-warm-white)] border-b border-[color:var(--color-border)]"
+        style={{ zIndex: 'var(--z-nav)' }}
       >
         <div className="flex items-center gap-8 lg:gap-12 min-w-0">
           <Link
@@ -187,7 +149,7 @@ export default function Header() {
                 fontWeight: 600,
                 letterSpacing: '0.22em',
                 textTransform: 'uppercase',
-                color: transparent ? '#fff' : 'var(--color-ink)',
+                color: 'var(--color-ink)',
                 transition: 'color var(--dur-base) var(--ease-out)',
               }}
             >
@@ -207,7 +169,7 @@ export default function Header() {
                   className="header-nav-link nav-label"
                   aria-current={active ? 'page' : undefined}
                   style={{
-                    color: transparent ? '#fff' : 'var(--color-ink)',
+                    color: 'var(--color-ink)',
                   }}
                 >
                   {l.label}
@@ -227,7 +189,7 @@ export default function Header() {
               fontWeight: 400,
               letterSpacing: '0.1em',
               textTransform: 'uppercase',
-              color: transparent ? '#fff' : 'var(--color-ink)',
+              color: 'var(--color-ink)',
             }}
           >
             <Search size={15} strokeWidth={1.75} aria-hidden />
@@ -243,7 +205,7 @@ export default function Header() {
               fontWeight: 400,
               letterSpacing: '0.1em',
               textTransform: 'uppercase',
-              color: transparent ? '#fff' : 'var(--color-ink)',
+              color: 'var(--color-ink)',
             }}
           >
             Menu
@@ -253,7 +215,7 @@ export default function Header() {
             <span
               aria-hidden="true"
               className="inline-block w-8 h-8 rounded-full"
-              style={{ background: transparent ? 'rgba(255,255,255,0.2)' : 'var(--color-border)' }}
+              style={{ background: 'var(--color-border)' }}
             />
           ) : user ? (
             <button
@@ -290,10 +252,10 @@ export default function Header() {
               className="nav-label no-underline"
               style={{
                 fontSize: '0.78rem',
-                fontWeight: 300,
+                fontWeight: 400,
                 letterSpacing: '0.14em',
                 textTransform: 'uppercase',
-                color: transparent ? '#fff' : 'var(--color-ink)',
+                color: 'var(--color-ink)',
               }}
             >
               Sell
@@ -333,7 +295,7 @@ export default function Header() {
             className="bg-transparent border-none cursor-pointer p-0"
             style={{
               fontSize: '0.78rem',
-              fontWeight: 300,
+              fontWeight: 400,
               letterSpacing: '0.14em',
               textTransform: 'uppercase',
               color: 'var(--color-stone)',
@@ -454,7 +416,7 @@ export default function Header() {
                   className="bg-transparent border-0 p-0 cursor-pointer"
                   style={{
                     fontSize: '0.78rem',
-                    fontWeight: 300,
+                    fontWeight: 400,
                     letterSpacing: '0.14em',
                     textTransform: 'uppercase',
                     color: 'var(--color-stone)',
@@ -489,7 +451,7 @@ export default function Header() {
                 className="bg-transparent border-0 p-0 cursor-pointer"
                 style={{
                   fontSize: '0.78rem',
-                  fontWeight: 300,
+                  fontWeight: 400,
                   letterSpacing: '0.14em',
                   textTransform: 'uppercase',
                   color: 'var(--color-stone)',

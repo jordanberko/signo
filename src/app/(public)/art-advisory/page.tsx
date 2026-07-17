@@ -100,7 +100,7 @@ const headlineStyle: React.CSSProperties = {
 const subStyle: React.CSSProperties = {
   marginTop: '1.2rem',
   fontSize: '1rem',
-  fontWeight: 300,
+  fontWeight: 400,
   lineHeight: 1.7,
   color: 'var(--color-stone-dark)',
   maxWidth: '48ch',
@@ -358,7 +358,7 @@ export default function ArtAdvisoryPage() {
                 fontSize: '0.78rem',
                 letterSpacing: '0.12em',
                 textTransform: 'uppercase',
-                fontWeight: 300,
+                fontWeight: 400,
                 color: 'var(--color-ink)',
                 textDecoration: 'none',
               }}
@@ -637,7 +637,7 @@ export default function ArtAdvisoryPage() {
                           letterSpacing: '0.08em',
                           textTransform: 'uppercase',
                           color: selected ? 'var(--color-ink)' : 'var(--color-stone)',
-                          fontWeight: selected ? 400 : 300,
+                          fontWeight: selected ? 500 : 400,
                         }}
                       >
                         {c.name}
@@ -780,7 +780,7 @@ function ChoiceList({
                       textTransform: 'uppercase',
                       color: 'var(--color-stone)',
                       marginTop: '0.3rem',
-                      fontWeight: 300,
+                      fontWeight: 400,
                     }}
                   >
                     {item.detail}
@@ -793,7 +793,7 @@ function ChoiceList({
                   letterSpacing: '0.12em',
                   textTransform: 'uppercase',
                   color: isSelected ? 'var(--color-ink)' : 'var(--color-stone)',
-                  fontWeight: 300,
+                  fontWeight: 400,
                 }}
               >
                 →

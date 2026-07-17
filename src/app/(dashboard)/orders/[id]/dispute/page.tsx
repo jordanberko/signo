@@ -293,7 +293,7 @@ function DisputeContent({ orderId }: { orderId: string }) {
           style={{
             fontSize: '0.95rem',
             color: 'var(--color-stone-dark)',
-            fontWeight: 300,
+            fontWeight: 400,
             lineHeight: 1.6,
             marginBottom: '2rem',
             maxWidth: '52ch',
@@ -344,7 +344,7 @@ function DisputeContent({ orderId }: { orderId: string }) {
           style={{
             fontSize: '0.95rem',
             color: 'var(--color-stone-dark)',
-            fontWeight: 300,
+            fontWeight: 400,
             lineHeight: 1.6,
             marginBottom: '2rem',
             maxWidth: '52ch',
@@ -411,7 +411,7 @@ function DisputeContent({ orderId }: { orderId: string }) {
       <p
         style={{
           fontSize: '0.92rem',
-          fontWeight: 300,
+          fontWeight: 400,
           color: 'var(--color-stone-dark)',
           lineHeight: 1.6,
           marginBottom: '2.4rem',
@@ -449,7 +449,7 @@ function DisputeContent({ orderId }: { orderId: string }) {
         <p
           style={{
             fontSize: '0.9rem',
-            fontWeight: 300,
+            fontWeight: 400,
             color: 'var(--color-stone-dark)',
             lineHeight: 1.6,
             marginBottom: '0.6rem',
@@ -461,7 +461,7 @@ function DisputeContent({ orderId }: { orderId: string }) {
         <p
           style={{
             fontSize: '0.9rem',
-            fontWeight: 300,
+            fontWeight: 400,
             color: 'var(--color-stone-dark)',
             lineHeight: 1.6,
           }}
@@ -532,7 +532,7 @@ function DisputeContent({ orderId }: { orderId: string }) {
                         marginLeft: active ? 34 : 0,
                         fontSize: '0.82rem',
                         color: 'var(--color-stone)',
-                        fontWeight: 300,
+                        fontWeight: 400,
                         lineHeight: 1.5,
                         transition: 'margin var(--dur-fast) var(--ease-out)',
                       }}
@@ -566,7 +566,7 @@ function DisputeContent({ orderId }: { orderId: string }) {
             style={{
               marginTop: '0.5rem',
               fontSize: '0.72rem',
-              fontWeight: 300,
+              fontWeight: 400,
               fontStyle: description.length > 0 && description.length < 20 ? 'italic' : 'normal',
               color:
                 description.length > 0 && description.length < 20
@@ -599,7 +599,7 @@ function DisputeContent({ orderId }: { orderId: string }) {
                     {slot.label}
                     {slot.required && <span style={{ color: 'var(--color-terracotta, #bc5636)', marginLeft: '0.3rem' }}>*</span>}
                   </p>
-                  <p style={{ fontSize: '0.76rem', color: 'var(--color-stone)', fontWeight: 300, marginBottom: '0.7rem' }}>
+                  <p style={{ fontSize: '0.76rem', color: 'var(--color-stone)', fontWeight: 400, marginBottom: '0.7rem' }}>
                     {slot.helpText}
                   </p>
                   <input
@@ -614,7 +614,7 @@ function DisputeContent({ orderId }: { orderId: string }) {
                       }
                       setEvidenceSlots((prev) => prev.map((s, i) => i === idx ? { ...s, file: f } : s));
                     }}
-                    style={{ display: 'block', width: '100%', fontSize: '0.82rem', color: 'var(--color-stone-dark)', fontWeight: 300 }}
+                    style={{ display: 'block', width: '100%', fontSize: '0.82rem', color: 'var(--color-stone-dark)', fontWeight: 400 }}
                   />
                   {slot.file && (
                     <p className="font-serif" style={{ marginTop: '0.4rem', fontStyle: 'italic', fontSize: '0.76rem', color: 'var(--color-stone)' }}>
@@ -636,7 +636,7 @@ function DisputeContent({ orderId }: { orderId: string }) {
                   Video walkthrough
                   {isHighValue && <span style={{ color: 'var(--color-terracotta, #bc5636)', marginLeft: '0.3rem' }}>*</span>}
                 </p>
-                <p style={{ fontSize: '0.76rem', color: 'var(--color-stone)', fontWeight: 300, marginBottom: '0.7rem' }}>
+                <p style={{ fontSize: '0.76rem', color: 'var(--color-stone)', fontWeight: 400, marginBottom: '0.7rem' }}>
                   {isHighValue
                     ? 'Required for orders over $500. A continuous 15–60 second video showing the work and packaging.'
                     : 'Optional. A short video showing the damage or discrepancy helps us resolve your dispute faster.'}
@@ -653,7 +653,7 @@ function DisputeContent({ orderId }: { orderId: string }) {
                     }
                     setVideoFile(f);
                   }}
-                  style={{ display: 'block', width: '100%', fontSize: '0.82rem', color: 'var(--color-stone-dark)', fontWeight: 300 }}
+                  style={{ display: 'block', width: '100%', fontSize: '0.82rem', color: 'var(--color-stone-dark)', fontWeight: 400 }}
                 />
                 {videoFile && (
                   <p className="font-serif" style={{ marginTop: '0.4rem', fontStyle: 'italic', fontSize: '0.76rem', color: 'var(--color-stone)' }}>
@@ -667,7 +667,7 @@ function DisputeContent({ orderId }: { orderId: string }) {
                 <p style={{ fontSize: '0.88rem', color: 'var(--color-ink)', fontWeight: 400, marginBottom: '0.3rem' }}>
                   Additional photos
                 </p>
-                <p style={{ fontSize: '0.76rem', color: 'var(--color-stone)', fontWeight: 300, marginBottom: '0.7rem' }}>
+                <p style={{ fontSize: '0.76rem', color: 'var(--color-stone)', fontWeight: 400, marginBottom: '0.7rem' }}>
                   Up to {MAX_EXTRA_FILES} more photos from other angles, if helpful.
                 </p>
                 <input
@@ -687,7 +687,7 @@ function DisputeContent({ orderId }: { orderId: string }) {
                     setFileError(null);
                     setExtraFiles(selected);
                   }}
-                  style={{ display: 'block', width: '100%', fontSize: '0.82rem', color: 'var(--color-stone-dark)', fontWeight: 300 }}
+                  style={{ display: 'block', width: '100%', fontSize: '0.82rem', color: 'var(--color-stone-dark)', fontWeight: 400 }}
                 />
                 {extraFiles.length > 0 && (
                   <p className="font-serif" style={{ marginTop: '0.4rem', fontStyle: 'italic', fontSize: '0.76rem', color: 'var(--color-stone)' }}>
@@ -710,14 +710,14 @@ function DisputeContent({ orderId }: { orderId: string }) {
                 accept=".jpg,.jpeg,.png,.heic,.heif"
                 multiple
                 onChange={(e) => setGenericFiles(e.target.files)}
-                style={{ display: 'block', width: '100%', fontSize: '0.82rem', color: 'var(--color-stone-dark)', fontWeight: 300 }}
+                style={{ display: 'block', width: '100%', fontSize: '0.82rem', color: 'var(--color-stone-dark)', fontWeight: 400 }}
               />
               {genericFiles && genericFiles.length > 0 && (
                 <p className="font-serif" style={{ marginTop: '0.6rem', fontStyle: 'italic', fontSize: '0.78rem', color: 'var(--color-stone)' }}>
                   {genericFiles.length} file{genericFiles.length !== 1 ? 's' : ''} selected
                 </p>
               )}
-              <p className="font-serif" style={{ marginTop: '0.5rem', fontSize: '0.72rem', color: 'var(--color-stone)', fontWeight: 300, fontStyle: 'italic' }}>
+              <p className="font-serif" style={{ marginTop: '0.5rem', fontSize: '0.72rem', color: 'var(--color-stone)', fontWeight: 400, fontStyle: 'italic' }}>
                 Recommended to support your claim.
               </p>
             </div>
@@ -769,7 +769,7 @@ function DisputeContent({ orderId }: { orderId: string }) {
               fontSize: '0.82rem',
               color: 'var(--color-stone)',
               fontStyle: 'italic',
-              fontWeight: 300,
+              fontWeight: 400,
               lineHeight: 1.5,
             }}
           >

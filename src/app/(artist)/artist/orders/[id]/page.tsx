@@ -267,7 +267,7 @@ function OrderContent({ orderId }: { orderId: string }) {
           style={{
             marginTop: '1rem',
             fontSize: '0.9rem',
-            fontWeight: 300,
+            fontWeight: 400,
             color: 'var(--color-stone-dark)',
           }}
         >
@@ -507,7 +507,7 @@ function OrderContent({ orderId }: { orderId: string }) {
                 margin: 0,
                 fontSize: '0.9rem',
                 color: 'var(--color-ink)',
-                fontWeight: 300,
+                fontWeight: 400,
                 lineHeight: 1.7,
               }}
             >
@@ -551,7 +551,7 @@ function OrderContent({ orderId }: { orderId: string }) {
               <dt
                 style={{
                   fontSize: '0.82rem',
-                  fontWeight: 300,
+                  fontWeight: 400,
                   color: 'var(--color-stone-dark)',
                 }}
               >
@@ -742,7 +742,7 @@ function OrderContent({ orderId }: { orderId: string }) {
               <p
                 style={{
                   fontSize: '0.9rem',
-                  fontWeight: 300,
+                  fontWeight: 400,
                   color: 'var(--color-stone-dark)',
                   lineHeight: 1.6,
                   marginBottom: '0.7rem',
@@ -770,7 +770,7 @@ function OrderContent({ orderId }: { orderId: string }) {
             <p
               style={{
                 fontSize: '0.9rem',
-                fontWeight: 300,
+                fontWeight: 400,
                 color: 'var(--color-stone-dark)',
                 lineHeight: 1.6,
               }}
@@ -829,7 +829,7 @@ function OrderContent({ orderId }: { orderId: string }) {
           <p
             style={{
               fontSize: '0.9rem',
-              fontWeight: 300,
+              fontWeight: 400,
               color: 'var(--color-stone-dark)',
               lineHeight: 1.6,
               marginBottom: '2rem',
@@ -946,7 +946,7 @@ function OrderContent({ orderId }: { orderId: string }) {
           <p
             style={{
               fontSize: '0.9rem',
-              fontWeight: 300,
+              fontWeight: 400,
               color: 'var(--color-stone-dark)',
               lineHeight: 1.6,
               marginBottom: '2rem',
@@ -964,7 +964,7 @@ function OrderContent({ orderId }: { orderId: string }) {
               <p
                 style={{
                   fontSize: '0.88rem',
-                  fontWeight: 300,
+                  fontWeight: 400,
                   color: 'var(--color-stone-dark)',
                   lineHeight: 1.6,
                   marginBottom: '1.6rem',
@@ -989,7 +989,7 @@ function OrderContent({ orderId }: { orderId: string }) {
                       {idx + 1}. {slot.label}
                       <span style={{ color: 'var(--color-terracotta, #bc5636)', marginLeft: '0.3rem' }}>*</span>
                     </p>
-                    <p style={{ fontSize: '0.76rem', color: 'var(--color-stone)', fontWeight: 300, marginBottom: '0.7rem' }}>
+                    <p style={{ fontSize: '0.76rem', color: 'var(--color-stone)', fontWeight: 400, marginBottom: '0.7rem' }}>
                       {slot.helpText}
                     </p>
                     <input
@@ -1011,7 +1011,7 @@ function OrderContent({ orderId }: { orderId: string }) {
                           setDispatchUploading(null);
                         }
                       }}
-                      style={{ display: 'block', width: '100%', fontSize: '0.82rem', color: 'var(--color-stone-dark)', fontWeight: 300 }}
+                      style={{ display: 'block', width: '100%', fontSize: '0.82rem', color: 'var(--color-stone-dark)', fontWeight: 400 }}
                     />
                     {isUploading && (
                       <p className="font-serif" style={{ marginTop: '0.4rem', fontStyle: 'italic', fontSize: '0.76rem', color: 'var(--color-stone)' }}>
@@ -1147,7 +1147,7 @@ function OrderContent({ orderId }: { orderId: string }) {
                 <p
                   style={{
                     fontSize: '0.88rem',
-                    fontWeight: 300,
+                    fontWeight: 400,
                     color: 'var(--color-stone-dark)',
                     lineHeight: 1.6,
                     marginBottom: '0.6rem',
@@ -1158,7 +1158,7 @@ function OrderContent({ orderId }: { orderId: string }) {
                 <p
                   style={{
                     fontSize: '0.88rem',
-                    fontWeight: 300,
+                    fontWeight: 400,
                     color: 'var(--color-stone-dark)',
                     lineHeight: 1.6,
                   }}
@@ -1186,7 +1186,7 @@ function OrderContent({ orderId }: { orderId: string }) {
               <span
                 style={{
                   fontSize: '0.85rem',
-                  fontWeight: 300,
+                  fontWeight: 400,
                   color: 'var(--color-stone-dark)',
                   lineHeight: 1.5,
                 }}

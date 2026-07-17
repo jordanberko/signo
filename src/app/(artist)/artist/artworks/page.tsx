@@ -75,7 +75,7 @@ function SubmittedBanner() {
         style={{
           marginTop: '0.4rem',
           fontSize: '0.88rem',
-          fontWeight: 300,
+          fontWeight: 400,
           color: 'var(--color-stone-dark)',
           lineHeight: 1.6,
         }}
@@ -153,7 +153,7 @@ function DeleteModal({
         <p
           style={{
             fontSize: '0.92rem',
-            fontWeight: 300,
+            fontWeight: 400,
             color: 'var(--color-stone-dark)',
             lineHeight: 1.6,
             marginBottom: '2rem',
@@ -565,7 +565,7 @@ export default function ArtistArtworksPage() {
             <p
               style={{
                 fontSize: '0.92rem',
-                fontWeight: 300,
+                fontWeight: 400,
                 color: 'var(--color-stone-dark)',
                 lineHeight: 1.6,
                 maxWidth: '48ch',
@@ -688,7 +688,7 @@ export default function ArtistArtworksPage() {
                 marginTop: '1rem',
                 fontSize: '0.9rem',
                 color: 'var(--color-stone-dark)',
-                fontWeight: 300,
+                fontWeight: 400,
                 lineHeight: 1.6,
               }}
             >

@@ -84,7 +84,7 @@ export default function CollectionDetailPage() {
             fontSize: '1.1rem',
             fontStyle: 'italic',
             color: 'var(--color-stone)',
-            fontWeight: 300,
+            fontWeight: 400,
           }}
         >
           Loading the edit…
@@ -131,7 +131,7 @@ export default function CollectionDetailPage() {
             marginTop: '1rem',
             fontSize: '0.88rem',
             color: 'var(--color-stone-dark)',
-            fontWeight: 300,
+            fontWeight: 400,
             lineHeight: 1.6,
             marginBottom: '2rem',
           }}
@@ -209,7 +209,7 @@ export default function CollectionDetailPage() {
               <p
                 style={{
                   fontSize: '1rem',
-                  fontWeight: 300,
+                  fontWeight: 400,
                   lineHeight: 1.65,
                   color: 'var(--color-stone-dark)',
                   maxWidth: '42ch',
@@ -301,7 +301,7 @@ export default function CollectionDetailPage() {
                 marginTop: '0.8rem',
                 fontSize: '0.88rem',
                 color: 'var(--color-stone-dark)',
-                fontWeight: 300,
+                fontWeight: 400,
                 lineHeight: 1.6,
               }}
             >

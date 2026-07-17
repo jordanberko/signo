@@ -281,7 +281,7 @@ export default function ArtworkDetailClient({
         <nav
           className="px-6 sm:px-10"
           style={{
-            paddingTop: '2.6rem',
+            paddingTop: 'clamp(6rem, 8vw, 6.8rem)',
             paddingBottom: '1.2rem',
             fontSize: '0.68rem',
             letterSpacing: '0.18em',
@@ -513,7 +513,7 @@ export default function ArtworkDetailClient({
                 <p
                   style={{
                     fontSize: '0.95rem',
-                    fontWeight: 300,
+                    fontWeight: 400,
                     color: 'var(--color-stone-dark)',
                     marginBottom: '2.2rem',
                   }}
@@ -708,7 +708,7 @@ export default function ArtworkDetailClient({
                         fontSize: '0.72rem',
                         color: 'var(--color-stone)',
                         marginTop: '1.2rem',
-                        fontWeight: 300,
+                        fontWeight: 400,
                       }}
                     >
                       {isFavourited
@@ -741,7 +741,7 @@ export default function ArtworkDetailClient({
                         className="flex justify-between"
                         style={{
                           fontSize: '0.85rem',
-                          fontWeight: 300,
+                          fontWeight: 400,
                           padding: '0.55rem 0',
                           borderBottom: '1px solid var(--color-border)',
                           color: 'var(--color-stone-dark)',
@@ -773,7 +773,7 @@ export default function ArtworkDetailClient({
                       style={{
                         fontSize: '0.95rem',
                         lineHeight: 1.7,
-                        fontWeight: 300,
+                        fontWeight: 400,
                         color: 'var(--color-stone-dark)',
                         whiteSpace: 'pre-line',
                       }}
@@ -798,7 +798,7 @@ export default function ArtworkDetailClient({
                     >
                       Tagged
                     </p>
-                    <p style={{ fontSize: '0.82rem', fontWeight: 300 }}>
+                    <p style={{ fontSize: '0.82rem', fontWeight: 400 }}>
                       {artwork.tags.map((tag, i) => (
                         <span key={tag}>
                           <Link
@@ -831,7 +831,7 @@ export default function ArtworkDetailClient({
                   >
                     Shipping &amp; protection
                   </h2>
-                  <ul className="list-none p-0 m-0" style={{ fontSize: '0.85rem', fontWeight: 300, color: 'var(--color-stone-dark)', lineHeight: 1.7 }}>
+                  <ul className="list-none p-0 m-0" style={{ fontSize: '0.85rem', fontWeight: 400, color: 'var(--color-stone-dark)', lineHeight: 1.7 }}>
                     <li>Tracked shipping within seven days of purchase.</li>
                     <li>Forty-eight-hour inspection window before payout is released.</li>
                     <li>Full refund if damaged in transit.</li>
@@ -869,7 +869,7 @@ export default function ArtworkDetailClient({
                       style={{
                         fontSize: '0.88rem',
                         color: 'var(--color-stone-dark)',
-                        fontWeight: 300,
+                        fontWeight: 400,
                         marginTop: '0.5rem',
                         fontStyle: 'italic',
                       }}
@@ -893,7 +893,7 @@ export default function ArtworkDetailClient({
                       style={{
                         fontSize: '0.95rem',
                         lineHeight: 1.75,
-                        fontWeight: 300,
+                        fontWeight: 400,
                         color: 'var(--color-stone-dark)',
                         marginTop: '1.5rem',
                         maxWidth: '52ch',

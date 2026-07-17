@@ -61,7 +61,7 @@ export default function PricingPage() {
           style={{
             marginTop: '1.8rem',
             fontSize: '1rem',
-            fontWeight: 300,
+            fontWeight: 400,
             lineHeight: 1.7,
             color: 'var(--color-stone-dark)',
             maxWidth: '52ch',
@@ -112,7 +112,7 @@ export default function PricingPage() {
                   fontSize: '0.92rem',
                   color: 'var(--color-stone-dark)',
                   fontStyle: 'italic',
-                  fontWeight: 300,
+                  fontWeight: 400,
                 }}
               >
                 / month
@@ -123,7 +123,7 @@ export default function PricingPage() {
                 fontSize: '0.82rem',
                 color: 'var(--color-stone-dark)',
                 fontStyle: 'italic',
-                fontWeight: 300,
+                fontWeight: 400,
                 maxWidth: '28ch',
               }}
             >
@@ -141,7 +141,7 @@ export default function PricingPage() {
                 fontSize: '0.72rem',
                 color: 'var(--color-stone)',
                 fontStyle: 'italic',
-                fontWeight: 300,
+                fontWeight: 400,
                 maxWidth: '32ch',
                 lineHeight: 1.5,
               }}
@@ -170,7 +170,7 @@ export default function PricingPage() {
                   borderBottom: i === 8 ? '1px solid var(--color-border)' : 'none',
                   fontSize: '1rem',
                   color: 'var(--color-ink)',
-                  fontWeight: 300,
+                  fontWeight: 400,
                   display: 'flex',
                   alignItems: 'baseline',
                   gap: '1.4rem',
@@ -238,7 +238,7 @@ export default function PricingPage() {
                 fontSize: '0.92rem',
                 lineHeight: 1.65,
                 color: 'var(--color-stone-dark)',
-                fontWeight: 300,
+                fontWeight: 400,
                 maxWidth: '38ch',
               }}
             >
@@ -293,7 +293,7 @@ export default function PricingPage() {
                     fontSize: '0.88rem',
                     color: 'var(--color-stone)',
                     fontStyle: 'italic',
-                    fontWeight: 300,
+                    fontWeight: 400,
                   }}
                 >
                   −${ex.fee.toFixed(2)}
@@ -312,7 +312,7 @@ export default function PricingPage() {
                   style={{
                     fontSize: '0.82rem',
                     color: 'var(--color-stone-dark)',
-                    fontWeight: 300,
+                    fontWeight: 400,
                   }}
                 >
                   {ex.percent}%
@@ -325,7 +325,7 @@ export default function PricingPage() {
                 fontSize: '0.72rem',
                 color: 'var(--color-stone)',
                 fontStyle: 'italic',
-                fontWeight: 300,
+                fontWeight: 400,
               }}
             >
               Rates shown for standard Australian domestic cards. International cards may incur a slightly
@@ -436,7 +436,7 @@ export default function PricingPage() {
                       padding: '1.1rem 1rem 1.1rem 0',
                       borderBottom: '1px solid var(--color-border)',
                       color: 'var(--color-ink)',
-                      fontWeight: 300,
+                      fontWeight: 400,
                       fontStyle: 'italic',
                     }}
                   >
@@ -457,7 +457,7 @@ export default function PricingPage() {
                       padding: '1.1rem 1rem',
                       borderBottom: '1px solid var(--color-border)',
                       color: 'var(--color-stone-dark)',
-                      fontWeight: 300,
+                      fontWeight: 400,
                     }}
                   >
                     {row.bluethumb}
@@ -467,7 +467,7 @@ export default function PricingPage() {
                       padding: '1.1rem 1rem',
                       borderBottom: '1px solid var(--color-border)',
                       color: 'var(--color-stone-dark)',
-                      fontWeight: 300,
+                      fontWeight: 400,
                     }}
                   >
                     {row.gallery}
@@ -477,7 +477,7 @@ export default function PricingPage() {
                       padding: '1.1rem 1rem',
                       borderBottom: '1px solid var(--color-border)',
                       color: 'var(--color-stone-dark)',
-                      fontWeight: 300,
+                      fontWeight: 400,
                     }}
                   >
                     {row.etsy}
@@ -528,7 +528,7 @@ export default function PricingPage() {
               marginTop: '1.4rem',
               fontSize: '0.96rem',
               color: 'var(--color-stone)',
-              fontWeight: 300,
+              fontWeight: 400,
               maxWidth: '46ch',
               lineHeight: 1.65,
             }}
@@ -570,7 +570,7 @@ export default function PricingPage() {
                 fontSize: '0.78rem',
                 letterSpacing: '0.12em',
                 textTransform: 'uppercase',
-                fontWeight: 300,
+                fontWeight: 400,
                 color: 'var(--color-warm-white)',
                 textDecoration: 'none',
               }}

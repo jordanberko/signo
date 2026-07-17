@@ -147,7 +147,7 @@ export default function MessagesPage() {
       <p
         style={{
           fontSize: '0.92rem',
-          fontWeight: 300,
+          fontWeight: 400,
           color: 'var(--color-stone-dark)',
           lineHeight: 1.6,
         }}
@@ -224,7 +224,7 @@ export default function MessagesPage() {
               marginTop: '1rem',
               fontSize: '0.9rem',
               color: 'var(--color-stone-dark)',
-              fontWeight: 300,
+              fontWeight: 400,
               lineHeight: 1.6,
             }}
           >
@@ -355,7 +355,7 @@ export default function MessagesPage() {
                       color: unread
                         ? 'var(--color-ink)'
                         : 'var(--color-stone-dark)',
-                      fontWeight: 300,
+                      fontWeight: 400,
                       overflow: 'hidden',
                       textOverflow: 'ellipsis',
                       whiteSpace: 'nowrap',

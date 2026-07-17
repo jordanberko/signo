@@ -128,7 +128,7 @@ function CheckoutSuccessContent() {
             style={{
               fontSize: '0.95rem',
               color: 'var(--color-stone-dark)',
-              fontWeight: 300,
+              fontWeight: 400,
               lineHeight: 1.7,
               maxWidth: '52ch',
               marginBottom: '2.4rem',
@@ -236,7 +236,7 @@ function CheckoutSuccessContent() {
               style={{
                 fontSize: '0.92rem',
                 color: 'var(--color-stone-dark)',
-                fontWeight: 300,
+                fontWeight: 400,
               }}
             >
               {formatPrice(order.total_amount_aud)}
@@ -256,7 +256,7 @@ function CheckoutSuccessContent() {
             style={{
               fontSize: '0.92rem',
               color: 'var(--color-stone-dark)',
-              fontWeight: 300,
+              fontWeight: 400,
               lineHeight: 1.75,
               maxWidth: '54ch',
             }}

@@ -58,7 +58,7 @@ export default function TermsPage() {
           style={{
             marginTop: '1.4rem',
             fontSize: '1rem',
-            fontWeight: 300,
+            fontWeight: 400,
             lineHeight: 1.7,
             color: 'var(--color-stone-dark)',
             maxWidth: '56ch',
@@ -274,7 +274,7 @@ export default function TermsPage() {
                 style={{
                   fontSize: '0.95rem',
                   color: 'var(--color-ink)',
-                  fontWeight: 300,
+                  fontWeight: 400,
                   lineHeight: 1.55,
                 }}
               >
@@ -410,7 +410,7 @@ export default function TermsPage() {
             style={{
               marginTop: '1.6rem',
               fontSize: '1rem',
-              fontWeight: 300,
+              fontWeight: 400,
               lineHeight: 1.7,
               color: 'var(--color-stone)',
               maxWidth: '46ch',
@@ -472,7 +472,7 @@ function Prose({ children }: { children: React.ReactNode }) {
         fontSize: '1rem',
         lineHeight: 1.75,
         color: 'var(--color-stone-dark)',
-        fontWeight: 300,
+        fontWeight: 400,
         maxWidth: '58ch',
         marginTop: '1.2rem',
       }}
@@ -603,7 +603,7 @@ function ClauseList({
               fontSize: '0.92rem',
               lineHeight: 1.6,
               color: 'var(--color-stone-dark)',
-              fontWeight: 300,
+              fontWeight: 400,
               margin: 0,
             }}
           >

@@ -46,7 +46,7 @@ export default function ReturnsPage() {
           style={{
             marginTop: '1.8rem',
             fontSize: '1rem',
-            fontWeight: 300,
+            fontWeight: 400,
             lineHeight: 1.7,
             color: 'var(--color-stone-dark)',
             maxWidth: '52ch',
@@ -185,7 +185,7 @@ export default function ReturnsPage() {
             >
               Before shipping
             </p>
-            <p style={{ fontSize: '0.94rem', lineHeight: 1.65, color: 'var(--color-stone-dark)', fontWeight: 300 }}>
+            <p style={{ fontSize: '0.94rem', lineHeight: 1.65, color: 'var(--color-stone-dark)', fontWeight: 400 }}>
               Cancel within 24 hours of purchase for a full refund, provided the artist has not yet shipped.
             </p>
           </div>
@@ -201,7 +201,7 @@ export default function ReturnsPage() {
             >
               After shipping
             </p>
-            <p style={{ fontSize: '0.94rem', lineHeight: 1.65, color: 'var(--color-stone-dark)', fontWeight: 300 }}>
+            <p style={{ fontSize: '0.94rem', lineHeight: 1.65, color: 'var(--color-stone-dark)', fontWeight: 400 }}>
               Once the work has been shipped, the sale is final. We do not accept change-of-mind returns.
               The artist has already packed and posted the piece.
             </p>
@@ -297,7 +297,7 @@ export default function ReturnsPage() {
                   style={{
                     fontSize: '0.96rem',
                     color: 'var(--color-ink)',
-                    fontWeight: 300,
+                    fontWeight: 400,
                     lineHeight: 1.6,
                   }}
                 >
@@ -369,7 +369,7 @@ export default function ReturnsPage() {
                   style={{
                     fontSize: '0.94rem',
                     color: 'var(--color-ink)',
-                    fontWeight: row.highlight ? 400 : 300,
+                    fontWeight: row.highlight ? 500 : 400,
                     fontStyle: row.highlight ? 'normal' : 'italic',
                   }}
                 >
@@ -396,7 +396,7 @@ export default function ReturnsPage() {
             fontSize: '0.72rem',
             color: 'var(--color-stone)',
             fontStyle: 'italic',
-            fontWeight: 300,
+            fontWeight: 400,
             maxWidth: '64ch',
           }}
         >
@@ -519,7 +519,7 @@ function PolicySection({
               fontSize: '0.96rem',
               lineHeight: 1.7,
               color: 'var(--color-stone-dark)',
-              fontWeight: 300,
+              fontWeight: 400,
               maxWidth: '58ch',
             }}
           >
@@ -560,7 +560,7 @@ function SubList({ title, items }: { title: string; items: string[] }) {
               fontSize: '0.92rem',
               lineHeight: 1.55,
               color: 'var(--color-stone-dark)',
-              fontWeight: 300,
+              fontWeight: 400,
             }}
           >
             <span

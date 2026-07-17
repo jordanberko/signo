@@ -348,7 +348,7 @@ export default function AdminReviewsPage() {
                             marginTop: '0.3rem',
                             fontSize: '0.78rem',
                             color: 'var(--color-stone-dark)',
-                            fontWeight: 300,
+                            fontWeight: 400,
                           }}
                         >
                           {artwork.artist?.full_name}
@@ -358,7 +358,7 @@ export default function AdminReviewsPage() {
                             marginTop: '0.2rem',
                             fontSize: '0.72rem',
                             color: 'var(--color-stone)',
-                            fontWeight: 300,
+                            fontWeight: 400,
                             textTransform: 'capitalize',
                           }}
                         >
@@ -675,7 +675,7 @@ export default function AdminReviewsPage() {
                       fontSize: '0.88rem',
                       lineHeight: 1.6,
                       color: 'var(--color-stone-dark)',
-                      fontWeight: 300,
+                      fontWeight: 400,
                       whiteSpace: 'pre-line',
                       maxHeight: '10rem',
                       overflowY: 'auto',
@@ -706,7 +706,7 @@ export default function AdminReviewsPage() {
                           border: '1px solid var(--color-border)',
                           fontSize: '0.72rem',
                           color: 'var(--color-stone-dark)',
-                          fontWeight: 300,
+                          fontWeight: 400,
                         }}
                       >
                         {tag}

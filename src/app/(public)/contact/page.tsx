@@ -159,7 +159,7 @@ export default function ContactPage() {
           style={{
             marginTop: '1.8rem',
             fontSize: '1rem',
-            fontWeight: 300,
+            fontWeight: 400,
             lineHeight: 1.7,
             color: 'var(--color-stone-dark)',
             maxWidth: '52ch',
@@ -227,7 +227,7 @@ export default function ContactPage() {
                 style={{
                   fontSize: '0.94rem',
                   color: 'var(--color-stone-dark)',
-                  fontWeight: 300,
+                  fontWeight: 400,
                   lineHeight: 1.6,
                   maxWidth: '32ch',
                 }}
@@ -257,7 +257,7 @@ export default function ContactPage() {
                 style={{
                   fontSize: '0.88rem',
                   color: 'var(--color-stone-dark)',
-                  fontWeight: 300,
+                  fontWeight: 400,
                   lineHeight: 1.65,
                   maxWidth: '34ch',
                 }}
@@ -321,7 +321,7 @@ export default function ContactPage() {
                     marginTop: '1rem',
                     fontSize: '0.94rem',
                     color: 'var(--color-stone-dark)',
-                    fontWeight: 300,
+                    fontWeight: 400,
                     lineHeight: 1.65,
                     maxWidth: '46ch',
                     marginBottom: '2rem',
@@ -434,7 +434,7 @@ export default function ContactPage() {
                       fontSize: '0.82rem',
                       color: 'var(--color-error, #b4452b)',
                       fontStyle: 'italic',
-                      fontWeight: 300,
+                      fontWeight: 400,
                     }}
                   >
                     {errorMsg}

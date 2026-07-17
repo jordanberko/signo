@@ -162,7 +162,7 @@ function EditorialSelect({
           padding: '0.35rem 0',
           fontFamily: 'var(--font-sans)',
           fontSize: '0.9rem',
-          fontWeight: 300,
+          fontWeight: 400,
           color: 'var(--color-ink)',
           outline: 'none',
           appearance: 'none',

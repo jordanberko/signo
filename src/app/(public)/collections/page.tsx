@@ -72,7 +72,7 @@ export default function CollectionsPage() {
           style={{
             marginTop: '1.6rem',
             fontSize: '0.92rem',
-            fontWeight: 300,
+            fontWeight: 400,
             lineHeight: 1.6,
             color: 'var(--color-stone-dark)',
             maxWidth: '46ch',
@@ -98,7 +98,7 @@ export default function CollectionsPage() {
               fontSize: '1.1rem',
               fontStyle: 'italic',
               color: 'var(--color-stone)',
-              fontWeight: 300,
+              fontWeight: 400,
             }}
           >
             Loading the edits…
@@ -120,7 +120,7 @@ export default function CollectionsPage() {
                 marginTop: '1rem',
                 fontSize: '0.88rem',
                 color: 'var(--color-stone-dark)',
-                fontWeight: 300,
+                fontWeight: 400,
                 lineHeight: 1.6,
               }}
             >
@@ -244,7 +244,7 @@ export default function CollectionsPage() {
                         marginLeft: 'calc(0.82rem + 1.2rem)',
                         fontSize: '0.86rem',
                         color: 'var(--color-stone-dark)',
-                        fontWeight: 300,
+                        fontWeight: 400,
                         lineHeight: 1.55,
                         maxWidth: '38ch',
                         display: '-webkit-box',
