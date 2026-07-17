@@ -29,33 +29,32 @@ const GUTTER = '1rem';
 // the image. No overlay text, no slideshow.
 const HERO_BLOCKS = [
   {
-    src: '/hero/hero_2_large_red_abstract.webp',
+    src: '/hero/hero_hallway_abstract.webp',
     href: '/browse',
     caption: 'Shop original artwork',
-    alt: 'Large red abstract painting hung in a gallery interior',
+    alt: 'Original abstract painting hung in a hallway with herringbone floors',
   },
   {
-    src: '/hero/hero_4_oak_concrete_salon.webp',
+    src: '/hero/hero_studio_canvases.webp',
     href: '/artists',
     caption: 'Meet the artists',
-    alt: 'Salon wall of original paintings in an oak and concrete interior',
+    alt: 'Vivid abstract canvases leaning in an artist’s studio',
   },
 ];
 
-// Second image banner near the foot of the page — same WoA format,
-// using the remaining two installation photographs.
+// Second image banner near the foot of the page — same WoA format.
 const FOOTER_BLOCKS = [
   {
-    src: '/hero/hero_5_botanical_still_life.webp',
+    src: '/hero/banner_faces_grid.webp',
     href: '/collections',
     caption: 'Explore curated collections',
-    alt: 'Botanical still-life painting propped in a sunlit interior',
+    alt: 'Framed grid of nine ink face drawings resting on timber floorboards',
   },
   {
-    src: '/hero/hero_3_coral_salon_hang.webp',
+    src: '/hero/banner_bedroom_drawings.webp',
     href: '/just-sold',
     caption: 'Recently acquired',
-    alt: 'Coral-toned salon hang of original paintings',
+    alt: 'Framed line drawings hanging above a bed in soft evening light',
   },
 ];
 
