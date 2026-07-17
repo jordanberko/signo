@@ -8,7 +8,7 @@ import ArtworkCard from '@/components/ui/ArtworkCard';
 /**
  * Signo homepage — pure shop structure, metrics matched to wallofart.com:
  *
- *   1. Hero          — split installation photography, headline + CTAs
+ *   1. Hero          — two 4:5 portrait images, caption links below
  *   2. NewArrivals   — 2-col mobile / 4-col desktop artwork grid
  *                      (16px column gap, 32px row gap on desktop)
  *   3. ShopByStyle   — one-click routes into the browse catalogue
@@ -18,22 +18,28 @@ import ArtworkCard from '@/components/ui/ArtworkCard';
  * on /pricing and /how-it-works — the homepage sells the art.
  */
 
-// Shared outer gutter — matches the WoA ~16px page margin.
-const GUTTER = 'clamp(0.75rem, 1.2vw, 1rem)';
+// Shared outer gutter — WoA uses a fixed 16px for page margins, the gap
+// between the hero images, and the product-grid column gap, so every
+// vertical line on the page aligns.
+const GUTTER = '1rem';
 
-// Gallery installation photographs for the hero — shown as side-by-side
-// pairs (Wall of Art-style split hero). Each image spans ~50vw, so the
-// sources render close to native resolution instead of stretching to
-// full viewport width.
-const HERO_PAIRS: [string, string][] = [
-  [
-    '/hero/hero_2_large_red_abstract.webp',
-    '/hero/hero_5_botanical_still_life.webp',
-  ],
-  [
-    '/hero/hero_4_oak_concrete_salon.webp',
-    '/hero/hero_3_coral_salon_hang.webp',
-  ],
+// Hero blocks — WoA hero-banner format: two 4:5 portrait images
+// (aspect-ratio 0.8, exactly their value) side by side on desktop,
+// stacked full-width on mobile, each with a small caption link BELOW
+// the image. No overlay text, no slideshow.
+const HERO_BLOCKS = [
+  {
+    src: '/hero/hero_2_large_red_abstract.webp',
+    href: '/browse',
+    caption: 'Shop original artwork',
+    alt: 'Large red abstract painting hung in a gallery interior',
+  },
+  {
+    src: '/hero/hero_4_oak_concrete_salon.webp',
+    href: '/artists',
+    caption: 'Meet the artists',
+    alt: 'Salon wall of original paintings in an oak and concrete interior',
+  },
 ];
 
 // Styles mirrored from the browse page's filter vocabulary — each chip
@@ -115,180 +121,56 @@ export default function HomePage() {
 }
 
 /* ══════════════════════════════════════════════════════════════════
-   HERO — Wall of Art-style split hero: two installation photographs
-   side by side with a thin uniform gap, sitting BELOW the solid nav
-   (matching outer margins, nothing hidden behind the bar). Pairs
-   crossfade slowly; headline + CTAs overlay the bottom-left.
+   HERO — exact WoA hero-banner format: two 4:5 portrait images in a
+   1fr/1fr grid with a 16px gap (stacked full-width on mobile), sitting
+   below the solid nav. Small caption links under each image; the page
+   headline is present for SEO/screen readers only.
    ══════════════════════════════════════════════════════════════════ */
 
-
-
 function Hero() {
-  const [index, setIndex] = useState(0);
-  const [tick, setTick] = useState(0);
-  const pairs = HERO_PAIRS;
-  const count = pairs.length;
-
-  useEffect(() => {
-    if (count < 2) return;
-    if (
-      typeof window !== 'undefined' &&
-      window.matchMedia('(prefers-reduced-motion: reduce)').matches
-    ) {
-      return;
-    }
-    const id = setInterval(() => setIndex((i) => (i + 1) % count), 8000);
-    return () => clearInterval(id);
-  }, [count, tick]);
-
-  const goTo = (i: number) => {
-    setIndex(i);
-    setTick((t) => t + 1);
-  };
-
   return (
     <section
-      className="relative"
       style={{
-        // Clear the fixed nav (~4.05rem) plus one gutter of breathing room,
-        // so the imagery starts below the bar with WoA-style spacing.
+        // Clear the fixed nav (~4.05rem) plus one gutter of breathing room.
         paddingTop: `calc(clamp(3.6rem, 3vw + 2.6rem, 4.2rem) + ${GUTTER})`,
         paddingLeft: GUTTER,
         paddingRight: GUTTER,
       }}
       aria-label="Gallery installation"
     >
-      {/* Split image field — two images side by side at EVERY viewport
-          size (WoA keeps the split on mobile too; each image is a tall
-          portrait crop). */}
-      <div
-        className="relative overflow-hidden"
-        style={{ height: 'min(76svh, 780px)' }}
-      >
-        {pairs.map((pair, i) => (
-          <div
-            key={pair[0]}
-            className="absolute inset-0 grid grid-cols-2"
-            style={{
-              gap: GUTTER,
-              opacity: i === index ? 1 : 0,
-              transition: 'opacity var(--dur-cinematic) var(--ease-out)',
-            }}
-            aria-hidden={i !== index}
-          >
-            {pair.map((src, i2) => (
-              <div key={src} className="relative overflow-hidden">
-                <Image
-                  src={src}
-                  alt=""
-                  fill
-                  priority={i === 0 && i2 === 0}
-                  sizes="50vw"
-                  className="object-cover"
-                />
-              </div>
-            ))}
+      <h1 className="sr-only">
+        Original art, direct from Australian artists — zero commission.
+      </h1>
+
+      <div className="grid grid-cols-1 md:grid-cols-2" style={{ gap: GUTTER }}>
+        {HERO_BLOCKS.map((block, i) => (
+          <div key={block.src}>
+            <Link
+              href={block.href}
+              className="block relative overflow-hidden no-underline"
+              style={{ aspectRatio: '4 / 5', background: 'var(--color-cream)' }}
+            >
+              <Image
+                src={block.src}
+                alt={block.alt}
+                fill
+                priority={i === 0}
+                sizes="(min-width: 768px) 50vw, 100vw"
+                className="object-cover"
+              />
+            </Link>
+            {/* Caption link below the image — WoA image-block text row */}
+            <div className="mt-3 md:mt-4">
+              <Link
+                href={block.href}
+                className="footer-link no-underline"
+                style={{ fontSize: '0.82rem', fontWeight: 400 }}
+              >
+                {block.caption} →
+              </Link>
+            </div>
           </div>
         ))}
-
-        {/* Single bottom gradient across BOTH columns (gutter included) so
-            the white overlay text stays legible where it crosses the gap. */}
-        <div
-          className="absolute inset-0 pointer-events-none"
-          style={{
-            background:
-              'linear-gradient(to bottom, transparent 42%, rgba(16,16,16,0.55) 100%)',
-          }}
-        />
-
-        {/* Text overlay — bottom-left */}
-        <div
-          className="absolute z-10"
-          style={{
-            left: 'clamp(1.5rem, 3vw, 2.5rem)',
-            right: 'clamp(1.5rem, 3vw, 2.5rem)',
-            bottom: 'clamp(2rem, 4vw, 3rem)',
-            maxWidth: 720,
-          }}
-        >
-          <div
-            className="mb-5"
-            style={{
-              fontSize: '0.68rem',
-              letterSpacing: '0.22em',
-              textTransform: 'uppercase',
-              fontWeight: 500,
-              color: 'rgba(255, 255, 255, 0.8)',
-            }}
-          >
-            Australian art marketplace · Zero commission
-          </div>
-          <h1
-            style={{
-              fontSize: 'clamp(2.2rem, 5vw, 4rem)',
-              fontWeight: 500,
-              lineHeight: 1.04,
-              letterSpacing: '-0.025em',
-              color: '#fff',
-              margin: 0,
-            }}
-          >
-            Original art, direct
-            <br />
-            from the artist.
-          </h1>
-          <div className="mt-8 flex flex-wrap gap-3">
-            <Link href="/browse" className="btn-primary btn-primary--inverse no-underline">
-              Browse artwork
-            </Link>
-            <Link href="/register?role=artist" className="btn-outline btn-outline--inverse no-underline">
-              Start selling
-            </Link>
-          </div>
-        </div>
-
-        {/* Numbered indices — bottom-right */}
-        {count > 1 && (
-          <div
-            className="absolute z-10 hidden sm:flex items-baseline"
-            style={{
-              right: 'clamp(1.5rem, 3vw, 2.5rem)',
-              bottom: 'clamp(2rem, 4vw, 3rem)',
-              gap: '1.25rem',
-            }}
-            aria-label="Hero slide selector"
-          >
-            {pairs.map((_, i) => {
-              const active = i === index;
-              return (
-                <button
-                  key={i}
-                  type="button"
-                  onClick={() => goTo(i)}
-                  aria-label={`Show slide ${i + 1}`}
-                  aria-current={active ? 'true' : undefined}
-                  style={{
-                    background: 'transparent',
-                    border: 'none',
-                    padding: '0.35rem 0',
-                    cursor: 'pointer',
-                    fontSize: '0.68rem',
-                    letterSpacing: '0.22em',
-                    fontWeight: 500,
-                    color: active ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.5)',
-                    borderBottom: active
-                      ? '1px solid rgba(255,255,255,0.95)'
-                      : '1px solid transparent',
-                    transition:
-                      'color var(--dur-base) var(--ease-out), border-color var(--dur-base) var(--ease-out)',
-                  }}
-                >
-                  {String(i + 1).padStart(2, '0')}
-                </button>
-              );
-            })}
-          </div>
-        )}
       </div>
     </section>
   );
