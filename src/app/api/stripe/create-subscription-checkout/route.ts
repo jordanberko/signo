@@ -26,7 +26,7 @@ export async function POST(_request: Request) {
       .eq('id', user.id)
       .single();
 
-    if (!profile || profile.role !== 'artist') {
+    if (!profile || !['artist', 'admin'].includes(profile.role)) {
       return NextResponse.json(
         { error: 'Only artists can subscribe' },
         { status: 403 }
