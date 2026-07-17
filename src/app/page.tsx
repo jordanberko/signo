@@ -161,7 +161,9 @@ function Hero() {
       }}
       aria-label="Gallery installation"
     >
-      {/* Split image field — two columns on md+, single image on mobile */}
+      {/* Split image field — two images side by side at EVERY viewport
+          size (WoA keeps the split on mobile too; each image is a tall
+          portrait crop). */}
       <div
         className="relative overflow-hidden"
         style={{ height: 'min(76svh, 780px)' }}
@@ -169,7 +171,7 @@ function Hero() {
         {pairs.map((pair, i) => (
           <div
             key={pair[0]}
-            className="absolute inset-0 grid grid-cols-1 md:grid-cols-2"
+            className="absolute inset-0 grid grid-cols-2"
             style={{
               gap: HERO_GUTTER,
               opacity: i === index ? 1 : 0,
@@ -177,31 +179,30 @@ function Hero() {
             }}
             aria-hidden={i !== index}
           >
-            {pair.map((src, col) => (
-              <div
-                key={src}
-                className={`relative overflow-hidden ${col === 1 ? 'hidden md:block' : ''}`}
-              >
+            {pair.map((src, i2) => (
+              <div key={src} className="relative overflow-hidden">
                 <Image
                   src={src}
                   alt=""
                   fill
-                  priority={i === 0}
-                  sizes={col === 1 ? '50vw' : '(min-width: 768px) 50vw, 100vw'}
+                  priority={i === 0 && i2 === 0}
+                  sizes="50vw"
                   className="object-cover"
-                />
-                {/* Bottom gradient for overlay legibility */}
-                <div
-                  className="absolute inset-0 pointer-events-none"
-                  style={{
-                    background:
-                      'linear-gradient(to bottom, transparent 42%, rgba(16,16,16,0.55) 100%)',
-                  }}
                 />
               </div>
             ))}
           </div>
         ))}
+
+        {/* Single bottom gradient across BOTH columns (gutter included) so
+            the white overlay text stays legible where it crosses the gap. */}
+        <div
+          className="absolute inset-0 pointer-events-none"
+          style={{
+            background:
+              'linear-gradient(to bottom, transparent 42%, rgba(16,16,16,0.55) 100%)',
+          }}
+        />
 
         {/* Text overlay — bottom-left */}
         <div
