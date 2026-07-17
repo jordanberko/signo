@@ -27,34 +27,38 @@ const GUTTER = '1rem';
 // (aspect-ratio 0.8, exactly their value) side by side on desktop,
 // stacked full-width on mobile, each with a small caption link BELOW
 // the image. No overlay text, no slideshow.
+// Professionally staged interiors for now — the owner's own photography
+// takes these slots over once reshot to the same standard (see the
+// shooting checklist in the seller guide: daylight, straight-on, calm
+// staging). The previous owner-photo set remains in git history.
 const HERO_BLOCKS = [
   {
-    src: '/hero/hero_hallway_abstract.webp',
+    src: '/hero/hero_2_large_red_abstract.webp',
     href: '/browse',
     caption: 'Shop original artwork',
-    alt: 'Original abstract painting hung in a hallway with herringbone floors',
+    alt: 'Large red abstract painting hung in a gallery interior',
   },
   {
-    src: '/hero/hero_studio_canvases.webp',
+    src: '/hero/hero_4_oak_concrete_salon.webp',
     href: '/artists',
     caption: 'Meet the artists',
-    alt: 'Vivid abstract canvases leaning in an artist’s studio',
+    alt: 'Salon wall of original paintings in an oak and concrete interior',
   },
 ];
 
 // Second image banner near the foot of the page — same WoA format.
 const FOOTER_BLOCKS = [
   {
-    src: '/hero/banner_faces_grid.webp',
+    src: '/hero/hero_5_botanical_still_life.webp',
     href: '/collections',
     caption: 'Explore curated collections',
-    alt: 'Framed grid of nine ink face drawings resting on timber floorboards',
+    alt: 'Botanical still-life painting propped in a sunlit interior',
   },
   {
-    src: '/hero/banner_bedroom_drawings.webp',
+    src: '/hero/hero_3_coral_salon_hang.webp',
     href: '/just-sold',
     caption: 'Recently acquired',
-    alt: 'Framed line drawings hanging above a bed in soft evening light',
+    alt: 'Coral-toned salon hang of original paintings',
   },
 ];
 
