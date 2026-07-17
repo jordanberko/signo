@@ -1182,8 +1182,38 @@ export default function ArtistDashboardPage() {
                       height: 220,
                       objectFit: 'cover',
                       border: '1px solid var(--color-border)',
+                      background: 'var(--color-cream)',
+                    }}
+                    // Chrome can't preview HEIC blobs — the file is still
+                    // fine (it's converted to JPEG during upload), so show
+                    // a neutral note instead of a broken-image icon.
+                    onError={(e) => {
+                      const el = e.currentTarget;
+                      el.style.display = 'none';
+                      const note = el.parentElement?.querySelector('[data-preview-fallback]') as HTMLElement | null;
+                      if (note) note.style.display = 'flex';
                     }}
                   />
+                  <div
+                    data-preview-fallback
+                    style={{
+                      display: 'none',
+                      width: 220,
+                      height: 220,
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      textAlign: 'center',
+                      padding: '1rem',
+                      border: '1px solid var(--color-border)',
+                      background: 'var(--color-cream)',
+                      fontSize: '0.72rem',
+                      lineHeight: 1.5,
+                      color: 'var(--color-stone-dark)',
+                    }}
+                  >
+                    Preview unavailable in this browser — the photo will be
+                    converted automatically when you post.
+                  </div>
                   <button
                     type="button"
                     onClick={() => {

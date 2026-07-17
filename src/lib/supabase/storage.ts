@@ -21,19 +21,62 @@ import { getAuthToken } from './getAuthToken';
 
 const ACCEPTED_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/heic', 'image/heif'];
 
+// ── HEIC conversion ──
+
+function isHeic(file: File): boolean {
+  return (
+    ['image/heic', 'image/heif'].includes(file.type.toLowerCase()) ||
+    /\.hei[cf]$/i.test(file.name)
+  );
+}
+
+/**
+ * HEIC/HEIF is only decodable natively by Safari. In every other browser
+ * the canvas pipeline used to fail silently and we uploaded raw HEIC
+ * bytes to a `.jpg` URL — a permanently broken image for everyone.
+ * Convert HEIC to JPEG up front using a wasm decoder (lazy-loaded, only
+ * fetched when a HEIC file is actually selected). If conversion fails,
+ * throw a friendly error — never upload bytes the web can't display.
+ */
+async function ensureBrowserDecodable(file: File): Promise<File> {
+  if (!isHeic(file)) return file;
+  try {
+    const heic2any = (await import('heic2any')).default;
+    const out = await heic2any({ blob: file, toType: 'image/jpeg', quality: 0.9 });
+    const blob = Array.isArray(out) ? out[0] : out;
+    console.log(
+      `[Upload] Converted HEIC → JPEG: ${(file.size / 1024 / 1024).toFixed(1)}MB → ${(blob.size / 1024 / 1024).toFixed(1)}MB`,
+    );
+    return new File([blob], file.name.replace(/\.[^.]+$/i, '.jpg'), {
+      type: 'image/jpeg',
+    });
+  } catch (err) {
+    console.error('[Upload] HEIC conversion failed:', err);
+    throw new Error(
+      `"${file.name}" is an iPhone HEIC photo and could not be converted in this browser. Please export it as JPEG first (on iPhone: Settings → Camera → Formats → Most Compatible), then try again.`,
+    );
+  }
+}
+
 // ── Compression ──
 
 /**
  * Compress an image using Canvas API.
+ * - HEIC input is converted to JPEG first (throws if conversion fails —
+ *   raw HEIC must never reach storage).
  * - Files under 500KB skip compression entirely.
  * - 15-second hard timeout — if it hangs, use the original file.
- * - Always resolves (never rejects) — worst case returns the original.
+ * - Aside from undecodable HEIC, always resolves with a usable file.
  */
 async function compressImage(
   file: File,
   maxWidth = 2400,
   quality = 0.9,
 ): Promise<File> {
+  // HEIC → JPEG before anything else (including the small-file skip:
+  // a small HEIC is still undisplayable on the web).
+  file = await ensureBrowserDecodable(file);
+
   // Skip small files
   if (file.size < 500_000) {
     console.log(`[Upload] File under 500KB (${(file.size / 1024).toFixed(0)}KB), skipping compression`);
