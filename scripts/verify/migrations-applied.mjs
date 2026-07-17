@@ -84,6 +84,9 @@ const PROBES = {
   '017_add_reserved_status.sql':             { kind: 'structural' },
   '018_processed_stripe_events.sql':         { kind: 'table',   table: 'processed_stripe_events' },
   '019_profile_structured_address.sql':      { kind: 'column',  table: 'profiles', column: 'street_address' },
+  '020_return_flow.sql':                     { kind: 'column',  table: 'disputes', column: 'return_tracking_number' },
+  '021_dispatch_evidence.sql':               { kind: 'column',  table: 'orders',   column: 'dispatch_photo_urls' },
+  '022_public_sold_artworks.sql':            { kind: 'structural' },
 };
 
 // ── Probe executors ────────────────────────────────────────────────
