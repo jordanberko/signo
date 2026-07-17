@@ -1,13 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
+import { createClient as createServiceClient } from '@supabase/supabase-js';
 import { rateLimit } from '@/lib/rate-limit';
 
 /**
  * GET /api/artworks/just-sold?limit=20
  *
  * Public endpoint — no auth required.
- * Returns recently sold artworks (completed orders within last 30 days).
+ * Returns recently sold artworks (paid orders within the last 30 days).
  * Does NOT expose any buyer information.
+ *
+ * Uses the service-role client: RLS on `orders` only grants SELECT to the
+ * order's buyer, artist, and admins, so the anon-scoped client silently
+ * returns zero rows for public visitors. The response shape below exposes
+ * artwork + artist fields only — never buyer data.
  */
 export async function GET(request: NextRequest) {
   try {
@@ -28,18 +33,23 @@ export async function GET(request: NextRequest) {
     const limitParam = request.nextUrl.searchParams.get('limit');
     const limit = Math.min(Math.max(parseInt(limitParam || '20', 10) || 20, 1), 50);
 
-    const supabase = await createClient();
+    const supabase = createServiceClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    );
 
     // 30 days ago
     const thirtyDaysAgo = new Date();
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
+    // A work counts as "sold" once payment lands — not only after the
+    // escrow completes weeks later. Refunded/cancelled orders excluded.
     const { data, error } = await supabase
       .from('orders')
       .select(
         'artwork_id, updated_at, artworks!orders_artwork_id_fkey(id, title, images, medium, width_cm, height_cm, price_aud, artist_id, profiles!artworks_artist_id_fkey(id, full_name))',
       )
-      .eq('status', 'completed')
+      .in('status', ['paid', 'shipped', 'delivered', 'completed'])
       .gte('updated_at', thirtyDaysAgo.toISOString())
       .order('updated_at', { ascending: false })
       .limit(limit);

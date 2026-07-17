@@ -28,6 +28,8 @@ export interface ArtworkDetail {
   shipping_weight_kg: number | null;
   availability: 'available' | 'coming_soon' | 'enquire_only';
   available_from: string | null;
+  /** DB lifecycle status — 'sold' renders a sold state, no purchase CTA */
+  status: 'approved' | 'sold';
   artist: {
     id: string;
     full_name: string | null;
@@ -113,9 +115,10 @@ export default function ArtworkDetailClient({
 
   const isOwnArtwork = user?.id === artwork.artist.id;
 
-  const isComingSoon = artwork.availability === 'coming_soon';
-  const isEnquireOnly = artwork.availability === 'enquire_only';
-  const isAvailable = artwork.availability === 'available';
+  const isSold = artwork.status === 'sold';
+  const isComingSoon = !isSold && artwork.availability === 'coming_soon';
+  const isEnquireOnly = !isSold && artwork.availability === 'enquire_only';
+  const isAvailable = !isSold && artwork.availability === 'available';
 
   const availableFromDate = artwork.available_from ? new Date(artwork.available_from) : null;
   const isAvailableFromFuture = availableFromDate && availableFromDate > new Date();
@@ -549,6 +552,41 @@ export default function ArtworkDetailClient({
 
                 {/* CTAs */}
                 <div style={{ marginBottom: '2.4rem' }}>
+                  {isSold && (
+                    <div>
+                      <p
+                        style={{
+                          fontSize: '0.72rem',
+                          letterSpacing: '0.2em',
+                          textTransform: 'uppercase',
+                          fontWeight: 500,
+                          color: 'var(--color-terracotta)',
+                          margin: 0,
+                          marginBottom: '0.8rem',
+                        }}
+                      >
+                        Sold
+                      </p>
+                      <p
+                        style={{
+                          fontSize: '0.88rem',
+                          color: 'var(--color-stone-dark)',
+                          lineHeight: 1.6,
+                          margin: 0,
+                          marginBottom: '1.2rem',
+                          maxWidth: 380,
+                        }}
+                      >
+                        This work has found its home. Explore more from{' '}
+                        {artwork.artist.full_name || 'this artist'} below, or
+                        browse the current collection.
+                      </p>
+                      <Link href="/browse" className="btn-outline no-underline">
+                        Browse available works
+                      </Link>
+                    </div>
+                  )}
+
                   {!isOwnArtwork && isAvailable && (
                     <Link
                       ref={buyButtonRef as React.RefObject<HTMLAnchorElement | null>}
@@ -1061,8 +1099,8 @@ export default function ArtworkDetailClient({
         <div className="h-20 md:hidden" />
       </div>
 
-      {/* ── Sticky Buy Bar (mobile) ── */}
-      {!isOwnArtwork && (
+      {/* ── Sticky Buy Bar (mobile) — no purchase actions on sold works ── */}
+      {!isOwnArtwork && !isSold && (
         <div
           className="fixed bottom-0 left-0 right-0 z-40 md:hidden"
           style={{

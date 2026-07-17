@@ -179,6 +179,9 @@ called out explicitly.
 | 017 | `add_reserved_status.sql` | 2026-04-22 | structural (CHECK constraint) |
 | 018 | `processed_stripe_events.sql` | 2026-04-22 | webhook idempotency table |
 | 019 | `profile_structured_address.sql` | already present in prod (codified 2026-04-23) | codifies the four reverse-drifted address columns; apply is a no-op in prod, creates columns in fresh dev / preview. |
+| 020 | `return_flow.sql` | apply date unverified | probe registry entry added 2026-07-17 (`disputes.return_tracking_number`) — run the verify script to confirm. |
+| 021 | `dispatch_evidence.sql` | apply date unverified | probe registry entry added 2026-07-17 (`orders.dispatch_photo_urls`) — run the verify script to confirm. |
+| 022 | `public_sold_artworks.sql` | **NOT YET APPLIED** | widens the public artworks SELECT policy to include `status = 'sold'` so Just Sold links resolve. Apply via Dashboard SQL Editor. Until applied, sold artwork detail pages 404 for the public (the Just Sold *list* works regardless — it reads via the service role). |
 
 ## Incident retrospective — migrations 006 + 012 drift (pattern)
 

@@ -20,7 +20,9 @@ async function getArtwork(id: string) {
       '*, profiles!artworks_artist_id_fkey(id, full_name, avatar_url, bio, location)'
     )
     .eq('id', id)
-    .eq('status', 'approved')
+    // Sold works stay publicly viewable (Just Sold links here); the
+    // client renders a sold state instead of the purchase CTA.
+    .in('status', ['approved', 'sold'])
     .single();
 
   if (error || !data) return null;
@@ -106,6 +108,7 @@ export default async function ArtworkDetailPage({ params }: Props) {
     shipping_weight_kg: data.shipping_weight_kg,
     availability: (data.availability as ArtworkDetail['availability']) || 'available',
     available_from: data.available_from || null,
+    status: (data.status as ArtworkDetail['status']) || 'approved',
     artist: {
       id: profile?.id || '',
       full_name: profile?.full_name || null,
