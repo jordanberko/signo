@@ -7,7 +7,7 @@ import { formatPrice, getStatusStyle, formatStatus } from '@/lib/utils';
 import { useAuth } from '@/components/providers/AuthProvider';
 import EditorialSpinner from '@/components/ui/EditorialSpinner';
 import { useRequireAuth } from '@/lib/hooks/useRequireAuth';
-import { uploadStudioImage } from '@/lib/supabase/storage';
+import { uploadStudioImage, isHeic, ensureBrowserDecodable } from '@/lib/supabase/storage';
 import type { StudioPost } from '@/lib/types/database';
 
 // ── Types ──
@@ -68,6 +68,7 @@ export default function ArtistDashboardPage() {
   const [showStudioForm, setShowStudioForm] = useState(false);
   const [studioCaption, setStudioCaption] = useState('');
   const [studioUploading, setStudioUploading] = useState(false);
+  const [studioConverting, setStudioConverting] = useState(false);
   const [studioImageFile, setStudioImageFile] = useState<File | null>(null);
   const [studioImagePreview, setStudioImagePreview] = useState<string | null>(null);
   const [studioError, setStudioError] = useState<string | null>(null);
@@ -172,12 +173,37 @@ export default function ArtistDashboardPage() {
   }, [fetchStudioPosts]);
 
   const handleStudioImageSelect = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
+    async (e: React.ChangeEvent<HTMLInputElement>) => {
       const file = e.target.files?.[0];
       if (!file) return;
+      setStudioError(null);
+
+      // Convert HEIC at selection time, not at post time: the wasm
+      // decode of a 12MP iPhone photo takes seconds, and doing it here
+      // overlaps with the user writing their caption — Post stays fast.
+      // Bonus: the preview shows the converted JPEG, which every
+      // browser can display.
+      if (isHeic(file)) {
+        setStudioConverting(true);
+        setStudioImageFile(null);
+        setStudioImagePreview(null);
+        try {
+          const converted = await ensureBrowserDecodable(file);
+          setStudioImageFile(converted);
+          setStudioImagePreview(URL.createObjectURL(converted));
+        } catch (err) {
+          setStudioError(
+            err instanceof Error ? err.message : 'Could not read this photo.',
+          );
+          if (studioFileRef.current) studioFileRef.current.value = '';
+        } finally {
+          setStudioConverting(false);
+        }
+        return;
+      }
+
       setStudioImageFile(file);
       setStudioImagePreview(URL.createObjectURL(file));
-      setStudioError(null);
     },
     []
   );
@@ -1170,7 +1196,27 @@ export default function ArtistDashboardPage() {
                 className="hidden"
                 id="studio-image-upload"
               />
-              {studioImagePreview ? (
+              {studioConverting ? (
+                <div
+                  style={{
+                    width: 220,
+                    height: 220,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    textAlign: 'center',
+                    padding: '1rem',
+                    border: '1px solid var(--color-border)',
+                    background: 'var(--color-cream)',
+                    fontSize: '0.72rem',
+                    lineHeight: 1.5,
+                    color: 'var(--color-stone-dark)',
+                  }}
+                >
+                  Preparing photo… you can write your caption while this
+                  finishes.
+                </div>
+              ) : studioImagePreview ? (
                 <div style={{ position: 'relative', width: 220 }}>
                   <Image
                     src={studioImagePreview}
@@ -1316,10 +1362,14 @@ export default function ArtistDashboardPage() {
                 <button
                   type="button"
                   onClick={handleStudioSubmit}
-                  disabled={!studioImageFile || studioUploading}
+                  disabled={!studioImageFile || studioUploading || studioConverting}
                   className="artwork-primary-cta--compact"
                 >
-                  {studioUploading ? 'Posting…' : 'Post to studio'}
+                  {studioUploading
+                    ? 'Posting…'
+                    : studioConverting
+                    ? 'Preparing photo…'
+                    : 'Post to studio'}
                 </button>
                 <button
                   type="button"
