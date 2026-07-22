@@ -166,12 +166,13 @@ export default function JustSoldPage() {
           </div>
         ) : (
           <>
-            <ul className="list-none p-0 m-0">
-              {artworks.map((item, i) => (
-                <SoldRow key={item.artworkId} item={item} isFirst={i === 0} />
+            {/* Same card-grid vocabulary as browse and the homepage —
+                image-first, uncropped tiles, quiet metadata. */}
+            <div className="grid grid-cols-2 gap-2 lg:grid-cols-4 lg:gap-x-4 lg:gap-y-8">
+              {artworks.map((item) => (
+                <SoldCard key={item.artworkId} item={item} />
               ))}
-              <li style={{ borderTop: '1px solid var(--color-border)', height: 0 }} />
-            </ul>
+            </div>
 
             {hasMore && (
               <div style={{ marginTop: '3.5rem' }}>
@@ -196,122 +197,110 @@ export default function JustSoldPage() {
   );
 }
 
-function SoldRow({ item, isFirst }: { item: SoldArtwork; isFirst: boolean }) {
+/**
+ * SoldCard — mirrors ArtworkCard's shop-card sizing so sold works read
+ * as part of the same catalogue, with a sold marker instead of save
+ * actions. Image contained, never cropped.
+ */
+function SoldCard({ item }: { item: SoldArtwork }) {
   const hasDimensions = item.widthCm && item.heightCm;
 
   return (
-    <li
-      style={{
-        borderTop: '1px solid var(--color-border)',
-        borderTopWidth: isFirst ? '1px' : '1px',
-      }}
-    >
+    <article className="group relative block">
       <Link
         href={`/artwork/${item.artworkId}`}
-        className="artist-row"
-        style={{
-          display: 'grid',
-          gridTemplateColumns: '72px minmax(0,1fr) auto',
-          gap: 'clamp(1rem, 3vw, 2.4rem)',
-          alignItems: 'center',
-          padding: '1.6rem 0',
-          textDecoration: 'none',
-        }}
+        className="block overflow-hidden aspect-[3/4] relative no-underline"
       >
-        {/* Thumbnail */}
+        {item.imageUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={item.imageUrl}
+            alt={item.title}
+            className="block w-full h-full object-contain transition-transform group-hover:scale-[1.02]"
+            style={{
+              transitionDuration: 'var(--dur-slow)',
+              transitionTimingFunction: 'var(--ease-out)',
+            }}
+            loading="lazy"
+          />
+        ) : (
+          <div className="w-full h-full" style={{ background: 'var(--color-cream)' }} />
+        )}
+      </Link>
+
+      <div className="pt-3">
+        {/* Sold marker + recency */}
         <div
-          className="relative flex-shrink-0"
+          className="mb-1.5 flex gap-3"
           style={{
-            width: 72,
-            height: 90,
-            background: 'var(--color-cream)',
-            overflow: 'hidden',
+            fontSize: '0.62rem',
+            fontWeight: 500,
+            letterSpacing: '0.16em',
+            textTransform: 'uppercase',
           }}
         >
-          {item.imageUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={item.imageUrl}
-              alt={item.title}
-              className="w-full h-full object-cover"
-              style={{ filter: 'grayscale(12%)' }}
-              loading="lazy"
-            />
-          ) : null}
+          <span style={{ color: 'var(--color-terracotta)' }}>Sold</span>
+          <span style={{ color: 'var(--color-stone)' }}>{timeAgo(item.soldAt)}</span>
         </div>
 
-        {/* Title · artist · details */}
-        <div className="min-w-0">
+        <Link href={`/artwork/${item.artworkId}`} className="block no-underline">
           <h2
-            className="font-serif"
+            className="truncate transition-colors group-hover:text-[color:var(--color-terracotta)]"
             style={{
-              fontSize: 'clamp(1.15rem, 1.8vw, 1.55rem)',
-              lineHeight: 1.2,
-              color: 'var(--color-ink)',
-              fontWeight: 400,
+              fontSize: '0.85rem',
+              fontWeight: 500,
+              lineHeight: 1.3,
               letterSpacing: '-0.01em',
+              color: 'var(--color-ink)',
               margin: 0,
-              whiteSpace: 'nowrap',
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
+              transitionDuration: 'var(--dur-base)',
+              transitionTimingFunction: 'var(--ease-out)',
             }}
           >
             {item.title}
           </h2>
-          <p
-            style={{
-              fontSize: '0.82rem',
-              color: 'var(--color-stone-dark)',
-              fontStyle: 'italic',
-              marginTop: '0.25rem',
-              fontWeight: 400,
-            }}
-          >
-            {item.artistName}
-          </p>
-          {(item.medium || hasDimensions) && (
-            <p
-              style={{
-                marginTop: '0.35rem',
-                fontSize: '0.72rem',
-                color: 'var(--color-stone)',
-                fontWeight: 400,
-                letterSpacing: '0.02em',
-              }}
-            >
-              {item.medium}
-              {item.medium && hasDimensions ? ' · ' : ''}
-              {hasDimensions && `${Math.round(item.widthCm!)} × ${Math.round(item.heightCm!)} cm`}
-            </p>
-          )}
-        </div>
+        </Link>
 
-        {/* Price + time */}
-        <div style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
+        <p
+          className="mt-1"
+          style={{
+            fontSize: '0.78rem',
+            fontWeight: 400,
+            color: 'var(--color-stone-dark)',
+            margin: '0.25rem 0 0',
+          }}
+        >
+          {item.artistName}
+        </p>
+
+        {(item.medium || hasDimensions) && (
           <p
-            className="font-serif"
+            className="mt-2"
             style={{
-              fontSize: 'clamp(1rem, 1.4vw, 1.2rem)',
-              color: 'var(--color-ink)',
+              fontSize: '0.72rem',
               fontWeight: 400,
-              margin: 0,
-            }}
-          >
-            {formatPrice(item.price)}
-          </p>
-          <p
-            style={{
-              marginTop: '0.35rem',
-              fontSize: '0.62rem',
-              letterSpacing: '0.2em',
-              textTransform: 'uppercase',
               color: 'var(--color-stone)',
+              letterSpacing: '0.02em',
+              margin: '0.5rem 0 0',
             }}
           >
-            {timeAgo(item.soldAt)}
+            {item.medium}
+            {item.medium && hasDimensions ? ' · ' : ''}
+            {hasDimensions && `${Math.round(item.widthCm!)} × ${Math.round(item.heightCm!)} cm`}
           </p>
-        </div>
-      </Link>
-    </li>
+        )}
+
+        <p
+          style={{
+            fontSize: '0.85rem',
+            fontWeight: 500,
+            color: 'var(--color-ink)',
+            margin: '0.4rem 0 0',
+          }}
+        >
+          {formatPrice(item.price)}
+        </p>
+      </div>
+    </article>
   );
 }
