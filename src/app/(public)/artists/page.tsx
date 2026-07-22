@@ -1,13 +1,20 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import type { Metadata } from 'next';
-import { createClient } from '@/lib/supabase/server';
+import { createClient as createAnonClient } from '@supabase/supabase-js';
 
 export const metadata: Metadata = {
   title: 'The Artists — Signo',
   description:
     'The Australian artists listing original work on Signo. Painters, printmakers, sculptors — direct from the studio.',
 };
+
+// The roster is identical for every visitor and reads only publicly
+// selectable data, so serve it from the ISR cache and refresh in the
+// background every 5 minutes. (Using the cookie-less anon client below
+// is what makes this cacheable — the cookie-bound server client would
+// force per-request dynamic rendering.)
+export const revalidate = 300;
 
 // ── Data fetch ──
 
@@ -22,22 +29,30 @@ interface ArtistRow {
 }
 
 async function getArtists(): Promise<ArtistRow[]> {
-  const supabase = await createClient();
+  // Cookie-less anon client: all reads here go through public RLS
+  // policies, and skipping the cookie store keeps this page cacheable.
+  const supabase = createAnonClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+  );
 
-  // Hide paused/cancelled subscriptions
-  const { data: hiddenArtists } = await supabase
-    .from('profiles')
-    .select('id')
-    .in('subscription_status', ['paused', 'cancelled']);
+  // The hidden-artists lookup and the artwork aggregate are independent
+  // — run them in parallel instead of serially.
+  const [{ data: hiddenArtists }, { data: artworkRows }] = await Promise.all([
+    // Hide paused/cancelled subscriptions
+    supabase
+      .from('profiles')
+      .select('id')
+      .in('subscription_status', ['paused', 'cancelled']),
+    // All approved artworks → aggregate per artist
+    supabase
+      .from('artworks')
+      .select('artist_id, images')
+      .eq('status', 'approved')
+      .order('created_at', { ascending: false }),
+  ]);
 
   const hiddenIds = new Set((hiddenArtists || []).map((a: { id: string }) => a.id));
-
-  // All approved artworks → aggregate per artist
-  const { data: artworkRows } = await supabase
-    .from('artworks')
-    .select('artist_id, images')
-    .eq('status', 'approved')
-    .order('created_at', { ascending: false });
 
   if (!artworkRows || artworkRows.length === 0) return [];
 
@@ -57,11 +72,14 @@ async function getArtists(): Promise<ArtistRow[]> {
   const artistIds = Array.from(artistMap.keys()).filter((id) => !hiddenIds.has(id));
   if (artistIds.length === 0) return [];
 
+  // Roles are not exclusive on Signo — admins can also sell, so an
+  // admin-artist must appear on the roster too (same convention as the
+  // header, dashboards, and artist API routes).
   const { data: profiles } = await supabase
     .from('profiles')
     .select('id, full_name, avatar_url, bio, location')
     .in('id', artistIds)
-    .eq('role', 'artist');
+    .in('role', ['artist', 'admin']);
 
   return (profiles || [])
     .map((p) => {

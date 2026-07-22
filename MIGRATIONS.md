@@ -181,7 +181,7 @@ called out explicitly.
 | 019 | `profile_structured_address.sql` | already present in prod (codified 2026-04-23) | codifies the four reverse-drifted address columns; apply is a no-op in prod, creates columns in fresh dev / preview. |
 | 020 | `return_flow.sql` | apply date unverified | probe registry entry added 2026-07-17 (`disputes.return_tracking_number`) — run the verify script to confirm. |
 | 021 | `dispatch_evidence.sql` | apply date unverified | probe registry entry added 2026-07-17 (`orders.dispatch_photo_urls`) — run the verify script to confirm. |
-| 022 | `public_sold_artworks.sql` | **NOT YET APPLIED** | widens the public artworks SELECT policy to include `status = 'sold'` so Just Sold links resolve. Apply via Dashboard SQL Editor. Until applied, sold artwork detail pages 404 for the public (the Just Sold *list* works regardless — it reads via the service role). |
+| 022 | `public_sold_artworks.sql` | applied on or before 2026-07-17 | widens the public artworks SELECT policy to include `status = 'sold'`. Verified applied via live probe 2026-07-17: sold artwork `30f505c9…`'s public detail page returns 200 (would 404 under the old policy). |
 
 ## Incident retrospective — migrations 006 + 012 drift (pattern)
 

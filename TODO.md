@@ -125,7 +125,15 @@ Required actions:
 this file is closed.** This is the last-mile step, not something to
 do in parallel with test-mode work.
 
-### CRITICAL — Fire-and-forget Resend sends at 6 remaining call sites (M6)
+### CRITICAL — Fire-and-forget Resend sends at 6 remaining call sites (M6) — RESOLVED
+
+**Status 2026-07-17: RESOLVED.** Code inspection during the readiness
+audit confirmed every call site in the table below now awaits its send
+inside try/catch (e.g. `escrow.ts` `sendFirstSaleActivation`,
+`ship/route.ts` `sendShippingConfirmation`, `welcome/route.ts`
+`sendWelcomeEmail`). The conversion happened in the May sessions;
+this entry wasn't updated at the time. Original context retained
+below.
 
 **Elevated from Medium to pre-launch blocker 2026-04-24.** Same class
 of silent-email-failure risk that caused the 2026-04-22 smoke test to
@@ -295,16 +303,29 @@ future preview-based end-to-end verification.
 
 ## Medium
 
-### M1 — `charge.refunded` webhook handler
-A refund issued from the Stripe dashboard (rather than via the app's
-dispute resolution flow) bypasses `/api/stripe/payment-webhook`, so
-`orders.status` doesn't reflect the refund. Low operational likelihood
-but easy to get wrong when the team does manual refunds.
-- Add a `charge.refunded` case to `src/app/api/stripe/payment-webhook/route.ts`
-- Look up the order by `stripe_payment_intent_id` (a `Charge` has
-  `payment_intent`) and set `status = 'refunded'` if it isn't already.
+### M1 — `charge.refunded` webhook handler — RESOLVED (code) 2026-07-17
 
-### M2 — Apply H3 pattern to subscription webhook
+**Status 2026-07-17: handler shipped** in the readiness-audit session:
+`handleChargeRefunded` in
+`src/app/api/stripe/payment-webhook/route.ts` looks up the order by
+`stripe_payment_intent_id`, marks it `refunded` (idempotent — skips
+already-refunded/cancelled), throws on DB failure so Stripe retries,
+and fires a `sendOpsAlert` noting the artwork may need relisting.
+
+**Remaining operator action:** the Stripe webhook endpoint
+(`we_1THAZfAFoloYAF9YCSozHoTi`) must be subscribed to the
+`charge.refunded` event in the Stripe Dashboard (it currently receives
+`checkout.session.*` + `payment_intent.payment_failed` only). Until
+that box is ticked, the handler never receives the event.
+
+### M2 — Apply H3 pattern to subscription webhook — RESOLVED
+
+**Status 2026-07-17: RESOLVED.** Code inspection during the readiness
+audit confirmed the subscription webhook now has: 400 + ops alert on
+signature failure, idempotency via `processed_stripe_events`, and
+non-200s on write failures. This entry wasn't updated when the work
+landed. Original context retained below.
+
 `src/app/api/stripe/subscription-webhook/route.ts` silently returns 200
 on all errors — the same bug Group 2 is fixing for the payment webhook.
 Lower priority than payment webhook because subscription volume is low
@@ -382,7 +403,11 @@ Migration apply workflow gap section above — running this audit is
 itself the privileged-operator path, and requires the same
 `DATABASE_URL` plumbing.
 
-### M8 — Newsletter upsert vs RLS policy mismatch (user-facing 500)
+### M8 — Newsletter upsert vs RLS policy mismatch (user-facing 500) — RESOLVED
+
+**Status 2026-07-17: RESOLVED.** Live probe during the readiness audit:
+anonymous `POST /api/newsletter` returns `{"success":true}` HTTP 200.
+Original context retained below.
 
 `src/app/api/newsletter/route.ts` calls
 `supabase.from('newsletter_subscribers').upsert(..., { onConflict:
@@ -412,10 +437,9 @@ upsert".
 
 ## Low
 
-### L1 — Remove unused `@stripe/stripe-js`
-`package.json` declares `@stripe/stripe-js ^9.0.0` but nothing in `src/`
-imports it. Checkout is 100% server-driven via Stripe-hosted Checkout.
-- `npm uninstall @stripe/stripe-js`
+### L1 — Remove unused `@stripe/stripe-js` — RESOLVED 2026-07-17
+Removed in the readiness-audit session. Checkout remains 100%
+server-driven via Stripe-hosted Checkout.
 
 ### L2 — Consolidate Stripe import pattern (partially complete)
 
