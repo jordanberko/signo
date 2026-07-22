@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useState, useEffect, Suspense } from 'react';
+import Image from 'next/image';
 import { useSearchParams } from 'next/navigation';
 import { signIn, signInWithGoogle } from '@/lib/supabase/auth';
 import { createClient } from '@/lib/supabase/client';
@@ -163,75 +164,45 @@ function LoginForm() {
   }
 
   return (
+    // Split-screen: compact form column left, gallery photograph right
+    // (WoA-style utility page — quiet type, everything visible at once).
     <div
-      style={{
-        background: 'var(--color-warm-white)',
-        minHeight: '100vh',
-      }}
+      className="lg:grid lg:grid-cols-2"
+      style={{ background: 'var(--color-warm-white)', minHeight: '100vh' }}
     >
+      {/* ── Form column ── */}
       <div
-        className="grid grid-cols-1 lg:grid-cols-12 px-6 sm:px-10"
+        className="px-6 sm:px-10 flex justify-center"
         style={{
-          gap: 'clamp(2.5rem, 5vw, 5rem)',
-          paddingTop: 'clamp(4rem, 9vw, 7rem)',
-          paddingBottom: 'clamp(4rem, 8vw, 7rem)',
-          minHeight: '100vh',
-          alignItems: 'start',
+          paddingTop: 'clamp(5.5rem, 7vw, 6.5rem)',
+          paddingBottom: '3.5rem',
         }}
       >
-        {/* ── Editorial column (5/12) ── */}
-        <div className="lg:col-span-5" style={{ position: 'sticky', top: 'clamp(4rem, 9vw, 7rem)' }}>
-          <Link
-            href="/"
-            className="font-serif"
-            style={{
-              fontSize: '0.68rem',
-              letterSpacing: '0.22em',
-              textTransform: 'uppercase',
-              color: 'var(--color-stone)',
-              textDecoration: 'none',
-              fontStyle: 'normal',
-              fontFamily: 'inherit',
-            }}
-          >
-            ← Signo
-          </Link>
-          <p
-            style={{
-              fontSize: '0.62rem',
-              letterSpacing: '0.22em',
-              textTransform: 'uppercase',
-              color: 'var(--color-stone)',
-              marginTop: '2.2rem',
-              marginBottom: '1.2rem',
-            }}
-          >
-            Sign in
-          </p>
+        <div style={{ width: '100%', maxWidth: '27rem' }}>
           <h1
-            className="font-serif"
             style={{
-              fontSize: 'clamp(2.6rem, 6vw, 4.8rem)',
-              lineHeight: 1.02,
-              letterSpacing: '-0.015em',
+              fontSize: '1.85rem',
+              lineHeight: 1.15,
+              letterSpacing: '-0.02em',
               color: 'var(--color-ink)',
-              fontWeight: 400,
-              maxWidth: '12ch',
+              fontWeight: 500,
+              margin: 0,
             }}
           >
-            Welcome <em style={{ fontStyle: 'italic' }}>back.</em>
+            Welcome back
           </h1>
           <p
             style={{
-              marginTop: '1.8rem',
-              fontSize: '1rem',
+              marginTop: '0.7rem',
+              marginBottom: '1.8rem',
+              fontSize: '0.88rem',
               fontWeight: 400,
-              lineHeight: 1.7,
+              lineHeight: 1.6,
               color: 'var(--color-stone-dark)',
-              maxWidth: '38ch',
             }}
           >
-            Access the studio, the ledger, and the works you&apos;ve saved. New to Signo?{' '}
+            Access the studio, the ledger, and the works you&apos;ve saved.
+            New to Signo?{' '}
             <Link
               href="/register"
               style={{
@@ -244,10 +215,6 @@ function LoginForm() {
             </Link>
             .
           </p>
-        </div>
-
-        {/* ── Form column (7/12) ── */}
-        <div className="lg:col-span-7" style={{ maxWidth: '34rem' }}>
           {/* Google */}
           <button
             type="button"
@@ -282,7 +249,7 @@ function LoginForm() {
               display: 'flex',
               alignItems: 'center',
               gap: '1.4rem',
-              margin: 'clamp(2rem, 4vw, 2.8rem) 0',
+              margin: '1.4rem 0',
             }}
           >
             <div style={{ flex: 1, height: '1px', background: 'var(--color-border)' }} />
@@ -375,7 +342,7 @@ function LoginForm() {
               </p>
             )}
 
-            <div style={{ marginTop: 'clamp(2rem, 4vw, 2.8rem)' }}>
+            <div style={{ marginTop: '1.6rem' }}>
               <button
                 type="submit"
                 disabled={loading || googleLoading}
@@ -411,39 +378,44 @@ function LoginForm() {
           </form>
         </div>
       </div>
+
+      {/* ── Image column — hidden below lg ── */}
+      <div className="hidden lg:block relative">
+        <Image
+          src="/hero/hero_4_oak_concrete_salon.webp"
+          alt=""
+          fill
+          priority
+          sizes="50vw"
+          className="object-cover"
+        />
+      </div>
     </div>
   );
 }
 
 function LoginFallback() {
   return (
-    <div style={{ background: 'var(--color-warm-white)', minHeight: '100vh' }}>
-      <div
-        className="px-6 sm:px-10"
-        style={{ paddingTop: 'clamp(4rem, 9vw, 7rem)' }}
-      >
-        <p
-          style={{
-            fontSize: '0.62rem',
-            letterSpacing: '0.22em',
-            textTransform: 'uppercase',
-            color: 'var(--color-stone)',
-            marginBottom: '1.2rem',
-          }}
-        >
-          Sign in
-        </p>
+    <div
+      className="px-6 sm:px-10 flex justify-center"
+      style={{
+        background: 'var(--color-warm-white)',
+        minHeight: '100vh',
+        paddingTop: 'clamp(5.5rem, 7vw, 6.5rem)',
+      }}
+    >
+      <div className="lg:w-1/2" style={{ width: '100%', maxWidth: '27rem' }}>
         <h1
-          className="font-serif"
           style={{
-            fontSize: 'clamp(2.6rem, 6vw, 4.8rem)',
-            lineHeight: 1.02,
-            letterSpacing: '-0.015em',
+            fontSize: '1.85rem',
+            lineHeight: 1.15,
+            letterSpacing: '-0.02em',
             color: 'var(--color-ink)',
-            fontWeight: 400,
+            fontWeight: 500,
+            margin: 0,
           }}
         >
-          Welcome <em style={{ fontStyle: 'italic' }}>back.</em>
+          Welcome back
         </h1>
       </div>
     </div>
