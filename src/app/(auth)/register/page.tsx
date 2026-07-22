@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useState, useMemo, Suspense } from 'react';
+import Image from 'next/image';
 import { useSearchParams } from 'next/navigation';
 import { signUp, signInWithGoogle } from '@/lib/supabase/auth';
 
@@ -264,89 +265,57 @@ function RegisterForm() {
   }
 
   return (
-    <div style={{ background: 'var(--color-warm-white)', minHeight: '100vh' }}>
-      {/* ── Full-width editorial header ── */}
-      <header
-        className="px-6 sm:px-10"
+    // Split-screen: compact form column left, gallery photograph right
+    // (WoA-style utility page — quiet type, everything visible at once).
+    <div
+      className="lg:grid lg:grid-cols-2"
+      style={{ background: 'var(--color-warm-white)', minHeight: '100vh' }}
+    >
+      {/* ── Form column ── */}
+      <div
+        className="px-6 sm:px-10 flex justify-center"
         style={{
-          paddingTop: 'clamp(4rem, 9vw, 7rem)',
-          paddingBottom: 'clamp(2.5rem, 5vw, 4rem)',
+          paddingTop: 'clamp(5.5rem, 7vw, 6.5rem)',
+          paddingBottom: '3.5rem',
         }}
       >
-        <Link
-          href="/"
-          style={{
-            fontSize: '0.68rem',
-            letterSpacing: '0.22em',
-            textTransform: 'uppercase',
-            color: 'var(--color-stone)',
-            textDecoration: 'none',
-          }}
-        >
-          ← Signo
-        </Link>
-        <p
-          style={{
-            fontSize: '0.62rem',
-            letterSpacing: '0.22em',
-            textTransform: 'uppercase',
-            color: 'var(--color-stone)',
-            marginTop: '2.2rem',
-            marginBottom: '1.2rem',
-          }}
-        >
-          Join
-        </p>
-        <h1
-          className="font-serif"
-          style={{
-            fontSize: 'clamp(2.6rem, 6vw, 4.8rem)',
-            lineHeight: 1.02,
-            letterSpacing: '-0.015em',
-            color: 'var(--color-ink)',
-            fontWeight: 400,
-            maxWidth: '16ch',
-          }}
-        >
-          Create your <em style={{ fontStyle: 'italic' }}>account.</em>
-        </h1>
-        <p
-          style={{
-            marginTop: '1.8rem',
-            fontSize: '1rem',
-            fontWeight: 400,
-            lineHeight: 1.7,
-            color: 'var(--color-stone-dark)',
-            maxWidth: '48ch',
-          }}
-        >
-          Everyone on Signo can both buy and sell. Pick the side you&apos;re most here for —
-          you can always do the other later. Already registered?{' '}
-          <Link
-            href="/login"
+        <section style={{ width: '100%', maxWidth: '27rem' }}>
+          <h1
             style={{
+              fontSize: '1.85rem',
+              lineHeight: 1.15,
+              letterSpacing: '-0.02em',
               color: 'var(--color-ink)',
-              borderBottom: '1px solid var(--color-stone)',
-              textDecoration: 'none',
+              fontWeight: 500,
+              margin: 0,
             }}
           >
-            Sign in
-          </Link>
-          .
-        </p>
-      </header>
-
-      <div style={{ borderTop: '1px solid var(--color-border)' }} />
-
-      {/* ── Form body ── */}
-      <section
-        className="px-6 sm:px-10"
-        style={{
-          paddingTop: 'clamp(3.5rem, 6vw, 5.5rem)',
-          paddingBottom: 'clamp(5rem, 9vw, 8rem)',
-          maxWidth: '46rem',
-        }}
-      >
+            Create your account
+          </h1>
+          <p
+            style={{
+              marginTop: '0.7rem',
+              marginBottom: '1.8rem',
+              fontSize: '0.88rem',
+              fontWeight: 400,
+              lineHeight: 1.6,
+              color: 'var(--color-stone-dark)',
+            }}
+          >
+            Everyone on Signo can both buy and sell — pick the side
+            you&apos;re most here for. Already registered?{' '}
+            <Link
+              href="/login"
+              style={{
+                color: 'var(--color-ink)',
+                borderBottom: '1px solid var(--color-stone)',
+                textDecoration: 'none',
+              }}
+            >
+              Sign in
+            </Link>
+            .
+          </p>
         {/* Google */}
         <button
           type="button"
@@ -379,7 +348,7 @@ function RegisterForm() {
             display: 'flex',
             alignItems: 'center',
             gap: '1.4rem',
-            margin: 'clamp(2rem, 4vw, 2.8rem) 0',
+            margin: '1.4rem 0',
           }}
         >
           <div style={{ flex: 1, height: '1px', background: 'var(--color-border)' }} />
@@ -401,12 +370,13 @@ function RegisterForm() {
           <p className="commission-label" style={{ marginBottom: '1rem' }}>
             I&apos;m primarily here to
           </p>
+          {/* Two selectable cards — the choice must be obvious at a
+              glance: selected card gets an ink border + light fill. */}
           <div
             style={{
               display: 'grid',
               gridTemplateColumns: '1fr 1fr',
-              borderTop: '1px solid var(--color-border)',
-              borderBottom: '1px solid var(--color-border)',
+              gap: '0.6rem',
             }}
           >
             {(
@@ -414,56 +384,42 @@ function RegisterForm() {
                 { value: 'buyer', label: 'Collect', note: 'Discover & acquire' },
                 { value: 'artist', label: 'Sell', note: 'Free until first sale' },
               ] as const
-            ).map((opt, i) => {
+            ).map((opt) => {
               const selected = role === opt.value;
               return (
                 <button
                   key={opt.value}
                   type="button"
                   onClick={() => setRole(opt.value)}
+                  aria-pressed={selected}
                   style={{
-                    background: 'transparent',
-                    border: 'none',
-                    borderLeft: i === 1 ? '1px solid var(--color-border)' : 'none',
-                    padding: '1.6rem 1.2rem',
+                    background: selected ? 'var(--color-cream)' : 'transparent',
+                    border: selected
+                      ? '1px solid var(--color-ink)'
+                      : '1px solid var(--color-border-strong)',
+                    padding: '0.9rem 1rem',
                     textAlign: 'left',
                     cursor: 'pointer',
+                    transition:
+                      'border-color var(--dur-fast) var(--ease-out), background-color var(--dur-fast) var(--ease-out)',
                   }}
                 >
                   <span
-                    className="font-serif"
                     style={{
                       display: 'block',
-                      fontSize: 'clamp(1.3rem, 2.2vw, 1.8rem)',
+                      fontSize: '0.98rem',
                       color: 'var(--color-ink)',
-                      fontStyle: selected ? 'italic' : 'normal',
-                      fontWeight: 400,
+                      fontWeight: 500,
                       letterSpacing: '-0.005em',
-                      marginBottom: '0.4rem',
+                      marginBottom: '0.2rem',
                     }}
                   >
                     {opt.label}
-                    {selected && (
-                      <span
-                        style={{
-                          display: 'inline-block',
-                          marginLeft: '0.6rem',
-                          fontSize: '0.62rem',
-                          letterSpacing: '0.22em',
-                          textTransform: 'uppercase',
-                          color: 'var(--color-stone)',
-                          verticalAlign: 'middle',
-                          fontStyle: 'normal',
-                        }}
-                      >
-                        Selected
-                      </span>
-                    )}
                   </span>
                   <span
                     style={{
-                      fontSize: '0.78rem',
-                      color: 'var(--color-stone)',
+                      fontSize: '0.75rem',
+                      color: 'var(--color-stone-dark)',
                       fontWeight: 400,
                     }}
                   >
@@ -475,7 +431,7 @@ function RegisterForm() {
           </div>
 
           {/* Full Name */}
-          <div style={{ marginTop: 'clamp(2rem, 4vw, 2.8rem)' }}>
+          <div style={{ marginTop: '1.6rem' }}>
             <label htmlFor="fullName" className="commission-label">
               Full name
             </label>
@@ -630,7 +586,7 @@ function RegisterForm() {
           {/* Terms */}
           <label
             style={{
-              marginTop: 'clamp(2rem, 4vw, 2.8rem)',
+              marginTop: '1.4rem',
               display: 'flex',
               alignItems: 'flex-start',
               gap: '0.9rem',
@@ -735,7 +691,7 @@ function RegisterForm() {
             </p>
           )}
 
-          <div style={{ marginTop: 'clamp(2rem, 4vw, 2.8rem)' }}>
+          <div style={{ marginTop: '1.6rem' }}>
             <button
               type="submit"
               disabled={loading || googleLoading || !agreedToTerms}
@@ -769,37 +725,46 @@ function RegisterForm() {
             </Link>
           </p>
         </form>
-      </section>
+        </section>
+      </div>
+
+      {/* ── Image column — hidden below lg ── */}
+      <div className="hidden lg:block relative">
+        <Image
+          src="/hero/hero_2_large_red_abstract.webp"
+          alt=""
+          fill
+          priority
+          sizes="50vw"
+          className="object-cover"
+        />
+      </div>
     </div>
   );
 }
 
 function RegisterFallback() {
   return (
-    <div style={{ background: 'var(--color-warm-white)', minHeight: '100vh' }}>
-      <div className="px-6 sm:px-10" style={{ paddingTop: 'clamp(4rem, 9vw, 7rem)' }}>
-        <p
-          style={{
-            fontSize: '0.62rem',
-            letterSpacing: '0.22em',
-            textTransform: 'uppercase',
-            color: 'var(--color-stone)',
-            marginBottom: '1.2rem',
-          }}
-        >
-          Join
-        </p>
+    <div
+      className="px-6 sm:px-10 flex justify-center"
+      style={{
+        background: 'var(--color-warm-white)',
+        minHeight: '100vh',
+        paddingTop: 'clamp(5.5rem, 7vw, 6.5rem)',
+      }}
+    >
+      <div style={{ width: '100%', maxWidth: '27rem' }}>
         <h1
-          className="font-serif"
           style={{
-            fontSize: 'clamp(2.6rem, 6vw, 4.8rem)',
-            lineHeight: 1.02,
-            letterSpacing: '-0.015em',
+            fontSize: '1.85rem',
+            lineHeight: 1.15,
+            letterSpacing: '-0.02em',
             color: 'var(--color-ink)',
-            fontWeight: 400,
+            fontWeight: 500,
+            margin: 0,
           }}
         >
-          Create your <em style={{ fontStyle: 'italic' }}>account.</em>
+          Create your account
         </h1>
       </div>
     </div>
