@@ -58,13 +58,24 @@ export async function proxy(request: NextRequest) {
 export const config = {
   matcher: [
     /*
-     * Match all routes except:
-     * - _next/static (static files)
-     * - _next/image (image optimization)
-     * - favicon.ico, sitemap.xml, robots.txt
-     * - api/stripe/*, api/cron/* (webhook + cron endpoints auth themselves)
-     * - Static assets (svg, png, jpg, etc.)
+     * Run ONLY on protected routes. The proxy exists to (a) refresh the
+     * session cookie and (b) redirect signed-out users — both only
+     * matter on routes that require auth. Running it sitewide meant
+     * every public-page navigation for a signed-in user paid a
+     * 200-500ms Supabase getUser() round-trip; public pages and API
+     * routes authenticate themselves via their own Supabase clients,
+     * and the browser SDK auto-refreshes tokens client-side.
+     *
+     * (`/:path*` also matches the bare prefix, e.g. `/dashboard`.)
      */
-    '/((?!_next/static|_next/image|favicon.ico|sitemap\\.xml|robots\\.txt|api/stripe/|api/cron/|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)',
+    '/dashboard/:path*',
+    '/favourites/:path*',
+    '/following/:path*',
+    '/orders/:path*',
+    '/messages/:path*',
+    '/settings/:path*',
+    '/checkout/:path*',
+    '/artist/:path*',
+    '/admin/:path*',
   ],
 };

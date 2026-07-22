@@ -1,53 +1,45 @@
 'use client';
 import { usePathname } from 'next/navigation';
-import { useEffect, useState, useRef, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 
+/**
+ * Page transition — fade-IN only.
+ *
+ * The previous implementation held the outgoing page for 150ms (fade-out)
+ * before swapping, adding artificial latency to every navigation. New
+ * content now renders the instant the route changes, with a fast opacity
+ * ease-in so the swap doesn't feel abrupt. Honors reduced motion.
+ */
 export default function PageTransition({ children }: { children: ReactNode }) {
   const pathname = usePathname();
-  const [displayed, setDisplayed] = useState(children);
-  const [displayedKey, setDisplayedKey] = useState(pathname);
-  const [phase, setPhase] = useState<'idle' | 'out' | 'in'>('idle');
-  const timeoutRef = useRef<ReturnType<typeof setTimeout>>(undefined);
+  const [visible, setVisible] = useState(true);
+  const lastPath = useRef(pathname);
 
   useEffect(() => {
-    if (pathname === displayedKey) {
-      setDisplayed(children);
+    if (pathname === lastPath.current) return;
+    lastPath.current = pathname;
+
+    if (
+      typeof window !== 'undefined' &&
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    ) {
       return;
     }
 
-    // Check reduced motion
-    if (typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-      setDisplayed(children);
-      setDisplayedKey(pathname);
-      return;
-    }
-
-    setPhase('out');
-    clearTimeout(timeoutRef.current);
-    timeoutRef.current = setTimeout(() => {
-      setDisplayed(children);
-      setDisplayedKey(pathname);
-      setPhase('in');
-      // Reset to idle after fade-in completes
-      timeoutRef.current = setTimeout(() => setPhase('idle'), 350);
-    }, 150);
-
-    return () => clearTimeout(timeoutRef.current);
-  }, [pathname, children, displayedKey]);
+    setVisible(false);
+    const raf = requestAnimationFrame(() => setVisible(true));
+    return () => cancelAnimationFrame(raf);
+  }, [pathname]);
 
   return (
     <div
       style={{
-        opacity: phase === 'out' ? 0 : 1,
-        transition: phase === 'out'
-          ? 'opacity 150ms var(--ease-in)'
-          : phase === 'in'
-          ? 'opacity var(--dur-base) var(--ease-out)'
-          : undefined,
+        opacity: visible ? 1 : 0,
+        transition: visible ? 'opacity 180ms var(--ease-out)' : 'none',
         minHeight: '100vh',
       }}
     >
-      {displayed}
+      {children}
     </div>
   );
 }
