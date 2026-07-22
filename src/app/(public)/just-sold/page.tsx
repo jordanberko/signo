@@ -200,7 +200,8 @@ export default function JustSoldPage() {
 /**
  * SoldCard — mirrors ArtworkCard's shop-card sizing so sold works read
  * as part of the same catalogue, with a sold marker instead of save
- * actions. Image contained, never cropped.
+ * actions. Photo fills the uniform tile (object-cover), matching
+ * ArtworkCard's treatment.
  */
 function SoldCard({ item }: { item: SoldArtwork }) {
   const hasDimensions = item.widthCm && item.heightCm;
@@ -216,7 +217,7 @@ function SoldCard({ item }: { item: SoldArtwork }) {
           <img
             src={item.imageUrl}
             alt={item.title}
-            className="block w-full h-full object-contain transition-transform group-hover:scale-[1.02]"
+            className="block w-full h-full object-cover transition-transform group-hover:scale-[1.02]"
             style={{
               transitionDuration: 'var(--dur-slow)',
               transitionTimingFunction: 'var(--ease-out)',

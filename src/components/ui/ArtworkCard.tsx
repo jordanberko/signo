@@ -107,10 +107,12 @@ export default function ArtworkCard({
 
   return (
     <article className="group relative block">
-      {/* Image — uniform 3:4 tile, artwork CONTAINED at its natural
-          proportions (never cropped). The tile ground is transparent so
-          the photo sits directly on the page — a visible tile colour
-          read as a second background behind each photo's own. */}
+      {/* Image — uniform 3:4 tile, photo FILLS the tile (object-cover).
+          With artist-supplied photos of mixed aspect ratios you can pick
+          two of {uniform tiles, never crop, no visible tile ground}:
+          uniform-and-filled won (contained photos floated at different
+          sizes and read as inconsistent cards). The detail page always
+          shows the full uncropped artwork. */}
       <Link
         href={`/artwork/${id}`}
         className="block overflow-hidden aspect-[3/4] relative no-underline"
@@ -119,7 +121,7 @@ export default function ArtworkCard({
           <img
             src={imageUrl}
             alt={title}
-            className="block w-full h-full object-contain transition-transform group-hover:scale-[1.02]"
+            className="block w-full h-full object-cover transition-transform group-hover:scale-[1.02]"
             style={{
               transitionDuration: 'var(--dur-slow)',
               transitionTimingFunction: 'var(--ease-out)',
