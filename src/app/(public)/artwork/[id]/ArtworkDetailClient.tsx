@@ -343,8 +343,12 @@ export default function ArtworkDetailClient({
         {/* ── Hero: image + metadata ── */}
         <div className="px-6 sm:px-10" style={{ paddingBottom: '5rem' }}>
           <div className="grid grid-cols-1 lg:grid-cols-12" style={{ gap: 'clamp(2rem, 5vw, 5rem)' }}>
-            {/* Image column — sticky on desktop */}
-            <div className="lg:col-span-5">
+            {/* Image column — sticky on desktop. WoA-style product
+                presentation: the artwork column dominates the split
+                (7/12), the canvas is a tall soft-grey ground scaled to
+                the viewport, and the artwork floats CONTAINED with
+                generous space on every side — never cropped. */}
+            <div className="lg:col-span-7">
               {/* Sticky scope: main image + thumbnails */}
               <div className="lg:sticky" style={{ top: 'calc(5rem + 2rem)', zIndex: 2 }}>
               <button
@@ -354,7 +358,7 @@ export default function ArtworkDetailClient({
                 className="relative block w-full cursor-zoom-in group"
                 style={{
                   background: 'var(--color-cream)',
-                  aspectRatio: '4 / 5',
+                  height: 'clamp(420px, 72vh, 780px)',
                   overflow: 'hidden',
                 }}
               >
@@ -365,7 +369,7 @@ export default function ArtworkDetailClient({
                     key={selectedImage}
                     style={{
                       position: 'absolute',
-                      inset: 0,
+                      inset: '6%',
                       opacity: imageVisible ? 1 : 0,
                       transition: 'opacity 300ms var(--ease-out)',
                     }}
@@ -483,7 +487,8 @@ export default function ArtworkDetailClient({
             </div>
 
             {/* Metadata column — scrolls naturally */}
-            <div className="lg:col-span-7">
+            {/* Info / buy column — the quieter 5/12 share */}
+            <div className="lg:col-span-5">
                 {/* Category label */}
                 <p
                   style={{
