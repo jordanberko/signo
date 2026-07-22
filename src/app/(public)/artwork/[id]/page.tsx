@@ -1,4 +1,5 @@
 import { notFound } from 'next/navigation';
+import { cache } from 'react';
 import type { Metadata } from 'next';
 import { createClient } from '@/lib/supabase/server';
 import { appUrl } from '@/lib/urls';
@@ -10,8 +11,10 @@ type Props = {
 };
 
 // ── Shared data fetcher ──
+// Wrapped in React cache() so generateMetadata and the page share ONE
+// query per request instead of fetching the artwork twice.
 
-async function getArtwork(id: string) {
+const getArtwork = cache(async (id: string) => {
   const supabase = await createClient();
 
   const { data, error } = await supabase
@@ -27,7 +30,7 @@ async function getArtwork(id: string) {
 
   if (error || !data) return null;
   return data;
-}
+});
 
 // ── SEO Metadata ──
 
@@ -118,23 +121,42 @@ export default async function ArtworkDetailPage({ params }: Props) {
     },
   };
 
-  // Count artist's approved artworks
-  const { count: artistArtworkCount } = await supabase
-    .from('artworks')
-    .select('*', { count: 'exact', head: true })
-    .eq('artist_id', data.artist_id)
-    .eq('status', 'approved');
-
-  // Fetch the artist's artworks for the detail page's artist-works strip.
-  // Bounded at 24 to prevent unbounded page weight for prolific artists;
-  // the detail view only renders a short list (not a full portfolio).
-  const { data: allArtistWorksRaw } = await supabase
-    .from('artworks')
-    .select('id, title, images')
-    .eq('artist_id', data.artist_id)
-    .eq('status', 'approved')
-    .order('created_at', { ascending: false })
-    .limit(24);
+  // These three queries are independent of each other (they only need
+  // the artwork row) — run them in parallel instead of serially. Each
+  // Supabase round-trip costs 30-100ms+ of TTFB; serial awaits were the
+  // main reason artwork pages felt slow to open.
+  const [
+    { count: artistArtworkCount },
+    { data: allArtistWorksRaw },
+    { data: artistWorks },
+  ] = await Promise.all([
+    // Count artist's approved artworks
+    supabase
+      .from('artworks')
+      .select('*', { count: 'exact', head: true })
+      .eq('artist_id', data.artist_id)
+      .eq('status', 'approved'),
+    // The artist-works strip. Bounded at 24 to prevent unbounded page
+    // weight for prolific artists; the detail view renders a short list.
+    supabase
+      .from('artworks')
+      .select('id, title, images')
+      .eq('artist_id', data.artist_id)
+      .eq('status', 'approved')
+      .order('created_at', { ascending: false })
+      .limit(24),
+    // Related artworks: same artist first (style/medium padding below)
+    supabase
+      .from('artworks')
+      .select(
+        'id, title, price_aud, images, medium, category, artist_id, profiles!artworks_artist_id_fkey(full_name)'
+      )
+      .eq('artist_id', data.artist_id)
+      .eq('status', 'approved')
+      .neq('id', id)
+      .order('created_at', { ascending: false })
+      .limit(4),
+  ]);
 
   const artistArtworks = (allArtistWorksRaw || []).map(
     (a: Record<string, unknown>) => ({
@@ -143,18 +165,6 @@ export default async function ArtworkDetailPage({ params }: Props) {
       images: (a.images as string[]) || [],
     })
   );
-
-  // Fetch related artworks: same artist first, then same style/medium
-  const { data: artistWorks } = await supabase
-    .from('artworks')
-    .select(
-      'id, title, price_aud, images, medium, category, artist_id, profiles!artworks_artist_id_fkey(full_name)'
-    )
-    .eq('artist_id', data.artist_id)
-    .eq('status', 'approved')
-    .neq('id', id)
-    .order('created_at', { ascending: false })
-    .limit(4);
 
   let related: RelatedArtwork[] = (artistWorks || []).map(
     (a: Record<string, unknown>) => ({
