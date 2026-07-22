@@ -25,9 +25,11 @@ thresholds, as of 2026-04-24.
 | [`/api/cron/cancel-unshipped`](src/app/api/cron/cancel-unshipped/route.ts) | `0 6 * * *` (daily 06:00 UTC) | 7 calendar days ([escrow.ts:344](src/lib/stripe/escrow.ts:344)) | 7-day threshold against daily cron gives ≤8d worst-case cancellation. Tighter cadence has no product value at this threshold. | 2026-04-24 (synthetic Run Now 23:46:48 + 23:47:05 UTC, both 200) |
 | [`/api/cron/release-reservations`](src/app/api/cron/release-reservations/route.ts) | `*/5 * * * *` (every 5 minutes) | 10-minute reservation window ([route.ts:39-43](src/app/api/cron/release-reservations/route.ts:39), set 2026-04-22 in a8774f7) | 5-minute cron caps cleanup latency at ≤15m (10m window + ≤5m cron gap). Anything coarser makes the shortened reservation window functionally meaningless — pieces would sit reserved hours after buyer abandonment. Requires Vercel Pro (Hobby caps at once-per-day). | 2026-04-24 (natural fires 23:40-00:05 UTC every 5 min, 6 consecutive 200s) |
 | [`/api/cron/expire-grace-periods`](src/app/api/cron/expire-grace-periods/route.ts) | `0 2 * * *` (daily 02:00 UTC) | 14-day grace period ([escrow.ts:144](src/lib/stripe/escrow.ts:144)) | Grace period is measured in days, so per-day granularity is sufficient. Also sends reminder emails to artists 3–5 days out from expiry — same cron, same cadence. | 2026-04-24 (synthetic Run Now 23:47:35 UTC, 200) |
+| [`/api/cron/return-backstops`](src/app/api/cron/return-backstops/route.ts) | `0 8 * * *` (daily 08:00 UTC) | return-flow deadlines (see return-flow PRs, May 2026) | Return windows are measured in days; daily granularity matches. Added after the original four — this row backfills the audit table (doc drift caught 2026-07-17). | not yet live-verified — run the Verification protocol below |
 
-All four verified post-Pro-upgrade on 2026-04-24. Re-verify when any
-schedule or handler body changes.
+Five production crons total (the original four verified
+post-Pro-upgrade on 2026-04-24; `return-backstops` added May 2026).
+Re-verify when any schedule or handler body changes.
 
 ## Verification protocol
 

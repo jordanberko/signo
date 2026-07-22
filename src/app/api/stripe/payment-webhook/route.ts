@@ -127,6 +127,10 @@ export async function POST(request: Request) {
         await handlePaymentIntentFailed(event);
         break;
 
+      case 'charge.refunded':
+        await handleChargeRefunded(event, supabase);
+        break;
+
       case 'checkout.session.expired':
         await handleCheckoutSessionExpired(event, supabase);
         break;
@@ -306,15 +310,18 @@ async function handleCheckoutSessionCompleted(
   // a non-2xx here would make Stripe retry (which would re-run email
   // sends — the existingOrder guard prevents duplicate orders, not
   // duplicate emails).
-  const [buyerResult, artistResult, artworkResult] = await Promise.all([
+  // allSettled, not all: the order is already committed above, so a
+  // single rejected fetch (network-level throw) must not abort the
+  // whole email block — emails are best-effort per recipient.
+  const [buyerSettled, artistSettled, artworkSettled] = await Promise.allSettled([
     supabase.from('profiles').select('email, full_name').eq('id', buyerId).single(),
     supabase.from('profiles').select('email, full_name').eq('id', artistId).single(),
     supabase.from('artworks').select('title, images').eq('id', artworkId).single(),
   ]);
 
-  const buyer = buyerResult.data;
-  const artist = artistResult.data;
-  const artwork = artworkResult.data;
+  const buyer = buyerSettled.status === 'fulfilled' ? buyerSettled.value.data : null;
+  const artist = artistSettled.status === 'fulfilled' ? artistSettled.value.data : null;
+  const artwork = artworkSettled.status === 'fulfilled' ? artworkSettled.value.data : null;
 
   if (buyer?.email) {
     try {
@@ -418,6 +425,86 @@ async function handlePaymentIntentFailed(event: Stripe.Event): Promise<void> {
   });
   // Don't create an order — the payment didn't go through. Nothing to
   // retry, nothing to write; acknowledging is correct.
+}
+
+/**
+ * A refund issued directly from the Stripe Dashboard (rather than via
+ * the app's dispute-resolution flow, which updates the order itself)
+ * previously bypassed order state entirely — the money went back but
+ * orders.status still said paid/shipped. Sync it here.
+ *
+ * Idempotent: an order already refunded or cancelled is left alone.
+ * Partial refunds are recorded as refunded too — Signo sells one-off
+ * originals, so any refund means the sale is off.
+ */
+async function handleChargeRefunded(
+  event: Stripe.Event,
+  supabase: SupabaseClient
+): Promise<void> {
+  const charge = event.data.object as Stripe.Charge;
+  const paymentIntentId =
+    typeof charge.payment_intent === 'string'
+      ? charge.payment_intent
+      : charge.payment_intent?.id;
+
+  if (!paymentIntentId) {
+    console.warn(
+      `[Payment Webhook] charge.refunded ${charge.id} has no payment_intent; skipping`
+    );
+    return;
+  }
+
+  const { data: order, error: findError } = await supabase
+    .from('orders')
+    .select('id, status, artwork_id')
+    .eq('stripe_payment_intent_id', paymentIntentId)
+    .maybeSingle();
+
+  if (findError) {
+    // Throwing makes the outer handler return 500 so Stripe retries —
+    // a transient DB failure must not permanently desync order state.
+    throw new Error(
+      `charge.refunded: order lookup failed for ${paymentIntentId}: ${findError.message}`
+    );
+  }
+
+  if (!order) {
+    console.log(
+      `[Payment Webhook] charge.refunded ${charge.id}: no order for payment_intent ${paymentIntentId} (likely a non-order charge)`
+    );
+    return;
+  }
+
+  if (order.status === 'refunded' || order.status === 'cancelled') {
+    return; // already reflected — e.g. refund initiated via the app flow
+  }
+
+  const { error: updateError } = await supabase
+    .from('orders')
+    .update({ status: 'refunded' })
+    .eq('id', order.id);
+
+  if (updateError) {
+    throw new Error(
+      `charge.refunded: failed to mark order ${order.id} refunded: ${updateError.message}`
+    );
+  }
+
+  console.log(
+    `[Payment Webhook] Order ${order.id} marked refunded via dashboard refund ${charge.id}`
+  );
+  await sendOpsAlert({
+    title: 'Order refunded via Stripe Dashboard',
+    description:
+      `A refund was issued outside the app flow (Stripe Dashboard or API). The order is now marked refunded. Check whether the artwork should be relisted — this handler does not change artwork status.`,
+    context: {
+      order_id: order.id,
+      artwork_id: order.artwork_id,
+      charge: charge.id,
+      payment_intent: paymentIntentId,
+    },
+    level: 'warn',
+  });
 }
 
 async function handleCheckoutSessionExpired(
