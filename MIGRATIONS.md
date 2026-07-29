@@ -182,6 +182,7 @@ called out explicitly.
 | 020 | `return_flow.sql` | apply date unverified | probe registry entry added 2026-07-17 (`disputes.return_tracking_number`) — run the verify script to confirm. |
 | 021 | `dispatch_evidence.sql` | apply date unverified | probe registry entry added 2026-07-17 (`orders.dispatch_photo_urls`) — run the verify script to confirm. |
 | 022 | `public_sold_artworks.sql` | applied on or before 2026-07-17 | widens the public artworks SELECT policy to include `status = 'sold'`. Verified applied via live probe 2026-07-17: sold artwork `30f505c9…`'s public detail page returns 200 (would 404 under the old policy). |
+| 023 | `sale_integrity_constraints.sql` | **NOT YET APPLIED** | **Apply before taking real payments.** Adds (a) partial unique index `orders_one_live_per_artwork` — DB-level guarantee that one original can't have two live orders; (b) unique index `disputes_one_per_order` — the constraint `dispute/route.ts` already handles `23505` for but which never existed; (c) `artworks.reserved_by / reserved_at / reserved_session_id` — reservation ownership, so a buyer can resume their own cancelled checkout and the release cron can expire the exact Stripe session. **Run the two duplicate-check SELECTs at the top of the file first** — if either returns rows, resolve by hand before creating the indexes. Code degrades gracefully if unapplied (reservations behave as before), except the resume-after-cancel path. |
 
 ## Incident retrospective — migrations 006 + 012 drift (pattern)
 

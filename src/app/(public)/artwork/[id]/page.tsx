@@ -25,7 +25,10 @@ const getArtwork = cache(async (id: string) => {
     .eq('id', id)
     // Sold works stay publicly viewable (Just Sold links here); the
     // client renders a sold state instead of the purchase CTA.
-    .in('status', ['approved', 'sold'])
+    // `reserved` is included so a buyer who cancels at Stripe lands back
+    // on the artwork page (cancel_url) instead of a 404 — the page shows
+    // the "your reservation is still held" banner in that case.
+    .in('status', ['approved', 'sold', 'reserved'])
     .single();
 
   if (error || !data) return null;
@@ -91,6 +94,15 @@ export default async function ArtworkDetailPage({ params }: Props) {
   }
 
   const supabase = await createClient();
+
+  // Who is looking? Used only to decide whether a `reserved` artwork is
+  // held BY this viewer (they may resume their checkout) or by someone
+  // else (purchase blocked). Anonymous viewers get undefined.
+  const {
+    data: { user: viewer },
+  } = await supabase.auth.getUser();
+  const viewerId = viewer?.id;
+
   const profile = data.profiles as Record<string, string | null>;
 
   // Build the artwork detail object
@@ -112,6 +124,12 @@ export default async function ArtworkDetailPage({ params }: Props) {
     availability: (data.availability as ArtworkDetail['availability']) || 'available',
     available_from: data.available_from || null,
     status: (data.status as ArtworkDetail['status']) || 'approved',
+    // Only the holder of a reservation may resume its checkout, so the
+    // client needs to know whether this viewer is that holder.
+    reservedByViewer:
+      data.status === 'reserved' &&
+      !!viewerId &&
+      data.reserved_by === viewerId,
     artist: {
       id: profile?.id || '',
       full_name: profile?.full_name || null,

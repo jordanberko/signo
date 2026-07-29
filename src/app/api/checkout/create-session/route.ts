@@ -1,10 +1,29 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { createClient as createServiceClient } from '@supabase/supabase-js';
 import { getStripe } from '@/lib/stripe/config';
 import { getAccountStatus } from '@/lib/stripe/connect';
 import { rateLimit } from '@/lib/rate-limit';
 import { appUrl } from '@/lib/urls';
 import { friendlyStripeError } from '@/lib/stripe/friendly-errors';
+import { sendOpsAlert } from '@/lib/ops-alert';
+
+/**
+ * Service-role client for the reservation write.
+ *
+ * `artworks` has UPDATE policies for the owning artist and for admins
+ * only (001_initial_schema.sql, 004_admin_rls_policies.sql) — a buyer
+ * matches neither. Using the user-scoped client here meant the
+ * reservation silently matched zero rows and every non-admin purchase
+ * died with "This artwork is no longer available". Reads stay on the
+ * user-scoped client; only the status transition is privileged.
+ */
+function getServiceClient() {
+  return createServiceClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+  );
+}
 
 /**
  * POST /api/checkout/create-session
@@ -154,14 +173,20 @@ export async function POST(request: Request) {
     }
 
     // ── Atomic reservation ──
-    // Use the DB update with a status filter as a lock: only the first
-    // concurrent request will match (status = 'approved'). The second
-    // request will find zero rows because the status is already 'reserved'.
-    const { data: reserved, error: reserveError } = await supabase
+    // The status filter is the lock: only the first concurrent request
+    // matches. A buyer who abandoned their own checkout may re-reserve
+    // (`.or` below) so cancel-then-retry works instead of telling them
+    // the piece they still hold is "no longer available".
+    const serviceClient = getServiceClient();
+    const { data: reserved, error: reserveError } = await serviceClient
       .from('artworks')
-      .update({ status: 'reserved' })
+      .update({
+        status: 'reserved',
+        reserved_by: user.id,
+        reserved_at: new Date().toISOString(),
+      })
       .eq('id', artworkId)
-      .eq('status', 'approved')
+      .or(`status.eq.approved,and(status.eq.reserved,reserved_by.eq.${user.id})`)
       .select('id');
 
     if (reserveError) {
@@ -263,14 +288,56 @@ export async function POST(request: Request) {
         cancel_url: `${appOrigin}/artwork/${artwork.id}?cancelled=1`,
       });
     } catch (stripeError) {
-      // Stripe session creation failed — revert artwork back to approved
+      // Stripe session creation failed — revert artwork back to approved.
+      // Must use the service client: the same RLS rules that blocked the
+      // reservation also blocked this rollback, which is how artworks
+      // ended up stranded at `reserved` (see TODO.md 2026-04 note).
       console.error('[Checkout] Stripe session failed, reverting reservation:', stripeError);
-      await supabase
+      const { error: revertError } = await serviceClient
         .from('artworks')
-        .update({ status: 'approved' })
+        .update({
+          status: 'approved',
+          reserved_by: null,
+          reserved_at: null,
+          reserved_session_id: null,
+        })
         .eq('id', artworkId)
         .eq('status', 'reserved');
+      if (revertError) {
+        // The artwork is now stuck at `reserved` and invisible to buyers
+        // until the release-reservations cron sweeps it. Alert rather
+        // than silently stranding inventory.
+        console.error('[Checkout] Reservation revert FAILED:', revertError.message);
+        await sendOpsAlert({
+          title: 'Artwork stranded at reserved after checkout failure',
+          description:
+            `Stripe session creation failed and the compensating revert also failed. The artwork is invisible to buyers until the release-reservations cron picks it up (≤15 min).`,
+          context: {
+            artwork_id: artworkId,
+            buyer_id: user.id,
+            revert_error: revertError.message,
+          },
+          level: 'error',
+        });
+      }
       throw stripeError; // Re-throw so the outer catch handles the response
+    }
+
+    // Record which Stripe session holds this reservation so the release
+    // cron can expire that exact session before freeing the artwork,
+    // rather than reverse-scanning Stripe and hoping. Best-effort: a
+    // failure here only degrades the cron back to its old scan path.
+    const { error: sessionLinkError } = await serviceClient
+      .from('artworks')
+      .update({ reserved_session_id: session.id })
+      .eq('id', artworkId)
+      .eq('status', 'reserved');
+
+    if (sessionLinkError) {
+      console.error(
+        '[Checkout] Could not link session to reservation:',
+        sessionLinkError.message,
+      );
     }
 
     return NextResponse.json({ url: session.url });
