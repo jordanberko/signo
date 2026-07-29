@@ -313,10 +313,18 @@ already-refunded/cancelled), throws on DB failure so Stripe retries,
 and fires a `sendOpsAlert` noting the artwork may need relisting.
 
 **Remaining operator action:** the Stripe webhook endpoint
-(`we_1THAZfAFoloYAF9YCSozHoTi`) must be subscribed to the
-`charge.refunded` event in the Stripe Dashboard (it currently receives
-`checkout.session.*` + `payment_intent.payment_failed` only). Until
-that box is ticked, the handler never receives the event.
+(`we_1THAZfAFoloYAF9YCSozHoTi`) must be subscribed to these events in
+the Stripe Dashboard (it currently receives `checkout.session.*` +
+`payment_intent.payment_failed` only). Until each box is ticked, the
+matching handler never receives the event:
+- `charge.refunded` — dashboard/API refunds sync order status (M1).
+- `charge.dispute.created` — card chargeback FREEZES the escrow payout
+  (added in B2, `handleChargeDisputeCreated`). Without this, a buyer who
+  charges back through their bank still triggers an auto-payout to the
+  artist and Signo eats the clawback plus the dispute fee. Highest
+  priority of the three.
+- `charge.dispute.closed` — records the chargeback outcome (won/lost) so
+  the order can be resolved (added in B2, `handleChargeDisputeClosed`).
 
 ### M2 — Apply H3 pattern to subscription webhook — RESOLVED
 

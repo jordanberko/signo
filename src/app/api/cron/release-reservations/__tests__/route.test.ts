@@ -247,7 +247,7 @@ describe('POST /api/cron/release-reservations', () => {
     const res = await POST(makeRequest());
     expect(res.status).toBe(200);
     const body = await res.json();
-    expect(body).toEqual({ released: 2 });
+    expect(body).toEqual({ released: 2, held: 0 });
 
     // `list` called once with status: 'open'
     expect(mockList).toHaveBeenCalledTimes(1);
@@ -286,7 +286,7 @@ describe('POST /api/cron/release-reservations', () => {
     const res = await POST(makeRequest());
     expect(res.status).toBe(200);
     const body = await res.json();
-    expect(body).toEqual({ released: 1 });
+    expect(body).toEqual({ released: 1, held: 0 });
 
     // Logged the failure but didn't propagate
     expect(warnSpy).toHaveBeenCalledWith(
@@ -303,7 +303,11 @@ describe('POST /api/cron/release-reservations', () => {
     warnSpy.mockRestore();
   });
 
-  it('does NOT block artwork flip when Stripe expire throws', async () => {
+  it('HOLDS the reservation when Stripe expire throws (double-sale guard)', async () => {
+    // An expire failure most often means the session already COMPLETED —
+    // the webhook is about to mark the artwork sold. Releasing it back to
+    // the marketplace here would let a second buyer purchase the same
+    // one-off original. So the artwork must be held, not flipped.
     const supabase = makeSupabase({
       artworks: {
         select: { data: [{ id: 'art-1' }], error: null },
@@ -326,19 +330,19 @@ describe('POST /api/cron/release-reservations', () => {
     const res = await POST(makeRequest());
     expect(res.status).toBe(200);
     const body = await res.json();
-    expect(body).toEqual({ released: 1 });
+    // art-1 held, nothing released
+    expect(body).toEqual({ released: 0, held: 1 });
 
     // Logged the failure but didn't propagate
     expect(warnSpy).toHaveBeenCalledWith(
       expect.stringContaining('Stripe expire failed')
     );
 
-    // Artwork flip still executed
+    // No artwork flip — the held artwork stays 'reserved'
     const updateCall = supabase._calls.find(
       (c) => c.table === 'artworks' && c.mode === 'update'
     );
-    expect(updateCall).toBeDefined();
-    expect(updateCall!.filters['in:id']).toEqual(['art-1']);
+    expect(updateCall).toBeUndefined();
 
     warnSpy.mockRestore();
   });

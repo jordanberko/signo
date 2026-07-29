@@ -3,6 +3,7 @@ import { createTransfer } from './connect';
 import { createClient } from '@supabase/supabase-js';
 import { sendPayoutReleased, sendOrderCancelled, sendFirstSaleActivation } from '@/lib/email';
 import { sendOpsAlert } from '@/lib/ops-alert';
+import type { OrderStatus } from '@/lib/types/database';
 
 // Service role client — bypasses RLS for server-side operations
 function getServiceClient() {
@@ -10,17 +11,6 @@ function getServiceClient() {
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!
   );
-}
-
-// ── Types ──
-
-interface EscrowOrder {
-  id: string;
-  artist_id: string;
-  total_amount_aud: number;
-  artist_payout_aud: number;
-  stripe_payment_intent_id: string | null;
-  stripe_account_id: string | null; // from joined profile
 }
 
 // Only these order states may have funds released. Anything else is
@@ -113,14 +103,60 @@ export async function releaseFunds(orderId: string): Promise<{
     // Transfer funds to artist
     const transfer = await createTransfer(payoutCents, connectAccountId, orderId);
 
-    // Update order status
-    await supabase
+    // ── Record the payout ──
+    // The money has already moved. If this write is lost, the order stays
+    // 'delivered' with a null payout_released_at, so the auto-release cron
+    // picks it up again on the next run. Stripe's idempotency key only
+    // dedupes for 24 hours — past that window a retry creates a SECOND
+    // transfer and the artist is paid twice. So this write is checked, and
+    // a failure is a page-ops-now event rather than a swallowed error.
+    const { data: settled, error: settleError } = await supabase
       .from('orders')
       .update({
         status: 'completed',
         payout_released_at: new Date().toISOString(),
       })
-      .eq('id', orderId);
+      .eq('id', orderId)
+      .is('payout_released_at', null)
+      .select('id');
+
+    if (settleError || !settled || settled.length === 0) {
+      // Zero rows can also mean a concurrent runner recorded the payout
+      // first, which is harmless. Re-read to tell the two cases apart.
+      const { data: recheck } = await supabase
+        .from('orders')
+        .select('status, payout_released_at')
+        .eq('id', orderId)
+        .maybeSingle();
+
+      if (recheck?.payout_released_at) {
+        console.log(
+          `[Escrow] Payout for order ${orderId} was recorded concurrently at ${recheck.payout_released_at}`
+        );
+      } else {
+        console.error(
+          `[Escrow] PAYOUT SENT BUT NOT RECORDED for order ${orderId}:`,
+          settleError ?? 'no rows updated'
+        );
+        await sendOpsAlert({
+          title: 'PAYOUT SENT BUT ORDER NOT MARKED COMPLETE',
+          description:
+            `Transfer ${transfer.id} succeeded for order ${orderId} but the order row could not be ` +
+            `updated, so it still looks unpaid. The auto-release cron will try to release it again. ` +
+            `Stripe's idempotency key blocks a duplicate transfer for 24 hours only — if this is not ` +
+            `fixed within 24 hours the artist will be paid TWICE. Set status='completed' and ` +
+            `payout_released_at on this order by hand now.`,
+          context: {
+            order_id: orderId,
+            transfer_id: transfer.id,
+            artist_id: order.artist_id,
+            payout_aud: payoutAmountAud,
+            error: settleError?.message ?? 'no rows updated',
+          },
+          level: 'error',
+        });
+      }
+    }
 
     console.log(
       `[Escrow] Released $${payoutAmountAud} to ${connectAccountId} for order ${orderId} (transfer: ${transfer.id})`
@@ -218,20 +254,62 @@ export async function releaseFunds(orderId: string): Promise<{
 
 // ── Refund ──
 
+// Statuses that mean the order is already settled — refunding again would
+// either double-refund or contradict a completed payout.
+const TERMINAL_STATUSES = ['refunded', 'completed', 'cancelled'];
+
+// Default set of statuses a refund may be issued from.
+const REFUNDABLE_STATUSES: OrderStatus[] = [
+  'paid',
+  'shipped',
+  'delivered',
+  'disputed',
+  'return_pending',
+  'return_in_transit',
+];
+
+export interface RefundOptions {
+  /** Status to write on success. Default 'refunded'. */
+  finalStatus?: Extract<OrderStatus, 'refunded' | 'cancelled'>;
+  /**
+   * Statuses this refund is allowed to act on. Narrow it when the caller
+   * only means to refund a specific stage — e.g. the unshipped-order cron
+   * passes ['paid'] so an order the artist shipped seconds ago is skipped
+   * instead of refunded out from under them.
+   */
+  fromStatuses?: OrderStatus[];
+}
+
 /**
  * Refund the buyer's payment for an order.
  * Uses the original payment intent to issue a full refund.
+ *
+ * The status change is claimed BEFORE the Stripe call, filtered on
+ * `fromStatuses`, so two concurrent callers (or a cron racing a human
+ * action) cannot both reach `refunds.create`. If Stripe then fails, the
+ * claim is rolled back to the status we found.
+ *
+ * Refuses outright once `payout_released_at` is set: the artist already has
+ * the money, so refunding the buyer would come out of Signo's balance. That
+ * needs a transfer reversal first, which is a deliberate ops decision.
  */
-export async function refundBuyer(orderId: string): Promise<{
+export async function refundBuyer(
+  orderId: string,
+  options: RefundOptions = {}
+): Promise<{
   success: boolean;
   refundId?: string;
   error?: string;
 }> {
+  const finalStatus = options.finalStatus ?? 'refunded';
+  const fromStatuses = options.fromStatuses ?? REFUNDABLE_STATUSES;
   const supabase = getServiceClient();
 
   const { data: order, error: orderError } = await supabase
     .from('orders')
-    .select('id, stripe_payment_intent_id, status')
+    .select(
+      'id, stripe_payment_intent_id, status, payout_released_at, artist_id, total_amount_aud'
+    )
     .eq('id', orderId)
     .single();
 
@@ -247,10 +325,72 @@ export async function refundBuyer(orderId: string): Promise<{
   }
 
   // Don't refund already refunded/completed orders
-  if (['refunded', 'completed', 'cancelled'].includes(order.status)) {
+  if (TERMINAL_STATUSES.includes(order.status)) {
     return {
       success: false,
       error: `Order ${orderId} is already ${order.status}`,
+    };
+  }
+
+  // Payout guard — the artist has been paid, so a refund here would be
+  // funded by Signo. Requires reversing the transfer first.
+  if (order.payout_released_at) {
+    console.error(
+      `[Escrow] Refund blocked for order ${orderId}: payout already released at ${order.payout_released_at}`
+    );
+    await sendOpsAlert({
+      title: 'Refund blocked — artist has already been paid',
+      description:
+        `A refund was attempted on order ${orderId}, but the escrow payout was released at ` +
+        `${order.payout_released_at}. Refunding now would take the money from Signo's balance, not ` +
+        `the artist's. To proceed: reverse the transfer on the Connect account in Stripe, clear ` +
+        `payout_released_at, then re-run the refund. No refund has been issued.`,
+      context: {
+        order_id: orderId,
+        artist_id: order.artist_id,
+        amount_aud: order.total_amount_aud,
+        payment_intent: order.stripe_payment_intent_id,
+        payout_released_at: order.payout_released_at,
+      },
+      level: 'error',
+    });
+    return {
+      success: false,
+      error: `Order ${orderId} payout was already released at ${order.payout_released_at}; reverse the transfer before refunding`,
+    };
+  }
+
+  if (!fromStatuses.includes(order.status)) {
+    return {
+      success: false,
+      error: `Order ${orderId} is in status '${order.status}', which this refund is not allowed to act on`,
+    };
+  }
+
+  // ── Atomic claim ──
+  // Move the order to its final status first, filtered on the statuses we
+  // are willing to act on. Losing this race means someone else changed the
+  // order (artist shipped, admin resolved, another cron pass) — abort
+  // rather than refund against a stale read.
+  const { data: claimed, error: claimError } = await supabase
+    .from('orders')
+    .update({ status: finalStatus })
+    .eq('id', orderId)
+    .in('status', fromStatuses)
+    .is('payout_released_at', null)
+    .select('id');
+
+  if (claimError) {
+    return {
+      success: false,
+      error: `Failed to claim order ${orderId} for refund: ${claimError.message}`,
+    };
+  }
+
+  if (!claimed || claimed.length === 0) {
+    return {
+      success: false,
+      error: `Order ${orderId} changed state concurrently; refund not issued`,
     };
   }
 
@@ -268,18 +408,27 @@ export async function refundBuyer(orderId: string): Promise<{
       }
     );
 
-    // Update order status
-    await supabase
-      .from('orders')
-      .update({ status: 'refunded' })
-      .eq('id', orderId);
-
     console.log(
-      `[Escrow] Refunded order ${orderId} (refund: ${refund.id})`
+      `[Escrow] Refunded order ${orderId} (refund: ${refund.id}, status: ${finalStatus})`
     );
 
     return { success: true, refundId: refund.id };
   } catch (err) {
+    // Stripe refused — release the claim so the order isn't stranded in a
+    // refunded/cancelled state with the buyer's money still taken.
+    const { error: revertError } = await supabase
+      .from('orders')
+      .update({ status: order.status })
+      .eq('id', orderId)
+      .eq('status', finalStatus);
+
+    if (revertError) {
+      console.error(
+        `[Escrow] Failed to revert order ${orderId} to '${order.status}' after refund failure:`,
+        revertError.message
+      );
+    }
+
     const message = err instanceof Error ? err.message : 'Unknown refund error';
     console.error(`[Escrow] Refund failed for order ${orderId}:`, message);
     await sendOpsAlert({
@@ -427,22 +576,42 @@ export async function cancelUnshippedOrders(): Promise<{
   const errors: string[] = [];
 
   for (const order of orders) {
-    // Refund the buyer
-    const result = await refundBuyer(order.id);
+    // Refund the buyer and cancel in one atomic claim, restricted to
+    // 'paid'. Without the restriction an artist who ships between this
+    // cron's SELECT and its refund gets their sale cancelled after the
+    // artwork has already left the studio.
+    const result = await refundBuyer(order.id, {
+      finalStatus: 'cancelled',
+      fromStatuses: ['paid'],
+    });
 
     if (result.success) {
-      // Update to cancelled (refundBuyer already set 'refunded',
-      // override to 'cancelled' for unshipped orders)
-      await supabase
-        .from('orders')
-        .update({ status: 'cancelled' })
-        .eq('id', order.id);
-
-      // Re-list the artwork
-      await supabase
+      // Re-list the artwork. Filtered on 'sold' so a work the artist has
+      // since withdrawn or relisted by hand isn't dragged back on sale.
+      const { error: relistError } = await supabase
         .from('artworks')
         .update({ status: 'approved' })
-        .eq('id', order.artwork_id);
+        .eq('id', order.artwork_id)
+        .eq('status', 'sold');
+
+      if (relistError) {
+        console.error(
+          `[Cancel Unshipped] Failed to re-list artwork ${order.artwork_id}:`,
+          relistError.message
+        );
+        await sendOpsAlert({
+          title: 'Cancelled order but artwork not re-listed',
+          description:
+            `Order ${order.id} was refunded and cancelled, but its artwork could not be returned to ` +
+            `'approved' — it stays invisible to buyers until set back by hand.`,
+          context: {
+            order_id: order.id,
+            artwork_id: order.artwork_id,
+            error: relistError.message,
+          },
+          level: 'error',
+        });
+      }
 
       cancelled++;
       console.log(

@@ -7,6 +7,10 @@ import { rateLimit } from '@/lib/rate-limit';
 import { appUrl } from '@/lib/urls';
 import { friendlyStripeError } from '@/lib/stripe/friendly-errors';
 import { sendOpsAlert } from '@/lib/ops-alert';
+import {
+  isMissingColumnError,
+  alertMissingMigration023,
+} from '@/lib/supabase/schema-fallback';
 
 /**
  * Service-role client for the reservation write.
@@ -178,16 +182,43 @@ export async function POST(request: Request) {
     // (`.or` below) so cancel-then-retry works instead of telling them
     // the piece they still hold is "no longer available".
     const serviceClient = getServiceClient();
-    const { data: reserved, error: reserveError } = await serviceClient
-      .from('artworks')
-      .update({
-        status: 'reserved',
-        reserved_by: user.id,
-        reserved_at: new Date().toISOString(),
-      })
-      .eq('id', artworkId)
-      .or(`status.eq.approved,and(status.eq.reserved,reserved_by.eq.${user.id})`)
-      .select('id');
+
+    // `trackOwner` is false only when migration 023 hasn't been applied to
+    // this database yet — see lib/supabase/schema-fallback.ts. Without the
+    // columns we can neither record nor re-check the holder, so the write
+    // degrades to the plain approved→reserved transition.
+    const reserve = (trackOwner: boolean) => {
+      const query = serviceClient
+        .from('artworks')
+        .update(
+          trackOwner
+            ? {
+                status: 'reserved',
+                reserved_by: user.id,
+                reserved_at: new Date().toISOString(),
+              }
+            : { status: 'reserved' }
+        )
+        .eq('id', artworkId);
+
+      return trackOwner
+        ? query
+            .or(`status.eq.approved,and(status.eq.reserved,reserved_by.eq.${user.id})`)
+            .select('id')
+        : query.eq('status', 'approved').select('id');
+    };
+
+    let { data: reserved, error: reserveError } = await reserve(true);
+    let reservationTracksOwner = true;
+
+    if (isMissingColumnError(reserveError)) {
+      await alertMissingMigration023(
+        'The checkout reservation',
+        reserveError?.message ?? 'missing reservation column'
+      );
+      reservationTracksOwner = false;
+      ({ data: reserved, error: reserveError } = await reserve(false));
+    }
 
     if (reserveError) {
       console.error('[Checkout] Reserve error:', reserveError);
@@ -295,12 +326,16 @@ export async function POST(request: Request) {
       console.error('[Checkout] Stripe session failed, reverting reservation:', stripeError);
       const { error: revertError } = await serviceClient
         .from('artworks')
-        .update({
-          status: 'approved',
-          reserved_by: null,
-          reserved_at: null,
-          reserved_session_id: null,
-        })
+        .update(
+          reservationTracksOwner
+            ? {
+                status: 'approved',
+                reserved_by: null,
+                reserved_at: null,
+                reserved_session_id: null,
+              }
+            : { status: 'approved' }
+        )
         .eq('id', artworkId)
         .eq('status', 'reserved');
       if (revertError) {
@@ -327,17 +362,19 @@ export async function POST(request: Request) {
     // cron can expire that exact session before freeing the artwork,
     // rather than reverse-scanning Stripe and hoping. Best-effort: a
     // failure here only degrades the cron back to its old scan path.
-    const { error: sessionLinkError } = await serviceClient
-      .from('artworks')
-      .update({ reserved_session_id: session.id })
-      .eq('id', artworkId)
-      .eq('status', 'reserved');
+    if (reservationTracksOwner) {
+      const { error: sessionLinkError } = await serviceClient
+        .from('artworks')
+        .update({ reserved_session_id: session.id })
+        .eq('id', artworkId)
+        .eq('status', 'reserved');
 
-    if (sessionLinkError) {
-      console.error(
-        '[Checkout] Could not link session to reservation:',
-        sessionLinkError.message,
-      );
+      if (sessionLinkError) {
+        console.error(
+          '[Checkout] Could not link session to reservation:',
+          sessionLinkError.message,
+        );
+      }
     }
 
     return NextResponse.json({ url: session.url });
