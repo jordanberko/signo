@@ -2,7 +2,10 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { createClient as createServiceClient } from '@supabase/supabase-js';
 import { sendOpsAlert } from '@/lib/ops-alert';
-import { sendDisputeAcknowledgementEmail } from '@/lib/email';
+import {
+  sendDisputeAcknowledgementEmail,
+  sendDisputeRaisedArtist,
+} from '@/lib/email';
 
 const VALID_DISPUTE_TYPES = ['damaged', 'not_as_described', 'not_received', 'other'];
 
@@ -72,7 +75,7 @@ export async function POST(request: Request, context: RouteContext) {
       : null;
 
     const body = await request.json();
-    const { type, description, evidence_images } = body;
+    const { type, description, evidence_images, evidence_video } = body;
 
     // Validate type
     if (!type || !VALID_DISPUTE_TYPES.includes(type)) {
@@ -98,17 +101,43 @@ export async function POST(request: Request, context: RouteContext) {
       ? `[${notDeliveredNote}]\n\n${description.trim()}`
       : description.trim();
 
-    const { data: dispute, error: insertError } = await supabase
-      .from('disputes')
-      .insert({
-        order_id: id,
-        raised_by: user.id,
-        type,
-        description: fullDescription,
-        evidence_images: evidence_images || [],
-      })
-      .select()
-      .single();
+    const hasVideo = typeof evidence_video === 'string' && evidence_video.length > 0;
+    const insertRow = (withVideo: boolean) =>
+      supabase
+        .from('disputes')
+        .insert({
+          order_id: id,
+          raised_by: user.id,
+          type,
+          description: fullDescription,
+          evidence_images: evidence_images || [],
+          ...(withVideo ? { evidence_video } : {}),
+        })
+        .select()
+        .single();
+
+    let { data: dispute, error: insertError } = await insertRow(hasVideo);
+
+    // Pre-migration-024 tolerance: if evidence_video isn't a column yet, the
+    // buyer's dispute must still be recorded (never block a damage claim on a
+    // schema gap). Retry without it and alert so the video isn't quietly
+    // lost. Once 024 is applied this branch never runs.
+    if (hasVideo && (insertError?.code === 'PGRST204' || insertError?.code === '42703')) {
+      console.error(
+        '[Dispute] evidence_video column missing (migration 024 unapplied) — recording dispute without the video URL'
+      );
+      await sendOpsAlert({
+        title: 'Dispute video evidence could not be stored (migration 024 unapplied)',
+        description:
+          `A buyer submitted a dispute with a video walkthrough, but the disputes.evidence_video ` +
+          `column does not exist yet, so the video reference was NOT saved. The file is in the ` +
+          `dispute-evidence bucket but the admin queue can't link to it. Apply migration 024, then ` +
+          `attach this video to the dispute by hand.`,
+        context: { order_id: id, evidence_video: String(evidence_video).slice(0, 400) },
+        level: 'error',
+      });
+      ({ data: dispute, error: insertError } = await insertRow(false));
+    }
 
     if (insertError) {
       // Unique constraint violation — a dispute already exists for this order
@@ -119,6 +148,12 @@ export async function POST(request: Request, context: RouteContext) {
         );
       }
       return NextResponse.json({ error: insertError.message }, { status: 400 });
+    }
+
+    if (!dispute) {
+      // No error but no row — shouldn't happen with .single(); guard so the
+      // rest of the handler can rely on a non-null dispute.
+      return NextResponse.json({ error: 'Failed to create dispute' }, { status: 500 });
     }
 
     // ── Move the order to `disputed` (service role — see note above) ──
@@ -162,7 +197,7 @@ export async function POST(request: Request, context: RouteContext) {
       const { data: orderCtx } = await serviceClient
         .from('orders')
         .select(
-          'artwork_id, artworks!orders_artwork_id_fkey(title, profiles!artworks_artist_id_fkey(full_name)), profiles!orders_buyer_id_fkey(email, full_name)'
+          'artwork_id, artworks!orders_artwork_id_fkey(title, profiles!artworks_artist_id_fkey(full_name)), buyer:profiles!orders_buyer_id_fkey(email, full_name), artist:profiles!orders_artist_id_fkey(email, full_name)'
         )
         .eq('id', id)
         .single();
@@ -170,7 +205,10 @@ export async function POST(request: Request, context: RouteContext) {
       const artworkCtx = orderCtx?.artworks as
         | { title?: string; profiles?: { full_name?: string } | null }
         | null;
-      const buyerCtx = orderCtx?.profiles as
+      const buyerCtx = orderCtx?.buyer as
+        | { email?: string; full_name?: string }
+        | null;
+      const artistCtx = orderCtx?.artist as
         | { email?: string; full_name?: string }
         | null;
 
@@ -183,6 +221,23 @@ export async function POST(request: Request, context: RouteContext) {
           orderId: id,
           disputeReason: type,
         });
+      }
+
+      // Notify the artist — their sale is now on hold and the payout is
+      // paused. Previously the artist learned nothing until an admin acted,
+      // which for a shipped piece could be days. A failed send is non-fatal.
+      if (artistCtx?.email) {
+        try {
+          await sendDisputeRaisedArtist({
+            artistEmail: artistCtx.email,
+            artistName: artistCtx.full_name || '',
+            artworkTitle: artworkCtx?.title || 'your artwork',
+            orderId: id,
+            disputeReason: type,
+          });
+        } catch (artistMailErr) {
+          console.warn('[Dispute] Artist notification failed (non-fatal):', artistMailErr);
+        }
       }
 
       await sendOpsAlert({

@@ -337,6 +337,7 @@ export interface Database {
           type: DisputeType;
           description: string;
           evidence_images: string[];
+          evidence_video: string | null;
           artist_packaging_photos: string[];
           status: DisputeStatus;
           resolution_notes: string | null;
@@ -360,6 +361,7 @@ export interface Database {
           type: DisputeType;
           description: string;
           evidence_images?: string[];
+          evidence_video?: string | null;
           artist_packaging_photos?: string[];
           status?: DisputeStatus;
           resolution_notes?: string | null;
@@ -383,6 +385,7 @@ export interface Database {
           type?: DisputeType;
           description?: string;
           evidence_images?: string[];
+          evidence_video?: string | null;
           artist_packaging_photos?: string[];
           status?: DisputeStatus;
           resolution_notes?: string | null;

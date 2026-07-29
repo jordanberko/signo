@@ -1,0 +1,12 @@
+-- Persist the buyer's dispute video walkthrough.
+--
+-- The dispute form already uploads a video to the `dispute-evidence` storage
+-- bucket and the client sends its URL as `evidence_video`; the admin disputes
+-- queue already renders a link when `disputes.evidence_video` is set. But the
+-- column never existed, so the POST /api/orders/[id]/dispute handler dropped
+-- the URL on the floor — the single most important piece of evidence for a
+-- high-value damage claim (a continuous video is REQUIRED for orders over
+-- $500) was uploaded and then lost. This adds the column so it is stored.
+--
+-- Single nullable text column: one video per dispute (the form uploads one).
+ALTER TABLE disputes ADD COLUMN IF NOT EXISTS evidence_video text DEFAULT NULL;

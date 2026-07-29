@@ -18,7 +18,17 @@ function getServiceClient() {
 // 'refunded', 'cancelled'), or in the wrong lifecycle branch.
 // 'delivered' is the normal escrow auto-release case.
 // 'disputed' is the admin "resolved in artist's favour" path.
-const RELEASABLE_STATUSES = new Set(['delivered', 'disputed']);
+// 'return_pending' / 'return_in_transit' are the admin release path for a
+// stalled return — the buyer was approved to send the work back but never
+// did, so the dispute resolves in the seller's favour and the payout is
+// released. Without these an admin's `resolved_no_refund` on a stuck return
+// was rejected by the status guard, stranding the money indefinitely.
+const RELEASABLE_STATUSES = new Set([
+  'delivered',
+  'disputed',
+  'return_pending',
+  'return_in_transit',
+]);
 
 // ── Fund Release ──
 
