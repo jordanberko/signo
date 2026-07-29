@@ -4,7 +4,11 @@ import { getStripe } from '@/lib/stripe/config';
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import { sendOrderConfirmation, sendNewSaleNotification } from '@/lib/email';
 import { sendOpsAlert } from '@/lib/ops-alert';
-import { calculateStripeFee } from '@/lib/utils';
+import { resolveStripeFee } from '@/lib/stripe/fees';
+import {
+  isMissingColumnError,
+  alertMissingMigration023,
+} from '@/lib/supabase/schema-fallback';
 
 // ── Webhook handler ──
 //
@@ -135,6 +139,14 @@ export async function POST(request: Request) {
         await handleCheckoutSessionExpired(event, supabase);
         break;
 
+      case 'charge.dispute.created':
+        await handleChargeDisputeCreated(event, supabase);
+        break;
+
+      case 'charge.dispute.closed':
+        await handleChargeDisputeClosed(event, supabase);
+        break;
+
       default:
         // Unhandled event types are acknowledged so Stripe stops
         // retrying. Logged at info level for audit.
@@ -258,8 +270,15 @@ async function handleCheckoutSessionCompleted(
     return;
   }
 
-  // Calculate fees — zero commission, only Stripe processing
-  const stripeFee = calculateStripeFee(totalAud);
+  // Calculate fees — zero commission, only Stripe processing.
+  // Read the ACTUAL fee off the charge's balance transaction rather than
+  // assuming the AU domestic rate; international cards cost roughly twice
+  // as much and the difference came straight out of Signo's margin.
+  const { feeAud: stripeFee, source: feeSource } = await resolveStripeFee(
+    session.payment_intent as string | null,
+    totalAud,
+    { artwork_id: artworkId, buyer_id: buyerId }
+  );
   const artistPayout = Math.round((totalAud - stripeFee) * 100) / 100;
 
   // Create the order — throw on DB error so outer handler returns 500
@@ -292,17 +311,34 @@ async function handleCheckoutSessionCompleted(
   // original (possible when a reservation was released while their
   // Stripe session was still live). We must not silently overwrite —
   // alert loudly so the duplicate can be refunded.
-  const { data: soldRows, error: artworkErr } = await supabase
-    .from('artworks')
-    .update({
-      status: 'sold',
-      reserved_by: null,
-      reserved_at: null,
-      reserved_session_id: null,
-    })
-    .eq('id', artworkId)
-    .in('status', ['reserved', 'approved'])
-    .select('id');
+  const markSold = (clearReservation: boolean) =>
+    supabase
+      .from('artworks')
+      .update(
+        clearReservation
+          ? {
+              status: 'sold',
+              reserved_by: null,
+              reserved_at: null,
+              reserved_session_id: null,
+            }
+          : { status: 'sold' }
+      )
+      .eq('id', artworkId)
+      .in('status', ['reserved', 'approved'])
+      .select('id');
+
+  let { data: soldRows, error: artworkErr } = await markSold(true);
+
+  // Pre-023 database: retry without the reservation columns so a paid
+  // order still completes. See lib/supabase/schema-fallback.ts.
+  if (isMissingColumnError(artworkErr)) {
+    await alertMissingMigration023(
+      'The payment webhook sold-flip',
+      artworkErr?.message ?? 'missing reservation column'
+    );
+    ({ data: soldRows, error: artworkErr } = await markSold(false));
+  }
 
   if (!artworkErr && (!soldRows || soldRows.length === 0)) {
     await sendOpsAlert({
@@ -327,7 +363,7 @@ async function handleCheckoutSessionCompleted(
   }
 
   console.log(
-    `[Payment Webhook] Order created: ${order.id} | Artwork: ${artworkId} | Total: $${totalAud} | Artist receives: $${artistPayout}`
+    `[Payment Webhook] Order created: ${order.id} | Artwork: ${artworkId} | Total: $${totalAud} | Stripe fee: $${stripeFee} (${feeSource}) | Artist receives: $${artistPayout}`
   );
 
   // ── Send email notifications ──
@@ -535,6 +571,158 @@ async function handleChargeRefunded(
   });
 }
 
+/**
+ * A card chargeback. The buyer went to their bank instead of using the app's
+ * dispute flow, so nothing in Signo knows about it — and the escrow cron
+ * would happily pay the artist out of funds Stripe is about to claw back,
+ * leaving Signo down both the sale and the dispute fee.
+ *
+ * Moving the order to 'disputed' takes it out of the auto-release query
+ * (which only looks at 'delivered'), freezing the payout until an admin
+ * resolves it.
+ */
+async function handleChargeDisputeCreated(
+  event: Stripe.Event,
+  supabase: SupabaseClient
+): Promise<void> {
+  const dispute = event.data.object as Stripe.Dispute;
+  const paymentIntentId =
+    typeof dispute.payment_intent === 'string'
+      ? dispute.payment_intent
+      : dispute.payment_intent?.id;
+
+  if (!paymentIntentId) {
+    console.warn(
+      `[Payment Webhook] charge.dispute.created ${dispute.id} has no payment_intent; skipping`
+    );
+    return;
+  }
+
+  const { data: order, error: findError } = await supabase
+    .from('orders')
+    .select('id, status, artwork_id, buyer_id, artist_id, payout_released_at, total_amount_aud')
+    .eq('stripe_payment_intent_id', paymentIntentId)
+    .maybeSingle();
+
+  if (findError) {
+    throw new Error(
+      `charge.dispute.created: order lookup failed for ${paymentIntentId}: ${findError.message}`
+    );
+  }
+
+  if (!order) {
+    console.log(
+      `[Payment Webhook] charge.dispute.created ${dispute.id}: no order for payment_intent ${paymentIntentId}`
+    );
+    return;
+  }
+
+  const evidenceDue = dispute.evidence_details?.due_by
+    ? new Date(dispute.evidence_details.due_by * 1000).toISOString()
+    : null;
+
+  // Freeze the payout unless the order is already settled. 'refunded' and
+  // 'cancelled' need no freeze; 'completed' means the money is already gone
+  // and the alert below is the whole point.
+  let frozen = false;
+  if (!['completed', 'refunded', 'cancelled', 'disputed'].includes(order.status)) {
+    const { data: updated, error: updateError } = await supabase
+      .from('orders')
+      .update({ status: 'disputed' })
+      .eq('id', order.id)
+      .not('status', 'in', '(completed,refunded,cancelled)')
+      .select('id');
+
+    if (updateError) {
+      // Retry via Stripe rather than leave a live payout unfrozen.
+      throw new Error(
+        `charge.dispute.created: failed to freeze order ${order.id}: ${updateError.message}`
+      );
+    }
+    frozen = !!updated && updated.length > 0;
+  }
+
+  const alreadyPaidOut = !!order.payout_released_at;
+
+  await sendOpsAlert({
+    title: alreadyPaidOut
+      ? 'CHARGEBACK ON AN ALREADY-PAID ORDER'
+      : 'Chargeback opened — escrow payout frozen',
+    description: alreadyPaidOut
+      ? `The buyer raised a card chargeback on order ${order.id}, but the artist was already paid at ` +
+        `${order.payout_released_at}. Stripe will debit Signo for the disputed amount plus the ` +
+        `dispute fee. Submit evidence in Stripe and decide whether to reverse the artist's transfer.`
+      : `The buyer raised a card chargeback on order ${order.id} instead of using the in-app dispute ` +
+        `flow. The order is now 'disputed' so the escrow cron will not release funds. Submit evidence ` +
+        `in Stripe before the deadline — an unanswered chargeback is lost by default.`,
+    context: {
+      order_id: order.id,
+      dispute_id: dispute.id,
+      reason: dispute.reason,
+      stripe_status: dispute.status,
+      amount_aud: order.total_amount_aud,
+      artwork_id: order.artwork_id,
+      buyer_id: order.buyer_id,
+      artist_id: order.artist_id,
+      previous_order_status: order.status,
+      payout_frozen: frozen ? 'yes' : 'no change needed',
+      evidence_due_by: evidenceDue,
+    },
+    level: 'error',
+  });
+
+  console.log(
+    `[Payment Webhook] Chargeback ${dispute.id} on order ${order.id} (was '${order.status}', frozen: ${frozen})`
+  );
+}
+
+/**
+ * Chargeback resolved by the card network. Purely informational — Stripe has
+ * already moved the money either way, and whether the artwork should be
+ * relisted or the artist still paid is an admin decision.
+ */
+async function handleChargeDisputeClosed(
+  event: Stripe.Event,
+  supabase: SupabaseClient
+): Promise<void> {
+  const dispute = event.data.object as Stripe.Dispute;
+  const paymentIntentId =
+    typeof dispute.payment_intent === 'string'
+      ? dispute.payment_intent
+      : dispute.payment_intent?.id;
+
+  if (!paymentIntentId) return;
+
+  const { data: order } = await supabase
+    .from('orders')
+    .select('id, status, artwork_id, total_amount_aud')
+    .eq('stripe_payment_intent_id', paymentIntentId)
+    .maybeSingle();
+
+  if (!order) return;
+
+  const won = dispute.status === 'won';
+
+  await sendOpsAlert({
+    title: won ? 'Chargeback won' : `Chargeback closed: ${dispute.status}`,
+    description: won
+      ? `Signo won the chargeback on order ${order.id}. The funds have been returned. Decide whether ` +
+        `the order should resume (release the payout) or stay disputed.`
+      : `The chargeback on order ${order.id} closed as '${dispute.status}'. If it was lost, the funds ` +
+        `and the dispute fee have been debited from Signo. The order is still '${order.status}' — set ` +
+        `it to refunded and relist or withdraw the artwork as appropriate.`,
+    context: {
+      order_id: order.id,
+      dispute_id: dispute.id,
+      stripe_status: dispute.status,
+      order_status: order.status,
+      artwork_id: order.artwork_id,
+      amount_aud: order.total_amount_aud,
+    },
+    level: won ? 'warn' : 'error',
+  });
+}
+
 async function handleCheckoutSessionExpired(
   event: Stripe.Event,
   supabase: SupabaseClient
@@ -548,12 +736,32 @@ async function handleCheckoutSessionExpired(
   // sold). The status filter makes this idempotent: on retry, if the
   // artwork is already back to 'approved' or has been sold, this
   // matches zero rows and succeeds as a no-op.
-  const { data: reverted, error } = await supabase
-    .from('artworks')
-    .update({ status: 'approved' })
-    .eq('id', expiredArtworkId)
-    .eq('status', 'reserved')
-    .select('id');
+  const release = (clearReservation: boolean) =>
+    supabase
+      .from('artworks')
+      .update(
+        clearReservation
+          ? {
+              status: 'approved',
+              reserved_by: null,
+              reserved_at: null,
+              reserved_session_id: null,
+            }
+          : { status: 'approved' }
+      )
+      .eq('id', expiredArtworkId)
+      .eq('status', 'reserved')
+      .select('id');
+
+  let { data: reverted, error } = await release(true);
+
+  if (isMissingColumnError(error)) {
+    await alertMissingMigration023(
+      'The expired-checkout reservation release',
+      error?.message ?? 'missing reservation column'
+    );
+    ({ data: reverted, error } = await release(false));
+  }
 
   if (error) {
     throw new Error(

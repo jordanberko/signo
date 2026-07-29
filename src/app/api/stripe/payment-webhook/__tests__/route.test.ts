@@ -21,6 +21,16 @@ const mockConstructEvent = vi.fn();
 vi.mock('@/lib/stripe/config', () => ({
   getStripe: () => ({
     webhooks: { constructEvent: mockConstructEvent },
+    // resolveStripeFee expands the charge's balance_transaction. Returning
+    // one with a known AUD fee exercises the measured-fee path instead of
+    // the estimate fallback.
+    paymentIntents: {
+      retrieve: vi.fn().mockResolvedValue({
+        latest_charge: {
+          balance_transaction: { currency: 'aud', fee: 1030 },
+        },
+      }),
+    },
   }),
 }));
 
@@ -82,7 +92,15 @@ function makeSupabase(config: Record<string, TableConfig>) {
         mode = 'update';
         return chain;
       }),
+      // Filter builders all return the chain. The handlers use several of
+      // these to make writes conditional (status-filtered sold flip,
+      // not-in guard on the chargeback freeze), so the mock has to accept
+      // the whole set or a route change silently fails as "not a function".
       eq: vi.fn(() => chain),
+      in: vi.fn(() => chain),
+      is: vi.fn(() => chain),
+      not: vi.fn(() => chain),
+      or: vi.fn(() => chain),
       maybeSingle: vi.fn(() => Promise.resolve(getResult())),
       single: vi.fn(() => Promise.resolve(getResult())),
       then: (

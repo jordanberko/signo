@@ -2,6 +2,15 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { getStripe } from '@/lib/stripe/config';
 import { sendOpsAlert } from '@/lib/ops-alert';
+import {
+  isMissingColumnError,
+  alertMissingMigration023,
+} from '@/lib/supabase/schema-fallback';
+
+interface StaleReservation {
+  id: string;
+  reserved_session_id?: string | null;
+}
 
 // Service role client — bypasses RLS for server-side operations
 function getServiceClient() {
@@ -66,11 +75,40 @@ async function handler(request: Request) {
       Date.now() - 10 * 60 * 1000
     ).toISOString();
 
-    const { data: staleReservations, error: fetchError } = await supabase
-      .from('artworks')
-      .select('id, reserved_session_id')
-      .eq('status', 'reserved')
-      .lt('updated_at', tenMinutesAgo);
+    // Two literal `select()` calls rather than one interpolated string —
+    // supabase-js parses the column list at the type level.
+    const fetchStale = async (withSessionLink: boolean) => {
+      const result = withSessionLink
+        ? await supabase
+            .from('artworks')
+            .select('id, reserved_session_id')
+            .eq('status', 'reserved')
+            .lt('updated_at', tenMinutesAgo)
+        : await supabase
+            .from('artworks')
+            .select('id')
+            .eq('status', 'reserved')
+            .lt('updated_at', tenMinutesAgo);
+
+      return {
+        data: result.data as StaleReservation[] | null,
+        error: result.error,
+      };
+    };
+
+    let { data: staleReservations, error: fetchError } = await fetchStale(true);
+
+    // Pre-023 database: the column doesn't exist yet, so fall back to the
+    // Stripe scan path below. See lib/supabase/schema-fallback.ts.
+    let reservationColumnsExist = true;
+    if (isMissingColumnError(fetchError)) {
+      await alertMissingMigration023(
+        'The release-reservations cron',
+        fetchError?.message ?? 'missing reservation column'
+      );
+      reservationColumnsExist = false;
+      ({ data: staleReservations, error: fetchError } = await fetchStale(false));
+    }
 
     if (fetchError) {
       throw new Error(`Failed to fetch stale reservations: ${fetchError.message}`);
@@ -189,12 +227,16 @@ async function handler(request: Request) {
 
     const { error: updateError } = await supabase
       .from('artworks')
-      .update({
-        status: 'approved',
-        reserved_by: null,
-        reserved_at: null,
-        reserved_session_id: null,
-      })
+      .update(
+        reservationColumnsExist
+          ? {
+              status: 'approved',
+              reserved_by: null,
+              reserved_at: null,
+              reserved_session_id: null,
+            }
+          : { status: 'approved' }
+      )
       .in('id', releasableIds);
 
     if (updateError) {
@@ -202,10 +244,13 @@ async function handler(request: Request) {
     }
 
     console.log(
-      `[Cron] release-reservations complete: ${ids.length} released`
+      `[Cron] release-reservations complete: ${releasableIds.length} released, ${failedExpiry.size} held`
     );
 
-    return NextResponse.json({ released: ids.length });
+    return NextResponse.json({
+      released: releasableIds.length,
+      held: failedExpiry.size,
+    });
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Unknown error';
     console.error('[Cron] release-reservations error:', message);
