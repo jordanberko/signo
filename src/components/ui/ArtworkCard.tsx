@@ -2,6 +2,7 @@
 
 import { useState, useCallback, useEffect } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { formatPrice } from '@/lib/utils';
 import { useAuth } from '@/components/providers/AuthProvider';
 
@@ -23,6 +24,8 @@ interface ArtworkCardProps {
   initialFavourited?: boolean;
   /** Called after unfavouriting — used by /favourites page to remove from list */
   onUnfavourite?: (id: string) => void;
+  /** Set on above-the-fold cards (first grid row) to preload eagerly */
+  priority?: boolean;
 }
 
 /**
@@ -48,6 +51,7 @@ export default function ArtworkCard({
   hideBadge = false,
   initialFavourited = false,
   onUnfavourite,
+  priority = false,
 }: ArtworkCardProps) {
   const { user } = useAuth();
   const [isFavourited, setIsFavourited] = useState(initialFavourited);
@@ -118,15 +122,22 @@ export default function ArtworkCard({
         className="block overflow-hidden aspect-[3/4] relative no-underline"
       >
         {imageUrl ? (
-          <img
+          // next/image, not a raw <img>: artist uploads are 1600px+
+          // JPEGs (often >1MB). This serves a card-sized WebP via the
+          // optimizer, which is the difference between ~1MB and ~40KB
+          // per tile. `sizes` matches the 2-col / 4-col grid so the
+          // browser never fetches more pixels than it paints.
+          <Image
             src={imageUrl}
             alt={title}
-            className="block w-full h-full object-cover transition-transform group-hover:scale-[1.02]"
+            fill
+            sizes="(min-width: 1024px) 25vw, 50vw"
+            priority={priority}
+            className="object-cover transition-transform group-hover:scale-[1.02]"
             style={{
               transitionDuration: 'var(--dur-slow)',
               transitionTimingFunction: 'var(--ease-out)',
             }}
-            loading="lazy"
           />
         ) : (
           <div

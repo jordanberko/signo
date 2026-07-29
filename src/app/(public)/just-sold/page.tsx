@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { formatPrice } from '@/lib/utils';
 
 interface SoldArtwork {
@@ -213,16 +214,18 @@ function SoldCard({ item }: { item: SoldArtwork }) {
         className="block overflow-hidden aspect-[3/4] relative no-underline"
       >
         {item.imageUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
+          // next/image so the optimizer serves a card-sized WebP rather
+          // than the artist's full-resolution upload (see ArtworkCard).
+          <Image
             src={item.imageUrl}
             alt={item.title}
-            className="block w-full h-full object-cover transition-transform group-hover:scale-[1.02]"
+            fill
+            sizes="(min-width: 1024px) 25vw, 50vw"
+            className="object-cover transition-transform group-hover:scale-[1.02]"
             style={{
               transitionDuration: 'var(--dur-slow)',
               transitionTimingFunction: 'var(--ease-out)',
             }}
-            loading="lazy"
           />
         ) : (
           <div className="w-full h-full" style={{ background: 'var(--color-cream)' }} />
