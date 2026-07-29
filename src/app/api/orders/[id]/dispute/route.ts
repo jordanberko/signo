@@ -1,7 +1,28 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { createClient as createServiceClient } from '@supabase/supabase-js';
+import { sendOpsAlert } from '@/lib/ops-alert';
+import { sendDisputeAcknowledgementEmail } from '@/lib/email';
 
 const VALID_DISPUTE_TYPES = ['damaged', 'not_as_described', 'not_received', 'other'];
+
+/**
+ * Service-role client for the order status transition.
+ *
+ * `orders` deliberately has NO update policy for authenticated users —
+ * only admins and the service role (001_initial_schema.sql:250). The
+ * buyer's `status = 'disputed'` write therefore matched zero rows
+ * silently, leaving the order at `delivered` so the hourly escrow cron
+ * released funds to the artist 48h later. After that `refundBuyer`
+ * refuses (order is `completed`) and there is no clawback — a
+ * guaranteed loss on the first real dispute.
+ */
+function getServiceClient() {
+  return createServiceClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+  );
+}
 
 interface RouteContext {
   params: Promise<{ id: string }>;
@@ -100,11 +121,86 @@ export async function POST(request: Request, context: RouteContext) {
       return NextResponse.json({ error: insertError.message }, { status: 400 });
     }
 
-    // Update order status to disputed
-    await supabase
+    // ── Move the order to `disputed` (service role — see note above) ──
+    // This is the write that pauses escrow: autoReleaseFunds only selects
+    // status='delivered', so if this fails the artist gets paid anyway.
+    // Status-filtered so we never clobber a terminal state.
+    const serviceClient = getServiceClient();
+    const { data: statusUpdated, error: statusError } = await serviceClient
       .from('orders')
       .update({ status: 'disputed' })
-      .eq('id', id);
+      .eq('id', id)
+      .in('status', ['shipped', 'delivered'])
+      .select('id');
+
+    if (statusError || !statusUpdated || statusUpdated.length === 0) {
+      // The dispute row exists but escrow is NOT paused. This needs
+      // human action before the 48h inspection window elapses.
+      console.error('[Dispute] CRITICAL: order status not moved to disputed', {
+        orderId: id,
+        error: statusError?.message,
+        matched: statusUpdated?.length ?? 0,
+      });
+      await sendOpsAlert({
+        title: 'Dispute raised but order status NOT updated — escrow not paused',
+        description:
+          `A dispute row was created but the order could not be moved to 'disputed'. Escrow auto-release only skips disputed orders, so the artist may be paid before this is resolved. Move the order to 'disputed' manually NOW.`,
+        context: {
+          order_id: id,
+          dispute_id: dispute.id,
+          buyer_id: user.id,
+          error: statusError?.message || 'no matching row (unexpected status)',
+        },
+        level: 'error',
+      });
+    }
+
+    // ── Notify: buyer acknowledgement + ops ──
+    // Best-effort; the dispute is already recorded so a mail failure must
+    // not fail the request.
+    try {
+      const { data: orderCtx } = await serviceClient
+        .from('orders')
+        .select(
+          'artwork_id, artworks!orders_artwork_id_fkey(title, profiles!artworks_artist_id_fkey(full_name)), profiles!orders_buyer_id_fkey(email, full_name)'
+        )
+        .eq('id', id)
+        .single();
+
+      const artworkCtx = orderCtx?.artworks as
+        | { title?: string; profiles?: { full_name?: string } | null }
+        | null;
+      const buyerCtx = orderCtx?.profiles as
+        | { email?: string; full_name?: string }
+        | null;
+
+      if (buyerCtx?.email) {
+        await sendDisputeAcknowledgementEmail({
+          buyerEmail: buyerCtx.email,
+          buyerName: buyerCtx.full_name || '',
+          artworkTitle: artworkCtx?.title || 'your artwork',
+          artistName: artworkCtx?.profiles?.full_name || 'the artist',
+          orderId: id,
+          disputeReason: type,
+        });
+      }
+
+      await sendOpsAlert({
+        title: `Dispute raised — ${type}`,
+        description:
+          `A buyer raised a dispute. Escrow is paused; review in the admin dispute queue. Note the 14-day resolution expectation set in the buyer's acknowledgement email.`,
+        context: {
+          order_id: id,
+          dispute_id: dispute.id,
+          type,
+          artwork: artworkCtx?.title || null,
+          evidence_images: (evidence_images || []).length,
+        },
+        level: 'warn',
+      });
+    } catch (notifyErr) {
+      console.error('[Dispute] Notification failure (non-fatal):', notifyErr);
+    }
 
     return NextResponse.json({ success: true, dispute });
   } catch {

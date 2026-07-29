@@ -87,6 +87,7 @@ const PROBES = {
   '020_return_flow.sql':                     { kind: 'column',  table: 'disputes', column: 'return_tracking_number' },
   '021_dispatch_evidence.sql':               { kind: 'column',  table: 'orders',   column: 'dispatch_photo_urls' },
   '022_public_sold_artworks.sql':            { kind: 'structural' },
+  '023_sale_integrity_constraints.sql':      { kind: 'column',  table: 'artworks', column: 'reserved_session_id' },
 };
 
 // ── Probe executors ────────────────────────────────────────────────

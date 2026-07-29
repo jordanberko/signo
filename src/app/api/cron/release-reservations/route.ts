@@ -68,7 +68,7 @@ async function handler(request: Request) {
 
     const { data: staleReservations, error: fetchError } = await supabase
       .from('artworks')
-      .select('id')
+      .select('id, reserved_session_id')
       .eq('status', 'reserved')
       .lt('updated_at', tenMinutesAgo);
 
@@ -96,26 +96,42 @@ async function handler(request: Request) {
     // The created-time filter is a safety cap: sessions older than
     // Stripe's 30-minute minimum expires_at are already expired.
     //
-    // Any Stripe failure (session already complete, Stripe 5xx,
-    // missing env var at boot) is logged and swallowed — the
-    // artwork going back to the marketplace is the correctness
-    // guarantee. A missed session expiry is caught by the payment
-    // webhook's own idempotency (existingOrder check + status-
-    // filtered artwork update).
+    // If a session cannot be expired we HOLD the reservation rather
+    // than releasing it (see the catch blocks below). Releasing an
+    // artwork whose session is still payable is the double-sale race:
+    // buyer B buys the freed artwork, then buyer A's old session
+    // completes and both are charged for one original.
     const staleSet = new Set(ids);
     const sessionsToExpire = new Map<string, string>(); // artworkId → sessionId
+    const failedExpiry = new Set<string>(); // artworks we must NOT release
+
+    // Preferred path: the reservation records its own Stripe session id
+    // (migration 023), so we expire exactly the right session with no
+    // scanning and no chance of missing it.
+    for (const row of staleReservations) {
+      const sid = (row as { reserved_session_id?: string | null })
+        .reserved_session_id;
+      if (sid) sessionsToExpire.set(row.id, sid);
+    }
+
     try {
       const stripe = getStripe();
-      const createdSinceSeconds = Math.floor(Date.now() / 1000) - 40 * 60;
-      for await (const session of stripe.checkout.sessions.list({
-        status: 'open',
-        created: { gte: createdSinceSeconds },
-        limit: 100,
-      })) {
-        const artworkId = session.metadata?.signo_artwork_id;
-        if (artworkId && staleSet.has(artworkId)) {
-          sessionsToExpire.set(artworkId, session.id);
-          if (sessionsToExpire.size === staleSet.size) break;
+      // Fallback scan only for reservations with no linked session
+      // (created before migration 023, or where the link write failed).
+      const unlinked = ids.filter((id) => !sessionsToExpire.has(id));
+      if (unlinked.length > 0) {
+        const unlinkedSet = new Set(unlinked);
+        const createdSinceSeconds = Math.floor(Date.now() / 1000) - 40 * 60;
+        for await (const session of stripe.checkout.sessions.list({
+          status: 'open',
+          created: { gte: createdSinceSeconds },
+          limit: 100,
+        })) {
+          const artworkId = session.metadata?.signo_artwork_id;
+          if (artworkId && unlinkedSet.has(artworkId)) {
+            sessionsToExpire.set(artworkId, session.id);
+            if (sessionsToExpire.size === staleSet.size) break;
+          }
         }
       }
 
@@ -128,22 +144,58 @@ async function handler(request: Request) {
         } catch (expireErr) {
           const m =
             expireErr instanceof Error ? expireErr.message : 'unknown';
+          // Do NOT release this artwork: a still-payable session plus a
+          // freed artwork is exactly the double-sale race (a second buyer
+          // buys it, then the first session completes). Most commonly the
+          // expire fails because the session already COMPLETED — in which
+          // case the webhook is about to mark it sold anyway. Leave it
+          // reserved; the next run (≤5 min) retries.
+          failedExpiry.add(artworkId);
           console.warn(
-            `[Cron] Stripe expire failed for session ${sessionId} (artwork ${artworkId}): ${m} — continuing`
+            `[Cron] Stripe expire failed for session ${sessionId} (artwork ${artworkId}): ${m} — holding reservation`
           );
         }
       }
     } catch (stripeErr) {
       const m = stripeErr instanceof Error ? stripeErr.message : 'unknown';
+      // Stripe unreachable: hold every reservation that has a live
+      // session rather than releasing into a possible double sale.
+      for (const artworkId of sessionsToExpire.keys()) failedExpiry.add(artworkId);
       console.warn(
-        `[Cron] Stripe session cleanup failed, flipping artworks anyway: ${m}`
+        `[Cron] Stripe session cleanup failed, holding ${failedExpiry.size} reservation(s): ${m}`
       );
+    }
+
+    const releasableIds = ids.filter((id) => !failedExpiry.has(id));
+
+    if (failedExpiry.size > 0) {
+      await sendOpsAlert({
+        title: 'Reservations held back — Stripe session could not be expired',
+        description:
+          `These artworks stayed 'reserved' because their checkout session could not be expired. Releasing them while the session is still payable risks a double sale. Usually self-resolving (the session completed, or Stripe was briefly unavailable) — the next run retries. Investigate if the same artwork appears repeatedly.`,
+        context: {
+          held: failedExpiry.size,
+          released: releasableIds.length,
+          artwork_ids: Array.from(failedExpiry).join(', ').slice(0, 900),
+        },
+        level: 'warn',
+      });
+    }
+
+    if (releasableIds.length === 0) {
+      console.log('[Cron] release-reservations complete: 0 released (all held)');
+      return NextResponse.json({ released: 0, held: failedExpiry.size });
     }
 
     const { error: updateError } = await supabase
       .from('artworks')
-      .update({ status: 'approved' })
-      .in('id', ids);
+      .update({
+        status: 'approved',
+        reserved_by: null,
+        reserved_at: null,
+        reserved_session_id: null,
+      })
+      .in('id', releasableIds);
 
     if (updateError) {
       throw new Error(`Failed to release reservations: ${updateError.message}`);

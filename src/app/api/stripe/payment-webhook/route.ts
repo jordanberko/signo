@@ -286,11 +286,39 @@ async function handleCheckoutSessionCompleted(
     );
   }
 
-  // Mark artwork as sold — throw on DB error
-  const { error: artworkErr } = await supabase
+  // Mark artwork as sold — throw on DB error.
+  // Status-filtered: only a reserved/approved work becomes sold. If the
+  // work is ALREADY sold, a second buyer has paid for the same one-off
+  // original (possible when a reservation was released while their
+  // Stripe session was still live). We must not silently overwrite —
+  // alert loudly so the duplicate can be refunded.
+  const { data: soldRows, error: artworkErr } = await supabase
     .from('artworks')
-    .update({ status: 'sold' })
-    .eq('id', artworkId);
+    .update({
+      status: 'sold',
+      reserved_by: null,
+      reserved_at: null,
+      reserved_session_id: null,
+    })
+    .eq('id', artworkId)
+    .in('status', ['reserved', 'approved'])
+    .select('id');
+
+  if (!artworkErr && (!soldRows || soldRows.length === 0)) {
+    await sendOpsAlert({
+      title: 'DOUBLE SALE — artwork was already sold when this payment landed',
+      description:
+        `Order ${order.id} was created for an artwork that is no longer reservable (already sold or withdrawn). The buyer HAS BEEN CHARGED. Refund this order immediately unless the artist can supply another piece — a one-off original cannot ship twice.`,
+      context: {
+        order_id: order.id,
+        artwork_id: artworkId,
+        buyer_id: buyerId,
+        artist_id: artistId,
+        amount_aud: totalAud,
+      },
+      level: 'error',
+    });
+  }
 
   if (artworkErr) {
     throw new Error(

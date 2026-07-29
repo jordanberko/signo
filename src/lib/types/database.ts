@@ -154,6 +154,9 @@ export interface Database {
           tags: string[];
           shipping_weight_kg: number | null;
           digital_file_url: string | null;
+          reserved_by: string | null;
+          reserved_at: string | null;
+          reserved_session_id: string | null;
           colors: string[];
           surface: string | null;
           ready_to_hang: boolean;
@@ -183,6 +186,9 @@ export interface Database {
           tags?: string[];
           shipping_weight_kg?: number | null;
           digital_file_url?: string | null;
+          reserved_by?: string | null;
+          reserved_at?: string | null;
+          reserved_session_id?: string | null;
           colors?: string[];
           surface?: string | null;
           ready_to_hang?: boolean;
@@ -212,6 +218,9 @@ export interface Database {
           tags?: string[];
           shipping_weight_kg?: number | null;
           digital_file_url?: string | null;
+          reserved_by?: string | null;
+          reserved_at?: string | null;
+          reserved_session_id?: string | null;
           colors?: string[];
           surface?: string | null;
           ready_to_hang?: boolean;

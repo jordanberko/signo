@@ -28,8 +28,15 @@ export interface ArtworkDetail {
   shipping_weight_kg: number | null;
   availability: 'available' | 'coming_soon' | 'enquire_only';
   available_from: string | null;
-  /** DB lifecycle status — 'sold' renders a sold state, no purchase CTA */
-  status: 'approved' | 'sold';
+  /**
+   * DB lifecycle status. 'sold' renders a sold state with no purchase
+   * CTA; 'reserved' means a checkout is in progress — the buyer holding
+   * it may resume (their reservation is re-reservable), anyone else sees
+   * a "currently reserved" state.
+   */
+  status: 'approved' | 'sold' | 'reserved';
+  /** True when the signed-in viewer is the one holding the reservation */
+  reservedByViewer?: boolean;
   artist: {
     id: string;
     full_name: string | null;
@@ -116,9 +123,14 @@ export default function ArtworkDetailClient({
   const isOwnArtwork = user?.id === artwork.artist.id;
 
   const isSold = artwork.status === 'sold';
-  const isComingSoon = !isSold && artwork.availability === 'coming_soon';
-  const isEnquireOnly = !isSold && artwork.availability === 'enquire_only';
-  const isAvailable = !isSold && artwork.availability === 'available';
+  // A reservation held by someone else blocks purchase; one held by the
+  // viewer does not (create-session lets them re-reserve their own).
+  const reservedByOther =
+    artwork.status === 'reserved' && !artwork.reservedByViewer;
+  const blocked = isSold || reservedByOther;
+  const isComingSoon = !blocked && artwork.availability === 'coming_soon';
+  const isEnquireOnly = !blocked && artwork.availability === 'enquire_only';
+  const isAvailable = !blocked && artwork.availability === 'available';
 
   const availableFromDate = artwork.available_from ? new Date(artwork.available_from) : null;
   const isAvailableFromFuture = availableFromDate && availableFromDate > new Date();
@@ -557,6 +569,42 @@ export default function ArtworkDetailClient({
 
                 {/* CTAs */}
                 <div style={{ marginBottom: '2.4rem' }}>
+                  {reservedByOther && (
+                    <div>
+                      <p
+                        style={{
+                          fontSize: '0.72rem',
+                          letterSpacing: '0.2em',
+                          textTransform: 'uppercase',
+                          fontWeight: 500,
+                          color: 'var(--color-terracotta)',
+                          margin: 0,
+                          marginBottom: '0.8rem',
+                        }}
+                      >
+                        Reserved
+                      </p>
+                      <p
+                        style={{
+                          fontSize: '0.88rem',
+                          color: 'var(--color-stone-dark)',
+                          lineHeight: 1.6,
+                          margin: 0,
+                          marginBottom: '1.2rem',
+                          maxWidth: 380,
+                        }}
+                      >
+                        Someone is completing checkout on this work right
+                        now. If it isn&apos;t purchased in the next few
+                        minutes it returns to the collection — worth
+                        checking back.
+                      </p>
+                      <Link href="/browse" className="btn-outline no-underline">
+                        Browse available works
+                      </Link>
+                    </div>
+                  )}
+
                   {isSold && (
                     <div>
                       <p
