@@ -702,6 +702,44 @@ export async function sendDisputeAcknowledgementEmail(data: DisputeAcknowledgeme
 }
 
 // ════════════════════════════════════════════════════════════════════
+// 10a. DISPUTE RAISED (to artist — their sale is on hold)
+// ════════════════════════════════════════════════════════════════════
+
+export interface DisputeRaisedArtistData {
+  artistEmail: string;
+  artistName: string;
+  artworkTitle: string;
+  orderId: string;
+  disputeReason: string;
+}
+
+export async function sendDisputeRaisedArtist(data: DisputeRaisedArtistData) {
+  const html = emailWrapper(`
+    ${kicker('A sale is under review')}
+    ${headline('Hold on this', 'one for now.')}
+    ${lede(`Hello ${escapeHtml(data.artistName || 'there')}, the buyer of &ldquo;${escapeHtml(data.artworkTitle)}&rdquo; has raised a concern, so we&rsquo;ve paused the payout for this order while we look into it. This is a normal part of the process and doesn&rsquo;t reflect on you.`)}
+
+    ${ledger([
+      ['Order', `<span style="font-family:${SANS};font-size:11px;color:${STONE};letter-spacing:0.06em;">${escapeHtml(data.orderId)}</span>`],
+      ['Reason', escapeHtml(data.disputeReason), ''],
+    ])}
+
+    ${divider()}
+
+    <p style="font-family:${SERIF};font-size:15px;color:${INK};margin:0 0 8px 0;">&mdash; What to do</p>
+    ${body('Please hold off on any further action until you hear from us. We&rsquo;ll be in touch to understand what happened and, where relevant, ask for your side &mdash; photos of the work before dispatch, packing, or tracking all help.')}
+
+    ${body(`Questions in the meantime? Write to ${textLink('hello@signoart.com.au', 'mailto:hello@signoart.com.au')}.`)}
+  `);
+
+  return safeSend({
+    to: data.artistEmail,
+    subject: `A sale is under review — Order ${escapeHtml(data.orderId.slice(0, 8))}`,
+    html,
+  });
+}
+
+// ════════════════════════════════════════════════════════════════════
 // 11. LISTINGS PAUSED (to artist — grace period expired)
 // ════════════════════════════════════════════════════════════════════
 
