@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server';
 import { createClient as createServiceClient } from '@supabase/supabase-js';
 import { releaseFunds, refundBuyer } from '@/lib/stripe/escrow';
 import { sendOpsAlert } from '@/lib/ops-alert';
+import { logAdminAction } from '@/lib/audit';
 import {
   sendReturnApprovedToBuyer,
   sendReturnApprovedToSeller,
@@ -33,8 +34,8 @@ export async function PUT(request: Request, context: RouteContext) {
     const supabase = await createClient();
 
     // Auth check
-    const { data: { session } } = await supabase.auth.getSession()
-    const user = session?.user;
+    // getUser() revalidates the JWT with the auth server (admin money action).
+    const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
       return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
     }
@@ -181,6 +182,18 @@ export async function PUT(request: Request, context: RouteContext) {
       }
 
       await Promise.all(emailPromises);
+
+      await logAdminAction({
+        actorId: user.id,
+        action: 'dispute.approve_return',
+        targetType: 'dispute',
+        targetId: id,
+        detail: {
+          order_id: dispute.order_id,
+          return_shipping_payer,
+          return_window_days: windowDays,
+        },
+      });
 
       return NextResponse.json({ success: true });
     }
@@ -353,6 +366,18 @@ export async function PUT(request: Request, context: RouteContext) {
 
       await Promise.all(emailPromises);
     }
+
+    await logAdminAction({
+      actorId: user.id,
+      action: 'dispute.resolve',
+      targetType: 'dispute',
+      targetId: id,
+      detail: {
+        order_id: dispute.order_id,
+        resolution,
+        financial_op: financialOpType,
+      },
+    });
 
     return NextResponse.json({ success: true });
   } catch {

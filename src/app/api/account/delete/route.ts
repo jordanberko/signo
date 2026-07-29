@@ -44,8 +44,8 @@ import { createClient } from '@/lib/supabase/server';
 export async function POST() {
   try {
     const supabase = await createClient();
-    const { data: { session } } = await supabase.auth.getSession();
-    const user = session?.user;
+    // getUser() revalidates the JWT with the auth server (destructive action).
+    const { data: { user } } = await supabase.auth.getUser();
 
     if (!user) {
       return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });

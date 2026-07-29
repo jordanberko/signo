@@ -23,8 +23,8 @@ export async function POST(request: Request, context: RouteContext) {
     const { id } = await context.params;
     const supabase = await createClient();
 
-    const { data: { session } } = await supabase.auth.getSession();
-    const user = session?.user;
+    // getUser() revalidates the JWT with the auth server (triggers refund).
+    const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
       return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
     }
