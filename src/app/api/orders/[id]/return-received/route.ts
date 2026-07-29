@@ -111,6 +111,33 @@ export async function POST(request: Request, context: RouteContext) {
 
     // refundBuyer already sets order status to 'refunded', so no separate order update needed
 
+    // Relist the artwork. The physical piece has now been confirmed back
+    // with the artist (that is what "return received" means), so it should
+    // return to the marketplace instead of sitting 'sold' forever with the
+    // artist holding stock they can't sell. Filtered on 'sold' so a piece
+    // the artist has since withdrawn by hand isn't dragged back on sale.
+    const { error: relistError } = await serviceClient
+      .from('artworks')
+      .update({ status: 'approved' })
+      .eq('id', order.artwork_id)
+      .eq('status', 'sold');
+
+    if (relistError) {
+      console.error('[RETURN_RECEIVED] Artwork relist failed:', relistError);
+      await sendOpsAlert({
+        title: `Return received but artwork not relisted — order ${id}`,
+        description:
+          `Order ${id} was refunded and the return confirmed, but the artwork could not be set ` +
+          `back to 'approved'. It stays invisible to buyers until relisted by hand.`,
+        context: {
+          order_id: id,
+          artwork_id: order.artwork_id,
+          error: relistError.message,
+        },
+        level: 'warn',
+      });
+    }
+
     // Send emails to both parties
     const [buyerResult, sellerResult, artworkResult] = await Promise.all([
       serviceClient.from('profiles').select('email, full_name').eq('id', order.buyer_id).single(),
