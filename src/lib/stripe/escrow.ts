@@ -520,6 +520,29 @@ export async function autoReleaseFunds(): Promise<{
     } else {
       failed++;
       errors.push(`${order.id}: ${result.error}`);
+      // A delivered order past its inspection window that cannot pay out is
+      // stranded money — the buyer's funds sit on the platform and the
+      // artist never receives them. releaseFunds already alerts on a Stripe
+      // transfer throw, but NOT on the fail-fast guards (no Connect account,
+      // invalid payout amount) which are exactly the states that never
+      // resolve on their own. Alert per order so these surface instead of
+      // being buried in a cron log line.
+      await sendOpsAlert({
+        title: 'Escrow release failed — payout stranded',
+        description:
+          `Order ${order.id} is delivered and past its inspection window but its payout could not ` +
+          `be released. The buyer's money is held on the platform and the artist has not been paid. ` +
+          `Most likely the artist has no working Stripe Connect account. The cron will retry each ` +
+          `hour; if it keeps failing, resolve the artist's payout setup or refund the buyer.`,
+        context: {
+          order_id: order.id,
+          artist_id: order.artist_id,
+          artwork_id: order.artwork_id,
+          payout_aud: order.artist_payout_aud ?? 0,
+          error: result.error ?? 'unknown',
+        },
+        level: 'error',
+      });
     }
   }
 
@@ -528,6 +551,88 @@ export async function autoReleaseFunds(): Promise<{
   );
 
   return { released, failed, errors };
+}
+
+// ── Shipped → delivered backstop ──
+
+/**
+ * The inspection window (and therefore the artist payout) only starts once
+ * an order reaches 'delivered', which normally requires the BUYER to click
+ * "confirm delivery". Most buyers never do — the piece arrives and they move
+ * on. Without a backstop the order sits at 'shipped' forever and the artist
+ * is never paid, even though the work was delivered weeks ago.
+ *
+ * This marks any order that has been 'shipped' for longer than
+ * SHIPPED_AUTODELIVER_DAYS as delivered, which starts the normal 48-hour
+ * inspection clock. The buyer can still dispute during that window; only
+ * after it passes does the release-escrow cron pay the artist. Net effect:
+ * an artist is always paid ~SHIPPED_AUTODELIVER_DAYS + 2 after shipping,
+ * even for a silent buyer.
+ *
+ * Idempotent and race-safe: the update is filtered on status='shipped', so a
+ * buyer who confirms delivery (or opens a dispute) between the SELECT and the
+ * UPDATE takes the row out of scope and this no-ops for it.
+ */
+const SHIPPED_AUTODELIVER_DAYS = 14;
+const INSPECTION_WINDOW_MS = 48 * 60 * 60 * 1000;
+
+export async function autoMarkStaleShipmentsDelivered(): Promise<{
+  delivered: number;
+  errors: string[];
+}> {
+  const supabase = getServiceClient();
+
+  const cutoff = new Date(
+    Date.now() - SHIPPED_AUTODELIVER_DAYS * 24 * 60 * 60 * 1000
+  ).toISOString();
+
+  const { data: orders, error } = await supabase
+    .from('orders')
+    .select('id, artist_id, artwork_id, buyer_id')
+    .eq('status', 'shipped')
+    .lt('shipped_at', cutoff);
+
+  if (error) {
+    console.error('[Escrow Auto-Deliver] Query error:', error);
+    return { delivered: 0, errors: [error.message] };
+  }
+
+  if (!orders || orders.length === 0) {
+    return { delivered: 0, errors: [] };
+  }
+
+  console.log(
+    `[Escrow Auto-Deliver] ${orders.length} order(s) shipped >${SHIPPED_AUTODELIVER_DAYS}d ago with no delivery confirmation`
+  );
+
+  let delivered = 0;
+  const errors: string[] = [];
+  const now = Date.now();
+
+  for (const order of orders) {
+    const { data: updated, error: updateError } = await supabase
+      .from('orders')
+      .update({
+        status: 'delivered',
+        delivered_at: new Date(now).toISOString(),
+        inspection_deadline: new Date(now + INSPECTION_WINDOW_MS).toISOString(),
+      })
+      .eq('id', order.id)
+      .eq('status', 'shipped')
+      .select('id');
+
+    if (updateError) {
+      errors.push(`${order.id}: ${updateError.message}`);
+      continue;
+    }
+    if (updated && updated.length > 0) delivered++;
+  }
+
+  if (delivered > 0) {
+    console.log(`[Escrow Auto-Deliver] Auto-delivered ${delivered} order(s)`);
+  }
+
+  return { delivered, errors };
 }
 
 // ── Cancel unshipped orders ──
