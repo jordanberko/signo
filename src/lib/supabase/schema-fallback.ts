@@ -33,6 +33,19 @@ export function isMissingColumnError(
   return error.code === 'PGRST204' || error.code === '42703';
 }
 
+/**
+ * True when Supabase rejected the statement because the TABLE doesn't exist.
+ *
+ *   PGRST205 — PostgREST can't find the table/relation in its schema cache.
+ *   42P01    — Postgres `undefined_table`.
+ */
+export function isMissingTableError(
+  error: PostgrestLikeError | null | undefined
+): boolean {
+  if (!error) return false;
+  return error.code === 'PGRST205' || error.code === '42P01';
+}
+
 export async function alertMissingMigration023(
   where: string,
   detail: string

@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { logAdminAction } from '@/lib/audit';
 
 interface RouteContext {
   params: Promise<{ id: string }>;
@@ -12,9 +13,8 @@ export async function PUT(request: Request, context: RouteContext) {
     const { id } = await context.params;
     const supabase = await createClient();
 
-    // Auth check
-    const { data: { session } } = await supabase.auth.getSession();
-    const user = session?.user;
+    // Auth check — getUser() revalidates the JWT (privileged admin action).
+    const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
       return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
     }
@@ -51,6 +51,14 @@ export async function PUT(request: Request, context: RouteContext) {
     if (!artwork) {
       return NextResponse.json({ error: 'Artwork not found' }, { status: 404 });
     }
+
+    await logAdminAction({
+      actorId: user.id,
+      action: 'artwork.feature',
+      targetType: 'artwork',
+      targetId: id,
+      detail: { is_featured },
+    });
 
     return NextResponse.json({ data: artwork });
   } catch {

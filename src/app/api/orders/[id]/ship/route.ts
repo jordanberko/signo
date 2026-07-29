@@ -22,8 +22,8 @@ export async function PUT(request: Request, context: RouteContext) {
     const supabase = await createClient();
 
     // Auth check
-    const { data: { session } } = await supabase.auth.getSession()
-    const user = session?.user;
+    // getUser() revalidates the JWT with the auth server (order state change).
+    const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
       return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
     }
@@ -54,6 +54,42 @@ export async function PUT(request: Request, context: RouteContext) {
     }
     if (!carrier?.trim()) {
       return NextResponse.json({ error: 'Carrier is required' }, { status: 400 });
+    }
+
+    // ── Server-side dispatch evidence validation ──
+    // The three dispatch photos are the platform's protection in a damage
+    // dispute: they prove the work's condition and packing at hand-off. The
+    // client marks them required and disables submit without them, but a
+    // crafted request could ship with none — so enforce it here too. Require
+    // all three expected views, each with a real URL.
+    const REQUIRED_DISPATCH_PHOTO_TYPES = [
+      'work_before_packing',
+      'work_during_packing',
+      'sealed_package',
+    ];
+    const photos = Array.isArray(dispatch_photo_urls) ? dispatch_photo_urls : [];
+    const presentTypes = new Set(
+      photos
+        .filter(
+          (p): p is { type: string; url: string } =>
+            !!p &&
+            typeof p === 'object' &&
+            typeof (p as { type?: unknown }).type === 'string' &&
+            typeof (p as { url?: unknown }).url === 'string' &&
+            ((p as { url: string }).url).trim().length > 0
+        )
+        .map((p) => p.type)
+    );
+    const missing = REQUIRED_DISPATCH_PHOTO_TYPES.filter((t) => !presentTypes.has(t));
+    if (missing.length > 0) {
+      return NextResponse.json(
+        {
+          error:
+            'Dispatch photos are required to confirm shipment. Please upload all three: the work before packing, during packing, and the sealed package.',
+          missing_dispatch_photos: missing,
+        },
+        { status: 400 }
+      );
     }
 
     // Update order (service role bypasses RLS -- orders table has no

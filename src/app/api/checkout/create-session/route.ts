@@ -41,8 +41,9 @@ export async function POST(request: Request) {
     const supabase = await createClient();
 
     // Auth check
-    const { data: { session: authSession } } = await supabase.auth.getSession();
-    const user = authSession?.user;
+    // getUser() (not getSession()) — this is a money endpoint, so the JWT
+    // must be revalidated against the auth server, not read from the cookie.
+    const { data: { user } } = await supabase.auth.getUser();
 
     if (!user) {
       return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
@@ -71,7 +72,7 @@ export async function POST(request: Request) {
     const { data: artwork, error: artworkError } = await supabase
       .from('artworks')
       .select(
-        'id, title, price_aud, category, images, artist_id, shipping_weight_kg, profiles!artworks_artist_id_fkey(full_name, email, stripe_account_id)'
+        'id, title, price_aud, category, availability, images, artist_id, shipping_weight_kg, profiles!artworks_artist_id_fkey(full_name, email, stripe_account_id)'
       )
       .eq('id', artworkId)
       .single();
@@ -91,18 +92,42 @@ export async function POST(request: Request) {
       );
     }
 
+    // ── Digital block ──
+    // Signo has no digital-delivery mechanism — a digital work has nothing
+    // to ship and no download flow, so buying one would take the money and
+    // deliver nothing. Digital pieces are enquire-only until that exists.
+    // The client hides the buy button for these; this is the server guard.
+    if (artwork.category === 'digital') {
+      return NextResponse.json(
+        { error: 'This is a digital work and isn’t available for direct purchase yet. Please enquire with the artist.' },
+        { status: 409 }
+      );
+    }
+
+    // ── Availability gate ──
+    // Only 'available' works are purchasable. 'coming_soon' and
+    // 'enquire_only' must not reach checkout even if the client is stale or
+    // the id is posted directly.
+    if (artwork.availability && artwork.availability !== 'available') {
+      const msg =
+        artwork.availability === 'coming_soon'
+          ? 'This work isn’t on sale yet.'
+          : 'This work is enquire-only and can’t be purchased directly.';
+      return NextResponse.json({ error: msg }, { status: 409 });
+    }
+
     // Calculate totals
-    const isDigital = artwork.category === 'digital';
     const shippingCost = 0; // Free shipping (included in price)
     const totalAmount = artwork.price_aud + shippingCost;
 
-    // Validate shipping address for physical items. The client form
-    // already validates these fields and disables submit when invalid;
-    // this server-side check is defence-in-depth so a crafted payload
-    // can't bypass the client. Returns field-level errors in the same
-    // `{ error, errors: { field: msg } }` shape used by the artworks
-    // route so a future client revision could surface them inline.
-    if (!isDigital) {
+    // Validate shipping address. Digital works are rejected above, so every
+    // order that reaches here ships a physical piece and needs an address.
+    // The client form already validates and disables submit when invalid;
+    // this server-side check is defence-in-depth so a crafted payload can't
+    // bypass the client. Returns field-level errors in the same
+    // `{ error, errors: { field: msg } }` shape used by the artworks route
+    // so a future client revision could surface them inline.
+    {
       const addr = (shippingAddress || {}) as Record<string, unknown>;
       const addressErrors: Record<string, string> = {};
       const isNonEmptyString = (v: unknown): v is string =>

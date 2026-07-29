@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { sendArtworkApproved, sendArtworkRejected } from '@/lib/email';
+import { logAdminAction } from '@/lib/audit';
 
 interface RouteContext {
   params: Promise<{ id: string }>;
@@ -13,9 +14,8 @@ export async function PUT(request: Request, context: RouteContext) {
     const { id } = await context.params;
     const supabase = await createClient();
 
-    // Auth check
-    const { data: { session } } = await supabase.auth.getSession()
-    const user = session?.user;
+    // Auth check — getUser() revalidates the JWT (privileged admin action).
+    const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
       return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
     }
@@ -100,6 +100,18 @@ export async function PUT(request: Request, context: RouteContext) {
         }
       }
     }
+
+    await logAdminAction({
+      actorId: user.id,
+      action: 'artwork.review',
+      targetType: 'artwork',
+      targetId: id,
+      detail: {
+        result: action,
+        artist_id: artwork.artist_id,
+        ...(action === 'rejected' && review_notes ? { review_notes } : {}),
+      },
+    });
 
     return NextResponse.json({ data: artwork });
   } catch {
