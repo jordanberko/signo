@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { validateArtworkBody, VALID_STATUSES } from '@/lib/validation/artworks';
+import { getAccountStatus } from '@/lib/stripe/connect';
 
 export async function POST(request: Request) {
   try {
@@ -86,6 +87,43 @@ export async function POST(request: Request) {
     const artworkStatus = (VALID_STATUSES as readonly string[]).includes(status)
       ? (status as typeof VALID_STATUSES[number])
       : 'draft';
+
+    // ── Live payouts gate (submit-for-review only) ──
+    // `onboarding_completed` + a `stripe_account_id` is not the same as
+    // "can actually receive money" — an artist can get an account id and be
+    // marked onboarded while identity verification or bank details are still
+    // outstanding, so payouts_enabled is false. Listing anyway means every
+    // buyer hits the checkout payouts-block. Verify with Stripe when the
+    // artist submits for review (not on every draft save, to avoid the round
+    // trip). Non-fatal: if the Stripe call fails we let the submission
+    // through rather than block listing on a transient Stripe error — only a
+    // definitive payouts_enabled=false stops it.
+    if (
+      artworkStatus === 'pending_review' &&
+      profile.role === 'artist' &&
+      profile.stripe_account_id
+    ) {
+      try {
+        const acct = await getAccountStatus(profile.stripe_account_id);
+        if (!acct.payoutsEnabled) {
+          return NextResponse.json(
+            {
+              error:
+                'Your payouts aren’t active yet, so buyers wouldn’t be able to complete a purchase. ' +
+                'Finish your payout setup (identity and bank details) in Payout settings, then submit for review. ' +
+                'You can keep saving this as a draft in the meantime.',
+              payoutsInactive: true,
+            },
+            { status: 409 }
+          );
+        }
+      } catch (err) {
+        console.warn(
+          '[Artworks] payouts status check failed, allowing submission:',
+          err instanceof Error ? err.message : String(err)
+        );
+      }
+    }
 
     const { data: artwork, error: insertError } = await supabase
       .from('artworks')

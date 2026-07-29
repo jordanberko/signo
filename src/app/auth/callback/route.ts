@@ -4,7 +4,17 @@ import { createClient } from '@/lib/supabase/server';
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get('code');
-  const next = searchParams.get('next') ?? '/';
+  // `next` is carried on the confirmation link and is therefore
+  // user-visible and tamperable. Only accept a same-site absolute path so a
+  // crafted `next=//evil.com` (or a full URL) can't turn this into an open
+  // redirect after a valid session exchange.
+  const rawNext = searchParams.get('next') ?? '/';
+  const next =
+    rawNext.startsWith('/') &&
+    !rawNext.startsWith('//') &&
+    !rawNext.startsWith('/\\')
+      ? rawNext
+      : '/';
   const selectedRole = searchParams.get('role'); // from register page OAuth
 
   if (code) {

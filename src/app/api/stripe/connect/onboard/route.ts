@@ -9,7 +9,17 @@ import { appUrl } from '@/lib/urls';
  * Creates a Stripe Connect Express account for the authenticated artist
  * (or uses their existing one) and returns the onboarding URL.
  */
-export async function POST(_request: Request) {
+// Only accept a same-site absolute path for the post-onboarding return, so
+// a caller can't turn the Stripe redirect into an off-site open redirect.
+function safeReturnPath(input: unknown): string | null {
+  if (typeof input !== 'string' || !input) return null;
+  if (!input.startsWith('/') || input.startsWith('//') || input.startsWith('/\\')) {
+    return null;
+  }
+  return input;
+}
+
+export async function POST(request: Request) {
   try {
     const supabase = await createClient();
 
@@ -40,6 +50,27 @@ export async function POST(_request: Request) {
     // turn the Stripe redirect into an open-redirect / phishing vector.
     const origin = appUrl();
 
+    // Optional caller-supplied return path (same-site only). Lets the
+    // onboarding wizard bring the artist back INTO the wizard after Stripe
+    // instead of dropping them on the standalone payouts settings page —
+    // which stranded them before the "add your first artwork" step.
+    let returnPath: string | null = null;
+    try {
+      const body = await request.json();
+      returnPath = safeReturnPath(body?.returnPath);
+    } catch {
+      // No/invalid body — fall back to the default payouts settings page.
+    }
+
+    const joiner = (path: string, flag: string) =>
+      `${origin}${path}${path.includes('?') ? '&' : '?'}${flag}`;
+    const returnUrl = returnPath
+      ? joiner(returnPath, 'onboarded=true')
+      : `${origin}/artist/settings/payouts?onboarded=true`;
+    const refreshUrl = returnPath
+      ? joiner(returnPath, 'refresh=true')
+      : `${origin}/artist/settings/payouts?refresh=true`;
+
     let accountId = profile.stripe_account_id;
 
     // Create a new Connect account if one doesn't exist
@@ -55,11 +86,7 @@ export async function POST(_request: Request) {
     }
 
     // Generate the onboarding link
-    const url = await createAccountLink(
-      accountId,
-      `${origin}/artist/settings/payouts?onboarded=true`,
-      `${origin}/artist/settings/payouts?refresh=true`
-    );
+    const url = await createAccountLink(accountId, returnUrl, refreshUrl);
 
     return NextResponse.json({ url, accountId });
   } catch (err) {

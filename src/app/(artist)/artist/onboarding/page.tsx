@@ -169,6 +169,24 @@ export default function ArtistOnboardingPage() {
   const [step, setStep] = useState(0);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  // Non-fatal: the profile saved but the first-artwork submission didn't.
+  // Surfaced on the finish step so the artist knows to re-add it rather than
+  // believing it's live.
+  const [artworkWarning, setArtworkWarning] = useState('');
+
+  // Honour ?step= so a link (or Stripe's return_url) can resume the wizard
+  // at a specific step instead of always restarting at the welcome screen.
+  // Read once on mount from the URL — client-only, so no Suspense boundary
+  // is needed. Clamped to the interactive steps (1–5); an out-of-range or
+  // missing value leaves the welcome step untouched.
+  useEffect(() => {
+    const raw = new URLSearchParams(window.location.search).get('step');
+    if (raw === null) return;
+    const n = Number(raw);
+    if (Number.isInteger(n) && n >= 1 && n <= 5) {
+      setStep(n);
+    }
+  }, []);
 
   // Step 1
   const [fullName, setFullName] = useState(draft.fullName ?? user?.full_name ?? '');
@@ -328,6 +346,7 @@ export default function ArtistOnboardingPage() {
         throw new Error(body.error || 'Failed to save profile');
       }
 
+      setArtworkWarning('');
       if (!skipArtwork && artworkImages.length > 0 && artworkTitle.trim()) {
         const artworkRes = await fetch('/api/artworks', {
           method: 'POST',
@@ -349,7 +368,14 @@ export default function ArtistOnboardingPage() {
 
         if (!artworkRes.ok) {
           const body = await artworkRes.json().catch(() => ({}));
-          console.warn('[Onboarding] Artwork submit warning:', body.error);
+          console.warn('[Onboarding] Artwork submit failed:', body.error);
+          // Don't fail the whole onboarding (the profile is saved) — carry
+          // the reason to the finish step so the artist knows their first
+          // piece wasn't submitted and can re-add it from the dashboard.
+          setArtworkWarning(
+            body.error ||
+              'Your first artwork could not be submitted. You can add it from your dashboard.'
+          );
         }
       }
 
@@ -381,7 +407,14 @@ export default function ArtistOnboardingPage() {
   async function handleConnectStripe() {
     setStripeLoading(true);
     try {
-      const res = await fetch('/api/stripe/connect/onboard', { method: 'POST' });
+      // Ask Stripe to return the artist to THIS wizard on step 4 (payouts)
+      // rather than the standalone payouts settings page, so they continue
+      // to the "add your first artwork" finish step instead of dead-ending.
+      const res = await fetch('/api/stripe/connect/onboard', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ returnPath: '/artist/onboarding?step=4' }),
+      });
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
         throw new Error(body.error || 'Failed to start Stripe onboarding');
@@ -1373,7 +1406,40 @@ export default function ArtistOnboardingPage() {
             >
               Your studio is <em style={{ fontStyle: 'italic' }}>live.</em>
             </h1>
-            {artworkImages.length > 0 ? (
+            {artworkWarning ? (
+              <div
+                role="alert"
+                style={{
+                  border: '1px solid var(--color-terracotta)',
+                  borderRadius: 4,
+                  padding: '1rem 1.15rem',
+                  maxWidth: '52ch',
+                  marginBottom: '2.6rem',
+                }}
+              >
+                <p
+                  style={{
+                    fontSize: '0.92rem',
+                    fontWeight: 500,
+                    color: 'var(--color-ink)',
+                    lineHeight: 1.5,
+                    marginBottom: '0.4rem',
+                  }}
+                >
+                  Your profile is live, but your first artwork wasn&apos;t submitted.
+                </p>
+                <p
+                  style={{
+                    fontSize: '0.88rem',
+                    fontWeight: 400,
+                    color: 'var(--color-stone-dark)',
+                    lineHeight: 1.6,
+                  }}
+                >
+                  {artworkWarning} You can add it any time from your dashboard.
+                </p>
+              </div>
+            ) : artworkImages.length > 0 ? (
               <p
                 style={{
                   fontSize: '1rem',
