@@ -1,169 +1,121 @@
-'use client';
-
-import { useState, useEffect } from 'react';
-import { useParams } from 'next/navigation';
+import { notFound } from 'next/navigation';
+import type { Metadata } from 'next';
 import Link from 'next/link';
 import ArtworkCard from '@/components/ui/ArtworkCard';
+import { appUrl } from '@/lib/urls';
+import { getCollectionBySlug } from '@/lib/collections';
 
-interface CollectionDetail {
-  id: string;
-  title: string;
-  slug: string;
-  description: string | null;
-  cover_image_url: string | null;
-  curator_note: string | null;
-  artworks: Array<{
-    id: string;
-    title: string;
-    artist_id: string;
-    price_aud: number;
-    images: string[];
-    medium: string | null;
-    category: 'original' | 'print' | 'digital' | null;
-    width_cm: number | null;
-    height_cm: number | null;
-    artist: {
-      id: string;
-      full_name: string | null;
-      avatar_url: string | null;
-    } | null;
-  }>;
+// Curated edits change rarely — serve from cache, refresh in the background.
+export const revalidate = 300;
+
+type Props = {
+  params: Promise<{ slug: string }>;
+};
+
+// ── SEO Metadata ──
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const { slug } = await params;
+  const collection = await getCollectionBySlug(slug);
+
+  if (!collection) {
+    return { title: 'Collection Not Found' };
+  }
+
+  const count = collection.artworks.length;
+  const base =
+    collection.description ||
+    collection.curator_note ||
+    `A curated collection of original Australian art on Signo.`;
+  const description = `${base}${count > 0 ? ` ${count} work${count === 1 ? '' : 's'}.` : ''}`.slice(0, 200);
+
+  const url = `${appUrl()}/collections/${slug}`;
+  const ogImage = collection.cover_image_url || collection.artworks[0]?.images?.[0];
+
+  return {
+    title: collection.title,
+    description,
+    alternates: { canonical: url },
+    openGraph: {
+      title: `${collection.title} | Signo`,
+      description,
+      url,
+      type: 'website',
+      ...(ogImage ? { images: [{ url: ogImage, alt: collection.title }] } : {}),
+    },
+    twitter: {
+      card: ogImage ? 'summary_large_image' : 'summary',
+      title: `${collection.title} | Signo`,
+      description,
+      ...(ogImage ? { images: [ogImage] } : {}),
+    },
+  };
 }
 
-export default function CollectionDetailPage() {
-  const params = useParams();
-  const slug = params?.slug as string;
-  const [collection, setCollection] = useState<CollectionDetail | null>(null);
-  const [loaded, setLoaded] = useState(false);
-  const [notFound, setNotFound] = useState(false);
-  const [favouriteIds, setFavouriteIds] = useState<Set<string>>(new Set());
+export default async function CollectionDetailPage({ params }: Props) {
+  const { slug } = await params;
+  const collection = await getCollectionBySlug(slug);
 
-  useEffect(() => {
-    if (!slug) return;
-
-    async function fetchData() {
-      try {
-        const [collectionRes, favsRes] = await Promise.all([
-          fetch(`/api/collections/${slug}`),
-          fetch('/api/favourites/ids'),
-        ]);
-
-        if (collectionRes.ok) {
-          const json = await collectionRes.json();
-          setCollection(json.data);
-          if (json.data?.title) {
-            document.title = `${json.data.title} | Signo`;
-          }
-        } else {
-          setNotFound(true);
-        }
-
-        if (favsRes.ok) {
-          const favsJson = await favsRes.json();
-          setFavouriteIds(new Set(favsJson.ids || []));
-        }
-      } catch (err) {
-        console.error('[CollectionDetail] Fetch error:', err);
-        setNotFound(true);
-      } finally {
-        setLoaded(true);
-      }
-    }
-    fetchData();
-  }, [slug]);
-
-  if (!loaded) {
-    return (
-      <div
-        className="px-6 sm:px-10"
-        style={{ background: 'var(--color-warm-white)', minHeight: '60vh', paddingTop: '6rem' }}
-      >
-        <p
-          className="font-serif"
-          style={{
-            fontSize: '1.1rem',
-            fontStyle: 'italic',
-            color: 'var(--color-stone)',
-            fontWeight: 400,
-          }}
-        >
-          Loading the edit…
-        </p>
-      </div>
-    );
+  // Unpublished / missing → real 404 so it is never soft-indexed.
+  if (!collection) {
+    notFound();
   }
 
-  if (notFound || !collection) {
-    return (
-      <div
-        className="px-6 sm:px-10"
-        style={{
-          background: 'var(--color-warm-white)',
-          paddingTop: 'clamp(5rem, 10vw, 8rem)',
-          paddingBottom: '6rem',
-          maxWidth: '46ch',
-        }}
-      >
-        <p
-          style={{
-            fontSize: '0.68rem',
-            letterSpacing: '0.22em',
-            textTransform: 'uppercase',
-            color: 'var(--color-stone)',
-            marginBottom: '1.2rem',
-          }}
-        >
-          Not found
-        </p>
-        <h1
-          className="font-serif"
-          style={{
-            fontSize: 'clamp(2rem, 4vw, 3rem)',
-            lineHeight: 1.1,
-            color: 'var(--color-ink)',
-            fontWeight: 400,
-          }}
-        >
-          This collection isn&apos;t currently published.
-        </h1>
-        <p
-          style={{
-            marginTop: '1rem',
-            fontSize: '0.88rem',
-            color: 'var(--color-stone-dark)',
-            fontWeight: 400,
-            lineHeight: 1.6,
-            marginBottom: '2rem',
-          }}
-        >
-          The edit may have been retired, or the address may be mistyped.
-        </p>
-        <Link href="/collections" className="editorial-link">
-          All Collections
-        </Link>
-      </div>
-    );
-  }
+  const baseUrl = appUrl();
+  const collectionUrl = `${baseUrl}/collections/${slug}`;
+
+  // ── JSON-LD: the collection as a page, its works as an ItemList, and a
+  // breadcrumb trail (Home › Collections › This edit). ──
+  const jsonLd = {
+    '@context': 'https://schema.org',
+    '@graph': [
+      {
+        '@type': 'CollectionPage',
+        name: collection.title,
+        description: collection.description || collection.curator_note || undefined,
+        url: collectionUrl,
+        ...(collection.cover_image_url ? { image: collection.cover_image_url } : {}),
+        mainEntity: {
+          '@type': 'ItemList',
+          numberOfItems: collection.artworks.length,
+          itemListElement: collection.artworks.map((a, i) => ({
+            '@type': 'ListItem',
+            position: i + 1,
+            url: `${baseUrl}/artwork/${a.id}`,
+            name: a.title,
+          })),
+        },
+      },
+      {
+        '@type': 'BreadcrumbList',
+        itemListElement: [
+          { '@type': 'ListItem', position: 1, name: 'Home', item: baseUrl },
+          { '@type': 'ListItem', position: 2, name: 'Collections', item: `${baseUrl}/collections` },
+          { '@type': 'ListItem', position: 3, name: collection.title, item: collectionUrl },
+        ],
+      },
+    ],
+  };
+  const cleanJsonLd = JSON.parse(JSON.stringify(jsonLd));
 
   return (
     <div style={{ background: 'var(--color-warm-white)' }}>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(cleanJsonLd) }}
+      />
+
       {/* ── Back breadcrumb ── */}
-      <div
-        className="px-6 sm:px-10"
-        style={{ paddingTop: '2.2rem' }}
-      >
+      <div className="px-6 sm:px-10" style={{ paddingTop: '2.2rem' }}>
         <Link
           href="/collections"
+          className="collection-back-link"
           style={{
             fontSize: '0.64rem',
             letterSpacing: '0.2em',
             textTransform: 'uppercase',
             color: 'var(--color-stone)',
             textDecoration: 'none',
-            transition: 'color var(--dur-fast) var(--ease-out)',
           }}
-          onMouseOver={(e) => ((e.currentTarget as HTMLAnchorElement).style.color = 'var(--color-ink)')}
-          onMouseOut={(e) => ((e.currentTarget as HTMLAnchorElement).style.color = 'var(--color-stone)')}
         >
           ← All Collections
         </Link>
@@ -323,7 +275,6 @@ export default function CollectionDetailPage() {
                 category={artwork.category || undefined}
                 widthCm={artwork.width_cm}
                 heightCm={artwork.height_cm}
-                initialFavourited={favouriteIds.has(artwork.id)}
               />
             ))}
           </div>

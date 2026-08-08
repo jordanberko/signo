@@ -1,6 +1,7 @@
 import type { MetadataRoute } from 'next';
 import { createClient } from '@supabase/supabase-js';
 import { appUrl } from '@/lib/urls';
+import { getPublishedCollectionSlugs } from '@/lib/collections';
 
 function getServiceClient() {
   return createClient(
@@ -13,11 +14,17 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const baseUrl = appUrl();
   const supabase = getServiceClient();
 
-  // Static pages
+  // Static pages. Discovery hubs (browse, artists, collections, just-sold)
+  // rank higher than informational pages (how-it-works, pricing, legal).
   const staticPages: MetadataRoute.Sitemap = [
     { url: baseUrl, lastModified: new Date(), changeFrequency: 'daily', priority: 1.0 },
     { url: `${baseUrl}/browse`, lastModified: new Date(), changeFrequency: 'daily', priority: 0.9 },
+    { url: `${baseUrl}/artists`, lastModified: new Date(), changeFrequency: 'daily', priority: 0.8 },
+    { url: `${baseUrl}/collections`, lastModified: new Date(), changeFrequency: 'weekly', priority: 0.7 },
+    { url: `${baseUrl}/just-sold`, lastModified: new Date(), changeFrequency: 'weekly', priority: 0.6 },
     { url: `${baseUrl}/how-it-works`, changeFrequency: 'monthly', priority: 0.6 },
+    { url: `${baseUrl}/art-advisory`, changeFrequency: 'monthly', priority: 0.5 },
+    { url: `${baseUrl}/trade`, changeFrequency: 'monthly', priority: 0.5 },
     { url: `${baseUrl}/pricing`, changeFrequency: 'monthly', priority: 0.5 },
     { url: `${baseUrl}/seller-guide`, changeFrequency: 'monthly', priority: 0.5 },
     { url: `${baseUrl}/about`, changeFrequency: 'monthly', priority: 0.5 },
@@ -26,6 +33,15 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${baseUrl}/privacy`, changeFrequency: 'yearly', priority: 0.2 },
     { url: `${baseUrl}/returns`, changeFrequency: 'yearly', priority: 0.2 },
   ];
+
+  // Published curated collections
+  const collectionSlugs = await getPublishedCollectionSlugs();
+  const collectionPages: MetadataRoute.Sitemap = collectionSlugs.map((c) => ({
+    url: `${baseUrl}/collections/${c.slug}`,
+    lastModified: c.updated_at ? new Date(c.updated_at) : new Date(),
+    changeFrequency: 'weekly' as const,
+    priority: 0.7,
+  }));
 
   // Fetch approved artworks (includes artist_id for deduplicating artist pages)
   const { data: artworks } = await supabase
@@ -58,5 +74,5 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: 0.7,
   }));
 
-  return [...staticPages, ...artworkPages, ...artistPages];
+  return [...staticPages, ...collectionPages, ...artworkPages, ...artistPages];
 }

@@ -53,6 +53,13 @@ export const metadata: Metadata = {
     index: true,
     follow: true,
   },
+  // Google Search Console ownership. Set GOOGLE_SITE_VERIFICATION in the
+  // Vercel env to the token Google gives you (the value inside the
+  // <meta name="google-site-verification" content="…"> tag) — no code
+  // change needed to verify the property and start seeing search traffic.
+  ...(process.env.GOOGLE_SITE_VERIFICATION
+    ? { verification: { google: process.env.GOOGLE_SITE_VERIFICATION } }
+    : {}),
 };
 
 export const viewport: Viewport = {
@@ -96,7 +103,7 @@ export default function RootLayout({
 
   return (
     <html
-      lang="en"
+      lang="en-AU"
       className={`${outfit.variable} h-full antialiased`}
     >
       <head>

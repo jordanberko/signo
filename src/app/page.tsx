@@ -1,5 +1,12 @@
+import type { Metadata } from 'next';
 import HomeClient from './HomeClient';
 import { getFeaturedArtworks } from '@/lib/featured-artworks';
+
+// Canonical for the homepage. Set explicitly so the root URL never competes
+// with a trailing-slash or query-string variant in the index.
+export const metadata: Metadata = {
+  alternates: { canonical: '/' },
+};
 
 /**
  * Homepage — server component.
