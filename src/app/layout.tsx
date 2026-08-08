@@ -27,7 +27,7 @@ const outfit = localFont({
 export const metadata: Metadata = {
   metadataBase: new URL(appUrl()),
   title: {
-    default: "Signo — Where Art Finds Its People",
+    default: "Buy Original Art from Australian Artists | Signo",
     template: "%s — Signo",
   },
   description:
@@ -40,14 +40,14 @@ export const metadata: Metadata = {
   openGraph: {
     type: "website",
     siteName: "Signo",
-    title: "Signo — Where Art Finds Its People",
+    title: "Buy Original Art from Australian Artists | Signo",
     description:
       "A curated Australian art marketplace. Zero commission. Artists keep 100% of every sale.",
     locale: "en_AU",
   },
   twitter: {
     card: "summary_large_image",
-    title: "Signo — Where Art Finds Its People",
+    title: "Buy Original Art from Australian Artists | Signo",
     description:
       "A curated Australian art marketplace. Zero commission. Artists keep 100% of every sale.",
   },
