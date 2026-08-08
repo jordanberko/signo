@@ -267,7 +267,7 @@ export async function sendOrderConfirmation(data: OrderConfirmationData) {
   const html = emailWrapper(`
     ${kicker('Order confirmed')}
     ${headline('Thank you,', escapeHtml(data.buyerName || 'friend') + '.')}
-    ${lede(`Your order for &ldquo;${escapeHtml(data.artworkTitle)}&rdquo; by ${escapeHtml(data.artistName)} has been received. Payment is held securely until delivery is confirmed.`)}
+    ${lede(`Your piece is on its way to being yours. ${escapeHtml(data.artistName)} has been notified and is already preparing &ldquo;${escapeHtml(data.artworkTitle)}&rdquo;. On Signo, work is packed and posted by the artist who made it, straight from the studio, never a warehouse.`)}
 
     ${imageBlock}
 
@@ -278,7 +278,8 @@ export async function sendOrderConfirmation(data: OrderConfirmationData) {
       ['Order', `<span style="font-family:${SANS};font-size:11px;color:${STONE};letter-spacing:0.08em;">${escapeHtml(data.orderId)}</span>`],
     ])}
 
-    ${body('The artist will dispatch your artwork within seven days. A tracking notification will follow once it leaves the studio.')}
+    ${body(`${escapeHtml(data.artistName)} will dispatch your work within seven days, and a tracking note follows once it leaves the studio.`)}
+    ${body(`Your payment stays safely held until the work arrives and you&rsquo;re happy with it. If anything&rsquo;s off, just reply to this email. A real person reads it.`)}
 
     ${ctaButton('View order', `${APP_URL}/orders/${data.orderId}`)}
   `);

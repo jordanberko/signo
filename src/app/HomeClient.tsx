@@ -88,6 +88,7 @@ export default function HomeClient({
         <NewArrivals artworks={featured.slice(0, 8)} />
       )}
       <ShopByStyle />
+      <FoundersNote />
       <FooterBanner />
     </div>
   );
@@ -288,6 +289,66 @@ function FeaturedFallback() {
       <Link href="/browse" className="btn-outline no-underline">
         Browse all works
       </Link>
+    </section>
+  );
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   FOUNDER'S NOTE — a short, signed line on why Signo exists. Quiet and
+   low on the page. Doubles as a trust signal: a first-time buyer weighing
+   up an unfamiliar marketplace can see a real person stands behind it.
+   ══════════════════════════════════════════════════════════════════ */
+
+function FoundersNote() {
+  return (
+    <section
+      className="py-12 md:py-16"
+      style={{
+        borderTop: '1px solid var(--color-border)',
+        paddingLeft: GUTTER,
+        paddingRight: GUTTER,
+      }}
+      aria-label="A note from the founder"
+    >
+      <div style={{ maxWidth: '56ch' }}>
+        <p
+          style={{
+            fontSize: '0.66rem',
+            letterSpacing: '0.2em',
+            textTransform: 'uppercase',
+            color: 'var(--color-stone)',
+            marginBottom: '1.2rem',
+          }}
+        >
+          A note from the founder
+        </p>
+        <p
+          className="font-serif"
+          style={{
+            fontSize: 'clamp(1.15rem, 2.2vw, 1.55rem)',
+            lineHeight: 1.4,
+            color: 'var(--color-ink)',
+            fontWeight: 400,
+            letterSpacing: '-0.005em',
+          }}
+        >
+          Signo started with one frustration: every place that sold my work kept a
+          cut of it. I couldn&rsquo;t find a marketplace that just let the artist keep
+          what they earned, so I made one, and started filling it with Australian
+          artists.
+        </p>
+        <p
+          style={{
+            marginTop: '1.5rem',
+            fontSize: '0.8rem',
+            letterSpacing: '0.02em',
+            color: 'var(--color-stone-dark)',
+            fontStyle: 'italic',
+          }}
+        >
+          &mdash; Jordan, founder
+        </p>
+      </div>
     </section>
   );
 }
