@@ -5,6 +5,8 @@ import Footer from "@/components/layout/Footer";
 import PageTransition from "@/components/layout/PageTransition";
 import { AuthProvider } from "@/components/providers/AuthProvider";
 import { appUrl } from "@/lib/urls";
+import { Analytics } from "@vercel/analytics/next";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 import "./globals.css";
 
 // ── Single sans family sitewide — clean, gallery-neutral.
@@ -129,6 +131,13 @@ export default function RootLayout({
           </main>
           <Footer />
         </AuthProvider>
+        {/* Privacy-friendly, cookieless traffic + Web Vitals measurement.
+            Both beacon to same-origin /_vercel/* paths, so the existing
+            'self' script-src/connect-src CSP already allows them — no policy
+            change or cookie-consent banner needed. Enable Web Analytics and
+            Speed Insights in the Vercel project for data to start flowing. */}
+        <Analytics />
+        <SpeedInsights />
       </body>
     </html>
   );
