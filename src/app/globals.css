@@ -196,6 +196,16 @@ body {
   border-color: var(--color-ink);
 }
 
+/* Collection detail "← All Collections" back link — stone, darkening to ink
+   on hover. Replaces the old inline JS mouse handlers now that the page is a
+   server component. */
+.collection-back-link {
+  transition: color var(--dur-fast) var(--ease-out);
+}
+.collection-back-link:hover {
+  color: var(--color-ink);
+}
+
 /* Footer link */
 .footer-link {
   color: var(--color-stone-dark);

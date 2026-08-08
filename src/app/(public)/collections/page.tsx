@@ -1,41 +1,61 @@
-'use client';
-
-import { useState, useEffect } from 'react';
+import type { Metadata } from 'next';
 import Link from 'next/link';
 import Image from 'next/image';
+import { appUrl } from '@/lib/urls';
+import { getPublishedCollections } from '@/lib/collections';
 
-interface CollectionCard {
-  id: string;
-  title: string;
-  slug: string;
-  description: string | null;
-  cover_image_url: string | null;
-  artwork_count: number;
+// Curated edits change rarely — serve from cache, refresh in the background.
+export const revalidate = 300;
+
+const DESCRIPTION =
+  'Curated collections of original Australian art — handpicked threads running through the roster, from quiet interiors to the edge of abstraction. New edits published monthly.';
+
+export async function generateMetadata(): Promise<Metadata> {
+  const url = `${appUrl()}/collections`;
+  return {
+    title: 'Curated Art Collections',
+    description: DESCRIPTION,
+    alternates: { canonical: url },
+    openGraph: {
+      title: 'Curated Art Collections | Signo',
+      description: DESCRIPTION,
+      url,
+      type: 'website',
+    },
+  };
 }
 
-export default function CollectionsPage() {
-  const [collections, setCollections] = useState<CollectionCard[]>([]);
-  const [loaded, setLoaded] = useState(false);
+export default async function CollectionsPage() {
+  const collections = await getPublishedCollections();
+  const baseUrl = appUrl();
 
-  useEffect(() => {
-    async function fetchCollections() {
-      try {
-        const res = await fetch('/api/collections');
-        const json = await res.json();
-        if (res.ok) {
-          setCollections(json.data || []);
-        }
-      } catch (err) {
-        console.error('[Collections] Fetch error:', err);
-      } finally {
-        setLoaded(true);
-      }
-    }
-    fetchCollections();
-  }, []);
+  // ── JSON-LD: a list of the published collections so search engines can
+  // see the set of curated pages from this index. ──
+  const jsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'CollectionPage',
+    name: 'Curated Art Collections',
+    description: DESCRIPTION,
+    url: `${baseUrl}/collections`,
+    mainEntity: {
+      '@type': 'ItemList',
+      numberOfItems: collections.length,
+      itemListElement: collections.map((c, i) => ({
+        '@type': 'ListItem',
+        position: i + 1,
+        url: `${baseUrl}/collections/${c.slug}`,
+        name: c.title,
+      })),
+    },
+  };
 
   return (
     <div style={{ background: 'var(--color-warm-white)' }}>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
+
       {/* ── Editorial header ── */}
       <header
         className="px-6 sm:px-10"
@@ -78,7 +98,7 @@ export default function CollectionsPage() {
             maxWidth: '46ch',
           }}
         >
-          {loaded && collections.length > 0
+          {collections.length > 0
             ? `${collections.length} curated ${collections.length === 1 ? 'edit' : 'edits'} — handpicked threads running through the roster, from quiet interiors to the edge of abstraction.`
             : 'Handpicked threads running through the roster, from quiet interiors to the edge of abstraction.'}
         </p>
@@ -91,19 +111,7 @@ export default function CollectionsPage() {
         className="px-6 sm:px-10"
         style={{ paddingTop: 'clamp(3rem, 5vw, 4.5rem)', paddingBottom: 'clamp(4rem, 7vw, 6rem)' }}
       >
-        {!loaded ? (
-          <p
-            className="font-serif"
-            style={{
-              fontSize: '1.1rem',
-              fontStyle: 'italic',
-              color: 'var(--color-stone)',
-              fontWeight: 400,
-            }}
-          >
-            Loading the edits…
-          </p>
-        ) : collections.length === 0 ? (
+        {collections.length === 0 ? (
           <div style={{ maxWidth: '46ch', paddingTop: '2rem', paddingBottom: '5rem' }}>
             <p
               className="font-serif"

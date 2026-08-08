@@ -5,6 +5,8 @@ import Footer from "@/components/layout/Footer";
 import PageTransition from "@/components/layout/PageTransition";
 import { AuthProvider } from "@/components/providers/AuthProvider";
 import { appUrl } from "@/lib/urls";
+import { Analytics } from "@vercel/analytics/next";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 import "./globals.css";
 
 // ── Single sans family sitewide — clean, gallery-neutral.
@@ -25,7 +27,7 @@ const outfit = localFont({
 export const metadata: Metadata = {
   metadataBase: new URL(appUrl()),
   title: {
-    default: "Signo — Where Art Finds Its People",
+    default: "Buy Original Art from Australian Artists | Signo",
     template: "%s — Signo",
   },
   description:
@@ -38,14 +40,14 @@ export const metadata: Metadata = {
   openGraph: {
     type: "website",
     siteName: "Signo",
-    title: "Signo — Where Art Finds Its People",
+    title: "Buy Original Art from Australian Artists | Signo",
     description:
       "A curated Australian art marketplace. Zero commission. Artists keep 100% of every sale.",
     locale: "en_AU",
   },
   twitter: {
     card: "summary_large_image",
-    title: "Signo — Where Art Finds Its People",
+    title: "Buy Original Art from Australian Artists | Signo",
     description:
       "A curated Australian art marketplace. Zero commission. Artists keep 100% of every sale.",
   },
@@ -53,6 +55,13 @@ export const metadata: Metadata = {
     index: true,
     follow: true,
   },
+  // Google Search Console ownership. Set GOOGLE_SITE_VERIFICATION in the
+  // Vercel env to the token Google gives you (the value inside the
+  // <meta name="google-site-verification" content="…"> tag) — no code
+  // change needed to verify the property and start seeing search traffic.
+  ...(process.env.GOOGLE_SITE_VERIFICATION
+    ? { verification: { google: process.env.GOOGLE_SITE_VERIFICATION } }
+    : {}),
 };
 
 export const viewport: Viewport = {
@@ -96,7 +105,7 @@ export default function RootLayout({
 
   return (
     <html
-      lang="en"
+      lang="en-AU"
       className={`${outfit.variable} h-full antialiased`}
     >
       <head>
@@ -122,6 +131,13 @@ export default function RootLayout({
           </main>
           <Footer />
         </AuthProvider>
+        {/* Privacy-friendly, cookieless traffic + Web Vitals measurement.
+            Both beacon to same-origin /_vercel/* paths, so the existing
+            'self' script-src/connect-src CSP already allows them — no policy
+            change or cookie-consent banner needed. Enable Web Analytics and
+            Speed Insights in the Vercel project for data to start flowing. */}
+        <Analytics />
+        <SpeedInsights />
       </body>
     </html>
   );
