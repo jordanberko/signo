@@ -142,6 +142,86 @@ export default function AboutPage() {
 
       <div style={{ borderTop: '1px solid var(--color-border)' }} />
 
+      {/* ── From the founder — the person behind the "we" ── */}
+      <section
+        className="px-6 sm:px-10"
+        style={{
+          paddingTop: 'clamp(4rem, 7vw, 6rem)',
+          paddingBottom: 'clamp(4rem, 7vw, 6rem)',
+        }}
+      >
+        <div className="grid grid-cols-1 lg:grid-cols-12" style={{ gap: 'clamp(1.5rem, 4vw, 4rem)' }}>
+          <div className="lg:col-span-4">
+            <p
+              style={{
+                fontSize: '0.68rem',
+                letterSpacing: '0.22em',
+                textTransform: 'uppercase',
+                color: 'var(--color-stone)',
+                marginBottom: '1.2rem',
+              }}
+            >
+              From the Founder
+            </p>
+            <h2
+              className="font-serif"
+              style={{
+                fontSize: 'clamp(1.8rem, 3.5vw, 2.8rem)',
+                lineHeight: 1.1,
+                color: 'var(--color-ink)',
+                fontWeight: 400,
+                letterSpacing: '-0.01em',
+                maxWidth: '14ch',
+              }}
+            >
+              Why I built <em style={{ fontStyle: 'italic' }}>it.</em>
+            </h2>
+          </div>
+          <div className="lg:col-span-8">
+            <p
+              style={{
+                fontSize: '1rem',
+                lineHeight: 1.75,
+                color: 'var(--color-stone-dark)',
+                fontWeight: 400,
+                maxWidth: '58ch',
+                marginBottom: '1.4rem',
+              }}
+            >
+              I&apos;m an artist. For years, nearly every gallery and platform that sold my work kept a
+              third of it, sometimes half. I couldn&apos;t find a marketplace that simply let the artist
+              keep what they earned, so I built one, then set about filling it with Australian artists.
+            </p>
+            <p
+              style={{
+                fontSize: '1rem',
+                lineHeight: 1.75,
+                color: 'var(--color-stone-dark)',
+                fontWeight: 400,
+                maxWidth: '58ch',
+                marginBottom: '1.8rem',
+              }}
+            >
+              The name is Latin. <em style={{ fontStyle: 'italic' }}>Signo</em>: I sign. It&apos;s the
+              last mark an artist makes on a finished piece, and the one thing we refuse to put a fee on.
+            </p>
+            <p
+              className="font-serif"
+              style={{
+                fontSize: '1.05rem',
+                color: 'var(--color-ink)',
+                fontStyle: 'italic',
+                fontWeight: 400,
+              }}
+            >
+              &mdash; Jordan, founder
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <div style={{ borderTop: '1px solid var(--color-border)' }} />
+
       {/* ── The Numbers — typographic comparison ── */}
       <section
         className="px-6 sm:px-10"
