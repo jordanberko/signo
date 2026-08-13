@@ -310,7 +310,7 @@ function FoundersNote() {
       }}
       aria-label="A note from the founder"
     >
-      <div style={{ maxWidth: '80rem', marginLeft: 'auto', marginRight: 'auto', textAlign: 'center' }}>
+      <div style={{ width: '90%', maxWidth: '120rem', marginLeft: 'auto', marginRight: 'auto', textAlign: 'center' }}>
         <p
           style={{
             fontSize: '0.66rem',
